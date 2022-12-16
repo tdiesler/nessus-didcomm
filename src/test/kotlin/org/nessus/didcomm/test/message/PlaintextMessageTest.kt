@@ -34,14 +34,14 @@ class PlaintextMessageTest {
                 .build()
         )
         val packedMessage = packResult.packedMessage
-        println("Send $packedMessage")
+        // println("Send $packedMessage")
 
         // BOB
         val unpackResult = didComm.unpack(
             UnpackParams.Builder(packResult.packedMessage).build()
         )
         val unpackedMessage = unpackResult.message
-        println("Recv $unpackedMessage")
+        // println("Recv $unpackedMessage")
 
         Assertions.assertEquals(packedMessage, unpackedMessage.toString())
     }

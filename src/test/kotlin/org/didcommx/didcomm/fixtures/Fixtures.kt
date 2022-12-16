@@ -486,6 +486,8 @@ class JWS {
 
     companion object {
         val TEST_VECTORS = listOf(
+
+            // EdDSA digital signature with a curve Ed25519
             TestVector(
                 from = "did:example:alice#key-1",
                 expected = """
@@ -511,6 +513,7 @@ class JWS {
                 )
             ),
 
+            // ES256 digital signature
             TestVector(
                 from = "did:example:alice#key-2",
                 expected = """
@@ -536,6 +539,7 @@ class JWS {
                 )
             ),
 
+            // ES256K digital signature
             TestVector(
                 from = "did:example:alice#key-3",
                 expected = """
@@ -575,6 +579,8 @@ class JWE {
 
     companion object {
         val TEST_VECTORS = listOf(
+
+            // ECDH-ES key wrapping algorithm using key with X25519 elliptic curve and XC20P for content encryption of the message
             TestVector(
                 message =
                 """
@@ -617,6 +623,7 @@ class JWE {
                 )
             ),
 
+            // ECDH-ES key wrapping algorithm using key with NIST defined P-256 elliptic curve and XC20P for content encryption of the message
             TestVector(
                 message = """
                 {
@@ -648,6 +655,7 @@ class JWE {
                 )
             ),
 
+            // ECDH-ES key wrapping algorithm using key with NIST defined P-384 elliptic curve and A256CBC-HS512 for content encryption of the message
             TestVector(
                 message = """
                 {
@@ -679,6 +687,7 @@ class JWE {
                 )
             ),
 
+            // ECDH-ES key wrapping algorithm using key with NIST defined P-521 elliptic curve and A256GCM for content encryption of the message
             TestVector(
                 message = """
                 {
@@ -710,6 +719,7 @@ class JWE {
                 )
             ),
 
+            // ECDH-1PU key wrapping algorithm using key with X25519 elliptic curve and A256CBC-HS512 for content encryption of the message
             TestVector(
                 message = """
                 {
@@ -752,6 +762,8 @@ class JWE {
                 )
             ),
 
+            // The message is first signed with EdDSA digital signature and then encrypted with ECDH-1PU key wrapping algorithm using key
+            // with NIST defined P-521 elliptic curve and A256CBC-HS512 for content encryption of the message
             TestVector(
                 message = """
                 {
@@ -788,6 +800,11 @@ class JWE {
                 )
             ),
 
+            // The message is first signed with EdDSA digital signature and then encrypted with ECDH-1PU key wrapping algorithm using key
+            // with X25519 elliptic curve and A256CBC-HS512 for content encryption of the message.
+            // After that the message is encrypted a second time with ECDH-ES key wrapping algorithm using key
+            // with X25519 elliptic curve and XC20P for content encryption of the message.
+            // The second anoncrypt is used to protect the sender ID
             TestVector(
                 message = """
                 {
