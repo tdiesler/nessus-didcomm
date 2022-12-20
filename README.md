@@ -1,11 +1,27 @@
-# Nessus DIDComm
+## Nessus DIDComm
 
 Nessus DIDComm is about digital identy and VCs based on [DIDComm](https://identity.foundation/didcomm-messaging/spec/v2.0).
 
 [<img src="docs/img/ssi-book.png" height="200" alt="self sovereign identity">](https://www.manning.com/books/self-sovereign-identity)
 
-## External Documentation
+### External Documentation
 
 * [The Story of Open SSI Standards](https://www.youtube.com/watch?v=RllH91rcFdE)
 * [DIDComm Messaging](https://identity.foundation/didcomm-messaging/spec/v2.0)
 * [DIDComm JVM](https://github.com/sicpa-dlab/didcomm-jvm)
+* [Aries Cloud Agent](https://github.com/hyperledger/aries-cloudagent-python)
+* [Aries Protocol RFCs](https://github.com/hyperledger/aries-rfcs/tree/main/features)
+
+### Ledger with VON-Network
+
+This project requires access to a Hyperledger Indy Network. Is is recommended to use the [VON Network](https://github.com/bcgov/von-network), developed as a portable Indy Node Network implementation for local development. Instructions for setting up the von-network can be viewed [here](https://github.com/bcgov/von-network#running-the-network-locally).
+
+Basic instructions for using the VON Network are [here](https://github.com/bcgov/von-network/blob/main/docs/UsingVONNetwork.md).
+
+### Start Hyperledger Aries Cloud Agent
+
+Use this when you want to run the tests.
+
+```
+docker compose up --detach && docker compose logs -f acapy
+```
