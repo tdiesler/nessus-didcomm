@@ -174,9 +174,6 @@ services:
         --tails-server-base-url http://tails-server:6543
         --admin 0.0.0.0 ${ACAPY_ADMIN_PORT:-8031}
         --admin-api-key ${ACAPY_ADMIN_API_KEY:-adminkey}
-        --jwt-secret ${ACAPY_MULTITENANT_JWT_SECRET:-jwtsecret}
-        --multitenant
-        --multitenant-admin
         --seed 000000000000000000000000Trustee1
         --wallet-storage-type default
         --wallet-key trusteewkey

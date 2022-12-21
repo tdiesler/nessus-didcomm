@@ -28,7 +28,7 @@ import com.google.gson.Gson
  *   ]
  * }
  */
-data class OutOfBandInvitationV2(
+data class OutOfBandInvitation(
 
     /**
      * Message ID. The id attribute value MUST be unique to the sender, across all messages they send.
@@ -69,19 +69,12 @@ data class OutOfBandInvitationV2(
      * OPTIONAL
      */
     val attachments: List<Any>?,
-) {
+) : MessageType(OUT_OF_BAND_INVITATION) {
 
     companion object {
-
-        /**
-         * The header conveying the DIDComm MTURI.
-         * REQUIRED
-         */
-        const val type: String = "https://didcomm.org/out-of-band/2.0/invitation"
-
-        fun fromBody(body: Map<String, Any?>): OutOfBandInvitationV2 {
+        fun fromBody(body: Map<String, Any?>): OutOfBandInvitation {
             val gson = Gson()
-            return gson.fromJson(gson.toJson(body), OutOfBandInvitationV2::class.java)
+            return gson.fromJson(gson.toJson(body), OutOfBandInvitation::class.java)
         }
     }
 }

@@ -36,6 +36,27 @@
     <packaging>jar</packaging>
 
 	<dependencies>
+        <dependency>
+            <groupId>org.nessus.didcomm</groupId>
+            <artifactId>nessus-didcomm-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.microutils</groupId>
+            <artifactId>kotlin-logging-jvm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>network.idu.acapy</groupId>
+            <artifactId>aries-client-python</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.didcommx</groupId>
+            <artifactId>didcomm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
 	</dependencies>
 
 </project>

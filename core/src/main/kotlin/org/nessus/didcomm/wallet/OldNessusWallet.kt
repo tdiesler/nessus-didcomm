@@ -11,13 +11,11 @@ import mu.KotlinLogging
 import java.security.SecureRandom
 
 
-class WalletError(message: String) : Exception(message)
-
 fun ByteArray.encodeBase58(): String = Base58.encode(this)
 
 fun String.decodeBase58(): ByteArray = Base58.decode(this)
 
-class Wallet {
+class OldNessusWallet {
 
     private val log = KotlinLogging.logger {}
 
@@ -33,7 +31,7 @@ class Wallet {
 
         // validate key_type
         if (keyAlgorithm !in didMethod.supportedAlgorithms())
-            throw WalletError("Invalid key type $keyType for method $method")
+            throw WalletException("Invalid key type $keyType for method $method")
 
         var secureRandom = SecureRandom.getInstance("SHA1PRNG")
         secureRandom.setSeed(seedBytes)
@@ -69,7 +67,7 @@ class Wallet {
             SecureRandom().nextBytes(byteArray);
         }
         if (byteArray.size != 32) {
-            throw WalletError("Seed value must be 32 bytes in length")
+            throw WalletException("Seed value must be 32 bytes in length")
         }
         return byteArray
     }

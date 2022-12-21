@@ -3,29 +3,51 @@ package org.nessus.didcomm.model
 import com.google.gson.FieldNamingPolicy
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.nimbusds.jose.util.Base64URL
 import org.didcommx.didcomm.message.Message
 
 /**
  * Serializes a DIDComm Message to JSON
  */
-class MessageWriter {
+object MessageWriter {
 
-    companion object {
-        private val gson: Gson = GsonBuilder()
-            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-            .create()
-        private val prettyGson: Gson = GsonBuilder()
-            .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-            .setPrettyPrinting()
-            .create()
+    private val gson: Gson = GsonBuilder()
+        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+        .create()
+    private val prettyGson: Gson = GsonBuilder()
+        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+        .setPrettyPrinting()
+        .create()
 
-        fun toJson(msg: Message, pretty: Boolean = false) : String {
-            return toJson(msg as Any, pretty)
+    fun toBase64URL(msg: Message): String {
+        return Base64URL.encode(toJson(msg)).toString()
+    }
+
+    fun toJson(msg: Message, pretty: Boolean = false) : String {
+        val jsonObj = gson.toJsonTree(msg).asJsonObject
+        // Remove empty 'custom_headers'
+        // [TODO] we may have to remove emtpty content for other headers too
+        val customHeaders = jsonObj.getAsJsonObject("custom_headers")
+        if (customHeaders.entrySet().isEmpty()) {
+            jsonObj.remove("custom_headers")
         }
+        return auxGson(pretty).toJson(jsonObj)
+    }
 
-        fun toJson(obj: Any, pretty: Boolean = false) : String {
-            val gson = if (pretty) prettyGson else gson
-            return gson.toJson(obj)
+    fun toJson(obj: Any, pretty: Boolean = false) : String {
+        return auxGson(pretty).toJson(obj)
+    }
+
+    fun toMutableMap(obj: Any) : MutableMap<String, Any> {
+        val result: MutableMap<String, Any> = mutableMapOf()
+        val input: String = if (obj is String) obj else gson.toJson(obj)
+        gson.fromJson(input, MutableMap::class.java).forEach {
+                en -> result[en.key as String] = en.value!!
         }
+        return result
+    }
+
+    private fun auxGson(pretty: Boolean = false): Gson {
+        return if (pretty) prettyGson else gson
     }
 }

@@ -4,7 +4,7 @@ import id.walt.crypto.KeyAlgorithm
 
 val DEFAULT_KEY_ALGORITHM = KeyAlgorithm.EdDSA_Ed25519
 
-enum class DidMethod(mname : String) {
+enum class DidMethod(val mname : String) {
     KEY("key"),
     SOV("sov");
 
@@ -13,11 +13,11 @@ enum class DidMethod(mname : String) {
     }
 }
 
-open class Did(method: DidMethod) {
-}
-
-class DidKey() : Did(DidMethod.KEY) {
-}
-
-class DidSov() : Did(DidMethod.SOV) {
-}
+//open class Did(method: DidMethod) {
+//}
+//
+//class DidKey() : Did(DidMethod.KEY) {
+//}
+//
+//class DidSov() : Did(DidMethod.SOV) {
+//}
