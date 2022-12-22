@@ -14,10 +14,6 @@ data class NessusWallet(
     val walletName: String,
     val accessToken: String? = null,
 ) {
-    // [TODO] override toString with redacted values
 
-    fun publicDid() {
-        val walletService = ServiceRegistry.getService(WalletService.type)
-        walletService.publicDid(this)
-    }
+    // [TODO] override toString with redacted values
 }

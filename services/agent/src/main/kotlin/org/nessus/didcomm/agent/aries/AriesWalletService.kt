@@ -7,6 +7,8 @@ import org.hyperledger.aries.api.ledger.IndyLedgerRoles
 import org.hyperledger.aries.api.ledger.RegisterNymFilter
 import org.hyperledger.aries.api.multitenancy.CreateWalletRequest
 import org.hyperledger.aries.api.multitenancy.RemoveWalletRequest
+import org.hyperledger.aries.api.multitenancy.WalletDispatchType
+import org.hyperledger.aries.api.multitenancy.WalletType
 import org.hyperledger.aries.api.wallet.WalletDIDCreate
 import org.nessus.didcomm.agent.aries.AriesAgentService.Companion.adminClient
 import org.nessus.didcomm.service.WalletService
@@ -31,10 +33,11 @@ class AriesWalletService : WalletService {
         val walletRequest = CreateWalletRequest.builder()
             .walletName(walletName)
             .walletKey(walletKey)
+            .walletDispatchType(WalletDispatchType.DEFAULT)
+            .walletType(WalletType.INDY)
             .build()
         val walletRecord = adminClient().multitenancyWalletCreate(walletRequest).get()
         val nessusWallet = NessusWallet(walletRecord.walletId, walletName, walletRecord.token)
-        WalletService.registry.putWallet(nessusWallet)
         log.info("{}: [{}] {}", walletName, nessusWallet.walletId, nessusWallet)
 
         if (indyLedgerRole != null) {
@@ -67,6 +70,7 @@ class AriesWalletService : WalletService {
             log.info("{}: {}", walletName, didEndpoint)
         }
 
+        putWallet(nessusWallet)
         return nessusWallet
     }
 
@@ -75,8 +79,9 @@ class AriesWalletService : WalletService {
         return walletClient.walletDidPublic().orElse(null)?.toString()
     }
 
-    override fun closeAndRemove(wallet: NessusWallet?) {
+    override fun removeWallet(id: String) {
 
+        val wallet = getWallet(id)
         if (wallet != null) {
 
             val walletId = wallet.walletId
@@ -84,7 +89,7 @@ class AriesWalletService : WalletService {
             val accessToken = wallet.accessToken
             log.info("Remove Wallet: {}", walletName)
 
-            WalletService.registry.removeWallet(walletId)
+            super.removeWallet(walletId)
 
             val adminClient: AriesClient = adminClient()
             adminClient.multitenancyWalletRemove(
@@ -100,6 +105,8 @@ class AriesWalletService : WalletService {
             }
         }
     }
+
+    // -----------------------------------------------------------------------------------------------------------------
 
     private fun selfRegisterWithDid(alias: String, did: String, vkey: String, role: IndyLedgerRoles): Boolean {
         val host: String = System.getenv("INDY_WEBSERVER_HOSTNAME") ?: "localhost"

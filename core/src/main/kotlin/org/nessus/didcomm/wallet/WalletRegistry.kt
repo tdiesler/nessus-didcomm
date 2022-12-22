@@ -2,33 +2,25 @@ package org.nessus.didcomm.wallet
 
 class WalletRegistry {
 
-    private val walletsCache: MutableMap<String, NessusWallet> = mutableMapOf()
-
-    fun walletNames(): Set<String> {
-        return walletsCache.keys
-    }
+    private val walletsStore: MutableMap<String, NessusWallet> = mutableMapOf()
 
     fun putWallet(wallet: NessusWallet) {
-        walletsCache[wallet.walletId] = wallet
+        walletsStore[wallet.walletId] = wallet
     }
 
-    fun removeWallet(walletId: String) {
-        walletsCache.remove(walletId)
+    fun removeWallet(id: String) {
+        walletsStore.remove(id)
     }
 
-    fun wallets(): Set<NessusWallet> {
-        return walletsCache.values.toSet()
+    fun getWallets(): Set<NessusWallet> {
+        return walletsStore.values.toSet()
     }
 
-    fun getWallet(walletId: String): NessusWallet? {
-        return walletsCache[walletId]
+    fun getWallet(id: String): NessusWallet? {
+        return walletsStore[id]
     }
 
-    fun getWalletName(walletId: String): String? {
-        return getWallet(walletId)?.walletName
-    }
-
-    fun getWalletByName(walletName: String): NessusWallet? {
-        return walletsCache.values.firstOrNull { w -> w.walletName == walletName }
+    fun getWalletByName(name: String): NessusWallet? {
+        return walletsStore.values.firstOrNull { w -> w.walletName == name }
     }
 }

@@ -25,3 +25,54 @@ Use this when you want to run the tests.
 ```
 docker compose up --detach && docker compose logs -f acapy
 ```
+
+### Onboarding
+
+```
+./aries-wallet --create Government --ledger-role TRUSTEE
+./aries-wallet --create Faber --ledger-role ENDORSER
+./aries-wallet --create Alice
+```
+
+or 
+
+```
+./aries-wallet --create-all
+```
+
+### Siera CLI
+
+[Siera](https://siera.animo.id/) makes self-sovereign identity development easier  
+
+The above should have created the respective siera enviroments. Let's see ... 
+
+```
+brew tap animo/siera
+brew install animo/agent-cli/siera
+
+siera configuration view
+
+Configuration path: ~/.config/siera/config.yaml
+---
+configurations:
+  Acme:
+    endpoint: "http://localhost:8031"
+    api_key: adminkey
+    auth_token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ3YWxsZXRfaWQiOiI0NTdjMjk4Yy01ODg1LTQ0MTctYjFhYS1kN2NjMDNmZmQ3ZDEiLCJpYXQiOjE2NzE3MjgyMDJ9.625-hTW9XPGS_Z5VNKE0IasnGg0lV_TqCMR3TDPWxkc
+    agent: aca-py
+  Alice:
+    endpoint: "http://localhost:8031"
+    api_key: adminkey
+    auth_token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ3YWxsZXRfaWQiOiJiZmY1NWJlNy0yMTc5LTQzNGQtYjEwZC1mZTNlOTEyODM0MjkiLCJpYXQiOjE2NzE3MjgyMTR9.GpP5ltTyc-mQPMKzsoNM74sxoigXnDqR2WRJkEKjLG8
+    agent: aca-py
+  Faber:
+    endpoint: "http://localhost:8031"
+    api_key: adminkey
+    auth_token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ3YWxsZXRfaWQiOiI0MGQ3OWY5ZC1jNWQyLTQ3YWItOGE4NS1lNGQ3YjVjZDMwNTAiLCJpYXQiOjE2NzE3MjgxODl9.h7wrw0VslLYJnswz1KT9LMXGrWLRzL6NLlY7sgfEbwk
+    agent: aca-py
+  Government:
+    endpoint: "http://localhost:8031"
+    api_key: adminkey
+    auth_token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ3YWxsZXRfaWQiOiJlZWQyMjNhZS0wYTNmLTQ0MDUtOGI4NS0wMzBlM2E5OGVjZGUiLCJpYXQiOjE2NzE3MjgxNzZ9.B3wRMTJ2iv0KwwOyWnKgv0h1njm-OIi1izCgaM5Cj_w
+    agent: aca-py
+```
