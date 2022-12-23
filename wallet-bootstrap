@@ -3,7 +3,7 @@
 set -e
 
 help() {
-  echo "Usage: $0 --[create|create-all|list|remove|switch] name [--wallet-key mykey] [--leder-role ENDORSER]"
+  echo "Usage: $0 --[create|list|remove] name [--wallet-key mykey] [--leder-role ENDORSER]"
 }
 
 # Host and Port for the VON-Network
@@ -15,7 +15,7 @@ ACAPY_ADMIN_HOST=${ACAPY_ADMIN_PORT:-localhost}
 ACAPY_ADMIN_PORT=${ACAPY_ADMIN_PORT:-8031}
 ACAPY_ADMIN_KEY=${ACAPY_ADMIN_KEY:-adminkey}
 
-configDir="${HOME}/.config/aries-cli/wallet"
+configDir="${HOME}/.config/acapy/wallet"
 mkdir -p ${configDir}
 
 createWallet() {
@@ -63,7 +63,7 @@ createWallet() {
     echo ${jsonResponse} | jq .
 
     echo "Set the public DID for the wallet"
-    jsonResponse=$(curl --silent sier--request POST "http://${ACAPY_ADMIN_HOST}:${ACAPY_ADMIN_PORT}/wallet/did/public?did=${publicDid}" \
+    jsonResponse=$(curl --silent --request POST "http://${ACAPY_ADMIN_HOST}:${ACAPY_ADMIN_PORT}/wallet/did/public?did=${publicDid}" \
     	--header "Authorization: Bearer ${accessToken}" \
     	--header "X-API-KEY: ${ACAPY_ADMIN_KEY}")
     echo ${jsonResponse} | jq .
@@ -79,6 +79,9 @@ createWallet() {
 
   echo "Create CLI environment for ${walletName} ..."
   siera configuration add --environment="${walletName}" --agent="aca-py" --agent-url="http://${ACAPY_ADMIN_HOST}:${ACAPY_ADMIN_PORT}" --api-key="${ACAPY_ADMIN_KEY}" --token="${accessToken}"
+
+  echo "siera configuration view ..."
+  siera configuration view
 }
 
 listWallets() {
@@ -115,20 +118,6 @@ removeWallet() {
   fi
 }
 
-switchWallet() {
-  walletName="$1"
-
-  if [[ -z ${walletName} ]]; then
-    help; exit 1
-  fi
-
-  configFile="${configDir}/${walletName}.json"
-  accessToken=$(cat ${configFile} | jq -r .token)
-
-  echo "Switching CLI environment to ${walletName}"
-  aries-cli configuration add --environment="default" --agent-url="http://${ACAPY_ADMIN_HOST}:${ACAPY_ADMIN_PORT}" --api-key="${ACAPY_ADMIN_KEY}" --token="${accessToken}"
-}
-
 options=($@)
 for i in "${!options[@]}"
 do
@@ -149,18 +138,6 @@ if [[ $1 == "--create" ]]; then
 
   createWallet "${walletName}" "${walletKey}" "${ledgerRole}"
 
-elif [[ $1 == "--create-all" ]]; then
-
-  for walletName in 'Government'; do
-      createWallet ${walletName} "" "TRUSTEE"
-  done
-
-  for walletName in 'Faber' 'Acme'; do
-      createWallet ${walletName} "" "ENDORSER"
-  done
-
-  createWallet 'Alice'
-
 elif [[ $1 == "--list" ]]; then
 
   listWallets
@@ -168,16 +145,6 @@ elif [[ $1 == "--list" ]]; then
 elif [[ $1 == "--remove" ]]; then
 
   removeWallet ${walletName}
-
-elif [[ $1 == "--remove-all" ]]; then
-
-  for walletName in 'Government' 'Faber' 'Acme' 'Alice'; do
-    removeWallet ${walletName}
-  done
-
-elif [[ $1 == "--switch" ]]; then
-
-  switchWallet ${walletName}
 
 else
   help

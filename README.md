@@ -26,30 +26,25 @@ Use this when you want to run the tests.
 docker compose up --detach && docker compose logs -f acapy
 ```
 
-### Onboarding
+### Install Siera CLI
 
-```
-./aries-wallet --create Government --ledger-role TRUSTEE
-./aries-wallet --create Faber --ledger-role ENDORSER
-./aries-wallet --create Alice
-```
-
-or 
-
-```
-./aries-wallet --create-all
-```
-
-### Siera CLI
-
-[Siera](https://siera.animo.id/) makes self-sovereign identity development easier  
-
-The above should have created the respective siera enviroments. Let's see ... 
+[Siera](https://siera.animo.id/) makes self-sovereign identity development easier
 
 ```
 brew tap animo/siera
 brew install animo/agent-cli/siera
+```
 
+### Onboarding
+
+```
+./wallet-bootstrap --create Government --ledger-role TRUSTEE
+./wallet-bootstrap --create Faber --ledger-role ENDORSER
+```
+
+The above should have created the respective siera enviroments. Let's see ... 
+
+```
 siera configuration view
 
 Configuration path: ~/.config/siera/config.yaml

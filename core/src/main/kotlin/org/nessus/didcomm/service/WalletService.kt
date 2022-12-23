@@ -1,7 +1,6 @@
 package org.nessus.didcomm.service
 
 import org.nessus.didcomm.wallet.NessusWallet
-import org.nessus.didcomm.wallet.WalletException
 import org.nessus.didcomm.wallet.WalletRegistry
 
 interface WalletService : Service {
@@ -14,7 +13,7 @@ interface WalletService : Service {
     override val type: Class<WalletService>
         get() = Companion.type
 
-    fun createWallet(config: Map<String, Any?>): NessusWallet
+    fun createWallet(walletName: String, config: Map<String, Any?>): NessusWallet
 
     fun putWallet(wallet: NessusWallet) {
         registry.putWallet(wallet)
@@ -40,15 +39,5 @@ interface WalletService : Service {
 
 
     // -----------------------------------------------------------------------------------------------------------------
-
-    // [TODO] remove
-    fun assertConfigValue(config: Map<String, Any?>, key: String) : Any {
-        return config[key] ?: throw WalletException("No config value for: $key")
-    }
-
-    // [TODO] remove
-    fun getConfigValue(config: Map<String, Any?>, key: String) : Any? {
-        return config[key]
-    }
 
 }

@@ -1,10 +1,8 @@
 package org.nessus.didcomm.itest
 
-import mu.KotlinLogging
 import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
 import org.hyperledger.acy_py.generated.model.InvitationRecord
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.agent.aries.AriesAgentService
@@ -12,10 +10,8 @@ import org.nessus.didcomm.agent.aries.AriesWalletService
 import org.nessus.didcomm.model.MessageReader
 import org.nessus.didcomm.model.MessageType.Companion.OUT_OF_BAND_INVITATION
 import org.nessus.didcomm.model.MessageWriter
-import org.nessus.didcomm.service.AgentService
 import org.nessus.didcomm.service.ServiceRegistry
-import org.nessus.didcomm.wallet.LedgerRole
-import org.nessus.didcomm.wallet.NessusWallet
+import org.nessus.didcomm.service.agentService
 import kotlin.test.assertEquals
 
 /**
@@ -37,7 +33,7 @@ class DIDExchangeTest : AbstractAriesTest() {
     fun testFaberInvitesAlice() {
 
         val faber = getWalletByName(FABER)!!
-        val alice = getWalletByName(ALICE)!!
+        val alice = getWalletByName(ALICE)
 
         // Create the OOB Invitation through the Agent
         val body = MessageWriter.toMutableMap("""

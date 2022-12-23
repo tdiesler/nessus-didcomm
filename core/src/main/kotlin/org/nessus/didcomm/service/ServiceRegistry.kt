@@ -18,3 +18,11 @@ object ServiceRegistry {
         registry[service.type.name] = service
     }
 }
+
+fun agentService(): AgentService {
+    return ServiceRegistry.getService(AgentService.type)
+}
+
+fun walletService(): WalletService {
+    return ServiceRegistry.getService(WalletService.type)
+}
