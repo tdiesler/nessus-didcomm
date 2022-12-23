@@ -14,7 +14,7 @@
 
         <!-- Other versions -->
         <version.acapy.client>0.7.25</version.acapy.client>
-        <version.didcommx>0.3.3-SNAPSHOT</version.didcommx>
+        <version.didcommx.didcomm>0.3.3-SNAPSHOT</version.didcommx.didcomm>
         <version.google.crypto.tink>1.7.0</version.google.crypto.tink>
         <version.kotlin.logging>3.0.4</version.kotlin.logging>
         <version.waltid>1.12.0</version.waltid>
@@ -82,7 +82,7 @@
             <dependency>
                 <groupId>org.didcommx</groupId>
                 <artifactId>didcomm</artifactId>
-                <version>${version.didcommx}</version>
+                <version>${version.didcommx.didcomm}</version>
             </dependency>
             <dependency>
                 <groupId>org.junit</groupId>

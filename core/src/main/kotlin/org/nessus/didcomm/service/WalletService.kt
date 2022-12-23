@@ -32,7 +32,7 @@ interface WalletService : Service {
     override val type: Class<WalletService>
         get() = Companion.type
 
-    fun createWallet(walletName: String, config: Map<String, Any?>): NessusWallet
+    fun createWallet(walletName: String?, config: Map<String, Any?>): NessusWallet
 
     fun putWallet(wallet: NessusWallet) {
         registry.putWallet(wallet)

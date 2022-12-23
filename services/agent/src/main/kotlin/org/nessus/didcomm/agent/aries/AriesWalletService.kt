@@ -40,33 +40,37 @@ class AriesWalletService : WalletService {
 
     private val log = KotlinLogging.logger {}
 
-    override fun createWallet(walletName: String, config: Map<String, Any?>): NessusWallet {
+    override fun createWallet(walletName: String?, config: Map<String, Any?>): NessusWallet {
 
         val walletKey = config["walletKey"] as? String ?: (walletName + "Key")
-        val trusteeWallet = config["trusteeWallet"] as? NessusWallet
         val ledgerRole = config["ledgerRole"] as? LedgerRole
-        val indyLedgerRole = if (ledgerRole != null) IndyLedgerRoles.valueOf(ledgerRole.toString()) else null
+        val trusteeWallet = config["trusteeWallet"] as? NessusWallet
+        val walletType = config["walletType"]?.toString() ?: "IN_MEMORY"
+        val indyLedgerRole = if (ledgerRole != null)
+            IndyLedgerRoles.valueOf(ledgerRole.name.uppercase())
+        else null
 
         val walletRequest = CreateWalletRequest.builder()
             .walletName(walletName)
             .walletKey(walletKey)
             .walletDispatchType(WalletDispatchType.DEFAULT)
-            .walletType(WalletType.INDY)
+            .walletType(WalletType.valueOf(walletType.uppercase()))
             .build()
         val walletRecord = adminClient().multitenancyWalletCreate(walletRequest).get()
         val nessusWallet = NessusWallet(walletRecord.walletId, walletName, walletRecord.token)
         log.info("{}: [{}] {}", walletName, nessusWallet.walletId, nessusWallet)
 
         if (indyLedgerRole != null) {
-            trusteeWallet ?: throw WalletException("LedgerRole $indyLedgerRole requires selfRegister or trusteeWallet")
+            trusteeWallet ?: throw WalletException("LedgerRole $indyLedgerRole requires trusteeWallet")
 
             // Create a local DID for the wallet
             val walletClient = AriesAgentService.walletClient(nessusWallet)
-            val did: DID = walletClient.walletDidCreate(WalletDIDCreate.builder().build()).get()
+            val didCreate = WalletDIDCreate.builder().build()
+            val did: DID = walletClient.walletDidCreate(didCreate).get()
             log.info("{}: {}", walletName, did)
 
             val trustee: AriesClient = AriesAgentService.walletClient(trusteeWallet)
-            val trusteeName: String = trusteeWallet.walletName
+            val trusteeName: String = trusteeWallet.walletName ?: trusteeWallet.walletId
             val nymResponse = trustee.ledgerRegisterNym(
                 RegisterNymFilter.builder()
                     .verkey(did.verkey)

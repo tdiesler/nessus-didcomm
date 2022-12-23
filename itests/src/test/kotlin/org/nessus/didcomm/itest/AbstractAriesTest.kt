@@ -19,43 +19,18 @@
  */
 package org.nessus.didcomm.itest
 
-import mu.KotlinLogging
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.aries.AriesAgentService
-import org.nessus.didcomm.service.*
-import org.nessus.didcomm.wallet.LedgerRole
+import org.nessus.didcomm.service.agentService
+import org.nessus.didcomm.service.walletService
 import org.nessus.didcomm.wallet.NessusWallet
-import org.nessus.didcomm.wallet.NessusWalletBuilder
 
 abstract class AbstractAriesTest {
-
-    val log = KotlinLogging.logger {}
 
     companion object {
         const val GOVERNMENT = "Government"
         const val FABER = "Faber"
         const val ALICE = "Alice"
-
-        fun onboardWallet(name: String, role: LedgerRole? = null, trustee: NessusWallet? = null) : NessusWallet {
-
-            // Create ENDORSER wallets
-            val builder = NessusWalletBuilder(name)
-            if (role != null && trustee != null) {
-                builder.ledgerRole(role).trusteeWallet(trustee)
-            }
-            // Simple wallets
-            else {
-                // with just the name
-            }
-            return builder.build()
-        }
-
-        fun removeWallet(wallet: NessusWallet?) {
-            if (wallet != null) {
-                val walletService = ServiceRegistry.getService(WalletService.type)
-                walletService().removeWallet(wallet.walletId)
-            }
-        }
     }
 
     fun getWallet(id: String): NessusWallet? {

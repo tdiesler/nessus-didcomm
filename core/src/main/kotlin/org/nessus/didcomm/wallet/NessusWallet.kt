@@ -20,22 +20,40 @@
 
 package org.nessus.didcomm.wallet
 
-import org.nessus.didcomm.service.ServiceRegistry
-import org.nessus.didcomm.service.WalletService
+import id.walt.crypto.KeyAlgorithm
 import org.nessus.didcomm.service.walletService
 
 class WalletException(msg: String) : Exception(msg)
 
+enum class LedgerRole {
+    TRUSTEE,
+    ENDORSER
+}
+
+enum class DIDMethod(val value: String) {
+    KEY("key"),
+    SOV("sov");
+
+    fun supportedAlgorithms() : Set<KeyAlgorithm> {
+        return setOf(KeyAlgorithm.EdDSA_Ed25519)
+    }
+}
+
+enum class WalletType(val value: String) {
+    IN_MEMORY("in_memory"),
+    INDY("indy")
+}
+
 /**
- * A NessusWallet gives acces to wallet information as known by the agent.
+ * A NessusWallet gives access to wallet information as known by the agent.
  */
 class NessusWallet(
     val walletId: String,
-    val walletName: String,
+    val walletName: String? = null,
     val accessToken: String? = null,
 ) {
     companion object {
-        fun builder(name: String): NessusWalletBuilder {
+        fun builder(name: String? = null): NessusWalletBuilder {
             return NessusWalletBuilder(name)
         }
     }

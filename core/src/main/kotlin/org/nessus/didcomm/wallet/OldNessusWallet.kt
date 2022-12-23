@@ -43,7 +43,7 @@ class OldNessusWallet {
      */
     fun createLocalDID(method: String, keyType: String = DEFAULT_KEY_ALGORITHM.name, seed: String? = null) {
 
-        val didMethod = DidMethod.valueOf(method.uppercase())
+        val didMethod = DIDMethod.valueOf(method.uppercase())
         val keyAlgorithm = KeyAlgorithm.fromString(keyType)
         var seedBytes = validateSeed(seed)
         log.info(seedBytes.toHexString())

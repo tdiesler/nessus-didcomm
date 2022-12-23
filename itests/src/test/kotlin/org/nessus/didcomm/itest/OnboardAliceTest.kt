@@ -25,16 +25,16 @@ import org.nessus.didcomm.agent.aries.AriesAgentService
 import org.nessus.didcomm.agent.aries.AriesWalletService
 import org.nessus.didcomm.service.ServiceRegistry
 import org.nessus.didcomm.service.walletService
-import org.nessus.didcomm.wallet.LedgerRole
+import org.nessus.didcomm.wallet.DIDMethod
 import org.nessus.didcomm.wallet.NessusWallet
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
+import org.nessus.didcomm.wallet.WalletType
+import kotlin.test.assertNull
 
 /**
- * Onboard ENDORSER through TRUSTEE
- * https://github.com/tdiesler/nessus-didcomm/issues/9
+ * Onboard Alice in_memory with did:key
+ * https://github.com/tdiesler/nessus-didcomm/issues/11
  */
-class OnboardEndorserTest : AbstractAriesTest() {
+class OnboardAliceTest : AbstractAriesTest() {
 
     companion object {
         @BeforeAll
@@ -46,27 +46,22 @@ class OnboardEndorserTest : AbstractAriesTest() {
     }
 
     @Test
-    fun testOnboardFaber() {
+    fun testOnboardAlice() {
 
-        // ./wallet-bootstrap --create Government --ledger-role TRUSTEE
-        val gov = getWalletByName(GOVERNMENT)!!
-
-        // ./wallet-bootstrap --create Faber --ledger-role ENDORSER
-        val maybeFaber = getWalletByName(FABER)
-        val faber = maybeFaber ?: NessusWallet.builder(FABER)
-            .ledgerRole(LedgerRole.ENDORSER)
-            .trusteeWallet(gov)
+        val maybeAlice = getWalletByName(ALICE)
+        val alice = maybeAlice ?: NessusWallet.builder(ALICE)
+            .walletType(WalletType.IN_MEMORY)
+            .didMethod(DIDMethod.KEY)
             .build()
 
         try {
 
-            val pubDid = faber.publicDid
-            assertNotNull(pubDid, "No public Did")
-            assertTrue(pubDid.startsWith("did:sov"), "Unexpected public did: $pubDid")
+            val pubDid = alice.publicDid
+            assertNull(pubDid)
 
         } finally {
-            if (maybeFaber == null)
-                walletService().removeWallet(faber.walletId)
+            if (maybeAlice == null)
+                walletService().removeWallet(alice.walletId)
         }
     }
 }

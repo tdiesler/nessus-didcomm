@@ -21,23 +21,43 @@ package org.nessus.didcomm.wallet
 
 import org.nessus.didcomm.service.walletService
 
-class NessusWalletBuilder(private val walletName: String) {
+class NessusWalletBuilder(private var walletName: String? = null) {
 
+    private var didMethod: DIDMethod? = null
+    private var walletType: WalletType? = null
     private var ledgerRole: LedgerRole? = null
     private var trusteeWallet: NessusWallet? = null
 
-    fun ledgerRole(ledgerRole: LedgerRole): NessusWalletBuilder {
+    fun walletName(walletName: String): NessusWalletBuilder {
+        this.walletName = walletName
+        return this
+    }
+
+    fun walletType(walletType: WalletType?): NessusWalletBuilder {
+        this.walletType = walletType
+        return this
+    }
+
+    fun didMethod(didMethod: DIDMethod?): NessusWalletBuilder {
+        this.didMethod = didMethod
+        return this
+    }
+
+    fun ledgerRole(ledgerRole: LedgerRole?): NessusWalletBuilder {
         this.ledgerRole = ledgerRole
         return this
     }
 
-    fun trusteeWallet(trusteeWallet: NessusWallet): NessusWalletBuilder {
+    fun trusteeWallet(trusteeWallet: NessusWallet?): NessusWalletBuilder {
         this.trusteeWallet = trusteeWallet
         return this
     }
 
     fun build(): NessusWallet {
         val config: Map<String, Any?> = mapOf(
+            "walletName" to walletName,
+            "walletType" to walletType,
+            "didMethod" to didMethod,
             "ledgerRole" to ledgerRole,
             "trusteeWallet" to trusteeWallet,
         )
