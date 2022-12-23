@@ -27,6 +27,7 @@
             mvn versions:display-plugin-updates
         -->
         <version-maven-surefire-plugin>2.22.2</version-maven-surefire-plugin>
+        <version-license-maven-plugin>2.0.0</version-license-maven-plugin>
 
         <!-- Other properties -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -145,6 +146,18 @@
                             </goals>
                         </execution>
                     </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>${version-license-maven-plugin}</version>
+                    <configuration>
+                        <organizationName>Nessus</organizationName>
+                        <inceptionYear>2022</inceptionYear>
+                        <licenseName>apache_v2</licenseName>
+                        <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
+                        <excludes>**/org/didcommx/**</excludes>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
