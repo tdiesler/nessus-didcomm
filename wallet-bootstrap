@@ -3,7 +3,7 @@
 set -e
 
 help() {
-  echo "Usage: $0 --[create|list|remove] name [--wallet-key mykey] [--leder-role ENDORSER]"
+  echo "Usage: $0 --[create|list|remove|switch] name [--wallet-key mykey] [--leder-role ENDORSER]"
 }
 
 # Host and Port for the VON-Network
@@ -11,9 +11,11 @@ INDY_WEB_SERVER_HOST=${INDY_WEB_SERVER_PORT:-localhost}
 INDY_WEB_SERVER_PORT=${INDY_WEB_SERVER_PORT:-9000}
 
 # Host and Port for ACA-Py
-ACAPY_ADMIN_HOST=${ACAPY_ADMIN_PORT:-localhost}
+ACAPY_HOSTNAME=${ACAPY_HOSTNAME:-localhost}
 ACAPY_ADMIN_PORT=${ACAPY_ADMIN_PORT:-8031}
 ACAPY_ADMIN_KEY=${ACAPY_ADMIN_KEY:-adminkey}
+
+ACAPY_USER_PORT=${ACAPY_USER_PORT:-8030}
 
 configDir="${HOME}/.config/acapy/wallet"
 mkdir -p ${configDir}
@@ -34,7 +36,7 @@ createWallet() {
   jsonData="{\"wallet_name\":\"${walletName}\",\"wallet_key\":\"${walletKey}\",\"wallet_dispatch_type\":\"default\",\"wallet_type\":\"indy\"}"
   echo ${jsonData} | jq .
 
-  jsonResponse=$(curl --silent --request POST "http://${ACAPY_ADMIN_HOST}:${ACAPY_ADMIN_PORT}/multitenancy/wallet" \
+  jsonResponse=$(curl --silent --request POST "http://${ACAPY_HOSTNAME}:${ACAPY_ADMIN_PORT}/multitenancy/wallet" \
   	--header "X-API-KEY: ${ACAPY_ADMIN_KEY}" \
   	--data-raw "${jsonData}")
   echo ${jsonResponse} | jq .
@@ -43,7 +45,7 @@ createWallet() {
   accessToken=$(echo ${jsonResponse} | jq -r .token)
 
   echo "Create DID ..."
-  jsonResponse=$(curl --silent --request POST "http://${ACAPY_ADMIN_HOST}:${ACAPY_ADMIN_PORT}/wallet/did/create" \
+  jsonResponse=$(curl --silent --request POST "http://${ACAPY_HOSTNAME}:${ACAPY_ADMIN_PORT}/wallet/did/create" \
   	--header "Authorization: Bearer ${accessToken}" \
   	--header "X-API-KEY: ${ACAPY_ADMIN_KEY}" \
   	--data-raw "{}")
@@ -63,7 +65,7 @@ createWallet() {
     echo ${jsonResponse} | jq .
 
     echo "Set the public DID for the wallet"
-    jsonResponse=$(curl --silent --request POST "http://${ACAPY_ADMIN_HOST}:${ACAPY_ADMIN_PORT}/wallet/did/public?did=${publicDid}" \
+    jsonResponse=$(curl --silent --request POST "http://${ACAPY_HOSTNAME}:${ACAPY_ADMIN_PORT}/wallet/did/public?did=${publicDid}" \
     	--header "Authorization: Bearer ${accessToken}" \
     	--header "X-API-KEY: ${ACAPY_ADMIN_KEY}")
     echo ${jsonResponse} | jq .
@@ -78,15 +80,13 @@ createWallet() {
   cat ${configFile} | jq .
 
   echo "Create CLI environment for ${walletName} ..."
-  siera configuration add --environment="${walletName}" --agent="aca-py" --agent-url="http://${ACAPY_ADMIN_HOST}:${ACAPY_ADMIN_PORT}" --api-key="${ACAPY_ADMIN_KEY}" --token="${accessToken}"
-
-  echo "siera configuration view ..."
+  siera configuration add --environment="${walletName}" --agent="aca-py" --agent-url="http://${ACAPY_HOSTNAME}:${ACAPY_ADMIN_PORT}" --api-key="${ACAPY_ADMIN_KEY}" --token="${accessToken}"
   siera configuration view
 }
 
 listWallets() {
 
-  jsonResponse=$(curl --silent --request GET "http://${ACAPY_ADMIN_HOST}:${ACAPY_ADMIN_PORT}/multitenancy/wallets" \
+  jsonResponse=$(curl --silent --request GET "http://${ACAPY_HOSTNAME}:${ACAPY_ADMIN_PORT}/multitenancy/wallets" \
     --header "X-API-KEY: ${ACAPY_ADMIN_KEY}")
   echo ${jsonResponse} | jq .
 }
@@ -102,13 +102,9 @@ removeWallet() {
 
   if [[ -f ${configFile} ]]; then
     walletId=$(cat ${configFile} | jq -r .wallet_id)
-    walletKey=$(cat ${configFile} | jq -r .wallet_key)
 
     echo "Remove wallet for ${walletName}"
-    jsonData="{\"wallet_key\":\"${walletKey}\"}"
-    echo ${jsonData} | jq .
-
-    jsonResponse=$(curl --silent --request POST "http://${ACAPY_ADMIN_HOST}:${ACAPY_ADMIN_PORT}/multitenancy/wallet/${walletId}/remove" \
+    jsonResponse=$(curl --silent --request POST "http://${ACAPY_HOSTNAME}:${ACAPY_ADMIN_PORT}/multitenancy/wallet/${walletId}/remove" \
       --header "X-API-KEY: ${ACAPY_ADMIN_KEY}")
 
     rm ${configFile}
@@ -116,6 +112,20 @@ removeWallet() {
     # [#165] Add support for dropping environments from the config
     # https://github.com/animo/aries-cli/issues/165
   fi
+}
+
+switchWallet() {
+  walletName="$1"
+
+  if [[ -z ${walletName} ]]; then
+    help; exit 1
+  fi
+
+  configFile="${configDir}/${walletName}.json"
+  accessToken=$(cat ${configFile} | jq -r .auth_token)
+
+  echo "Switching CLI environment to ${walletName}"
+  siera configuration add --environment="default" --agent-url="http://${ACAPY_HOSTNAME}:${ACAPY_ADMIN_PORT}" --api-key="${ACAPY_ADMIN_KEY}" --token="${accessToken}"
 }
 
 options=($@)
@@ -128,7 +138,7 @@ do
   # echo "$i/$j: ${key} ${val}"
 
   case ${key} in
-    --create | --switch | --remove) walletName=${val};;
+    --create | --remove | --switch) walletName=${val};;
     --wallet-key) walletKey=${val};;
     --ledger-role) ledgerRole=${val};;
   esac
@@ -145,6 +155,10 @@ elif [[ $1 == "--list" ]]; then
 elif [[ $1 == "--remove" ]]; then
 
   removeWallet ${walletName}
+
+elif [[ $1 == "--switch" ]]; then
+
+  switchWallet ${walletName}
 
 else
   help

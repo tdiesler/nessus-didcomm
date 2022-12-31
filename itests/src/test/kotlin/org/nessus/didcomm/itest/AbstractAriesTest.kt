@@ -19,36 +19,74 @@
  */
 package org.nessus.didcomm.itest
 
+import com.google.gson.FieldNamingPolicy
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import mu.KotlinLogging
+import org.hyperledger.aries.api.connection.ConnectionRecord
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
-import org.nessus.didcomm.agent.aries.AriesAgentService
-import org.nessus.didcomm.service.agentService
-import org.nessus.didcomm.service.walletService
+import org.nessus.didcomm.agent.AriesAgentService
+import org.nessus.didcomm.agent.AriesClient
+import org.nessus.didcomm.agent.AriesClientFactory
+import org.nessus.didcomm.service.ServiceRegistry.ariesAgentService
+import org.nessus.didcomm.service.ServiceRegistry.walletService
 import org.nessus.didcomm.wallet.NessusWallet
+import org.nessus.didcomm.wallet.WalletType
+import org.slf4j.event.Level
+
+const val GOVERNMENT = "Government"
+const val FABER = "Faber"
+const val ALICE = "Alice"
 
 abstract class AbstractAriesTest {
 
-    companion object {
-        const val GOVERNMENT = "Government"
-        const val FABER = "Faber"
-        const val ALICE = "Alice"
+    val log = KotlinLogging.logger {}
+
+    val gson: Gson = GsonBuilder()
+        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+        .create()
+    val prettyGson: Gson = GsonBuilder()
+        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+        .setPrettyPrinting()
+        .create()
+
+    fun adminClient(): AriesClient {
+        return AriesClientFactory.adminClient(level=Level.INFO)
     }
 
-    fun getWallet(id: String): NessusWallet? {
-        return walletService().getWallet(id)
+    fun walletClient(wallet: NessusWallet): AriesClient {
+        return AriesClientFactory.walletClient(wallet, level=Level.INFO)
     }
 
-    fun getWalletByName(name: String): NessusWallet? {
-        var wallet = walletService().getWalletByName(name)
-        if (wallet == null && agentService() is AriesAgentService) {
+    fun getWalletByName(walletName: String): NessusWallet? {
+        var wallet = walletService().getWalletByName(walletName)
+        if (wallet == null && ariesAgentService() is AriesAgentService) {
             val adminClient = AriesAgentService.adminClient()
-            val walletRecord = adminClient.multitenancyWallets(name).get().firstOrNull()
+            val walletRecord = adminClient.multitenancyWallets(walletName).get().firstOrNull()
             if (walletRecord != null) {
                 val walletId = walletRecord.walletId
+                val walletType = WalletType.valueOf(walletRecord.settings.walletType.toString())
                 val tokReq = CreateWalletTokenRequest.builder().build()
                 val tokRes = adminClient.multitenancyWalletToken(walletId, tokReq).get()
-                wallet = NessusWallet(walletId, name, tokRes.token)
+                wallet = NessusWallet(walletId, walletType, walletName, tokRes.token)
             }
         }
         return wallet
+    }
+
+    fun removeWallet(wallet: NessusWallet?) {
+        if (wallet != null) {
+            walletService().removeWallet(wallet.walletId)
+        }
+    }
+
+    fun awaitConnectionRecord(client: AriesClient, predicate: (cr: ConnectionRecord) -> Boolean): ConnectionRecord? {
+        var retries = 10
+        var maybeConnection = client.connections().get().firstOrNull { predicate(it) }
+        while (maybeConnection == null && (0 < retries--)) {
+            Thread.sleep(500)
+            maybeConnection = client.connections().get().firstOrNull { predicate(it) }
+        }
+        return maybeConnection
     }
 }

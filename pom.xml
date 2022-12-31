@@ -13,7 +13,8 @@
         <version.kotlin>1.7.20</version.kotlin>
 
         <!-- Other versions -->
-        <version.acapy.client>0.7.25</version.acapy.client>
+        <version.acapy.client>0.7.33</version.acapy.client>
+        <version.apache.camel>3.20.0</version.apache.camel>
         <version.didcommx.didcomm>0.3.3-SNAPSHOT</version.didcommx.didcomm>
         <version.google.crypto.tink>1.7.0</version.google.crypto.tink>
         <version.kotlin.logging>3.0.4</version.kotlin.logging>
@@ -36,8 +37,7 @@
     </properties>
 
     <modules>
-        <module>core</module>
-        <module>services</module>
+        <module>agent</module>
         <module>itests</module>
     </modules>
 
@@ -78,6 +78,13 @@
                 <groupId>network.idu.acapy</groupId>
                 <artifactId>aries-client-python</artifactId>
                 <version>${version.acapy.client}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.camel</groupId>
+                <artifactId>camel-bom</artifactId>
+                <version>${version.apache.camel}</version>
+                <scope>import</scope>
+                <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>org.didcommx</groupId>
@@ -157,6 +164,14 @@
                         <licenseName>apache_v2</licenseName>
                         <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
                         <excludes>**/org/didcommx/**</excludes>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <source>8</source>
+                        <target>8</target>
                     </configuration>
                 </plugin>
                 <plugin>

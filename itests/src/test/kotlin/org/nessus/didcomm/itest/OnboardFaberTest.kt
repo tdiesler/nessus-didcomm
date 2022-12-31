@@ -24,18 +24,20 @@ import org.junit.jupiter.api.Test
 import org.nessus.didcomm.agent.AriesAgentService
 import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.ServiceRegistry
+import org.nessus.didcomm.service.ServiceRegistry.walletService
 import org.nessus.didcomm.service.WALLET_SERVICE_KEY
 import org.nessus.didcomm.wallet.DIDMethod
+import org.nessus.didcomm.wallet.LedgerRole
 import org.nessus.didcomm.wallet.NessusWalletFactory
 import org.nessus.didcomm.wallet.NessusWalletService
-import org.nessus.didcomm.wallet.WalletType
-import kotlin.test.assertNull
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 /**
- * Onboard Alice in_memory with did:key
- * https://github.com/tdiesler/nessus-didcomm/issues/11
+ * Onboard ENDORSER through TRUSTEE
+ * https://github.com/tdiesler/nessus-didcomm/issues/9
  */
-class OnboardAliceTest : AbstractAriesTest() {
+class OnboardFaberTest : AbstractAriesTest() {
 
     companion object {
         @BeforeAll
@@ -47,22 +49,28 @@ class OnboardAliceTest : AbstractAriesTest() {
     }
 
     @Test
-    fun testOnboardAlice() {
+    fun testOnboardFaber() {
 
-        val maybeAlice = getWalletByName(ALICE)
-        val alice = maybeAlice ?: NessusWalletFactory(ALICE)
-            .walletType(WalletType.IN_MEMORY)
-            .didMethod(DIDMethod.KEY)
+        // ./wallet-bootstrap --create Government --ledger-role TRUSTEE
+        val gov = getWalletByName(GOVERNMENT)!!
+
+        // ./wallet-bootstrap --create Faber --ledger-role ENDORSER
+        val maybeFaber = getWalletByName(FABER)
+        val faber = maybeFaber ?: NessusWalletFactory(FABER)
+            .ledgerRole(LedgerRole.ENDORSER)
+            .trusteeWallet(gov)
             .create()
 
         try {
 
-            val pubDid = alice.publicDid
-            assertNull(pubDid)
+            val pubDid = faber.publicDid
+            assertNotNull(pubDid)
+            assertEquals(DIDMethod.SOV, pubDid.method)
 
         } finally {
-            if (maybeAlice == null)
-                removeWallet(alice)
+            if (maybeFaber == null) {
+                walletService().removeWallet(faber.walletId)
+            }
         }
     }
 }
