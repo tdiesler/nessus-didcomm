@@ -28,11 +28,32 @@ enum class KeyType(val value: String) {
     ED25519("ed25519")
 }
 
-class DID(
-    val did: String,
-    val method: DIDMethod,
-    val keyType: KeyType,
-    val verkey: String)
-{
-    val qualified = "did:" + this.method.value + ":" + this.did
+class DID {
+
+    val did: String
+    val method: DIDMethod
+    val keyType: KeyType
+    val verkey: String
+    val qualified: String
+
+    constructor(did: String, method: DIDMethod, keyType: KeyType, verkey: String) {
+        this.did = did.substring(did.lastIndexOf(':') + 1)
+        this.method = method
+        this.keyType = keyType
+        this.verkey = verkey
+        this.qualified = "did:${method.value}:${this.did}"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (other !is DID) return false
+        return qualified == other.qualified
+    }
+
+    override fun hashCode(): Int {
+        return qualified.hashCode()
+    }
+
+    override fun toString(): String {
+        return qualified
+    }
 }

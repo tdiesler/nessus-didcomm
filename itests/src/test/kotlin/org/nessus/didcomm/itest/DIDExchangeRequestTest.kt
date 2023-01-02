@@ -129,22 +129,23 @@ class DIDExchangeRequestTest : AbstractAriesTest() {
             .myEndpoint(aliceEndpoint)
             .usePublicDid(false)
             .build()
-        aliceClient.didExchangeCreateRequest(createReqFilter).get()
+        var aliceConnection = aliceClient.didExchangeCreateRequest(createReqFilter).get()
+        val requestId = aliceConnection.requestId
 
-        val aliceConnRecord = awaitConnectionRecord(aliceClient) {
-            it.stateIsActive()
+        aliceConnection = awaitConnectionRecord(aliceClient) {
+            it.requestId == requestId && it.stateIsActive()
         } ?: throw IllegalStateException("Alice has no connection record in state 'active'")
-        log.info("Alice: {}", prettyGson.toJson(aliceConnRecord))
+        log.info("Alice: {}", prettyGson.toJson(aliceConnection))
 
-        val faberConnRecord = awaitConnectionRecord(faberClient) {
-            it.stateIsActive()
+        val faberConnection = awaitConnectionRecord(faberClient) {
+            it.requestId == requestId && it.stateIsActive()
         } ?: throw IllegalStateException("Faber has no connection record in state 'active'")
-        log.info("Faber: {}", prettyGson.toJson(faberConnRecord))
+        log.info("Faber: {}", prettyGson.toJson(faberConnection))
 
         return mapOf(
             "aliceWallet" to alice,
-            "aliceConnection" to aliceConnRecord,
-            "faberConnection" to faberConnRecord,
+            "aliceConnection" to aliceConnection,
+            "faberConnection" to faberConnection,
         )
     }
 }

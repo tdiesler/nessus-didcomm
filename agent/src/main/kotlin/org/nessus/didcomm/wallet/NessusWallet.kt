@@ -50,15 +50,19 @@ class NessusWallet(
     val walletId: String,
     val walletType: WalletType,
     val walletName: String? = null,
-    val accessToken: String? = null,
+    val authToken: String? = null,
 ) {
 
     val publicDid: DID?
         get() =
             walletService().publicDid(this)
 
-    // [TODO] override toString with redacted values
+    override fun toString(): String {
+        var redactedToken: String? = null
+        if (authToken != null)
+            redactedToken = authToken.substring(0, 6) + "..." + authToken.substring(authToken.length - 6)
+        return "NessusWallet(walletId='$walletId', walletType=$walletType, walletName=$walletName, authToken=$redactedToken, publicDid=$publicDid)"
+    }
 
     // -----------------------------------------------------------------------------------------------------------------
-
 }

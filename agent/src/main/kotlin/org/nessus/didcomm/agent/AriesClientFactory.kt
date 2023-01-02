@@ -67,8 +67,8 @@ class AgentConfiguration private constructor(
     }
 
     override fun toString(): String {
-        val reductedApiKey = if (apiKey != null) apiKey.substring(0, 4) + "..." else null
-        return "AgentConfiguration [agentAdminUrl=$adminUrl, agentUserUrl=$userUrl, agentApiKey=$reductedApiKey]"
+        val redactedApiKey = if (apiKey != null) apiKey.substring(0, 4) + "..." else null
+        return "AgentConfiguration [agentAdminUrl=$adminUrl, agentUserUrl=$userUrl, agentApiKey=$redactedApiKey]"
     }
 
     class AgentConfigurationBuilder {
@@ -133,7 +133,7 @@ object AriesClientFactory {
             .callTimeout(60, TimeUnit.SECONDS)
             .addInterceptor(loggingInterceptor ?: createHttpLoggingInterceptor(Level.TRACE))
             .build()
-        return AriesClient(config.adminUrl, config.apiKey, wallet?.accessToken, auxHttpClient)
+        return AriesClient(config.adminUrl, config.apiKey, wallet?.authToken, auxHttpClient)
     }
 
     private fun createHttpLoggingInterceptor(level: Level): HttpLoggingInterceptor {

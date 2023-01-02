@@ -62,7 +62,7 @@ class NessusWalletService : WalletService {
 
             val walletId = wallet.walletId
             val walletName = wallet.walletName
-            val accessToken = wallet.accessToken
+            val accessToken = wallet.authToken
             log.info("Remove Wallet: {}", walletName)
 
             super.removeWallet(walletId)
@@ -108,6 +108,7 @@ private class AriesWalletPlugin: WalletPlugin() {
         val didMethod = config["didMethod"] as? DIDMethod ?: DIDMethod.KEY
         val trusteeWallet = config["trusteeWallet"] as? NessusWallet
         val ledgerRole = config["ledgerRole"] as? LedgerRole
+        val publicDid = config["publicDid"] as? Boolean ?: false
         val indyLedgerRole = if (ledgerRole != null)
             IndyLedgerRoles.valueOf(ledgerRole.name.uppercase())
         else null
@@ -120,19 +121,19 @@ private class AriesWalletPlugin: WalletPlugin() {
             .build()
         val walletRecord = adminClient().multitenancyWalletCreate(walletRequest).get()
         val nessusWallet = NessusWallet(walletRecord.walletId, walletType, walletName, walletRecord.token)
-        log.info("{}: [{}] {}", walletName, nessusWallet.walletId, nessusWallet)
+        log.info("{}: {}", walletName, nessusWallet)
 
-        if (indyLedgerRole != null) {
+        // Create a local DID for the wallet
+        val walletClient = AriesAgentService.walletClient(nessusWallet)
+        val didCreate = WalletDIDCreate.builder()
+            .method(DIDCreate.MethodEnum.valueOf(didMethod.name))
+            .build()
+        val auxDid = walletClient.walletDidCreate(didCreate).get()
+        val did = didAdaptor(auxDid)!!
+        log.info("{}: {}", walletName, did)
+
+        if (publicDid || indyLedgerRole != null) {
             trusteeWallet ?: throw WalletException("LedgerRole $indyLedgerRole requires trusteeWallet")
-
-            // Create a local DID for the wallet
-            val walletClient = AriesAgentService.walletClient(nessusWallet)
-            val didCreate = WalletDIDCreate.builder()
-                .method(DIDCreate.MethodEnum.valueOf(didMethod.name))
-                .build()
-            val auxDid = walletClient.walletDidCreate(didCreate).get()
-            val did = didAdaptor(auxDid)!!
-            log.info("{}: {}", walletName, did)
 
             val trustee: AriesClient = AriesAgentService.walletClient(trusteeWallet)
             val trusteeName: String = trusteeWallet.walletName ?: trusteeWallet.walletId
@@ -147,9 +148,11 @@ private class AriesWalletPlugin: WalletPlugin() {
 
             // Set the public DID for the wallet
             walletClient.walletDidPublic(did.did)
+
             val didEndpoint = walletClient.walletGetDidEndpoint(did.did).get()
             log.info("{}: {}", walletName, didEndpoint)
         }
+
         return nessusWallet
     }
 

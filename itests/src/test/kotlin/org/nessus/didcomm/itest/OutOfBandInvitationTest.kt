@@ -37,12 +37,12 @@ import org.nessus.didcomm.service.NESSUS_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.ServiceRegistry
 import org.nessus.didcomm.service.WALLET_SERVICE_KEY
 import org.nessus.didcomm.wallet.DIDMethod
+import org.nessus.didcomm.wallet.LedgerRole
 import org.nessus.didcomm.wallet.NessusWallet
 import org.nessus.didcomm.wallet.NessusWalletFactory
 import org.nessus.didcomm.wallet.NessusWalletService
 import org.nessus.didcomm.wallet.WalletType
 import kotlin.test.assertEquals
-import kotlin.test.fail
 
 /**
  * DIDComm - Out Of Band Messages
@@ -54,12 +54,12 @@ import kotlin.test.fail
  * Aries RFC 0023: DID Exchange Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange
  *
- * Flow Overview
- * 1. The responder gives provisional information to the requester using an explicit invitation message from the
- *    out-of-band protocol or an implicit invitation in a DID the responder publishes.
- * 2. The requester uses the provisional information to send a DID and DID Doc to the responder in a request message.
- * 3. The responder uses sent DID Doc information to send a DID and DID Doc to the requester in a response message.
- * 4. The requester sends the responder a complete message that confirms the response message was received.
+ * DID Exchange - Flow Overview
+ * 1. The invitee gives provisional information to the inviter using an explicit invitation message from the
+ *    out-of-band protocol or an implicit invitation in a DID the invitee publishes.
+ * 2. The inviter uses the provisional information to send a DID and DID Doc to the invitee in a request message.
+ * 3. The invitee uses sent DID Doc information to send a DID and DID Doc to the inviter in a response message.
+ * 4. The inviter sends the invitee a complete message that confirms the response message was received.
  */
 class OutOfBandInvitationTest : AbstractAriesTest() {
 
@@ -74,158 +74,177 @@ class OutOfBandInvitationTest : AbstractAriesTest() {
     }
 
     @Test
-    fun test_FaberNonPub_AliceKeyIndyAuto() {
+    fun test_FaberDidSovIndyPubAuto_AliceDidKeyIndyAuto() {
 
-        // Assert that Faber has a public did:sov on Indy
-        val faber = getWalletByName(FABER) ?: fail("Faber does not exist")
-        val faberPublicDid = faber.publicDid ?: fail("Faber has no public DID")
-        assertEquals(WalletType.INDY, faber.walletType)
-        assertEquals(DIDMethod.SOV, faberPublicDid.method)
+        runDidExchangeConfig(mapOf(
 
-        runDidExchangeConfig(faber, mapOf(
-            "faberPublicDid" to null,
-            "aliceWalletType" to WalletType.INDY,
-            "aliceDidMethod" to DIDMethod.KEY,
-            "aliceAutoAccept" to true))
+            "inviterWalletName" to FABER,
+            "inviterUsePublicDid" to true,
+            "inviterAutoAccept" to true,
+
+            "inviteeWalletName" to ALICE,
+            "inviteeWalletType" to WalletType.INDY,
+            "inviteeDidMethod" to DIDMethod.KEY,
+            "inviteeAutoAccept" to true))
     }
 
     @Test
-    fun test_FaberPub_AliceKeyIndyAuto() {
+    fun test_AliceDidKeyMemoryAuto_FaberDidSovIndyPubAuto() {
 
-        // Assert that Faber has a public did:sov on Indy
-        val faber = getWalletByName(FABER) ?: fail("Faber does not exist")
-        val faberPublicDid = faber.publicDid ?: fail("Faber has no public DID")
-        assertEquals(WalletType.INDY, faber.walletType)
-        assertEquals(DIDMethod.SOV, faberPublicDid.method)
+        runDidExchangeConfig(mapOf(
 
-        runDidExchangeConfig(faber, mapOf(
-            "faberPublicDid" to faberPublicDid.qualified,
-            "aliceWalletType" to WalletType.INDY,
-            "aliceDidMethod" to DIDMethod.KEY,
-            "aliceAutoAccept" to true))
+            "inviterWalletName" to ALICE,
+            "inviterWalletType" to WalletType.IN_MEMORY,
+            "inviterDidMethod" to DIDMethod.KEY,
+            "inviterAutoAccept" to true,
+
+            "inviteeWalletName" to FABER,
+            "inviteeUsePublicDid" to true,
+            "inviteeAutoAccept" to true))
     }
 
-    @Test
-    fun test_FaberPub_AliceKeyIndyNonAuto() {
+    private fun runDidExchangeConfig(config: Map<String, Any?>) {
 
-        // Assert that Faber has a public did:sov on Indy
-        val faber = getWalletByName(FABER) ?: fail("Faber does not exist")
-        val faberPublicDid = faber.publicDid ?: fail("Faber has no public DID")
-        assertEquals(WalletType.INDY, faber.walletType)
-        assertEquals(DIDMethod.SOV, faberPublicDid.method)
+        val inviterWalletName = config["inviterWalletName"] as String
+        val inviterWalletType = config["inviterWalletType"] as WalletType?
+        val inviterDidMethod = config["inviterDidMethod"] as DIDMethod?
+        val inviterLedgerRole = config["inviterLedgerRole"] as LedgerRole?
+        val inviterUsePublicDid = config["inviterUsePublicDid"] as Boolean? ?: false
 
-        runDidExchangeConfig(faber, mapOf(
-            "faberPublicDid" to faberPublicDid.qualified,
-            "aliceWalletType" to WalletType.INDY,
-            "aliceDidMethod" to DIDMethod.KEY,
-            "aliceAutoAccept" to false))
-    }
+        val inviteeWalletName = config["inviteeWalletName"] as String
+        val inviteeWalletType = config["inviteeWalletType"] as WalletType?
+        val inviteeDidMethod = config["inviteeDidMethod"] as DIDMethod?
+        val inviteeLedgerRole = config["inviteeLedgerRole"] as LedgerRole?
+        val inviteeUsePublicDid = config["inviteeUsePublicDid"] as Boolean? ?: false
 
-    private fun runDidExchangeConfig(faber: NessusWallet, config: Map<String, Any?>) {
+        val trustee = getWalletByName(GOVERNMENT)
+        checkNotNull(trustee) { "No Government/Trustee" }
 
-        val aliceWalletType = config["aliceWalletType"] as WalletType
-        val aliceDidMethod = config["aliceDidMethod"] as DIDMethod
+        val faber = getWalletByName(FABER)
+        checkNotNull(faber) { "No Faber/Endorser" }
 
-        val alice = NessusWalletFactory(ALICE)
-            .walletType(aliceWalletType)
-            .didMethod(aliceDidMethod)
-            .create()
+        val inviter = if (inviterWalletName == FABER) faber
+            else NessusWalletFactory(inviterWalletName)
+                .walletType(inviterWalletType)
+                .didMethod(inviterDidMethod)
+                .ledgerRole(inviterLedgerRole)
+                .publicDid(inviterUsePublicDid)
+                .trusteeWallet(trustee)
+                .create()
+
+        val invitee = if (inviteeWalletName == FABER) faber
+            else NessusWalletFactory(inviteeWalletName)
+                .walletType(inviteeWalletType)
+                .didMethod(inviteeDidMethod)
+                .ledgerRole(inviteeLedgerRole)
+                .publicDid(inviteeUsePublicDid)
+                .trusteeWallet(trustee)
+                .create()
 
         try {
 
-            val result = didExchange(faber, alice, config)
+            val result = didExchange(inviter, invitee, config)
 
-            val aliceConnection = result["aliceConnection"] as ConnectionRecord?
-            val faberConnection = result["faberConnection"] as ConnectionRecord?
+            val inviterConnection = result["inviterConnection"] as ConnectionRecord?
+            val inviteeConnection = result["inviteeConnection"] as ConnectionRecord?
 
-            log.info("Alice: {}", prettyGson.toJson(aliceConnection))
-            log.info("Faber: {}", prettyGson.toJson(faberConnection))
+            log.info("$inviterWalletName: {}", prettyGson.toJson(inviterConnection))
+            log.info("$inviteeWalletName: {}", prettyGson.toJson(inviteeConnection))
 
-            assertEquals(ConnectionState.ACTIVE, aliceConnection?.state)
-            assertEquals(ConnectionState.ACTIVE, faberConnection?.state)
+            assertEquals(ConnectionState.ACTIVE, inviterConnection?.state)
+            assertEquals(ConnectionState.ACTIVE, inviteeConnection?.state)
 
         } finally {
-            val faberClient = walletClient(faber)
-            faberClient.connections().get().forEach {
-                faberClient.connectionsRemove(it.connectionId)
-            }
-            removeWallet(alice)
+            removeWallet(getWalletByName(ALICE))
         }
     }
 
-    private fun didExchange(faber: NessusWallet, alice: NessusWallet, config: Map<String, Any?>): Map<String, Any> {
+    private fun didExchange(inviter: NessusWallet, invitee: NessusWallet, config: Map<String, Any?>): Map<String, Any> {
 
         log.info("Running {}", config)
 
-        val aliceAutoAccept = config["aliceAutoAccept"] as? Boolean ?: true
-        val faberPublicDid = config["faberPublicDid"] as String?
-        val faberUsePublicDid = faberPublicDid != null
+        val inviterWalletName = config["inviterWalletName"] as String
+        val inviterAutoAccept = config["inviterAutoAccept"] as Boolean
+        val inviterUsePublicDid = config["inviterUsePublicDid"] as Boolean? ?: false
 
-        val faberClient = walletClient(faber)
-        val aliceClient = walletClient(alice)
+        val inviteeWalletName = config["inviteeWalletName"] as String
+        val inviteeAutoAccept = config["inviteeAutoAccept"] as Boolean
 
+        val inviterClient = walletClient(inviter)
+        val inviteeClient = walletClient(invitee)
+
+        // Inviter creates the Invitation
+        //
         val createInvRequest = InvitationCreateRequest.builder()
             .accept(listOf("didcomm/v2"))
-            .alias("Faber/Alice")
-            .myLabel("Invitation for Alice")
+            .alias("$inviterWalletName/$inviteeWalletName")
+            .myLabel("Invitation for $inviteeWalletName")
             .handshakeProtocols(listOf("https://didcomm.org/didexchange/1.0"))
             .protocolVersion("1.1")
-            .usePublicDid(faberUsePublicDid)
+            .usePublicDid(inviterUsePublicDid)
             .build()
         val createInvFilter = CreateInvitationFilter.builder()
-            .autoAccept(true)
+            .autoAccept(inviterAutoAccept)
             .build()
-        val faberInvRecord: InvitationRecord = faberClient.outOfBandCreateInvitation(createInvRequest, createInvFilter).get()
-        val faberInvitation = faberInvRecord.invitation
+        val inviterInvRecord: InvitationRecord = inviterClient.outOfBandCreateInvitation(createInvRequest, createInvFilter).get()
+        val inviterInvitation = inviterInvRecord.invitation
+        val invitationMsgId = inviterInvRecord.inviMsgId
 
-        val invitationMessageBuilder = if (faberUsePublicDid) {
+        // Invitee receives the Invitation
+        //
+        val invitationMessageBuilder = if (inviterUsePublicDid) {
             InvitationMessage.builder<String>()
-                .services(faberInvitation.services.map { it as String })
+                .services(inviterInvitation.services.map { it as String })
         } else {
             InvitationMessage.builder<InvitationMessageService>()
-                .services(faberInvitation.services.map {
+                .services(inviterInvitation.services.map {
                     val srvJson: String = gson.toJson(it)
                     gson.fromJson(srvJson, InvitationMessageService::class.java)
                 })
         }
 
         // [TODO] `from` is required by didcomm-v2 spec
-        val invitationMessage = invitationMessageBuilder.atId(faberInvitation.atId)
-            .atType(faberInvitation.atType)
+        val invitationMessage = invitationMessageBuilder.atId(inviterInvitation.atId)
+            .atType(inviterInvitation.atType)
             .goalCode("issue-vc")
-            .goalCode("To issue a Faber College Graduate credential")
-            .accept(faberInvitation.accept)
+            .goalCode("Issue a Faber College Graduate credential")
+            .accept(inviterInvitation.accept)
             .build()
         val receiveInvFilter = ReceiveInvitationFilter.builder()
             .useExistingConnection(false)
-            .autoAccept(aliceAutoAccept)
+            .autoAccept(inviteeAutoAccept)
             .build()
 
         // [TODO] should this really return a ConnectionRecord?
-        var aliceConnRecord = aliceClient.outOfBandReceiveInvitation(invitationMessage, receiveInvFilter).get()
+        var inviteeConnection = inviteeClient.outOfBandReceiveInvitation(invitationMessage, receiveInvFilter).get()
 
-        if (!aliceAutoAccept) {
-            val aliceEndpoint = "http://host.docker.internal:8030"
-            val connectionId = aliceConnRecord.connectionId
+        // Invitee manually accepts the Invitation
+        //
+        if (!inviteeAutoAccept) {
+            val inviteeEndpoint = "http://host.docker.internal:8030"
+            val connectionId = inviteeConnection.connectionId
             val acceptInvitationFilter = DidExchangeAcceptInvitationFilter()
-            acceptInvitationFilter.myEndpoint = aliceEndpoint
-            aliceClient.didExchangeAcceptInvitation(connectionId, acceptInvitationFilter).get()
+            acceptInvitationFilter.myEndpoint = inviteeEndpoint
+            inviteeClient.didExchangeAcceptInvitation(connectionId, acceptInvitationFilter).get()
         }
 
-        aliceConnRecord = awaitConnectionRecord(aliceClient) {
-            it.stateIsActive()
-        } ?: throw IllegalStateException("Alice has no connection record in state 'active'")
-        log.info("Alice: {}", prettyGson.toJson(aliceConnRecord))
+        // Invitee awaits active Connection
+        //
+        inviteeConnection = awaitConnectionRecord(inviteeClient) {
+            it.invitationMsgId == invitationMsgId && it.stateIsActive()
+        } ?: throw IllegalStateException("Invitee has no connection record in state 'active'")
+        log.info("$inviteeWalletName: {}", prettyGson.toJson(inviteeConnection))
 
-        val faberConnRecord = awaitConnectionRecord(faberClient) {
-            it.stateIsActive()
-        } ?: throw IllegalStateException("Faber has no connection record in state 'active'")
-        log.info("Faber: {}", prettyGson.toJson(faberConnRecord))
+        // Inviter awaits active Connection
+        //
+        val inviterConnection = awaitConnectionRecord(inviterClient) {
+            it.invitationMsgId == invitationMsgId && it.stateIsActive()
+        } ?: throw IllegalStateException("Inviter has no connection record in state 'active'")
+        log.info("$inviterWalletName: {}", prettyGson.toJson(inviterConnection))
 
         return mapOf(
-            "aliceWallet" to alice,
-            "aliceConnection" to aliceConnRecord,
-            "faberConnection" to faberConnRecord,
+            "inviterConnection" to inviterConnection,
+            "inviteeConnection" to inviteeConnection,
         )
     }
 }

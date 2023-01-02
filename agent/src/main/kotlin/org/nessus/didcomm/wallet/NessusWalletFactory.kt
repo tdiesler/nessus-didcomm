@@ -28,6 +28,7 @@ class NessusWalletFactory(private var walletName: String? = null) {
     private var walletType: WalletType? = null
     private var ledgerRole: LedgerRole? = null
     private var trusteeWallet: NessusWallet? = null
+    private var publicDid: Boolean = false
 
     fun walletName(walletName: String): NessusWalletFactory {
         this.walletName = walletName
@@ -54,6 +55,11 @@ class NessusWalletFactory(private var walletName: String? = null) {
         return this
     }
 
+    fun publicDid(publicDid: Boolean): NessusWalletFactory {
+        this.publicDid = publicDid
+        return this
+    }
+
     fun create(): NessusWallet {
         val config: Map<String, Any?> = mapOf(
             "walletName" to walletName,
@@ -61,6 +67,7 @@ class NessusWalletFactory(private var walletName: String? = null) {
             "didMethod" to didMethod,
             "ledgerRole" to ledgerRole,
             "trusteeWallet" to trusteeWallet,
+            "publicDid" to publicDid,
         )
         return walletService().createWallet(config)
     }
