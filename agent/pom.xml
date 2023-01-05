@@ -41,6 +41,10 @@
             <artifactId>tink</artifactId>
         </dependency>
         <dependency>
+            <groupId>id.walt.servicematrix</groupId>
+            <artifactId>waltid-servicematrix</artifactId>
+        </dependency>
+        <dependency>
             <groupId>id.walt</groupId>
             <artifactId>waltid-ssi-kit</artifactId>
         </dependency>

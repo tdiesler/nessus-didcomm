@@ -22,7 +22,9 @@ package org.nessus.didcomm.test
 import com.google.gson.FieldNamingPolicy
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import id.walt.servicematrix.ServiceMatrix
 import mu.KotlinLogging
+import org.junit.jupiter.api.BeforeAll
 
 const val GOVERNMENT = "Government"
 const val FABER = "Faber"
@@ -33,6 +35,14 @@ const val RESOURCES_PATH: String = "src/test/resources"
 abstract class AbstractDidcommTest {
 
     val log = KotlinLogging.logger {}
+
+    companion object {
+        @BeforeAll
+        @JvmStatic
+        internal fun beforeAll() {
+            ServiceMatrix("${RESOURCES_PATH}/service-matrix.properties")
+        }
+    }
 
     val gson: Gson = GsonBuilder()
         .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)

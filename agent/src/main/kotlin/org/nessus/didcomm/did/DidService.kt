@@ -6,7 +6,10 @@ import id.walt.crypto.encodeBase58
 import id.walt.crypto.getMulticodecKeyCode
 import id.walt.crypto.keyPairGeneratorEd25519
 import org.nessus.didcomm.wallet.DidMethod
+import org.web3j.utils.Numeric
 import java.security.SecureRandom
+
+fun ByteArray.toHex() = Numeric.toHexString(this).substring(2)
 
 object DidService {
 
@@ -31,12 +34,11 @@ object DidService {
         val keyPair = keyPairGenerator.generateKeyPair()
 
         val pubKey = keyPair.public
-        check("X.509" == pubKey.format)
         val pubKeyX509 = pubKey.encoded
+        check("X.509" == pubKey.format)
 
         // Assume that the last 32 bytes are equal to the pubkey raw bytes
         val pubKeyRaw = pubKeyX509.sliceArray(pubKeyX509.size - 32 until pubKeyX509.size)
-        check(pubKeyRaw.size == 32) { "Expect 32 pubkey bytes" }
         val id = convertRawKeyToMultiBase58Btc(pubKeyRaw, getMulticodecKeyCode(keyAlgorithm))
         val verkey = pubKeyRaw.encodeBase58()
 

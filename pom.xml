@@ -18,7 +18,8 @@
         <version.didcommx.didcomm>0.3.3-SNAPSHOT</version.didcommx.didcomm>
         <version.google.crypto.tink>1.7.0</version.google.crypto.tink>
         <version.kotlin.logging>3.0.4</version.kotlin.logging>
-        <version.waltid>1.12.0</version.waltid>
+        <version.waltid.servicematrix>1.1.2</version.waltid.servicematrix>
+        <version.waltid.ssikit>1.13.0-SNAPSHOT4</version.waltid.ssikit>
         <version.junit>5.9.1</version.junit>
         <version.logback>1.4.5</version.logback>
         <version.slf4j>2.0.6</version.slf4j>
@@ -61,13 +62,18 @@
             <dependency>
                 <groupId>id.walt</groupId>
                 <artifactId>waltid-ssi-kit</artifactId>
-                <version>${version.waltid}</version>
+                <version>${version.waltid.ssikit}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-simple</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>id.walt.servicematrix</groupId>
+                <artifactId>waltid-servicematrix</artifactId>
+                <version>${version.waltid.servicematrix}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.microutils</groupId>
