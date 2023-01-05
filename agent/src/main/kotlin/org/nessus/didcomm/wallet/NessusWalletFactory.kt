@@ -24,14 +24,15 @@ import org.nessus.didcomm.service.ServiceRegistry.walletService
 
 class NessusWalletFactory(private var walletName: String? = null) {
 
-    private var didMethod: DIDMethod? = null
+    private var didMethod: DidMethod? = null
+    private var walletAgent: WalletAgent? = null
     private var walletType: WalletType? = null
     private var ledgerRole: LedgerRole? = null
     private var trusteeWallet: NessusWallet? = null
     private var publicDid: Boolean = false
 
-    fun walletName(walletName: String): NessusWalletFactory {
-        this.walletName = walletName
+    fun walletAgent(walletAgent: WalletAgent?): NessusWalletFactory {
+        this.walletAgent = walletAgent
         return this
     }
 
@@ -40,7 +41,7 @@ class NessusWalletFactory(private var walletName: String? = null) {
         return this
     }
 
-    fun didMethod(didMethod: DIDMethod?): NessusWalletFactory {
+    fun didMethod(didMethod: DidMethod?): NessusWalletFactory {
         this.didMethod = didMethod
         return this
     }
@@ -63,6 +64,7 @@ class NessusWalletFactory(private var walletName: String? = null) {
     fun create(): NessusWallet {
         val config: Map<String, Any?> = mapOf(
             "walletName" to walletName,
+            "walletAgent" to walletAgent,
             "walletType" to walletType,
             "didMethod" to didMethod,
             "ledgerRole" to ledgerRole,

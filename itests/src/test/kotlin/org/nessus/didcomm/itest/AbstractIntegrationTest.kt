@@ -28,9 +28,9 @@ import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AriesAgentService
 import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.agent.AriesClientFactory
-import org.nessus.didcomm.service.ServiceRegistry.ariesAgentService
 import org.nessus.didcomm.service.ServiceRegistry.walletService
 import org.nessus.didcomm.wallet.NessusWallet
+import org.nessus.didcomm.wallet.WalletAgent
 import org.nessus.didcomm.wallet.WalletType
 import org.slf4j.event.Level
 
@@ -38,7 +38,7 @@ const val GOVERNMENT = "Government"
 const val FABER = "Faber"
 const val ALICE = "Alice"
 
-abstract class AbstractAriesTest {
+abstract class AbstractIntegrationTest {
 
     val log = KotlinLogging.logger {}
 
@@ -60,15 +60,16 @@ abstract class AbstractAriesTest {
 
     fun getWalletByName(walletName: String): NessusWallet? {
         var wallet = walletService().getWalletByName(walletName)
-        if (wallet == null && ariesAgentService() is AriesAgentService) {
+        if (wallet == null) {
             val adminClient = AriesAgentService.adminClient()
             val walletRecord = adminClient.multitenancyWallets(walletName).get().firstOrNull()
             if (walletRecord != null) {
+                val walletAgent = WalletAgent.ACAPY
                 val walletId = walletRecord.walletId
                 val walletType = WalletType.valueOf(walletRecord.settings.walletType.toString())
                 val tokReq = CreateWalletTokenRequest.builder().build()
                 val tokRes = adminClient.multitenancyWalletToken(walletId, tokReq).get()
-                wallet = NessusWallet(walletId, walletType, walletName, tokRes.token)
+                wallet = NessusWallet(walletId, walletAgent, walletType, walletName, tokRes.token)
             }
         }
         return wallet

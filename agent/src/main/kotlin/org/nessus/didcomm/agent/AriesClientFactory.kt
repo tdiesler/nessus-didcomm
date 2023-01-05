@@ -22,6 +22,7 @@ package org.nessus.didcomm.agent
 import com.google.gson.FieldNamingPolicy
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonObject
 import mu.KotlinLogging
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
@@ -171,16 +172,22 @@ class AriesClient(private val url: String?, private val apiKey: String?, private
 
     val log = KotlinLogging.logger {}
 
-    fun post(pathWithParams: String, body: Any): Map<String, Any> {
+    fun post(path: String, body: Any, options: Map<String, Any>? = null): Map<String, Any> {
 
         // Build the Request
-        val builder = Request.Builder().url(url + pathWithParams)
+        var reqUrl = url + path
+        if (options != null) {
+            reqUrl += "?"
+            options.forEach {(k, v) -> reqUrl += "$k=$v"}
+        }
+        val builder = Request.Builder().url(reqUrl)
         if (apiKey != null)
             builder.header("X-API-KEY", apiKey)
         if (bearerToken != null)
             builder.header("Authorization", "Bearer $bearerToken")
-        val bodyJson = if (body is String && body.startsWith("{")) {
-            body
+        val bodyJson = if (body is String && body.trim().startsWith("{")) {
+            val jsonObj = gson.fromJson(body, JsonObject::class.java)
+            gson.toJson(jsonObj)
         } else {
             gson.toJson(body)
         }

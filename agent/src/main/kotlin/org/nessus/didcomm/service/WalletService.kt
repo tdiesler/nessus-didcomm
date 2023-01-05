@@ -19,7 +19,10 @@
  */
 package org.nessus.didcomm.service
 
-import org.nessus.didcomm.DID
+import id.walt.crypto.KeyAlgorithm
+import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.did.DidInfo
+import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.NessusWallet
 import org.nessus.didcomm.wallet.WalletRegistry
 
@@ -57,7 +60,13 @@ interface WalletService : Service {
         return registry.getWalletByName(name)
     }
 
-    fun publicDid(wallet: NessusWallet): DID?
+    fun createDid(
+        wallet: NessusWallet,
+        method: DidMethod? = null,
+        algorithm: KeyAlgorithm? = null,
+        seed: String? = null): DidInfo
+
+    fun publicDid(wallet: NessusWallet): Did?
 
 
     // -----------------------------------------------------------------------------------------------------------------

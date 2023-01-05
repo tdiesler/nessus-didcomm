@@ -17,35 +17,32 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm
+package org.nessus.didcomm.did
 
 import id.walt.crypto.KeyAlgorithm
-import org.nessus.didcomm.wallet.DIDMethod
+import org.nessus.didcomm.wallet.DidMethod
+import java.security.PrivateKey
+import java.security.PublicKey
 
-val DEFAULT_KEY_ALGORITHM = KeyAlgorithm.EdDSA_Ed25519
+class Did {
 
-enum class KeyType(val value: String) {
-    ED25519("ed25519")
-}
-
-class DID {
-
-    val did: String
-    val method: DIDMethod
-    val keyType: KeyType
+    val id: String
+    val method: DidMethod
+    val algorithm: KeyAlgorithm
     val verkey: String
-    val qualified: String
 
-    constructor(did: String, method: DIDMethod, keyType: KeyType, verkey: String) {
-        this.did = did.substring(did.lastIndexOf(':') + 1)
+    constructor(id: String, method: DidMethod, algorithm: KeyAlgorithm, verkey: String) {
+        this.id = id.substring(id.lastIndexOf(':') + 1)
         this.method = method
-        this.keyType = keyType
+        this.algorithm = algorithm
         this.verkey = verkey
-        this.qualified = "did:${method.value}:${this.did}"
     }
 
+    val qualified: String
+        get() = "did:${this.method.value}:${this.id}"
+
     override fun equals(other: Any?): Boolean {
-        if (other !is DID) return false
+        if (other !is Did) return false
         return qualified == other.qualified
     }
 
@@ -57,3 +54,8 @@ class DID {
         return qualified
     }
 }
+
+data class DidInfo(
+    val did: Did,
+    val pubKey: PublicKey?,
+    val prvKey: PrivateKey?)

@@ -26,7 +26,7 @@ import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.ServiceRegistry
 import org.nessus.didcomm.service.ServiceRegistry.walletService
 import org.nessus.didcomm.service.WALLET_SERVICE_KEY
-import org.nessus.didcomm.wallet.DIDMethod
+import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.LedgerRole
 import org.nessus.didcomm.wallet.NessusWalletFactory
 import org.nessus.didcomm.wallet.NessusWalletService
@@ -37,7 +37,7 @@ import kotlin.test.assertNotNull
  * Onboard ENDORSER through TRUSTEE
  * https://github.com/tdiesler/nessus-didcomm/issues/9
  */
-class OnboardFaberTest : AbstractAriesTest() {
+class OnboardFaberTest : AbstractIntegrationTest() {
 
     companion object {
         @BeforeAll
@@ -65,7 +65,7 @@ class OnboardFaberTest : AbstractAriesTest() {
 
             val pubDid = faber.publicDid
             assertNotNull(pubDid)
-            assertEquals(DIDMethod.SOV, pubDid.method)
+            assertEquals(DidMethod.SOV, pubDid.method)
 
         } finally {
             if (maybeFaber == null) {

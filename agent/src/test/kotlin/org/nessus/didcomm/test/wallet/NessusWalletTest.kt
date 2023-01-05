@@ -1,6 +1,6 @@
 /*-
  * #%L
- * Nessus DIDComm :: ITests
+ * Nessus DIDComm :: Core
  * %%
  * Copyright (C) 2022 Nessus
  * %%
@@ -17,52 +17,47 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.itest
+package org.nessus.didcomm.test.wallet
 
+import mu.KotlinLogging
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.agent.AriesAgentService
-import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.ServiceRegistry
 import org.nessus.didcomm.service.WALLET_SERVICE_KEY
-import org.nessus.didcomm.wallet.DidMethod
+import org.nessus.didcomm.wallet.NessusWallet
 import org.nessus.didcomm.wallet.NessusWalletFactory
 import org.nessus.didcomm.wallet.NessusWalletService
+import org.nessus.didcomm.wallet.WalletAgent
 import org.nessus.didcomm.wallet.WalletType
-import kotlin.test.assertNull
+import kotlin.test.assertEquals
 
-/**
- * Onboard Alice in_memory with did:key
- * https://github.com/tdiesler/nessus-didcomm/issues/11
- */
-class OnboardAliceTest : AbstractIntegrationTest() {
+class NessusWalletTest {
+
+    private val log = KotlinLogging.logger {}
 
     companion object {
         @BeforeAll
         @JvmStatic
         internal fun beforeAll() {
-            ServiceRegistry.putService(ARIES_AGENT_SERVICE_KEY, AriesAgentService())
             ServiceRegistry.putService(WALLET_SERVICE_KEY, NessusWalletService())
         }
     }
 
     @Test
-    fun testOnboardAlice() {
+    fun create_wallet_with_DidKey() {
 
-        val maybeAlice = getWalletByName(ALICE)
-        val alice = maybeAlice ?: NessusWalletFactory(ALICE)
-            .walletType(WalletType.IN_MEMORY)
-            .didMethod(DidMethod.KEY)
+        val faber: NessusWallet = NessusWalletFactory("Faber1")
+            .walletAgent(WalletAgent.NESSUS)
             .create()
 
-        try {
+        assertEquals("Faber1", faber.walletName)
+        assertEquals(WalletAgent.NESSUS, faber.walletAgent)
+        assertEquals(WalletType.IN_MEMORY, faber.walletType)
 
-            val pubDid = alice.publicDid
-            assertNull(pubDid)
+        val faberInfo = faber.createDid(seed="00000000000000000000000Endorser1")
+        val faberDid = faberInfo.did
 
-        } finally {
-            if (maybeAlice == null)
-                removeWallet(alice)
-        }
+        assertEquals("did:key:z6Mkr54o55jYrJJCHqoFSgeoH6RWZd6ur7P1BNgAN5Wku97K", faberDid.qualified)
+        assertEquals("CcokUqV7WkojBLxYm7gxRzsWk3q4SE8eVMmEXoYjyvKw", faberDid.verkey)
     }
 }

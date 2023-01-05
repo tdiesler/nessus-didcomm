@@ -1,12 +1,25 @@
 import sys
 
-from .crypto import bytes_to_b58, bytes_to_b64, create_ed25519_keypair, create_keypair, random_seed, validate_seed
-from .did_info import DIDInfo
+from .crypto import bytes_to_b58, b58_to_bytes, bytes_to_b64, b64_to_bytes, create_keypair, random_seed, validate_seed
 from .did_key import DIDKey
 from .did_method import DIDMethod
 from .error import WalletError
 from .key_type import KeyType
 
+from typing import NamedTuple
+
+DIDInfo = NamedTuple(
+    "DIDInfo",
+    [
+        ("did", str),
+        ("metadata", dict),
+        ("method", DIDMethod),
+        ("key_type", KeyType),
+        ("seed", str),
+        ("verkey", str),
+        ("secret", str),
+    ],
+)
 
 def create_local_did(
         method: DIDMethod,
@@ -71,41 +84,34 @@ def create_local_did(
 
     return DIDInfo(
         did=did,
-        verkey=verkey_enc,
         metadata=metadata,
         method=method,
         key_type=key_type,
+        seed=seed,
+        verkey=verkey_enc,
+        secret=secret,
     )
 
 
 def main():
 
-    seed = validate_seed("000000000000000000000000Trustee1")
-    print(f"seed: {seed.hex()}")
+    def did_for_seed(name: str, seed: str):
+        didinfo = create_local_did(DIDMethod.KEY, KeyType.ED25519, seed=seed)
+        seed_bytes = didinfo.seed
+        verkey_bytes = b58_to_bytes(didinfo.verkey)
+        secret_bytes = didinfo.secret
+        print()
+        print(f"{name}")
+        print(f"{didinfo.did}")
+        print(f"  seed:      {seed}")
+        print(f"  verkey58:  {didinfo.verkey}")
+        print(f"  verkeyHex: {verkey_bytes.hex()}")
+        print(f"  seedHex:   {seed_bytes.hex()}")
+        print(f"  secretHex: {secret_bytes.hex()}")
 
-    verkey, prvkey = create_ed25519_keypair(seed)
-    print(f"pubk: {verkey.hex()}")
-    print(f"prvk: {prvkey.hex()}")
-
-    verkey64 = bytes_to_b64(verkey)
-    verkey58 = bytes_to_b58(verkey)
-    # print(f"verkey64: {verkey64}")
-    # print(f"verkey58: {verkey58}")
-
-    did = bytes_to_b58(verkey[:16])
-    didinfo = create_local_did(DIDMethod.SOV, KeyType.ED25519, seed=seed)
-    print(f"did:sov:{didinfo.did}")
-    print(f"verkey: {didinfo.verkey}")
-    assert didinfo.verkey == verkey58
-    assert didinfo.did == did
-    print("")
-
-    didinfo = create_local_did(DIDMethod.KEY, KeyType.ED25519, seed=seed)
-    print(f"{didinfo.did}")
-    print(f"verkey: {didinfo.verkey}")
-    assert didinfo.verkey == verkey58
-
-    return 0
+    did_for_seed("Government", "000000000000000000000000Trustee1")
+    did_for_seed("Faber", "00000000000000000000000Endorser1")
+    did_for_seed("Alice", "00000000000000000000000000Alice1")
 
 
 if __name__ == '__main__':

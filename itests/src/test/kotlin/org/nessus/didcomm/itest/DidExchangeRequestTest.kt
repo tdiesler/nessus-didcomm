@@ -30,7 +30,7 @@ import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.NESSUS_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.ServiceRegistry
 import org.nessus.didcomm.service.WALLET_SERVICE_KEY
-import org.nessus.didcomm.wallet.DIDMethod
+import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.NessusWallet
 import org.nessus.didcomm.wallet.NessusWalletFactory
 import org.nessus.didcomm.wallet.NessusWalletService
@@ -55,7 +55,7 @@ import kotlin.test.fail
  * 3. The responder uses sent DID Doc information to send a DID and DID Doc to the requester in a response message.
  * 4. The requester sends the responder a complete message that confirms the response message was received.
  */
-class DIDExchangeRequestTest : AbstractAriesTest() {
+class DidExchangeRequestTest : AbstractIntegrationTest() {
 
     companion object {
         @BeforeAll
@@ -74,27 +74,16 @@ class DIDExchangeRequestTest : AbstractAriesTest() {
         val faber = getWalletByName(FABER) ?: fail("Faber does not exist")
         val faberPublicDid = faber.publicDid ?: fail("Faber has no public DID")
         assertEquals(WalletType.INDY, faber.walletType)
-        assertEquals(DIDMethod.SOV, faberPublicDid.method)
-
-        runDidExchangeConfig(faber, mapOf(
-            "faberPublicDid" to faberPublicDid.qualified,
-            "aliceWalletType" to WalletType.INDY,
-            "aliceDidMethod" to DIDMethod.KEY))
-    }
-
-    private fun runDidExchangeConfig(faber: NessusWallet, config: Map<String, Any?>) {
-
-        val aliceWalletType = config["aliceWalletType"] as WalletType
-        val aliceDidMethod = config["aliceDidMethod"] as DIDMethod
+        assertEquals(DidMethod.SOV, faberPublicDid.method)
 
         val alice = NessusWalletFactory(ALICE)
-            .walletType(aliceWalletType)
-            .didMethod(aliceDidMethod)
+            .walletType(WalletType.INDY)
+            .didMethod(DidMethod.KEY)
             .create()
 
         try {
 
-            val result = didExchange(faber, alice, config)
+            val result = didExchange(faber, alice)
 
             val aliceConnection = result["aliceConnection"] as ConnectionRecord?
             val faberConnection = result["faberConnection"] as ConnectionRecord?
@@ -114,21 +103,19 @@ class DIDExchangeRequestTest : AbstractAriesTest() {
         }
     }
 
-    private fun didExchange(faber: NessusWallet, alice: NessusWallet, config: Map<String, Any?>): Map<String, Any> {
+    private fun didExchange(faber: NessusWallet, alice: NessusWallet): Map<String, Any> {
 
-        log.info("Running {}", config)
-
-        val faberPublicDid = config["faberPublicDid"] as String?
+        val faberPublicDid = faber.publicDid?.qualified
+        checkNotNull(faberPublicDid) { "No public did for Faber" }
 
         val faberClient = walletClient(faber)
         val aliceClient = walletClient(alice)
 
-        val aliceEndpoint = "http://host.docker.internal:8030"
         val createReqFilter = DidExchangeCreateRequestFilter.builder()
-            .theirPublicDid(faberPublicDid ?: throw IllegalStateException("No public did for Faber"))
-            .myEndpoint(aliceEndpoint)
-            .usePublicDid(false)
+            .myEndpoint("http://host.docker.internal:8030")
+            .theirPublicDid(faberPublicDid)
             .build()
+
         var aliceConnection = aliceClient.didExchangeCreateRequest(createReqFilter).get()
         val requestId = aliceConnection.requestId
 

@@ -21,15 +21,17 @@
 package org.nessus.didcomm.wallet
 
 import id.walt.crypto.KeyAlgorithm
-import org.nessus.didcomm.DID
+import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.did.DidInfo
 import org.nessus.didcomm.service.ServiceRegistry.walletService
+import java.util.*
 
 enum class LedgerRole {
     TRUSTEE,
     ENDORSER
 }
 
-enum class DIDMethod(val value: String) {
+enum class DidMethod(val value: String) {
     KEY("key"),
     SOV("sov");
 
@@ -38,9 +40,18 @@ enum class DIDMethod(val value: String) {
     }
 }
 
+enum class WalletAgent(val value: String) {
+    ACAPY("aca-py"),
+    NESSUS("nessus")
+}
+
 enum class WalletType(val value: String) {
     IN_MEMORY("in_memory"),
     INDY("indy")
+}
+
+fun createUUID(): String {
+    return UUID.randomUUID().toString()
 }
 
 /**
@@ -48,12 +59,13 @@ enum class WalletType(val value: String) {
  */
 class NessusWallet(
     val walletId: String,
+    val walletAgent: WalletAgent,
     val walletType: WalletType,
     val walletName: String? = null,
     val authToken: String? = null,
 ) {
 
-    val publicDid: DID?
+    val publicDid: Did?
         get() =
             walletService().publicDid(this)
 
@@ -61,7 +73,11 @@ class NessusWallet(
         var redactedToken: String? = null
         if (authToken != null)
             redactedToken = authToken.substring(0, 6) + "..." + authToken.substring(authToken.length - 6)
-        return "NessusWallet(walletId='$walletId', walletType=$walletType, walletName=$walletName, authToken=$redactedToken, publicDid=$publicDid)"
+        return "NessusWallet(id='$walletId', agent=$walletAgent, type=$walletType, name=$walletName, authToken=$redactedToken, publicDid=$publicDid)"
+    }
+
+    fun createDid(method: DidMethod? = null, algorithm: KeyAlgorithm? = null, seed: String? = null): DidInfo {
+        return walletService().createDid(this, method, algorithm, seed)
     }
 
     // -----------------------------------------------------------------------------------------------------------------

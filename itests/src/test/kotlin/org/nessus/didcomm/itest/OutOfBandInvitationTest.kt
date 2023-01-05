@@ -36,7 +36,7 @@ import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.NESSUS_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.ServiceRegistry
 import org.nessus.didcomm.service.WALLET_SERVICE_KEY
-import org.nessus.didcomm.wallet.DIDMethod
+import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.LedgerRole
 import org.nessus.didcomm.wallet.NessusWallet
 import org.nessus.didcomm.wallet.NessusWalletFactory
@@ -61,7 +61,7 @@ import kotlin.test.assertEquals
  * 3. The invitee uses sent DID Doc information to send a DID and DID Doc to the inviter in a response message.
  * 4. The inviter sends the invitee a complete message that confirms the response message was received.
  */
-class OutOfBandInvitationTest : AbstractAriesTest() {
+class OutOfBandInvitationTest : AbstractIntegrationTest() {
 
     companion object {
         @BeforeAll
@@ -84,7 +84,7 @@ class OutOfBandInvitationTest : AbstractAriesTest() {
 
             "inviteeWalletName" to ALICE,
             "inviteeWalletType" to WalletType.INDY,
-            "inviteeDidMethod" to DIDMethod.KEY,
+            "inviteeDidMethod" to DidMethod.KEY,
             "inviteeAutoAccept" to true))
     }
 
@@ -95,7 +95,7 @@ class OutOfBandInvitationTest : AbstractAriesTest() {
 
             "inviterWalletName" to ALICE,
             "inviterWalletType" to WalletType.IN_MEMORY,
-            "inviterDidMethod" to DIDMethod.KEY,
+            "inviterDidMethod" to DidMethod.KEY,
             "inviterAutoAccept" to true,
 
             "inviteeWalletName" to FABER,
@@ -107,13 +107,13 @@ class OutOfBandInvitationTest : AbstractAriesTest() {
 
         val inviterWalletName = config["inviterWalletName"] as String
         val inviterWalletType = config["inviterWalletType"] as WalletType?
-        val inviterDidMethod = config["inviterDidMethod"] as DIDMethod?
+        val inviterDidMethod = config["inviterDidMethod"] as DidMethod?
         val inviterLedgerRole = config["inviterLedgerRole"] as LedgerRole?
         val inviterUsePublicDid = config["inviterUsePublicDid"] as Boolean? ?: false
 
         val inviteeWalletName = config["inviteeWalletName"] as String
         val inviteeWalletType = config["inviteeWalletType"] as WalletType?
-        val inviteeDidMethod = config["inviteeDidMethod"] as DIDMethod?
+        val inviteeDidMethod = config["inviteeDidMethod"] as DidMethod?
         val inviteeLedgerRole = config["inviteeLedgerRole"] as LedgerRole?
         val inviteeUsePublicDid = config["inviteeUsePublicDid"] as Boolean? ?: false
 
@@ -155,6 +155,10 @@ class OutOfBandInvitationTest : AbstractAriesTest() {
             assertEquals(ConnectionState.ACTIVE, inviteeConnection?.state)
 
         } finally {
+            val faberClient = walletClient(getWalletByName(FABER)!!)
+            faberClient.connections().get().forEach {
+                faberClient.connectionsRemove(it.connectionId)
+            }
             removeWallet(getWalletByName(ALICE))
         }
     }

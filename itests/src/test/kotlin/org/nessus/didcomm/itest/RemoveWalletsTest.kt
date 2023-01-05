@@ -28,7 +28,7 @@ import org.nessus.didcomm.service.ServiceRegistry.walletService
 import org.nessus.didcomm.service.WALLET_SERVICE_KEY
 import org.nessus.didcomm.wallet.NessusWalletService
 
-class RemoveWalletsTest : AbstractAriesTest() {
+class RemoveWalletsTest : AbstractIntegrationTest() {
 
     companion object {
         @BeforeAll

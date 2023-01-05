@@ -38,7 +38,7 @@ class NessusAgentService : AgentService {
         throw UnsupportedMessageType(type)
     }
 
-    fun startEndpoint(requestProcessor: Processor, agentPort : Int = 9031): CamelContext {
+    fun startEndpoint(requestProcessor: Processor, agentPort : Int = 9030): CamelContext {
         log.info("Starting Nessus endpoint on: $agentPort")
         val camelctx: CamelContext = DefaultCamelContext()
         camelctx.addRoutes(object: RouteBuilder(camelctx) {
