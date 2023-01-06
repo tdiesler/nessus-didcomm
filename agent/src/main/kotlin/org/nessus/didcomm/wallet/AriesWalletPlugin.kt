@@ -13,7 +13,6 @@ import org.hyperledger.aries.api.multitenancy.WalletDispatchType
 import org.hyperledger.aries.api.wallet.WalletDIDCreate
 import org.nessus.didcomm.agent.AriesAgentService
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.did.DidInfo
 import org.nessus.didcomm.did.DidService.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.service.WalletException
 
@@ -96,7 +95,7 @@ class AriesWalletPlugin: WalletPlugin() {
         }
     }
 
-    override fun createDid(wallet: NessusWallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): DidInfo {
+    override fun createDid(wallet: NessusWallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
         val walletClient = AriesAgentService.walletClient(wallet)
         val didOptions = DIDCreateOptions.builder()
             .keyType(DIDCreateOptions.KeyTypeEnum.valueOf(algorithm?.name ?: DEFAULT_KEY_ALGORITHM.name))
@@ -106,8 +105,7 @@ class AriesWalletPlugin: WalletPlugin() {
             .options(didOptions)
             .build()
         val ariesDid = walletClient.walletDidCreate(didCreate).get()
-        val nessusDid = fromAriesDid(ariesDid)!!
-        return DidInfo(nessusDid, null, null)
+        return fromAriesDid(ariesDid)!!
     }
 
     override fun publicDid(wallet: NessusWallet): Did? {

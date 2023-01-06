@@ -25,7 +25,7 @@ class NessusWalletPlugin: WalletPlugin() {
         method: DidMethod?,
         algorithm: KeyAlgorithm?,
         seed: String?
-    ): DidInfo {
+    ): Did {
         return DidService.createDid(
             method ?: DidMethod.KEY,
             algorithm ?: DEFAULT_KEY_ALGORITHM,

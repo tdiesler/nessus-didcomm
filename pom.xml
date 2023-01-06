@@ -33,7 +33,9 @@
 
         <!-- Other properties -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kotlin.compiler.jvmTarget>1.8</kotlin.compiler.jvmTarget>
+        <kotlin.compiler.languageVersion>1.8</kotlin.compiler.languageVersion>
+        <kotlin.compiler.apiVersion>1.8</kotlin.compiler.apiVersion>
+        <kotlin.compiler.jvmTarget>16</kotlin.compiler.jvmTarget>
         <kotlin.code.style>official</kotlin.code.style>
     </properties>
 
@@ -67,6 +69,10 @@
                     <exclusion>
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-simple</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.goterl</groupId>
+                        <artifactId>lazysodium-java</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>

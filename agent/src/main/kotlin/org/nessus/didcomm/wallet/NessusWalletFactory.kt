@@ -22,6 +22,7 @@ package org.nessus.didcomm.wallet
 import org.nessus.didcomm.service.ServiceRegistry.walletService
 
 
+// [TODO] replace factory with kotlin builder pattern
 class NessusWalletFactory(private var walletName: String? = null) {
 
     private var didMethod: DidMethod? = null

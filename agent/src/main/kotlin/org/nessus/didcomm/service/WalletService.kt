@@ -21,7 +21,6 @@ package org.nessus.didcomm.service
 
 import id.walt.crypto.KeyAlgorithm
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.did.DidInfo
 import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.NessusWallet
 import org.nessus.didcomm.wallet.WalletRegistry
@@ -64,7 +63,7 @@ interface WalletService : Service {
         wallet: NessusWallet,
         method: DidMethod? = null,
         algorithm: KeyAlgorithm? = null,
-        seed: String? = null): DidInfo
+        seed: String? = null): Did
 
     fun publicDid(wallet: NessusWallet): Did?
 

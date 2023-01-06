@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.itest
 
+import id.walt.common.prettyPrint
 import org.hyperledger.aries.api.connection.ConnectionRecord
 import org.hyperledger.aries.api.connection.ConnectionState
 import org.hyperledger.aries.api.did_exchange.DidExchangeCreateRequestFilter
@@ -30,6 +31,7 @@ import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.NESSUS_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.ServiceRegistry
 import org.nessus.didcomm.service.WALLET_SERVICE_KEY
+import org.nessus.didcomm.util.prettyGson
 import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.NessusWallet
 import org.nessus.didcomm.wallet.NessusWalletFactory
@@ -88,8 +90,8 @@ class DidExchangeRequestTest : AbstractIntegrationTest() {
             val aliceConnection = result["aliceConnection"] as ConnectionRecord?
             val faberConnection = result["faberConnection"] as ConnectionRecord?
 
-            log.info("Alice: {}", prettyGson.toJson(aliceConnection))
-            log.info("Faber: {}", prettyGson.toJson(faberConnection))
+            log.info("Alice: {}", aliceConnection?.prettyPrint())
+            log.info("Faber: {}", faberConnection?.prettyPrint())
 
             assertEquals(ConnectionState.ACTIVE, aliceConnection?.state)
             assertEquals(ConnectionState.ACTIVE, faberConnection?.state)

@@ -25,6 +25,8 @@ import id.walt.crypto.convertRawKeyToMultiBase58Btc
 import id.walt.crypto.decodeBase58
 import id.walt.crypto.encBase64
 import id.walt.crypto.getMulticodecKeyCode
+import id.walt.services.keystore.KeyStoreService
+import id.walt.services.keystore.KeyType
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.DidService.createDid
 import org.nessus.didcomm.did.toHex
@@ -69,7 +71,7 @@ class DidServiceTest: AbstractDidcommTest() {
     @Test
     fun test_DidKey_Seed00() {
         val seedBytes = ByteArray(32)
-        val did = createDid(DidMethod.KEY, seed=seedBytes).did
+        val did = createDid(DidMethod.KEY, seed=seedBytes)
         assertEquals("did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp", did.qualified)
     }
 
@@ -79,15 +81,14 @@ class DidServiceTest: AbstractDidcommTest() {
         val seed = "000000000000000000000000Trustee1"
         val seedBytes = seed.toByteArray(Charsets.UTF_8)
 
-        val didInfo = createDid(DidMethod.KEY, seed=seedBytes)
-        checkNotNull(didInfo.pubKey)
-        checkNotNull(didInfo.prvKey)
+        val did = createDid(DidMethod.KEY, seed=seedBytes)
+        val keyStore = KeyStoreService.getService()
+        val key = keyStore.load(did.qualified, KeyType.PRIVATE)
 
-        val pubKey = didInfo.pubKey
-        val prvKey = didInfo.prvKey
+        val pubKey = key.keyPair?.public
+        val prvKey = key.keyPair?.private
         val pubkeyBytes = pubKey?.encoded
         val prvkeyBytes = prvKey?.encoded
-        val did = didInfo.did
         val verkey58 = did.verkey
         val verkeyBytes = verkey58.decodeBase58()
         log.info { did.qualified }

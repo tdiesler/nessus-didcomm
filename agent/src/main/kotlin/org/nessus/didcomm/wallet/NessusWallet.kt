@@ -22,7 +22,6 @@ package org.nessus.didcomm.wallet
 
 import id.walt.crypto.KeyAlgorithm
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.did.DidInfo
 import org.nessus.didcomm.service.ServiceRegistry.walletService
 import java.util.*
 
@@ -76,7 +75,7 @@ class NessusWallet(
         return "NessusWallet(id='$walletId', agent=$walletAgent, type=$walletType, name=$walletName, authToken=$redactedToken, publicDid=$publicDid)"
     }
 
-    fun createDid(method: DidMethod? = null, algorithm: KeyAlgorithm? = null, seed: String? = null): DidInfo {
+    fun createDid(method: DidMethod? = null, algorithm: KeyAlgorithm? = null, seed: String? = null): Did {
         return walletService().createDid(this, method, algorithm, seed)
     }
 

@@ -19,9 +19,6 @@
  */
 package org.nessus.didcomm.test
 
-import com.google.gson.FieldNamingPolicy
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import id.walt.servicematrix.ServiceMatrix
 import mu.KotlinLogging
 import org.junit.jupiter.api.BeforeAll
@@ -43,12 +40,4 @@ abstract class AbstractDidcommTest {
             ServiceMatrix("${RESOURCES_PATH}/service-matrix.properties")
         }
     }
-
-    val gson: Gson = GsonBuilder()
-        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-        .create()
-    val prettyGson: Gson = GsonBuilder()
-        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-        .setPrettyPrinting()
-        .create()
 }

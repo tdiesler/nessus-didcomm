@@ -4,10 +4,12 @@ import id.walt.crypto.KeyAlgorithm
 import id.walt.crypto.convertRawKeyToMultiBase58Btc
 import id.walt.crypto.encodeBase58
 import id.walt.crypto.getMulticodecKeyCode
-import id.walt.crypto.keyPairGeneratorEd25519
+import id.walt.services.keystore.KeyStoreService
+import id.walt.services.keystore.KeyType
+import org.nessus.didcomm.crypto.NessusCryptoService
 import org.nessus.didcomm.wallet.DidMethod
 import org.web3j.utils.Numeric
-import java.security.SecureRandom
+import java.security.PrivateKey
 
 fun ByteArray.toHex() = Numeric.toHexString(this).substring(2)
 
@@ -15,25 +17,22 @@ object DidService {
 
     val DEFAULT_KEY_ALGORITHM = KeyAlgorithm.EdDSA_Ed25519
 
-    fun createDid(method: DidMethod, algorithm: KeyAlgorithm? = null, seed: ByteArray? = null): DidInfo {
+    fun createDid(method: DidMethod, algorithm: KeyAlgorithm? = null, seed: ByteArray? = null): Did {
         require(method == DidMethod.KEY) { "Method not supported: $method" }
 
+        // [TODO] CryptoService.getService() as NessusCryptoService
+        // https://github.com/walt-id/waltid-ssikit/issues/204
+        // val cryptoService = CryptoService.getService() as NessusCryptoService
+
+        val cryptoService = NessusCryptoService()
         val keyAlgorithm = algorithm ?: DEFAULT_KEY_ALGORITHM
-        val keyPairGenerator = keyPairGeneratorEd25519()
+        val keyId = cryptoService.generateKey(keyAlgorithm, seed)
 
-        if (seed != null) {
-            val secureRandom = object: SecureRandom() {
-                override fun nextBytes(bytes: ByteArray) {
-                    check(seed.size == 32) { "Seed must be 32 bytes" }
-                    seed.copyInto(bytes)
-                }
-            }
-            keyPairGenerator.initialize(255, secureRandom)
-        }
+        val keyStore = KeyStoreService.getService()
+        val key = keyStore.load(keyId.id, KeyType.PRIVATE)
+        val prvKey = key.keyPair?.private as PrivateKey
+        val pubKey = key.getPublicKey()
 
-        val keyPair = keyPairGenerator.generateKeyPair()
-
-        val pubKey = keyPair.public
         val pubKeyX509 = pubKey.encoded
         check("X.509" == pubKey.format)
 
@@ -42,6 +41,11 @@ object DidService {
         val id = convertRawKeyToMultiBase58Btc(pubKeyRaw, getMulticodecKeyCode(keyAlgorithm))
         val verkey = pubKeyRaw.encodeBase58()
 
-        return DidInfo(Did(id, method, keyAlgorithm, verkey), keyPair.public, keyPair.private)
+        // Add NaCl verkey and did as alias
+        val did = Did(id, method, keyAlgorithm, verkey)
+        keyStore.addAlias(keyId, did.qualified)
+        keyStore.addAlias(keyId, verkey)
+
+        return did
     }
 }

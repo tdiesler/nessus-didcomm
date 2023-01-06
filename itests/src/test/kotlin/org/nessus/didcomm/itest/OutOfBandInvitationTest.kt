@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.itest
 
+import id.walt.common.prettyPrint
 import org.hyperledger.acy_py.generated.model.InvitationRecord
 import org.hyperledger.aries.api.connection.ConnectionRecord
 import org.hyperledger.aries.api.connection.ConnectionState
@@ -36,6 +37,8 @@ import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.NESSUS_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.ServiceRegistry
 import org.nessus.didcomm.service.WALLET_SERVICE_KEY
+import org.nessus.didcomm.util.gson
+import org.nessus.didcomm.util.prettyGson
 import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.LedgerRole
 import org.nessus.didcomm.wallet.NessusWallet
@@ -148,8 +151,8 @@ class OutOfBandInvitationTest : AbstractIntegrationTest() {
             val inviterConnection = result["inviterConnection"] as ConnectionRecord?
             val inviteeConnection = result["inviteeConnection"] as ConnectionRecord?
 
-            log.info("$inviterWalletName: {}", prettyGson.toJson(inviterConnection))
-            log.info("$inviteeWalletName: {}", prettyGson.toJson(inviteeConnection))
+            log.info("$inviterWalletName: {}", inviterConnection?.prettyPrint())
+            log.info("$inviteeWalletName: {}", inviteeConnection?.prettyPrint())
 
             assertEquals(ConnectionState.ACTIVE, inviterConnection?.state)
             assertEquals(ConnectionState.ACTIVE, inviteeConnection?.state)

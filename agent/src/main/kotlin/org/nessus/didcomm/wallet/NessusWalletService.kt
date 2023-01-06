@@ -22,7 +22,6 @@ package org.nessus.didcomm.wallet
 import id.walt.crypto.KeyAlgorithm
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.did.DidInfo
 import org.nessus.didcomm.service.WalletService
 
 class NessusWalletService : WalletService {
@@ -43,7 +42,7 @@ class NessusWalletService : WalletService {
         return nessusWallet
     }
 
-    override fun createDid(wallet: NessusWallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): DidInfo {
+    override fun createDid(wallet: NessusWallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
         return walletPlugin(wallet.walletAgent).createDid(wallet, method, algorithm, seed)
     }
 
@@ -78,7 +77,7 @@ abstract class WalletPlugin {
         wallet: NessusWallet,
         method: DidMethod?,
         algorithm: KeyAlgorithm? = null,
-        seed: String? = null): DidInfo
+        seed: String? = null): Did
 
     abstract fun publicDid(wallet: NessusWallet): Did?
 }

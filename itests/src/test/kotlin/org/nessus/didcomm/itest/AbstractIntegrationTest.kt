@@ -42,14 +42,6 @@ abstract class AbstractIntegrationTest {
 
     val log = KotlinLogging.logger {}
 
-    val gson: Gson = GsonBuilder()
-        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-        .create()
-    val prettyGson: Gson = GsonBuilder()
-        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-        .setPrettyPrinting()
-        .create()
-
     fun adminClient(): AriesClient {
         return AriesClientFactory.adminClient(level=Level.INFO)
     }

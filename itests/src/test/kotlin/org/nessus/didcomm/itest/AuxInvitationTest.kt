@@ -19,7 +19,7 @@
  */
 package org.nessus.didcomm.itest
 
-import com.google.gson.JsonObject
+import id.walt.common.prettyPrint
 import org.apache.camel.Processor
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
@@ -29,6 +29,8 @@ import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.NESSUS_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.ServiceRegistry
 import org.nessus.didcomm.service.WALLET_SERVICE_KEY
+import org.nessus.didcomm.util.decodeBase64Str
+import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.wallet.NessusWallet
 import org.nessus.didcomm.wallet.NessusWalletFactory
 import org.nessus.didcomm.wallet.NessusWalletService
@@ -84,7 +86,7 @@ class AuxInvitationTest : AbstractIntegrationTest() {
 
         val inviterSeed = "00000000000000000000000000Alice1"
         val inviterEndpoint = "http://host.docker.internal:9030"
-        val inviterDid = inviter.createDid(seed=inviterSeed).did
+        val inviterDid = inviter.createDid(seed=inviterSeed)
         assertEquals("did:key:z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv", inviterDid.qualified)
         assertEquals("ESqH2YuYRRXMMfg5qQh1A23nzBaUvAMCEXLtBr2uDHbY", inviterDid.verkey)
 
@@ -110,23 +112,9 @@ class AuxInvitationTest : AbstractIntegrationTest() {
         val processor = Processor { ex ->
             val headers = ex.message.headers
             log.info("headers={}, body={}", headers)
-            check("application/didcomm-envelope-enc" == headers["Content-Type"])
-            val body = ex.message.getBody(String::class.java)
-            // [TODO] MalformedMessageException: The header "id" is missing
-            // val msg = MessageReader.fromJson(body)
-            //
-            // It seems we are getting a message defined in
-            // https://github.com/hyperledger/aries-rfcs/blob/main/features/0019-encryption-envelope/README.md
-            //
-            // {
-            //    "protected": "eyJlbmMiOiJ4Y2hhY2hhMjBwb2x5MTMwNV9pZXRmIiwidHlwIjoiSldNLzEuMCIsImFsZyI6IkF1dGhjcnlwdCIsInJlY2lwaWVudHMiOlt7ImVuY3J5cHRlZF9rZXkiOiJMNVhEaEgxNVBtX3ZIeFNlcmFZOGVPVEc2UmZjRTJOUTNFVGVWQy03RWlEWnl6cFJKZDhGVzBhNnFlNEpmdUF6IiwiaGVhZGVyIjp7ImtpZCI6IkdKMVN6b1d6YXZRWWZOTDlYa2FKZHJRZWpmenRONFhxZHNpVjRjdDNMWEtMIiwiaXYiOiJhOEltaW5zdFhIaTU0X0otSmU1SVdsT2NOZ1N3RDlUQiIsInNlbmRlciI6ImZ0aW13aWlZUkc3clJRYlhnSjEzQzVhVEVRSXJzV0RJX2JzeERxaVdiVGxWU0tQbXc2NDE4dnozSG1NbGVsTThBdVNpS2xhTENtUkRJNHNERlNnWkljQVZYbzEzNFY4bzhsRm9WMUJkREk3ZmRLT1p6ckticUNpeEtKaz0ifX0seyJlbmNyeXB0ZWRfa2V5IjoiZUFNaUQ2R0RtT3R6UkVoSS1UVjA1X1JoaXBweThqd09BdTVELTJJZFZPSmdJOC1ON1FOU3VsWXlDb1dpRTE2WSIsImhlYWRlciI6eyJraWQiOiJIS1RBaVlNOGNFMmtLQzlLYU5NWkxZajRHUzh1V0NZTUJ4UDJpMVk5Mnp1bSIsIml2IjoiRDR0TnRIZDJyczY1RUdfQTRHQi1vMC05QmdMeERNZkgiLCJzZW5kZXIiOiJzSjdwaXU0VUR1TF9vMnBYYi1KX0pBcHhzYUZyeGlUbWdwWmpsdFdqWUZUVWlyNGI4TVdtRGR0enAwT25UZUhMSzltRnJoSDRHVkExd1Z0bm9rVUtvZ0NkTldIc2NhclFzY1FDUlBaREtyVzZib2Z0d0g4X0VZR1RMMFE9In19XX0=",
-            //    "iv": "ZqOrBZiA-RdFMhy2",
-            //    "ciphertext": "K7KxkeYGtQpbi-gNuLObS8w724mIDP7IyGV_aN5AscnGumFd-SvBhW2WRIcOyHQmYa-wJX0MSGOJgc8FYw5UOQgtPAIMbSwVgq-8rF2hIniZMgdQBKxT_jGZS06kSHDy9UEYcDOswtoLgLp8YPU7HmScKHSpwYY3vPZQzgSS_n7Oa3o_jYiRKZF0Gemamue0e2iJ9xQIOPodsxLXxkPrvvdEIM0fJFrpbeuiKpMk",
-            //    "tag": "kAuPl8mwb0FFVyip1omEhQ=="
-            //}
-            //
-            val msgJson = gson.fromJson(body, JsonObject::class.java)
-            log.info { prettyGson.toJson(msgJson) }
+            val contentType = headers["Content-Type"] as String
+            val msgBody = ex.message.getBody(String::class.java)
+            messageHandler(contentType, msgBody)
             latch.countDown()
         }
 
@@ -137,4 +125,77 @@ class AuxInvitationTest : AbstractIntegrationTest() {
             assertTrue(latch.await(3, TimeUnit.SECONDS), "No receive-invitation response")
         }
     }
+
+    private fun messageHandler(contentType: String, msgBody: String) {
+        log.info { "Content-Type: $contentType" }
+        log.info { msgBody.prettyPrint() }
+        when(contentType) {
+            "application/didcomm-envelope-enc" -> didcommEncryptedEnvelopeHandler(contentType, msgBody)
+            else -> throw IllegalStateException("Unsupported content type: $contentType")
+        }
+    }
+
+    /**
+     * Unpack Algorithm
+     * https://github.com/hyperledger/aries-rfcs/tree/main/features/0019-encryption-envelope#unpack-algorithm
+     * ----------------
+     *
+     * 1. Serialize data, so it can be used
+     *
+     * 2. Lookup the `kid` for each recipient in the wallet to see if the wallet possesses a private key
+     *    associated with the public key listed
+     *
+     * 3. Check if a `sender` field is used.
+     *    - If a sender is included use auth_decrypt to decrypt the `encrypted_key` by doing the following:
+     *      a. decrypt sender verkey using libsodium.crypto_box_seal_open(my_private_key, base64URLdecode(sender))
+     *      b. decrypt cek using libsodium.crypto_box_open(my_private_key, sender_verkey, encrypted_key, cek_iv)
+     *      c. decrypt ciphertext using
+     *         libsodium.crypto_aead_chacha20poly1305_ietf_open_detached(
+     *              base64URLdecode(ciphertext_bytes),
+     *              base64URLdecode(protected_data_as_bytes),
+     *              base64URLdecode(nonce), cek)
+     *      d. return `message`, `recipient_verkey` and `sender_verkey` following the authcrypt format listed below
+     *
+     *    - If a sender is NOT included use anon_decrypt to decrypt the `encrypted_key` by doing the following:
+     *      a. decrypt encrypted_key using libsodium.crypto_box_seal_open(my_private_key, encrypted_key)
+     *      b. decrypt ciphertext using
+     *         libsodium.crypto_aead_chacha20poly1305_ietf_open_detached(
+     *              base64URLdecode(ciphertext_bytes),
+     *              base64URLdecode(protected_data_as_bytes),
+     *              base64URLdecode(nonce), cek)
+     *      c. return message and recipient_verkey following the anoncrypt format listed below
+     *
+     * NOTE: In the unpack algorithm, the base64url decode implementation used MUST correctly decode
+     * padded and unpadded base64URL encoded data.
+     */
+    private fun didcommEncryptedEnvelopeHandler(contentType: String, msgBody: String) {
+        require("application/didcomm-envelope-enc" == contentType)
+
+        // Serialize data, so it can be used
+        val msgJson = msgBody.decodeJson()
+
+        val protected64 = msgJson["protected"] as? String ?: "No `protected` in $msgJson"
+        val protected =  protected64.decodeBase64Str().decodeJson()
+        log.info { protected.prettyPrint() }
+        val recipients = protected["recipients"] as List<MapElement>
+
+        // Lookup the `kid` for each recipient in the wallet to see if the wallet possesses a private key
+        // associated with the public key listed
+        recipients.forEach {
+            val header = it["header"] as MapElement
+            val kid58 = header["kid"]
+            val sender64 = header["sender"]
+            if (sender64 != null) {
+
+            }
+        }
+
+        val iv = msgJson["iv"] as? String ?: "No `iv` in $msgJson"
+        val ciphertext = msgJson["ciphertext"] as? String ?: "No `tag` ciphertext $msgJson"
+        val tag = msgJson["tag"] as? String ?: "No `tag` in $msgJson"
+
+
+    }
 }
+
+typealias MapElement = Map<String, String>
