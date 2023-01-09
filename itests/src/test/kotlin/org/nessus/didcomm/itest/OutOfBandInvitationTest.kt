@@ -29,21 +29,13 @@ import org.hyperledger.aries.api.out_of_band.InvitationCreateRequest
 import org.hyperledger.aries.api.out_of_band.InvitationMessage
 import org.hyperledger.aries.api.out_of_band.InvitationMessage.InvitationMessageService
 import org.hyperledger.aries.api.out_of_band.ReceiveInvitationFilter
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.agent.AriesAgentService
-import org.nessus.didcomm.agent.NessusAgentService
-import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
-import org.nessus.didcomm.service.NESSUS_AGENT_SERVICE_KEY
-import org.nessus.didcomm.service.ServiceRegistry
-import org.nessus.didcomm.service.WALLET_SERVICE_KEY
+import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.prettyGson
 import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.LedgerRole
 import org.nessus.didcomm.wallet.NessusWallet
-import org.nessus.didcomm.wallet.NessusWalletFactory
-import org.nessus.didcomm.wallet.NessusWalletService
 import org.nessus.didcomm.wallet.WalletType
 import kotlin.test.assertEquals
 
@@ -65,17 +57,6 @@ import kotlin.test.assertEquals
  * 4. The inviter sends the invitee a complete message that confirms the response message was received.
  */
 class OutOfBandInvitationTest : AbstractIntegrationTest() {
-
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        internal fun beforeAll() {
-            AbstractIntegrationTest.beforeAll()
-            ServiceRegistry.putService(ARIES_AGENT_SERVICE_KEY, AriesAgentService())
-            ServiceRegistry.putService(NESSUS_AGENT_SERVICE_KEY, NessusAgentService())
-            ServiceRegistry.putService(WALLET_SERVICE_KEY, NessusWalletService())
-        }
-    }
 
     @Test
     fun test_FaberDidSovIndyPubAuto_AliceDidKeyIndyAuto() {
@@ -128,22 +109,22 @@ class OutOfBandInvitationTest : AbstractIntegrationTest() {
         checkNotNull(faber) { "No Faber/Endorser" }
 
         val inviter = if (inviterWalletName == Faber.name) faber
-            else NessusWalletFactory(inviterWalletName)
+            else NessusWallet.Builder(inviterWalletName)
                 .walletType(inviterWalletType)
                 .didMethod(inviterDidMethod)
                 .ledgerRole(inviterLedgerRole)
                 .publicDid(inviterUsePublicDid)
                 .trusteeWallet(trustee)
-                .create()
+                .build()
 
         val invitee = if (inviteeWalletName == Faber.name) faber
-            else NessusWalletFactory(inviteeWalletName)
+            else NessusWallet.Builder(inviteeWalletName)
                 .walletType(inviteeWalletType)
                 .didMethod(inviteeDidMethod)
                 .ledgerRole(inviteeLedgerRole)
                 .publicDid(inviteeUsePublicDid)
                 .trusteeWallet(trustee)
-                .create()
+                .build()
 
         try {
 
@@ -159,7 +140,7 @@ class OutOfBandInvitationTest : AbstractIntegrationTest() {
             assertEquals(ConnectionState.ACTIVE, inviteeConnection?.state)
 
         } finally {
-            val faberClient = walletClient(getWalletByName(Faber.name)!!)
+            val faberClient = AriesAgent.walletClient(getWalletByName(Faber.name)!!)
             faberClient.connections().get().forEach {
                 faberClient.connectionsRemove(it.connectionId)
             }
@@ -178,8 +159,8 @@ class OutOfBandInvitationTest : AbstractIntegrationTest() {
         val inviteeWalletName = config["inviteeWalletName"] as String
         val inviteeAutoAccept = config["inviteeAutoAccept"] as Boolean
 
-        val inviterClient = walletClient(inviter)
-        val inviteeClient = walletClient(invitee)
+        val inviterClient = AriesAgent.walletClient(inviter)
+        val inviteeClient = AriesAgent.walletClient(invitee)
 
         // Inviter creates the Invitation
         //

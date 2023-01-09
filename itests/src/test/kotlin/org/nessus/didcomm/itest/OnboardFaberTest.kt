@@ -19,17 +19,10 @@
  */
 package org.nessus.didcomm.itest
 
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.agent.AriesAgentService
-import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
-import org.nessus.didcomm.service.ServiceRegistry
-import org.nessus.didcomm.service.ServiceRegistry.walletService
-import org.nessus.didcomm.service.WALLET_SERVICE_KEY
 import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.LedgerRole
-import org.nessus.didcomm.wallet.NessusWalletFactory
-import org.nessus.didcomm.wallet.NessusWalletService
+import org.nessus.didcomm.wallet.NessusWallet
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -39,15 +32,6 @@ import kotlin.test.assertNotNull
  */
 class OnboardFaberTest : AbstractIntegrationTest() {
 
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        internal fun beforeAll() {
-            ServiceRegistry.putService(ARIES_AGENT_SERVICE_KEY, AriesAgentService())
-            ServiceRegistry.putService(WALLET_SERVICE_KEY, NessusWalletService())
-        }
-    }
-
     @Test
     fun testOnboardFaber() {
 
@@ -56,10 +40,10 @@ class OnboardFaberTest : AbstractIntegrationTest() {
 
         // ./wallet-bootstrap --create Faber --ledger-role ENDORSER
         val maybeFaber = getWalletByName(Faber.name)
-        val faber = maybeFaber ?: NessusWalletFactory(Faber.name)
+        val faber = maybeFaber ?: NessusWallet.Builder(Faber.name)
             .ledgerRole(LedgerRole.ENDORSER)
             .trusteeWallet(gov)
-            .create()
+            .build()
 
         try {
 
@@ -69,7 +53,7 @@ class OnboardFaberTest : AbstractIntegrationTest() {
 
         } finally {
             if (maybeFaber == null) {
-                walletService().removeWallet(faber.walletId)
+                walletService.removeWallet(faber.walletId)
             }
         }
     }

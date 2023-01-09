@@ -19,30 +19,15 @@
  */
 package org.nessus.didcomm.itest
 
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.agent.AriesAgentService
-import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
-import org.nessus.didcomm.service.ServiceRegistry
-import org.nessus.didcomm.service.ServiceRegistry.walletService
-import org.nessus.didcomm.service.WALLET_SERVICE_KEY
-import org.nessus.didcomm.wallet.NessusWalletService
+import org.nessus.didcomm.wallet.WalletService
 
 class RemoveWalletsTest : AbstractIntegrationTest() {
 
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        internal fun beforeAll() {
-            ServiceRegistry.putService(ARIES_AGENT_SERVICE_KEY, AriesAgentService())
-            ServiceRegistry.putService(WALLET_SERVICE_KEY, NessusWalletService())
-        }
-    }
-
     @Test
     fun removeWallets() {
-        walletService().getWallets()
+        walletService.getWallets()
             .filter { it.walletName != Government.name }
-            .forEach { walletService().removeWallet(it.walletId) }
+            .forEach { walletService.removeWallet(it.walletId) }
     }
 }

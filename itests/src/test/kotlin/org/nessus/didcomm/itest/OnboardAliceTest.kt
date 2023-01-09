@@ -19,15 +19,9 @@
  */
 package org.nessus.didcomm.itest
 
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.agent.AriesAgentService
-import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
-import org.nessus.didcomm.service.ServiceRegistry
-import org.nessus.didcomm.service.WALLET_SERVICE_KEY
 import org.nessus.didcomm.wallet.DidMethod
-import org.nessus.didcomm.wallet.NessusWalletFactory
-import org.nessus.didcomm.wallet.NessusWalletService
+import org.nessus.didcomm.wallet.NessusWallet
 import org.nessus.didcomm.wallet.WalletType
 import kotlin.test.assertNull
 
@@ -37,23 +31,14 @@ import kotlin.test.assertNull
  */
 class OnboardAliceTest : AbstractIntegrationTest() {
 
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        internal fun beforeAll() {
-            ServiceRegistry.putService(ARIES_AGENT_SERVICE_KEY, AriesAgentService())
-            ServiceRegistry.putService(WALLET_SERVICE_KEY, NessusWalletService())
-        }
-    }
-
     @Test
     fun testOnboardAlice() {
 
         val maybeAlice = getWalletByName(Alice.name)
-        val alice = maybeAlice ?: NessusWalletFactory(Alice.name)
+        val alice = maybeAlice ?: NessusWallet.Builder(Alice.name)
             .walletType(WalletType.IN_MEMORY)
             .didMethod(DidMethod.KEY)
-            .create()
+            .build()
 
         try {
 

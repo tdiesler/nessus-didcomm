@@ -19,7 +19,7 @@
  */
 package org.nessus.didcomm.wallet
 
-class WalletRegistry {
+class WalletStore {
 
     private val walletsStore: MutableMap<String, NessusWallet> = mutableMapOf()
 

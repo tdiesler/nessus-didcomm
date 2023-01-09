@@ -21,15 +21,10 @@ package org.nessus.didcomm.test.wallet
 
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.service.ServiceRegistry
-import org.nessus.didcomm.service.WALLET_SERVICE_KEY
 import org.nessus.didcomm.test.AbstractDidcommTest
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.wallet.NessusWallet
-import org.nessus.didcomm.wallet.NessusWalletFactory
-import org.nessus.didcomm.wallet.NessusWalletService
 import org.nessus.didcomm.wallet.WalletAgent
 import org.nessus.didcomm.wallet.WalletType
 import kotlin.test.assertEquals
@@ -37,21 +32,12 @@ import kotlin.test.assertNotNull
 
 class NessusWalletTest: AbstractDidcommTest() {
 
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        internal fun beforeAll() {
-            AbstractDidcommTest.beforeAll()
-            ServiceRegistry.putService(WALLET_SERVICE_KEY, NessusWalletService())
-        }
-    }
-
     @Test
     fun create_wallet_with_DidKey() {
 
-        val faber: NessusWallet = NessusWalletFactory(Faber.name)
+        val faber: NessusWallet = NessusWallet.Builder(Faber.name)
             .walletAgent(WalletAgent.NESSUS)
-            .create()
+            .build()
 
         assertEquals(Faber.name, faber.walletName)
         assertEquals(WalletAgent.NESSUS, faber.walletAgent)

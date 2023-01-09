@@ -25,32 +25,19 @@ import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
 import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyType
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.crypto.convertEd25519toCurve25519
 import org.nessus.didcomm.crypto.cryptoBoxEasy
 import org.nessus.didcomm.crypto.cryptoBoxOpenEasy
 import org.nessus.didcomm.crypto.lazySodium
-import org.nessus.didcomm.service.ServiceRegistry
-import org.nessus.didcomm.service.WALLET_SERVICE_KEY
 import org.nessus.didcomm.test.AbstractDidcommTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.util.decodeHex
 import org.nessus.didcomm.util.encodeHex
-import org.nessus.didcomm.wallet.NessusWalletService
 import kotlin.test.assertEquals
 
 class LazySodiumTest: AbstractDidcommTest() {
-
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        internal fun beforeAll() {
-            AbstractDidcommTest.beforeAll()
-            ServiceRegistry.putService(WALLET_SERVICE_KEY, NessusWalletService())
-        }
-    }
 
     @Test
     fun lazyBoxEasy() {

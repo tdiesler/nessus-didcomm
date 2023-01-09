@@ -23,19 +23,11 @@ import id.walt.common.prettyPrint
 import org.hyperledger.aries.api.connection.ConnectionRecord
 import org.hyperledger.aries.api.connection.ConnectionState
 import org.hyperledger.aries.api.did_exchange.DidExchangeCreateRequestFilter
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.agent.AriesAgentService
-import org.nessus.didcomm.agent.NessusAgentService
-import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
-import org.nessus.didcomm.service.NESSUS_AGENT_SERVICE_KEY
-import org.nessus.didcomm.service.ServiceRegistry
-import org.nessus.didcomm.service.WALLET_SERVICE_KEY
+import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.util.prettyGson
 import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.NessusWallet
-import org.nessus.didcomm.wallet.NessusWalletFactory
-import org.nessus.didcomm.wallet.NessusWalletService
 import org.nessus.didcomm.wallet.WalletType
 import kotlin.test.assertEquals
 import kotlin.test.fail
@@ -59,16 +51,6 @@ import kotlin.test.fail
  */
 class DidExchangeRequestTest : AbstractIntegrationTest() {
 
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        internal fun beforeAll() {
-            ServiceRegistry.putService(ARIES_AGENT_SERVICE_KEY, AriesAgentService())
-            ServiceRegistry.putService(NESSUS_AGENT_SERVICE_KEY, NessusAgentService())
-            ServiceRegistry.putService(WALLET_SERVICE_KEY, NessusWalletService())
-        }
-    }
-
     @Test
     fun didExchange_Faber_Alice() {
 
@@ -76,10 +58,10 @@ class DidExchangeRequestTest : AbstractIntegrationTest() {
         val faber = getWalletByName(Faber.name) ?: fail("Faber does not exist")
         faber.publicDid ?: fail("Faber has no public DID")
 
-        val alice = NessusWalletFactory(Alice.name)
+        val alice = NessusWallet.Builder(Alice.name)
             .walletType(WalletType.INDY)
             .didMethod(DidMethod.KEY)
-            .create()
+            .build()
 
         try {
 
@@ -95,7 +77,7 @@ class DidExchangeRequestTest : AbstractIntegrationTest() {
             assertEquals(ConnectionState.ACTIVE, faberConnection?.state)
 
         } finally {
-            val faberClient = walletClient(faber)
+            val faberClient = AriesAgent.walletClient(faber)
             faberClient.connections().get().forEach {
                 faberClient.connectionsRemove(it.connectionId)
             }
@@ -108,8 +90,8 @@ class DidExchangeRequestTest : AbstractIntegrationTest() {
         val faberPublicDid = faber.publicDid?.qualified
         checkNotNull(faberPublicDid) { "No public did for Faber" }
 
-        val faberClient = walletClient(faber)
-        val aliceClient = walletClient(alice)
+        val faberClient = AriesAgent.walletClient(faber)
+        val aliceClient = AriesAgent.walletClient(alice)
 
         val createReqFilter = DidExchangeCreateRequestFilter.builder()
             .myEndpoint("http://host.docker.internal:8030")

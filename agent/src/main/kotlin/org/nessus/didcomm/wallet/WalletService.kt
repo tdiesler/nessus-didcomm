@@ -20,42 +20,69 @@
 package org.nessus.didcomm.wallet
 
 import id.walt.crypto.KeyAlgorithm
+import id.walt.servicematrix.BaseService
+import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.service.WalletService
 
-class NessusWalletService : WalletService {
+class WalletException(msg: String) : Exception(msg)
+
+class WalletService() : BaseService() {
+    override val implementation get() = WalletService.implementation
 
     private val log = KotlinLogging.logger {}
+
+    private val walletStore = WalletStore()
 
     private val plugins = mapOf(
         WalletAgent.ACAPY to AriesWalletPlugin(),
         WalletAgent.NESSUS to NessusWalletPlugin()
     )
 
-    override fun createWallet(config: Map<String, Any?>): NessusWallet {
-        val walletName = config["walletName"] as? String
-        val walletAgent = config["walletAgent"] as? WalletAgent ?: WalletAgent.ACAPY
+    companion object: ServiceProvider {
+        private val implementation = WalletService()
+        override fun getService() = implementation
+    }
+
+    fun createWallet(config: NessusWallet.Builder): NessusWallet {
+        val walletName = config.walletName
+        val walletAgent = config.walletAgent ?: WalletAgent.ACAPY
         val nessusWallet = walletPlugin(walletAgent).createWallet(config)
         log.info("{}: {}", walletName, nessusWallet)
         putWallet(nessusWallet)
         return nessusWallet
     }
 
-    override fun createDid(wallet: NessusWallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
-        return walletPlugin(wallet.walletAgent).createDid(wallet, method, algorithm, seed)
+    fun putWallet(wallet: NessusWallet) {
+        walletStore.putWallet(wallet)
     }
 
-    override fun publicDid(wallet: NessusWallet): Did? {
-        return walletPlugin(wallet.walletAgent).publicDid(wallet)
-    }
-
-    override fun removeWallet(id: String) {
+    fun removeWallet(id: String) {
         val wallet = getWallet(id)
         if (wallet != null) {
             walletPlugin(wallet.walletAgent).removeWallet(wallet)
-            super.removeWallet(id)
+            walletStore.removeWallet(id)
         }
+    }
+
+    fun getWallets(): Set<NessusWallet> {
+        return walletStore.getWallets()
+    }
+
+    fun getWallet(id: String): NessusWallet? {
+        return walletStore.getWallet(id)
+    }
+
+    fun getWalletByName(name: String): NessusWallet? {
+        return walletStore.getWalletByName(name)
+    }
+
+    fun createDid(wallet: NessusWallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
+        return walletPlugin(wallet.walletAgent).createDid(wallet, method, algorithm, seed)
+    }
+
+    fun publicDid(wallet: NessusWallet): Did? {
+        return walletPlugin(wallet.walletAgent).publicDid(wallet)
     }
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -69,7 +96,7 @@ abstract class WalletPlugin {
 
     val log = KotlinLogging.logger {}
 
-    abstract fun createWallet(config: Map<String, Any?>): NessusWallet
+    abstract fun createWallet(config: NessusWallet.Builder): NessusWallet
 
     abstract fun removeWallet(wallet: NessusWallet)
 

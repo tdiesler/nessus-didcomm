@@ -21,20 +21,13 @@ package org.nessus.didcomm.itest
 
 import id.walt.common.prettyPrint
 import org.apache.camel.Processor
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.agent.AriesAgentService
-import org.nessus.didcomm.agent.NessusAgentService
+import org.nessus.didcomm.agent.AriesAgent
+import org.nessus.didcomm.agent.NessusAgent
 import org.nessus.didcomm.protocol.RFC0019EnvelopeHandler.unpackRFC0019Envelope
 import org.nessus.didcomm.protocol.Response
-import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
-import org.nessus.didcomm.service.NESSUS_AGENT_SERVICE_KEY
-import org.nessus.didcomm.service.ServiceRegistry
-import org.nessus.didcomm.service.WALLET_SERVICE_KEY
 import org.nessus.didcomm.util.prettyGson
 import org.nessus.didcomm.wallet.NessusWallet
-import org.nessus.didcomm.wallet.NessusWalletFactory
-import org.nessus.didcomm.wallet.NessusWalletService
 import org.nessus.didcomm.wallet.WalletAgent
 import org.nessus.didcomm.wallet.WalletType
 import org.nessus.didcomm.wallet.createUUID
@@ -60,29 +53,18 @@ import java.util.concurrent.TimeUnit
  */
 class AuxInvitationTest : AbstractIntegrationTest() {
 
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        internal fun beforeAll() {
-            AbstractIntegrationTest.beforeAll()
-            ServiceRegistry.putService(ARIES_AGENT_SERVICE_KEY, AriesAgentService())
-            ServiceRegistry.putService(NESSUS_AGENT_SERVICE_KEY, NessusAgentService())
-            ServiceRegistry.putService(WALLET_SERVICE_KEY, NessusWalletService())
-        }
-    }
-
     @Test
     fun test_AliceDidKeyNessus() {
 
         val invitee = getWalletByName(Faber.name)
         checkNotNull(invitee) { "No invitee wallet" }
 
-        val inviteeClient = walletClient(invitee)
+        val inviteeClient = AriesAgent.walletClient(invitee)
 
-        val inviter: NessusWallet = NessusWalletFactory(Alice.name)
+        val inviter: NessusWallet = NessusWallet.Builder(Alice.name)
             .walletAgent(WalletAgent.NESSUS)
             .walletType(WalletType.IN_MEMORY)
-            .create()
+            .build()
 
         val inviterDid = inviter.createDid(seed=Alice.seed)
         val inviterEndpoint = "http://host.docker.internal:9030"
@@ -116,7 +98,7 @@ class AuxInvitationTest : AbstractIntegrationTest() {
             latch.countDown()
         }
 
-        val nessusAgent = ServiceRegistry.nessusAgentService()
+        val nessusAgent = NessusAgent.getService()
         nessusAgent.startEndpoint(processor).use {
             val options = mapOf("auto_accept" to true)
             inviteeClient.post("/out-of-band/receive-invitation", message, options)

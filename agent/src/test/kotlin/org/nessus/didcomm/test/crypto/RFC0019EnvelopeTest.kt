@@ -22,29 +22,16 @@ package org.nessus.didcomm.test.crypto
 import id.walt.crypto.KeyAlgorithm
 import id.walt.crypto.encodeBase58
 import id.walt.services.keystore.KeyType
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.crypto.convertEd25519toRaw
 import org.nessus.didcomm.protocol.RFC0019EnvelopeHandler.packRFC0019Envelope
 import org.nessus.didcomm.protocol.RFC0019EnvelopeHandler.unpackRFC0019Envelope
-import org.nessus.didcomm.service.ServiceRegistry
-import org.nessus.didcomm.service.WALLET_SERVICE_KEY
 import org.nessus.didcomm.test.AbstractDidcommTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
-import org.nessus.didcomm.wallet.NessusWalletService
 import kotlin.test.assertEquals
 
 class RFC0019EnvelopeTest: AbstractDidcommTest() {
-
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        internal fun beforeAll() {
-            AbstractDidcommTest.beforeAll()
-            ServiceRegistry.putService(WALLET_SERVICE_KEY, NessusWalletService())
-        }
-    }
 
     @Test
     fun pack_unpack_envelope() {

@@ -24,18 +24,15 @@ import org.apache.camel.CamelContext
 import org.apache.camel.Processor
 import org.apache.camel.builder.RouteBuilder
 import org.apache.camel.impl.DefaultCamelContext
-import org.didcommx.didcomm.message.Message
-import org.nessus.didcomm.service.AgentService
-import org.nessus.didcomm.service.UnsupportedMessageType
-import org.nessus.didcomm.wallet.NessusWallet
 
 
-class NessusAgentService : AgentService {
+class NessusAgent {
 
     private val log = KotlinLogging.logger {}
 
-    override fun createMessage(wallet: NessusWallet, type: String, body: Map<String, Any>) : Message {
-        throw UnsupportedMessageType(type)
+    companion object {
+        private val implementation = NessusAgent()
+        fun getService() = implementation
     }
 
     fun startEndpoint(requestProcessor: Processor, agentPort : Int = 9030): CamelContext {

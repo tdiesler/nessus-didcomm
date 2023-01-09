@@ -7,9 +7,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,7 +22,6 @@ package org.nessus.didcomm.wallet
 
 import id.walt.crypto.KeyAlgorithm
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.service.ServiceRegistry.walletService
 import java.util.*
 
 enum class LedgerRole {
@@ -66,7 +65,7 @@ class NessusWallet(
 
     val publicDid: Did?
         get() =
-            walletService().publicDid(this)
+            WalletService.getService().publicDid(this)
 
     override fun toString(): String {
         var redactedToken: String? = null
@@ -76,8 +75,27 @@ class NessusWallet(
     }
 
     fun createDid(method: DidMethod? = null, algorithm: KeyAlgorithm? = null, seed: String? = null): Did {
-        return walletService().createDid(this, method, algorithm, seed)
+        return WalletService.getService().createDid(this, method, algorithm, seed)
     }
 
     // -----------------------------------------------------------------------------------------------------------------
+
+    data class Builder (var walletName: String? = null) {
+        var didMethod: DidMethod? = null
+        var walletAgent: WalletAgent? = null
+        var walletType: WalletType? = null
+        var walletKey: String? = null
+        var ledgerRole: LedgerRole? = null
+        var trusteeWallet: NessusWallet? = null
+        var publicDid: Boolean = false
+
+        fun didMethod(didMethod: DidMethod?) = apply { this.didMethod = didMethod }
+        fun walletAgent(walletAgent: WalletAgent?) = apply { this.walletAgent = walletAgent }
+        fun walletType(walletType: WalletType?) = apply { this.walletType = walletType }
+        fun walletKey(walletKey: String?) = apply { this.walletKey = walletKey }
+        fun ledgerRole(ledgerRole: LedgerRole?) = apply { this.ledgerRole = ledgerRole }
+        fun trusteeWallet(trusteeWallet: NessusWallet?) = apply { this.trusteeWallet = trusteeWallet }
+        fun publicDid(publicDid: Boolean) = apply { this.publicDid = publicDid }
+        fun build(): NessusWallet = WalletService.getService().createWallet(this)
+    }
 }
