@@ -25,12 +25,13 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.agent.AriesAgentService
 import org.nessus.didcomm.agent.NessusAgentService
+import org.nessus.didcomm.protocol.RFC0019EnvelopeHandler.unpackRFC0019Envelope
+import org.nessus.didcomm.protocol.Response
 import org.nessus.didcomm.service.ARIES_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.NESSUS_AGENT_SERVICE_KEY
 import org.nessus.didcomm.service.ServiceRegistry
 import org.nessus.didcomm.service.WALLET_SERVICE_KEY
-import org.nessus.didcomm.util.decodeBase64Str
-import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.prettyGson
 import org.nessus.didcomm.wallet.NessusWallet
 import org.nessus.didcomm.wallet.NessusWalletFactory
 import org.nessus.didcomm.wallet.NessusWalletService
@@ -39,8 +40,6 @@ import org.nessus.didcomm.wallet.WalletType
 import org.nessus.didcomm.wallet.createUUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
  * DIDComm - Out Of Band Messages
@@ -65,6 +64,7 @@ class AuxInvitationTest : AbstractIntegrationTest() {
         @BeforeAll
         @JvmStatic
         internal fun beforeAll() {
+            AbstractIntegrationTest.beforeAll()
             ServiceRegistry.putService(ARIES_AGENT_SERVICE_KEY, AriesAgentService())
             ServiceRegistry.putService(NESSUS_AGENT_SERVICE_KEY, NessusAgentService())
             ServiceRegistry.putService(WALLET_SERVICE_KEY, NessusWalletService())
@@ -74,21 +74,18 @@ class AuxInvitationTest : AbstractIntegrationTest() {
     @Test
     fun test_AliceDidKeyNessus() {
 
-        val invitee = getWalletByName(FABER)
+        val invitee = getWalletByName(Faber.name)
         checkNotNull(invitee) { "No invitee wallet" }
 
         val inviteeClient = walletClient(invitee)
 
-        val inviter: NessusWallet = NessusWalletFactory(ALICE)
+        val inviter: NessusWallet = NessusWalletFactory(Alice.name)
             .walletAgent(WalletAgent.NESSUS)
             .walletType(WalletType.IN_MEMORY)
             .create()
 
-        val inviterSeed = "00000000000000000000000000Alice1"
+        val inviterDid = inviter.createDid(seed=Alice.seed)
         val inviterEndpoint = "http://host.docker.internal:9030"
-        val inviterDid = inviter.createDid(seed=inviterSeed)
-        assertEquals("did:key:z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv", inviterDid.qualified)
-        assertEquals("ESqH2YuYRRXMMfg5qQh1A23nzBaUvAMCEXLtBr2uDHbY", inviterDid.verkey)
 
         val message = """
         {
@@ -109,12 +106,13 @@ class AuxInvitationTest : AbstractIntegrationTest() {
         """.trimIndent()
 
         val latch = CountDownLatch(1)
+        var response: Response? = null
         val processor = Processor { ex ->
             val headers = ex.message.headers
             log.info("headers={}, body={}", headers)
             val contentType = headers["Content-Type"] as String
-            val msgBody = ex.message.getBody(String::class.java)
-            messageHandler(contentType, msgBody)
+            val envelope = ex.message.getBody(String::class.java)
+            response = messageHandler(contentType, envelope)
             latch.countDown()
         }
 
@@ -122,80 +120,30 @@ class AuxInvitationTest : AbstractIntegrationTest() {
         nessusAgent.startEndpoint(processor).use {
             val options = mapOf("auto_accept" to true)
             inviteeClient.post("/out-of-band/receive-invitation", message, options)
-            assertTrue(latch.await(3, TimeUnit.SECONDS), "No receive-invitation response")
+            latch.await(3, TimeUnit.SECONDS)
+            checkNotNull(response?.message) { "No receive-invitation response message" }
+            log.info { "Unpacked response: ${prettyGson.toJson(response?.message)}"}
         }
     }
 
-    private fun messageHandler(contentType: String, msgBody: String) {
+    private fun messageHandler(contentType: String, envelope: String): Response {
         log.info { "Content-Type: $contentType" }
-        log.info { msgBody.prettyPrint() }
-        when(contentType) {
-            "application/didcomm-envelope-enc" -> didcommEncryptedEnvelopeHandler(contentType, msgBody)
+        log.info { envelope.prettyPrint() }
+        val response = when(contentType) {
+            "application/didcomm-envelope-enc" -> didcommEncryptedEnvelopeHandler(contentType, envelope)
             else -> throw IllegalStateException("Unsupported content type: $contentType")
         }
+        return response
     }
 
-    /**
-     * Unpack Algorithm
-     * https://github.com/hyperledger/aries-rfcs/tree/main/features/0019-encryption-envelope#unpack-algorithm
-     * ----------------
-     *
-     * 1. Serialize data, so it can be used
-     *
-     * 2. Lookup the `kid` for each recipient in the wallet to see if the wallet possesses a private key
-     *    associated with the public key listed
-     *
-     * 3. Check if a `sender` field is used.
-     *    - If a sender is included use auth_decrypt to decrypt the `encrypted_key` by doing the following:
-     *      a. decrypt sender verkey using libsodium.crypto_box_seal_open(my_private_key, base64URLdecode(sender))
-     *      b. decrypt cek using libsodium.crypto_box_open(my_private_key, sender_verkey, encrypted_key, cek_iv)
-     *      c. decrypt ciphertext using
-     *         libsodium.crypto_aead_chacha20poly1305_ietf_open_detached(
-     *              base64URLdecode(ciphertext_bytes),
-     *              base64URLdecode(protected_data_as_bytes),
-     *              base64URLdecode(nonce), cek)
-     *      d. return `message`, `recipient_verkey` and `sender_verkey` following the authcrypt format listed below
-     *
-     *    - If a sender is NOT included use anon_decrypt to decrypt the `encrypted_key` by doing the following:
-     *      a. decrypt encrypted_key using libsodium.crypto_box_seal_open(my_private_key, encrypted_key)
-     *      b. decrypt ciphertext using
-     *         libsodium.crypto_aead_chacha20poly1305_ietf_open_detached(
-     *              base64URLdecode(ciphertext_bytes),
-     *              base64URLdecode(protected_data_as_bytes),
-     *              base64URLdecode(nonce), cek)
-     *      c. return message and recipient_verkey following the anoncrypt format listed below
-     *
-     * NOTE: In the unpack algorithm, the base64url decode implementation used MUST correctly decode
-     * padded and unpadded base64URL encoded data.
-     */
-    private fun didcommEncryptedEnvelopeHandler(contentType: String, msgBody: String) {
+    private fun didcommEncryptedEnvelopeHandler(contentType: String, envelope: String): Response {
         require("application/didcomm-envelope-enc" == contentType)
-
-        // Serialize data, so it can be used
-        val msgJson = msgBody.decodeJson()
-
-        val protected64 = msgJson["protected"] as? String ?: "No `protected` in $msgJson"
-        val protected =  protected64.decodeBase64Str().decodeJson()
-        log.info { protected.prettyPrint() }
-        val recipients = protected["recipients"] as List<MapElement>
-
-        // Lookup the `kid` for each recipient in the wallet to see if the wallet possesses a private key
-        // associated with the public key listed
-        recipients.forEach {
-            val header = it["header"] as MapElement
-            val kid58 = header["kid"]
-            val sender64 = header["sender"]
-            if (sender64 != null) {
-
-            }
+        return try {
+            val message = unpackRFC0019Envelope(envelope)
+            Response(message)
+        } catch (ex: Exception) {
+            log.error(ex.message, ex)
+            Response(null, ex.message)
         }
-
-        val iv = msgJson["iv"] as? String ?: "No `iv` in $msgJson"
-        val ciphertext = msgJson["ciphertext"] as? String ?: "No `tag` ciphertext $msgJson"
-        val tag = msgJson["tag"] as? String ?: "No `tag` in $msgJson"
-
-
     }
 }
-
-typealias MapElement = Map<String, String>

@@ -52,11 +52,11 @@ class OnboardFaberTest : AbstractIntegrationTest() {
     fun testOnboardFaber() {
 
         // ./wallet-bootstrap --create Government --ledger-role TRUSTEE
-        val gov = getWalletByName(GOVERNMENT)!!
+        val gov = getWalletByName(Government.name)!!
 
         // ./wallet-bootstrap --create Faber --ledger-role ENDORSER
-        val maybeFaber = getWalletByName(FABER)
-        val faber = maybeFaber ?: NessusWalletFactory(FABER)
+        val maybeFaber = getWalletByName(Faber.name)
+        val faber = maybeFaber ?: NessusWalletFactory(Faber.name)
             .ledgerRole(LedgerRole.ENDORSER)
             .trusteeWallet(gov)
             .create()

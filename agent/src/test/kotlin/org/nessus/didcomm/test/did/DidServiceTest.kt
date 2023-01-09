@@ -29,8 +29,9 @@ import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.DidService.createDid
-import org.nessus.didcomm.did.toHex
 import org.nessus.didcomm.test.AbstractDidcommTest
+import org.nessus.didcomm.test.Faber
+import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.wallet.DidMethod
 import java.security.PublicKey
 import kotlin.test.assertEquals
@@ -47,18 +48,18 @@ class DidServiceTest: AbstractDidcommTest() {
 
         // ed25519-x25519.json
         val pkRaw = "4zvwRjXUKGfvwnParsHAS3HuSVzV5cA4McphgmoCtajS".decodeBase58()
-        log.info { "pkRaw: ${pkRaw.toHex()}" }
+        log.info { "pkRaw: ${pkRaw.encodeHex()}" }
 
         // Build PublicKey from pubkey raw bytes
         // Then verify that we can get the raw bytes from the X.509 encoded PublicKey
         val pubKey: PublicKey = buildEd25519PubKey(encBase64(pkRaw))
         assertEquals("X.509", pubKey.format)
         val pubKeyX509 = pubKey.encoded
-        log.info { "pk509: ${pubKeyX509.toHex()}" }
+        log.info { "pk509: ${pubKeyX509.encodeHex()}" }
 
         // We assume/verify that the last 32 bytes are equal to the pubkey raw bytes
         val pubKeyRaw = pubKeyX509.sliceArray(pubKeyX509.size - 32 until pubKeyX509.size)
-        log.info { "pkRaw: ${pubKeyRaw.toHex()}" }
+        log.info { "pkRaw: ${pubKeyRaw.encodeHex()}" }
         assertTrue(pkRaw.contentEquals(pubKeyRaw))
 
         // Construct did from the 32 pubkey raw bytes
@@ -78,7 +79,7 @@ class DidServiceTest: AbstractDidcommTest() {
     @Test
     fun test_DidKey_Trustee1() {
 
-        val seed = "000000000000000000000000Trustee1"
+        val seed = Faber.seed
         val seedBytes = seed.toByteArray(Charsets.UTF_8)
 
         val did = createDid(DidMethod.KEY, seed=seedBytes)
@@ -94,10 +95,11 @@ class DidServiceTest: AbstractDidcommTest() {
         log.info { did.qualified }
         log.info { "seed:      $seed" }
         log.info { "verkey58:  ${did.verkey}" }
-        log.info { "verkeyHex: ${verkeyBytes.toHex()}" }
-        log.info { "seedHex:   ${seedBytes.toHex()}" }
-        log.info { "pubkeyHex: ${pubKey?.format} ${pubkeyBytes?.toHex()}" }
-        log.info { "prvkeyHex: ${prvKey?.format} ${prvkeyBytes?.toHex()}" }
-        assertEquals("did:key:z6MkukGVb3mRvTu1msArDKY9UwxeZFGjmwnCKtdQttr4Fk6i", did.qualified)
+        log.info { "verkeyHex: ${verkeyBytes.encodeHex()}" }
+        log.info { "seedHex:   ${seedBytes.encodeHex()}" }
+        log.info { "pubkeyHex: ${pubKey?.format} ${pubkeyBytes?.encodeHex()}" }
+        log.info { "prvkeyHex: ${prvKey?.format} ${prvkeyBytes?.encodeHex()}" }
+        assertEquals(Faber.didkey, did.qualified)
+        assertEquals(Faber.verkey, did.verkey)
     }
 }

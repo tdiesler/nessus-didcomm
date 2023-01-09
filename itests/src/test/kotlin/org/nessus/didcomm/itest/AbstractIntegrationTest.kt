@@ -19,28 +19,62 @@
  */
 package org.nessus.didcomm.itest
 
-import com.google.gson.FieldNamingPolicy
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
+import id.walt.servicematrix.ServiceMatrix
+import id.walt.services.crypto.CryptoService
+import id.walt.services.keystore.KeyStoreService
 import mu.KotlinLogging
 import org.hyperledger.aries.api.connection.ConnectionRecord
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
+import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.agent.AriesAgentService
 import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.agent.AriesClientFactory
+import org.nessus.didcomm.crypto.NessusCryptoService
 import org.nessus.didcomm.service.ServiceRegistry.walletService
+import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.wallet.NessusWallet
 import org.nessus.didcomm.wallet.WalletAgent
 import org.nessus.didcomm.wallet.WalletType
 import org.slf4j.event.Level
 
-const val GOVERNMENT = "Government"
-const val FABER = "Faber"
-const val ALICE = "Alice"
+object Government {
+    val name = "Government"
+    val seed = "000000000000000000000000Trustee1"
+    val seedHex = seed.toByteArray().encodeHex()
+    val verkey = "GJ1SzoWzavQYfNL9XkaJdrQejfztN4XqdsiV4ct3LXKL"
+    val didkey = "did:key:z6MkukGVb3mRvTu1msArDKY9UwxeZFGjmwnCKtdQttr4Fk6i"
+}
+object Faber {
+    val name = "Faber"
+    val seed = "00000000000000000000000Endorser1"
+    val seedHex = seed.toByteArray().encodeHex()
+    val verkey = "CcokUqV7WkojBLxYm7gxRzsWk3q4SE8eVMmEXoYjyvKw"
+    val didkey = "did:key:z6Mkr54o55jYrJJCHqoFSgeoH6RWZd6ur7P1BNgAN5Wku97K"
+}
+object Alice {
+    val name = "Alice"
+    val seed = "00000000000000000000000000Alice1"
+    val seedHex = seed.toByteArray().encodeHex()
+    val verkey = "ESqH2YuYRRXMMfg5qQh1A23nzBaUvAMCEXLtBr2uDHbY"
+    val didkey = "did:key:z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv"
+}
+
+const val RESOURCES_PATH: String = "src/test/resources"
 
 abstract class AbstractIntegrationTest {
 
     val log = KotlinLogging.logger {}
+
+    companion object {
+        @BeforeAll
+        @JvmStatic
+        internal fun beforeAll() {
+            ServiceMatrix("${RESOURCES_PATH}/service-matrix.properties")
+        }
+    }
+
+    val cryptoService = CryptoService.getService().implementation as NessusCryptoService
+    val keyStore = KeyStoreService.getService()
 
     fun adminClient(): AriesClient {
         return AriesClientFactory.adminClient(level=Level.INFO)

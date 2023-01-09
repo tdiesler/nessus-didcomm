@@ -49,8 +49,8 @@ class OnboardAliceTest : AbstractIntegrationTest() {
     @Test
     fun testOnboardAlice() {
 
-        val maybeAlice = getWalletByName(ALICE)
-        val alice = maybeAlice ?: NessusWalletFactory(ALICE)
+        val maybeAlice = getWalletByName(Alice.name)
+        val alice = maybeAlice ?: NessusWalletFactory(Alice.name)
             .walletType(WalletType.IN_MEMORY)
             .didMethod(DidMethod.KEY)
             .create()

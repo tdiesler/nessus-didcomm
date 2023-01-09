@@ -70,6 +70,7 @@ class OutOfBandInvitationTest : AbstractIntegrationTest() {
         @BeforeAll
         @JvmStatic
         internal fun beforeAll() {
+            AbstractIntegrationTest.beforeAll()
             ServiceRegistry.putService(ARIES_AGENT_SERVICE_KEY, AriesAgentService())
             ServiceRegistry.putService(NESSUS_AGENT_SERVICE_KEY, NessusAgentService())
             ServiceRegistry.putService(WALLET_SERVICE_KEY, NessusWalletService())
@@ -81,11 +82,11 @@ class OutOfBandInvitationTest : AbstractIntegrationTest() {
 
         runDidExchangeConfig(mapOf(
 
-            "inviterWalletName" to FABER,
+            "inviterWalletName" to Faber.name,
             "inviterUsePublicDid" to true,
             "inviterAutoAccept" to true,
 
-            "inviteeWalletName" to ALICE,
+            "inviteeWalletName" to Alice.name,
             "inviteeWalletType" to WalletType.INDY,
             "inviteeDidMethod" to DidMethod.KEY,
             "inviteeAutoAccept" to true))
@@ -96,12 +97,12 @@ class OutOfBandInvitationTest : AbstractIntegrationTest() {
 
         runDidExchangeConfig(mapOf(
 
-            "inviterWalletName" to ALICE,
+            "inviterWalletName" to Alice.name,
             "inviterWalletType" to WalletType.IN_MEMORY,
             "inviterDidMethod" to DidMethod.KEY,
             "inviterAutoAccept" to true,
 
-            "inviteeWalletName" to FABER,
+            "inviteeWalletName" to Faber.name,
             "inviteeUsePublicDid" to true,
             "inviteeAutoAccept" to true))
     }
@@ -120,13 +121,13 @@ class OutOfBandInvitationTest : AbstractIntegrationTest() {
         val inviteeLedgerRole = config["inviteeLedgerRole"] as LedgerRole?
         val inviteeUsePublicDid = config["inviteeUsePublicDid"] as Boolean? ?: false
 
-        val trustee = getWalletByName(GOVERNMENT)
+        val trustee = getWalletByName(Government.name)
         checkNotNull(trustee) { "No Government/Trustee" }
 
-        val faber = getWalletByName(FABER)
+        val faber = getWalletByName(Faber.name)
         checkNotNull(faber) { "No Faber/Endorser" }
 
-        val inviter = if (inviterWalletName == FABER) faber
+        val inviter = if (inviterWalletName == Faber.name) faber
             else NessusWalletFactory(inviterWalletName)
                 .walletType(inviterWalletType)
                 .didMethod(inviterDidMethod)
@@ -135,7 +136,7 @@ class OutOfBandInvitationTest : AbstractIntegrationTest() {
                 .trusteeWallet(trustee)
                 .create()
 
-        val invitee = if (inviteeWalletName == FABER) faber
+        val invitee = if (inviteeWalletName == Faber.name) faber
             else NessusWalletFactory(inviteeWalletName)
                 .walletType(inviteeWalletType)
                 .didMethod(inviteeDidMethod)
@@ -158,11 +159,11 @@ class OutOfBandInvitationTest : AbstractIntegrationTest() {
             assertEquals(ConnectionState.ACTIVE, inviteeConnection?.state)
 
         } finally {
-            val faberClient = walletClient(getWalletByName(FABER)!!)
+            val faberClient = walletClient(getWalletByName(Faber.name)!!)
             faberClient.connections().get().forEach {
                 faberClient.connectionsRemove(it.connectionId)
             }
-            removeWallet(getWalletByName(ALICE))
+            removeWallet(getWalletByName(Alice.name))
         }
     }
 

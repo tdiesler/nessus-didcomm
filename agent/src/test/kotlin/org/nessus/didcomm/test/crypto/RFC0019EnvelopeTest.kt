@@ -17,25 +17,25 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.test.wallet
+package org.nessus.didcomm.test.crypto
 
-import id.walt.services.keystore.KeyStoreService
+import id.walt.crypto.KeyAlgorithm
+import id.walt.crypto.encodeBase58
 import id.walt.services.keystore.KeyType
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import org.nessus.didcomm.crypto.convertEd25519toRaw
+import org.nessus.didcomm.protocol.RFC0019EnvelopeHandler.packRFC0019Envelope
+import org.nessus.didcomm.protocol.RFC0019EnvelopeHandler.unpackRFC0019Envelope
 import org.nessus.didcomm.service.ServiceRegistry
 import org.nessus.didcomm.service.WALLET_SERVICE_KEY
 import org.nessus.didcomm.test.AbstractDidcommTest
+import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
-import org.nessus.didcomm.wallet.NessusWallet
-import org.nessus.didcomm.wallet.NessusWalletFactory
 import org.nessus.didcomm.wallet.NessusWalletService
-import org.nessus.didcomm.wallet.WalletAgent
-import org.nessus.didcomm.wallet.WalletType
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
-class NessusWalletTest: AbstractDidcommTest() {
+class RFC0019EnvelopeTest: AbstractDidcommTest() {
 
     companion object {
         @BeforeAll
@@ -47,23 +47,22 @@ class NessusWalletTest: AbstractDidcommTest() {
     }
 
     @Test
-    fun create_wallet_with_DidKey() {
+    fun pack_unpack_envelope() {
 
-        val faber: NessusWallet = NessusWalletFactory(Faber.name)
-            .walletAgent(WalletAgent.NESSUS)
-            .create()
+        val faberKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Faber.seed.toByteArray())
+        val faberKeys = keyStore.load(faberKeyId.id, KeyType.PRIVATE).keyPair!!
+        val faberVerkey = faberKeys.public.convertEd25519toRaw().encodeBase58()
+        keyStore.addAlias(faberKeyId, faberVerkey)
 
-        assertEquals(Faber.name, faber.walletName)
-        assertEquals(WalletAgent.NESSUS, faber.walletAgent)
-        assertEquals(WalletType.IN_MEMORY, faber.walletType)
+        val aliceKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
+        val aliceKeys = keyStore.load(aliceKeyId.id, KeyType.PRIVATE).keyPair!!
+        val aliceVerkey = aliceKeys.public.convertEd25519toRaw().encodeBase58()
+        keyStore.addAlias(aliceKeyId, aliceVerkey)
 
-        val faberDid = faber.createDid(seed= Faber.seed)
-
-        assertEquals(Faber.didkey, faberDid.qualified)
-        assertEquals(Faber.verkey, faberDid.verkey)
-
-        val keyStore = KeyStoreService.getService()
-        assertNotNull(keyStore.load(faberDid.qualified, KeyType.PUBLIC))
-        assertNotNull(keyStore.load(faberDid.verkey, KeyType.PUBLIC))
+        val envelope = packRFC0019Envelope(faberKeys, aliceKeys.public, "Scheena Dog")
+        val message = unpackRFC0019Envelope(envelope)
+        assertEquals("Scheena Dog", message)
     }
+
 }
+

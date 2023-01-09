@@ -17,21 +17,24 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.test.wallet
+package org.nessus.didcomm.test.crypto
 
 import id.walt.crypto.KeyAlgorithm
 import id.walt.services.crypto.CryptoService
 import org.junit.jupiter.api.Test
+import org.nessus.didcomm.crypto.NessusCryptoService
 import org.nessus.didcomm.test.AbstractDidcommTest
+import org.nessus.didcomm.test.Alice
+import org.nessus.didcomm.util.decodeHex
 import kotlin.test.assertTrue
 
 class CryptoServiceTest: AbstractDidcommTest() {
 
     @Test
-    fun signVerifyMessage() {
+    fun signVerifySeedMessage() {
 
-        val crypto = CryptoService.getService()
-        val keyId = crypto.generateKey(KeyAlgorithm.EdDSA_Ed25519)
+        val crypto = CryptoService.getService().implementation as NessusCryptoService
+        val keyId = crypto.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seedHex.decodeHex())
 
         val data = "Hello".toByteArray()
         val signed = crypto.sign(keyId, data)

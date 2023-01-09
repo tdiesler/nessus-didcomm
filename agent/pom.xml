@@ -37,6 +37,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.github.terl</groupId>
+            <artifactId>lazysodium-java</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.google.crypto.tink</groupId>
             <artifactId>tink</artifactId>
         </dependency>

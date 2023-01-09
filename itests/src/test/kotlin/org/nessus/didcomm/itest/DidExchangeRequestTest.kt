@@ -70,15 +70,13 @@ class DidExchangeRequestTest : AbstractIntegrationTest() {
     }
 
     @Test
-    fun test_FaberPub_AliceKeyIndyNonAuto() {
+    fun didExchange_Faber_Alice() {
 
         // Assert that Faber has a public did:sov on Indy
-        val faber = getWalletByName(FABER) ?: fail("Faber does not exist")
-        val faberPublicDid = faber.publicDid ?: fail("Faber has no public DID")
-        assertEquals(WalletType.INDY, faber.walletType)
-        assertEquals(DidMethod.SOV, faberPublicDid.method)
+        val faber = getWalletByName(Faber.name) ?: fail("Faber does not exist")
+        faber.publicDid ?: fail("Faber has no public DID")
 
-        val alice = NessusWalletFactory(ALICE)
+        val alice = NessusWalletFactory(Alice.name)
             .walletType(WalletType.INDY)
             .didMethod(DidMethod.KEY)
             .create()

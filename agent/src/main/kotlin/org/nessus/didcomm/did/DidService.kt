@@ -4,14 +4,12 @@ import id.walt.crypto.KeyAlgorithm
 import id.walt.crypto.convertRawKeyToMultiBase58Btc
 import id.walt.crypto.encodeBase58
 import id.walt.crypto.getMulticodecKeyCode
+import id.walt.services.crypto.CryptoService
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import org.nessus.didcomm.crypto.NessusCryptoService
+import org.nessus.didcomm.crypto.convertEd25519toRaw
 import org.nessus.didcomm.wallet.DidMethod
-import org.web3j.utils.Numeric
-import java.security.PrivateKey
-
-fun ByteArray.toHex() = Numeric.toHexString(this).substring(2)
 
 object DidService {
 
@@ -20,24 +18,14 @@ object DidService {
     fun createDid(method: DidMethod, algorithm: KeyAlgorithm? = null, seed: ByteArray? = null): Did {
         require(method == DidMethod.KEY) { "Method not supported: $method" }
 
-        // [TODO] CryptoService.getService() as NessusCryptoService
-        // https://github.com/walt-id/waltid-ssikit/issues/204
-        // val cryptoService = CryptoService.getService() as NessusCryptoService
-
-        val cryptoService = NessusCryptoService()
+        val cryptoService = CryptoService.getService().implementation as NessusCryptoService
         val keyAlgorithm = algorithm ?: DEFAULT_KEY_ALGORITHM
         val keyId = cryptoService.generateKey(keyAlgorithm, seed)
 
         val keyStore = KeyStoreService.getService()
-        val key = keyStore.load(keyId.id, KeyType.PRIVATE)
-        val prvKey = key.keyPair?.private as PrivateKey
-        val pubKey = key.getPublicKey()
+        val key = keyStore.load(keyId.id, KeyType.PUBLIC)
 
-        val pubKeyX509 = pubKey.encoded
-        check("X.509" == pubKey.format)
-
-        // Assume that the last 32 bytes are equal to the pubkey raw bytes
-        val pubKeyRaw = pubKeyX509.sliceArray(pubKeyX509.size - 32 until pubKeyX509.size)
+        val pubKeyRaw = key.getPublicKey().convertEd25519toRaw()
         val id = convertRawKeyToMultiBase58Btc(pubKeyRaw, getMulticodecKeyCode(keyAlgorithm))
         val verkey = pubKeyRaw.encodeBase58()
 

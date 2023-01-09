@@ -17,6 +17,7 @@
         <version.apache.camel>3.20.0</version.apache.camel>
         <version.didcommx.didcomm>0.3.3-SNAPSHOT</version.didcommx.didcomm>
         <version.google.crypto.tink>1.7.0</version.google.crypto.tink>
+        <version.lazysodium>5.1.2</version.lazysodium>
         <version.kotlin.logging>3.0.4</version.kotlin.logging>
         <version.waltid.servicematrix>1.1.2</version.waltid.servicematrix>
         <version.waltid.ssikit>1.13.0-SNAPSHOT4</version.waltid.ssikit>
@@ -55,6 +56,11 @@
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-core</artifactId>
                 <version>${version.logback}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.terl</groupId>
+                <artifactId>lazysodium-java</artifactId>
+                <version>${version.lazysodium}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.crypto.tink</groupId>
