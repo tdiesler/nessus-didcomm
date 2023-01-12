@@ -178,11 +178,9 @@ services:
         --seed 000000000000000000000000Trustee1
         --multitenant-admin
         --multitenant
-        --auto-accept-requests
         --auto-ping-connection
         --emit-new-didcomm-mime-type
         --emit-new-didcomm-prefix
-        --public-invites
         --log-level info
     depends_on:
       - node1

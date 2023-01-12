@@ -25,6 +25,9 @@ import id.walt.services.keystore.KeyStoreService
 import mu.KotlinLogging
 import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.crypto.NessusCryptoService
+import org.nessus.didcomm.service.DidService
+import org.nessus.didcomm.service.ProtocolService
+import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
 
 object Government {
@@ -63,6 +66,9 @@ abstract class AbstractDidcommTest {
         }
     }
 
-    val cryptoService = CryptoService.getService().implementation as NessusCryptoService
-    val keyStore = KeyStoreService.getService()
+    val cryptoService get() = CryptoService.getService().implementation as NessusCryptoService
+    val didService get() = DidService.getService()
+    val keyStore get() = KeyStoreService.getService()
+    val protocolService get() = ProtocolService.getService()
+    val walletService get() = WalletService.getService()
 }

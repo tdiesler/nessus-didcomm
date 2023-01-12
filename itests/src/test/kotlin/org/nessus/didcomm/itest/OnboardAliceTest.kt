@@ -20,8 +20,8 @@
 package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.wallet.DidMethod
-import org.nessus.didcomm.wallet.NessusWallet
+import org.nessus.didcomm.wallet.Wallet
+import org.nessus.didcomm.wallet.WalletAgent
 import org.nessus.didcomm.wallet.WalletType
 import kotlin.test.assertNull
 
@@ -34,20 +34,17 @@ class OnboardAliceTest : AbstractIntegrationTest() {
     @Test
     fun testOnboardAlice() {
 
-        val maybeAlice = getWalletByName(Alice.name)
-        val alice = maybeAlice ?: NessusWallet.Builder(Alice.name)
+        val alice = Wallet.Builder(Alice.name)
+            .walletAgent(WalletAgent.ACAPY)
             .walletType(WalletType.IN_MEMORY)
-            .didMethod(DidMethod.KEY)
             .build()
-
         try {
 
             val pubDid = alice.publicDid
             assertNull(pubDid)
 
         } finally {
-            if (maybeAlice == null)
-                removeWallet(alice)
+            removeWallet(alice)
         }
     }
 }

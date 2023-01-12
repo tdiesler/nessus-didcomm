@@ -13,7 +13,7 @@ import java.security.SecureRandom
 
 class NessusCryptoService: SunCryptoService() {
 
-    private val keyStore = KeyStoreService.getService()
+    private val keyStore get() = KeyStoreService.getService()
 
     fun generateKey(algorithm: KeyAlgorithm, seed: ByteArray?): KeyId {
 

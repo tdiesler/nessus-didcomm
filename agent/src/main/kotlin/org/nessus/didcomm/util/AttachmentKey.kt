@@ -2,7 +2,7 @@ package org.nessus.didcomm.util
 
 import java.util.*
 
-class AttachmentKey<T>(val name: String, val type: Class<T>) {
+open class AttachmentKey<T>(val name: String, val type: Class<T>) {
 
     constructor(type: Class<T>) : this(type.name, type)
 
@@ -10,11 +10,9 @@ class AttachmentKey<T>(val name: String, val type: Class<T>) {
         return Objects.hash(name, type)
     }
 
-    override fun equals(obj: Any?): Boolean {
-        if (this === obj) return true
-        if (obj == null) return false
-        if (javaClass != obj.javaClass) return false
-        val other = obj as AttachmentKey<*>
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other as? AttachmentKey<*> == null) return false
         return type == other.type && name == other.name
     }
 

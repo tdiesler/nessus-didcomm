@@ -1,7 +1,7 @@
 package org.nessus.didcomm.util
 
 @Suppress("UNCHECKED_CAST")
-class AttachmentSupport : Attachments {
+open class AttachmentSupport : Attachments {
 
     private val attachments: MutableMap<AttachmentKey<out Any>, Any> = mutableMapOf()
 

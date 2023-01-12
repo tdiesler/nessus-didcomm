@@ -22,9 +22,10 @@ package org.nessus.didcomm.itest
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.LedgerRole
-import org.nessus.didcomm.wallet.NessusWallet
+import org.nessus.didcomm.wallet.Wallet
+import org.nessus.didcomm.wallet.WalletAgent
+import org.nessus.didcomm.wallet.WalletType
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
 /**
  * Onboard ENDORSER through TRUSTEE
@@ -36,24 +37,25 @@ class OnboardFaberTest : AbstractIntegrationTest() {
     fun testOnboardFaber() {
 
         // ./wallet-bootstrap --create Government --ledger-role TRUSTEE
-        val gov = getWalletByName(Government.name)!!
+        val gov = getWalletByAlias(Government.name) as Wallet
 
         // ./wallet-bootstrap --create Faber --ledger-role ENDORSER
-        val maybeFaber = getWalletByName(Faber.name)
-        val faber = maybeFaber ?: NessusWallet.Builder(Faber.name)
+        val maybeFaber = getWalletByAlias(Faber.name)
+        val faber = maybeFaber ?: Wallet.Builder(Faber.name)
+            .walletAgent(WalletAgent.ACAPY)
             .ledgerRole(LedgerRole.ENDORSER)
+            .walletType(WalletType.INDY)
             .trusteeWallet(gov)
             .build()
 
         try {
 
             val pubDid = faber.publicDid
-            assertNotNull(pubDid)
-            assertEquals(DidMethod.SOV, pubDid.method)
+            assertEquals(DidMethod.SOV, pubDid?.method)
 
         } finally {
             if (maybeFaber == null) {
-                walletService.removeWallet(faber.walletId)
+                walletService.removeWallet(faber.id)
             }
         }
     }

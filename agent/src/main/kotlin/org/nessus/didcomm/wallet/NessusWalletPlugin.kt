@@ -2,39 +2,52 @@ package org.nessus.didcomm.wallet
 
 import id.walt.crypto.KeyAlgorithm
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.did.DidService
-import org.nessus.didcomm.did.DidService.DEFAULT_KEY_ALGORITHM
+import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
+import org.nessus.didcomm.service.DidService
+import org.nessus.didcomm.service.EndpointService
+import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
+import org.nessus.didcomm.service.WalletPlugin
+import org.nessus.didcomm.service.WalletStoreService
 
 class NessusWalletPlugin: WalletPlugin() {
 
-    override fun createWallet(config: NessusWallet.Builder): NessusWallet {
+    override fun createWallet(config: WalletConfig): Wallet {
         val walletId = createUUID()
         val walletAgent = WalletAgent.NESSUS
-        val walletName = config.walletName
+        val walletAlias = config.alias
         val walletType = config.walletType ?: WalletType.IN_MEMORY
-        return NessusWallet(walletId, walletAgent, walletType, walletName)
+        val endpointUrl = config.endpointUrl ?: EndpointService.getService().endpointUrl
+        return Wallet(walletId, walletAlias, walletAgent, walletType, endpointUrl)
     }
 
-    override fun removeWallet(wallet: NessusWallet) {
+    override fun removeWallet(wallet: Wallet) {
         // Nothing to do
     }
 
     override fun createDid(
-        wallet: NessusWallet,
+        wallet: Wallet,
         method: DidMethod?,
         algorithm: KeyAlgorithm?,
         seed: String?
     ): Did {
-        return DidService.createDid(
+        return DidService.getService().createDid(
             method ?: DidMethod.KEY,
             algorithm ?: DEFAULT_KEY_ALGORITHM,
-            seed?.toByteArray(Charsets.UTF_8)
+            seed?.toByteArray()
         )
     }
 
-    override fun publicDid(wallet: NessusWallet): Did? {
+    override fun publicDid(wallet: Wallet): Did? {
         return null
     }
 
-    // -----------------------------------------------------------------------------------------------------------------
+    override fun listSupportedProtocols(): List<String> {
+        return listOf(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1.name)
+    }
+
+    override fun listDids(wallet: Wallet): List<Did> {
+        return WalletStoreService.getService().listDids(wallet.id)
+    }
+
+    // Private ---------------------------------------------------------------------------------------------------------
 }

@@ -20,22 +20,38 @@
 package org.nessus.didcomm.did
 
 import id.walt.crypto.KeyAlgorithm
+import id.walt.crypto.convertMultiBase58BtcToRawKey
+import id.walt.crypto.encodeBase58
+import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.wallet.DidMethod
-import java.security.PrivateKey
-import java.security.PublicKey
 
 class Did {
 
     val id: String
     val method: DidMethod
     val algorithm: KeyAlgorithm
-    val verkey: String
+    val verkey: String?
 
-    constructor(id: String, method: DidMethod, algorithm: KeyAlgorithm, verkey: String) {
+    constructor(id: String, method: DidMethod, algorithm: KeyAlgorithm, verkey: String?) {
         this.id = id.substring(id.lastIndexOf(':') + 1)
         this.method = method
         this.algorithm = algorithm
         this.verkey = verkey
+    }
+
+    companion object {
+        fun fromSpec(spec: String): Did {
+            val toks = spec.split(':')
+            require(toks.size == 3) { "Unexpected number of tokens: $spec" }
+            require(toks[0] == "did") { "Unexpected first token: $spec" }
+            val method = DidMethod.fromValue(toks[1])
+            val verkey = when(method) {
+                DidMethod.KEY -> convertMultiBase58BtcToRawKey(toks[2]).encodeBase58()
+                DidMethod.SOV -> null
+                else -> throw IllegalStateException("Unsupported method: $spec")
+            }
+            return Did(toks[2], method, DEFAULT_KEY_ALGORITHM, verkey)
+        }
     }
 
     val qualified: String
@@ -51,11 +67,6 @@ class Did {
     }
 
     override fun toString(): String {
-        return qualified
+        return "Did(id=$id, method=$method, algorithm=$algorithm, verkey=$verkey)"
     }
 }
-
-data class DidInfo(
-    val did: Did,
-    val pubKey: PublicKey?,
-    val prvKey: PrivateKey?)

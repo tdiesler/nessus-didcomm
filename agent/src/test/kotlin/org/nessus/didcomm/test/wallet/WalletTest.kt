@@ -24,22 +24,21 @@ import id.walt.services.keystore.KeyType
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.test.AbstractDidcommTest
 import org.nessus.didcomm.test.Faber
-import org.nessus.didcomm.wallet.NessusWallet
+import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.WalletAgent
 import org.nessus.didcomm.wallet.WalletType
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-class NessusWalletTest: AbstractDidcommTest() {
+class WalletTest: AbstractDidcommTest() {
 
     @Test
     fun create_wallet_with_DidKey() {
 
-        val faber: NessusWallet = NessusWallet.Builder(Faber.name)
-            .walletAgent(WalletAgent.NESSUS)
+        val faber: Wallet = Wallet.Builder("Faber1")
             .build()
 
-        assertEquals(Faber.name, faber.walletName)
+        assertEquals("Faber1", faber.alias)
         assertEquals(WalletAgent.NESSUS, faber.walletAgent)
         assertEquals(WalletType.IN_MEMORY, faber.walletType)
 
@@ -50,6 +49,8 @@ class NessusWalletTest: AbstractDidcommTest() {
 
         val keyStore = KeyStoreService.getService()
         assertNotNull(keyStore.load(faberDid.qualified, KeyType.PUBLIC))
-        assertNotNull(keyStore.load(faberDid.verkey, KeyType.PUBLIC))
+        assertNotNull(keyStore.load(faberDid.verkey!!, KeyType.PUBLIC))
+
+        walletService.removeWallet(faber.id)
     }
 }

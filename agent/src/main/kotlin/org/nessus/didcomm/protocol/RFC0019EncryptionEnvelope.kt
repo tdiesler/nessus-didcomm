@@ -12,6 +12,7 @@ import org.nessus.didcomm.crypto.convertEd25519toRaw
 import org.nessus.didcomm.crypto.cryptoBoxEasy
 import org.nessus.didcomm.crypto.cryptoBoxOpenEasy
 import org.nessus.didcomm.crypto.lazySodium
+import org.nessus.didcomm.service.PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE
 import org.nessus.didcomm.util.decodeBase58
 import org.nessus.didcomm.util.decodeBase64Url
 import org.nessus.didcomm.util.decodeBase64UrlStr
@@ -23,7 +24,12 @@ import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.util.encodeJson
 import java.security.PublicKey
 
-object RFC0019EnvelopeHandler: ProtocolHandler() {
+/**
+ * Aries RFC 0019: Encryption Envelope
+ * https://github.com/hyperledger/aries-rfcs/tree/main/features/0019-encryption-envelope
+ */
+class RFC0019EncryptionEnvelope: Protocol() {
+    override val protocolUri = PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE.name
 
     fun packRFC0019Envelope(senderKeys: java.security.KeyPair, recipientKey: PublicKey, message: String): String {
 
@@ -36,7 +42,6 @@ object RFC0019EnvelopeHandler: ProtocolHandler() {
         // 1. Generate a content encryption key (symmetrical encryption key)
         val aeadLazy = lazySodium as AEAD.Lazy
         val cek: Key = aeadLazy.keygen(AEAD.Method.XCHACHA20_POLY1305_IETF)
-        log.info { "cek: ${cek.asHexString}"}
 
         // 2. Encrypt the CEK for each recipient's public key using Authcrypt
 
@@ -137,7 +142,6 @@ object RFC0019EnvelopeHandler: ProtocolHandler() {
         val encryptedKey = encryptedKey64.decodeBase64Url()
         val cekHex = boxLazy.cryptoBoxOpenEasy(encryptedKey, AEAD.XCHACHA20POLY1305_IETF_KEYBYTES, boxNonce, decryptKeys)
         val cek = Key.fromBytes(cekHex.decodeHex())
-        log.info { "cek: ${cek.asBytes.encodeHex()}"}
 
         // 3.3 decrypt ciphertext using libsodium.crypto_aead_chacha20poly1305_ietf_open_detached(base64URLdecode(ciphertext_bytes), base64URLdecode(protected_data_as_bytes), base64URLdecode(nonce), cek)
         val aeadLazy = lazySodium as AEAD.Lazy

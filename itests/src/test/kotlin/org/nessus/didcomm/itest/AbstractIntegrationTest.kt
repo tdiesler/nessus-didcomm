@@ -20,20 +20,15 @@
 package org.nessus.didcomm.itest
 
 import id.walt.servicematrix.ServiceMatrix
-import id.walt.services.crypto.CryptoService
-import id.walt.services.keystore.KeyStoreService
 import mu.KotlinLogging
-import org.hyperledger.aries.api.connection.ConnectionRecord
-import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.agent.AriesAgent
-import org.nessus.didcomm.agent.AriesClient
-import org.nessus.didcomm.crypto.NessusCryptoService
+import org.nessus.didcomm.service.CamelEndpointService
+import org.nessus.didcomm.service.MessageDispatchService
+import org.nessus.didcomm.service.ProtocolService
+import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
-import org.nessus.didcomm.wallet.NessusWallet
-import org.nessus.didcomm.wallet.WalletAgent
-import org.nessus.didcomm.wallet.WalletService
-import org.nessus.didcomm.wallet.WalletType
+import org.nessus.didcomm.wallet.Wallet
 
 object Government {
     val name = "Government"
@@ -71,40 +66,18 @@ abstract class AbstractIntegrationTest {
         }
     }
 
-    val cryptoService = CryptoService.getService().implementation as NessusCryptoService
+    val adminClient get() = AriesAgent.adminClient()
+
+    val endpointService = CamelEndpointService.getService()
+    val messageDispatcher = MessageDispatchService.getService()
+    val protocolService = ProtocolService.getService()
     val walletService = WalletService.getService()
-    val keyStore = KeyStoreService.getService()
 
-    fun getWalletByName(walletName: String): NessusWallet? {
-        var wallet = walletService.getWalletByName(walletName)
-        if (wallet == null) {
-            val adminClient = AriesAgent.adminClient()
-            val walletRecord = adminClient.multitenancyWallets(walletName).get().firstOrNull()
-            if (walletRecord != null) {
-                val walletAgent = WalletAgent.ACAPY
-                val walletId = walletRecord.walletId
-                val walletType = WalletType.valueOf(walletRecord.settings.walletType.toString())
-                val tokReq = CreateWalletTokenRequest.builder().build()
-                val tokRes = adminClient.multitenancyWalletToken(walletId, tokReq).get()
-                wallet = NessusWallet(walletId, walletAgent, walletType, walletName, tokRes.token)
-            }
-        }
-        return wallet
+    fun getWalletByAlias(alias: String): Wallet? {
+        return walletService.findByAlias(alias)
     }
 
-    fun removeWallet(wallet: NessusWallet?) {
-        if (wallet != null) {
-            walletService.removeWallet(wallet.walletId)
-        }
-    }
-
-    fun awaitConnectionRecord(client: AriesClient, predicate: (cr: ConnectionRecord) -> Boolean): ConnectionRecord? {
-        var retries = 10
-        var maybeConnection = client.connections().get().firstOrNull { predicate(it) }
-        while (maybeConnection == null && (0 < retries--)) {
-            Thread.sleep(500)
-            maybeConnection = client.connections().get().firstOrNull { predicate(it) }
-        }
-        return maybeConnection
+    fun removeWallet(wallet: Wallet?) {
+        wallet?.run { walletService.removeWallet(wallet.id) }
     }
 }

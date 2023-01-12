@@ -19,9 +19,6 @@
  */
 package org.nessus.didcomm.agent
 
-import com.google.gson.FieldNamingPolicy
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import mu.KotlinLogging
 import okhttp3.MediaType
@@ -29,22 +26,16 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
-import org.hyperledger.aries.api.exception.AriesException
-import org.hyperledger.aries.config.GsonConfig
-import org.nessus.didcomm.wallet.NessusWallet
+import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.encodeJson
+import org.nessus.didcomm.util.gson
+import org.nessus.didcomm.wallet.Wallet
 import org.slf4j.event.Level
 import java.util.concurrent.TimeUnit
 
 val JSON_TYPE: MediaType = "application/json; charset=utf-8".toMediaType()
-
-private val gson: Gson = GsonBuilder()
-    .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-    .create()
-private val prettyGson: Gson = GsonBuilder()
-    .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-    .setPrettyPrinting()
-    .create()
 
 class AgentConfiguration private constructor(
     val adminUrl: String?,
@@ -56,14 +47,14 @@ class AgentConfiguration private constructor(
         private val adminPort = System.getenv("ACAPY_ADMIN_PORT") ?: "8031"
         private val userPort = System.getenv("ACAPY_USER_PORT") ?: "8030"
         private val apiKey = System.getenv("ACAPY_ADMIN_API_KEY") ?: "adminkey"
-        val defaultConfiguration: AgentConfiguration = builder()
+        val defaultConfiguration = builder()
                 .adminUrl(String.format("http://%s:%s", host, adminPort))
                 .userUrl(String.format("http://%s:%s", host, userPort))
                 .apiKey(apiKey)
                 .build()
 
-        fun builder(): AgentConfigurationBuilder {
-            return AgentConfigurationBuilder()
+        fun builder(): Builder {
+            return Builder()
         }
     }
 
@@ -72,30 +63,16 @@ class AgentConfiguration private constructor(
         return "AgentConfiguration [agentAdminUrl=$adminUrl, agentUserUrl=$userUrl, agentApiKey=$redactedApiKey]"
     }
 
-    class AgentConfigurationBuilder {
+    data class Builder(
+            private var adminUrl: String? = null,
+            private var userUrl: String? = null,
+            private var apiKey: String? = null
+    ) {
 
-        private var adminUrl: String? = null
-        private var userUrl: String? = null
-        private var apiKey: String? = null
-
-        fun adminUrl(adminUrl: String): AgentConfigurationBuilder {
-            this.adminUrl = adminUrl
-            return this
-        }
-
-        fun userUrl(userUrl: String): AgentConfigurationBuilder {
-            this.userUrl = userUrl
-            return this
-        }
-
-        fun apiKey(apiKey: String): AgentConfigurationBuilder {
-            this.apiKey = apiKey
-            return this
-        }
-
-        fun build(): AgentConfiguration {
-            return AgentConfiguration(adminUrl, userUrl, apiKey)
-        }
+        fun adminUrl(adminUrl: String) = apply { this.adminUrl = adminUrl }
+        fun userUrl(userUrl: String) = apply { this.userUrl = userUrl }
+        fun apiKey(apiKey: String) = apply { this.apiKey = apiKey }
+        fun build() = AgentConfiguration(adminUrl, userUrl, apiKey)
     }
 }
 
@@ -112,7 +89,7 @@ object AriesClientFactory {
     /**
      * Create a client for a multitenant wallet
      */
-    fun walletClient(wallet: NessusWallet, config: AgentConfiguration? = null, level: Level? = null): AriesClient {
+    fun walletClient(wallet: Wallet, config: AgentConfiguration? = null, level: Level? = null): AriesClient {
         val loggingInterceptor = if (level != null) createHttpLoggingInterceptor(level) else null
         return walletClient(config, wallet, null, loggingInterceptor)
     }
@@ -122,11 +99,12 @@ object AriesClientFactory {
      */
     fun walletClient(
         config: AgentConfiguration?,
-        wallet: NessusWallet? = null,
+        wallet: Wallet? = null,
         httpClient: OkHttpClient? = null,
         loggingInterceptor: HttpLoggingInterceptor? = null
     ): AriesClient {
         val config = config ?: AgentConfiguration.defaultConfiguration
+        checkNotNull(config.adminUrl) { "No admin url in $config" }
         val auxHttpClient = httpClient ?: OkHttpClient.Builder()
             .writeTimeout(60, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
@@ -139,8 +117,6 @@ object AriesClientFactory {
 
     private fun createHttpLoggingInterceptor(level: Level): HttpLoggingInterceptor {
         val log = KotlinLogging.logger {}
-        val gson = GsonConfig.defaultConfig()
-        val pretty = GsonConfig.prettyPrinter()
         fun log(spec: String, msg: String) {
             when(level) {
                 Level.ERROR -> log.error(spec, msg)
@@ -153,8 +129,8 @@ object AriesClientFactory {
         val interceptor = HttpLoggingInterceptor { msg: String ->
             if (log.isEnabledForLevel(level) && msg.isNotEmpty()) {
                 if (msg.startsWith("{")) {
-                    val json = gson.fromJson(msg, Any::class.java)
-                    log("{}", pretty.toJson(json))
+                    val json = msg.decodeJson()
+                    log("{}", json.encodeJson(true))
                 } else {
                     log("{}", msg)
                 }
@@ -167,18 +143,19 @@ object AriesClientFactory {
     }
 }
 
-class AriesClient(private val url: String?, private val apiKey: String?, private val bearerToken: String?, private val httpClient: OkHttpClient) :
-    org.hyperledger.aries.AriesClient(url, apiKey, bearerToken, httpClient) {
+class AriesClient(val adminUrl: String, private val apiKey: String?, private val bearerToken: String?, private val httpClient: OkHttpClient) :
+    org.hyperledger.aries.AriesClient(adminUrl, apiKey, bearerToken, httpClient) {
 
     val log = KotlinLogging.logger {}
 
-    fun post(path: String, body: Any, options: Map<String, Any>? = null): Map<String, Any> {
+    fun post(path: String, body: Any, options: Map<String, Any>? = null): Response {
 
         // Build the Request
-        var reqUrl = url + path
+        var reqUrl = adminUrl + path
         if (options != null) {
             reqUrl += "?"
-            options.forEach {(k, v) -> reqUrl += "$k=$v"}
+            options.forEach {(k, v) -> reqUrl += "$k=$v&"}
+            reqUrl = reqUrl.dropLast(1)
         }
         val builder = Request.Builder().url(reqUrl)
         if (apiKey != null)
@@ -192,22 +169,8 @@ class AriesClient(private val url: String?, private val apiKey: String?, private
             gson.toJson(body)
         }
         val req = builder.post(bodyJson.toRequestBody(JSON_TYPE)).build()
-
-        // Call the Aries endpoint
         val res = httpClient.newCall(req).execute()
-        val resBody = res.body?.string() ?: ""
-
-        // Fail if not success
-        if (!res.isSuccessful) {
-            log.error("code={} message={}\nbody={}", res.code, res.message, resBody)
-            throw AriesException(res.code, res.message + "\n" + resBody)
-        }
-
-        // Return a Json Map
-        val resObj: MutableMap<String, Any> = mutableMapOf()
-        gson.fromJson(resBody, MutableMap::class.java).forEach { en ->
-            resObj[en.key.toString()] = en.value!!
-        }
-        return resObj.toMap()
+        log.debug { "code=${res.code} message=${res.message}" }
+        return res
     }
 }

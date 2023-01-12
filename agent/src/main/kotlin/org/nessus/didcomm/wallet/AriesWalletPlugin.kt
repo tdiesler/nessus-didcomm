@@ -1,7 +1,9 @@
 package org.nessus.didcomm.wallet
 
 import id.walt.crypto.KeyAlgorithm
+import id.walt.services.keystore.KeyStoreService
 import org.hyperledger.acy_py.generated.model.DID
+import org.hyperledger.acy_py.generated.model.DID.KeyTypeEnum
 import org.hyperledger.acy_py.generated.model.DIDCreate
 import org.hyperledger.acy_py.generated.model.DIDCreateOptions
 import org.hyperledger.aries.AriesClient
@@ -13,72 +15,78 @@ import org.hyperledger.aries.api.multitenancy.WalletDispatchType
 import org.hyperledger.aries.api.wallet.WalletDIDCreate
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.did.DidService.DEFAULT_KEY_ALGORITHM
+import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
+import org.nessus.didcomm.service.DidService
+import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
+import org.nessus.didcomm.service.WalletPlugin
 
 class AriesWalletPlugin: WalletPlugin() {
 
-    override fun createWallet(config: NessusWallet.Builder): NessusWallet {
+    override fun createWallet(config: WalletConfig): Wallet {
 
         val walletAgent = WalletAgent.ACAPY
-        val walletName = config.walletName
+        val walletAlias = config.alias
         val walletType = config.walletType ?: WalletType.IN_MEMORY
-        val walletKey = config.walletKey ?: walletName + "Key"
-        val didMethod = config.didMethod ?: DidMethod.KEY
-        val trusteeWallet = config.trusteeWallet
+        val walletKey = config.walletKey ?: walletAlias + "Key"
+        val publicDidMethod = config.publicDidMethod
         val ledgerRole = config.ledgerRole
-        val publicDid = config.publicDid
+        val trusteeWallet = config.trusteeWallet
         val indyLedgerRole = if (ledgerRole != null)
             IndyLedgerRoles.valueOf(ledgerRole.name.uppercase())
         else null
 
+        val adminClient = AriesAgent.adminClient()
         val walletRequest = CreateWalletRequest.builder()
-            .walletName(walletName)
+            .walletName(walletAlias)
             .walletKey(walletKey)
             .walletDispatchType(WalletDispatchType.DEFAULT)
-            .walletType(toAriesWalletType(walletType))
+            .walletType(walletType.toAriesWalletType())
             .build()
-        val walletRecord = AriesAgent.adminClient().multitenancyWalletCreate(walletRequest).get()
-        val nessusWallet = NessusWallet(walletRecord.walletId, walletAgent, walletType, walletName, walletRecord.token)
+        val walletRecord = adminClient.multitenancyWalletCreate(walletRequest).get()
+        val auxWallet = Wallet(walletRecord.walletId, walletAlias, walletAgent, walletType, authToken=walletRecord.token)
 
-        // Create a local DID for the wallet
-        val walletClient = AriesAgent.walletClient(nessusWallet)
-        val didCreate = WalletDIDCreate.builder()
-            .method(DIDCreate.MethodEnum.valueOf(didMethod.name))
-            .build()
-        val auxDid = walletClient.walletDidCreate(didCreate).get()
-        val did = fromAriesDid(auxDid)!!
-        log.info("{}: {}", walletName, did)
+        var publicDid: Did? = null
 
-        if (publicDid || indyLedgerRole != null) {
-            trusteeWallet ?: throw WalletException("LedgerRole $indyLedgerRole requires trusteeWallet")
+        val wallet = if (publicDidMethod != null || indyLedgerRole != null) {
+            checkNotNull(trusteeWallet) {"No trustee wallet"}
 
-            val trustee: AriesClient = AriesAgent.walletClient(trusteeWallet)
-            val trusteeName: String = trusteeWallet.walletName ?: trusteeWallet.walletId
+            // Create a local DID for the wallet
+            val walletClient = AriesAgent.walletClient(auxWallet)
+            val didMethod = publicDidMethod ?: DidMethod.SOV
+            val didCreate = WalletDIDCreate.builder()
+                .method(DIDCreate.MethodEnum.valueOf(didMethod.name))
+                .build()
+
+            publicDid = walletClient.walletDidCreate(didCreate).get().toNessusDid()
+
+            val trustee = AriesAgent.walletClient(trusteeWallet)
+            val trusteeName: String = trusteeWallet.alias
             val nymResponse = trustee.ledgerRegisterNym(
                 RegisterNymFilter.builder()
-                    .did(did.id)
-                    .verkey(did.verkey)
+                    .did(publicDid.id)
+                    .verkey(publicDid.verkey!!)
                     .role(indyLedgerRole)
                     .build()
             ).get()
-            log.info("{} for {}: {}", trusteeName, walletName, nymResponse)
+            log.info("{} for {}: {}", trusteeName, walletAlias, nymResponse)
 
             // Set the public DID for the wallet
-            walletClient.walletDidPublic(did.id)
+            walletClient.walletDidPublic(publicDid.id)
 
-            val didEndpoint = walletClient.walletGetDidEndpoint(did.id).get()
-            log.info("{}: {}", walletName, didEndpoint)
-        }
+            val didEndpoint = walletClient.walletGetDidEndpoint(publicDid.id).get().endpoint
+            Wallet(auxWallet.id, walletAlias, walletAgent, walletType, didEndpoint, auxWallet.authToken)
+        } else auxWallet
 
-        return nessusWallet
+        log.info("{}: did={} endpoint={}", walletAlias, publicDid?.qualified, wallet.endpointUrl)
+        return wallet
     }
 
-    override fun removeWallet(wallet: NessusWallet) {
+    override fun removeWallet(wallet: Wallet) {
 
-        val walletId = wallet.walletId
-        val walletName = wallet.walletName
+        val walletId = wallet.id
+        val walletAlias = wallet.alias
         val accessToken = wallet.authToken
-        log.info("Remove Wallet: {}", walletName)
+        log.info("Remove Wallet: {}", walletAlias)
 
         val adminClient: AriesClient = AriesAgent.adminClient()
         adminClient.multitenancyWalletRemove(
@@ -88,43 +96,65 @@ class AriesWalletPlugin: WalletPlugin() {
         )
 
         // Wait for the wallet to get removed
-        Thread.sleep(500)
-        while (adminClient.multitenancyWallets(walletName).get().isNotEmpty()) {
+        Thread.sleep(1000)
+        while (adminClient.multitenancyWallets(walletAlias).get().isNotEmpty()) {
             Thread.sleep(500)
         }
     }
 
-    override fun createDid(wallet: NessusWallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
+    override fun createDid(wallet: Wallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
         val walletClient = AriesAgent.walletClient(wallet)
         val didOptions = DIDCreateOptions.builder()
-            .keyType(DIDCreateOptions.KeyTypeEnum.valueOf(algorithm?.name ?: DEFAULT_KEY_ALGORITHM.name))
+            .keyType((algorithm ?: DEFAULT_KEY_ALGORITHM).toAriesKeyType())
             .build()
         val didCreate = WalletDIDCreate.builder()
             .method(DIDCreate.MethodEnum.valueOf(method?.name ?: DidMethod.KEY.name))
             .options(didOptions)
             .build()
         val ariesDid = walletClient.walletDidCreate(didCreate).get()
-        return fromAriesDid(ariesDid)!!
+        val nessusDid = ariesDid.toNessusDid()
+        DidService.getService().registerDidVerkey(nessusDid)
+        return nessusDid
     }
 
-    override fun publicDid(wallet: NessusWallet): Did? {
+    override fun publicDid(wallet: Wallet): Did? {
         val walletClient = AriesAgent.walletClient(wallet)
-        return fromAriesDid(walletClient.walletDidPublic().orElse(null))
-    }
-
-    // -----------------------------------------------------------------------------------------------------------------
-
-    private fun toAriesWalletType(type: WalletType): org.hyperledger.aries.api.multitenancy.WalletType {
-        return org.hyperledger.aries.api.multitenancy.WalletType.valueOf(type.name)
-    }
-
-    private fun fromAriesDid(did: org.hyperledger.acy_py.generated.model.DID?): Did? {
-        if (did == null) return null
-        val method = DidMethod.valueOf(did.method.name)
-        val algorithm = when(did.keyType) {
-            DID.KeyTypeEnum.ED25519 -> KeyAlgorithm.EdDSA_Ed25519
-            else -> throw IllegalStateException("Key algorithm not supported: ${did.keyType}")
+        val ariesDid = walletClient.walletDidPublic().orElse(null) ?:
+            return null
+        val publicDid = ariesDid.toNessusDid()
+        val keyStore = KeyStoreService.getService()
+        keyStore.getKeyId(publicDid.qualified) ?: run {
+            DidService.getService().registerDidVerkey(publicDid)
         }
-        return Did(did.did, method, algorithm, did.verkey)
+        return publicDid
     }
+
+    override fun listSupportedProtocols(): List<String> {
+        return listOf(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1.name)
+    }
+
+    override fun listDids(wallet: Wallet): List<Did> {
+        val walletClient = AriesAgent.walletClient(wallet)
+        return walletClient.walletDid().get().map { it.toNessusDid() }
+    }
+
+    // Private ---------------------------------------------------------------------------------------------------------
+
+    private fun DID.toNessusDid(): Did = run {
+        val method = DidMethod.valueOf(this.method.name)
+        val algorithm = this.keyType.toKeyAlgorithm()
+        Did(this.did, method, algorithm, this.verkey)
+    }
+
+    private fun KeyTypeEnum.toKeyAlgorithm() = when(this) {
+        KeyTypeEnum.ED25519 -> KeyAlgorithm.EdDSA_Ed25519
+        else -> throw IllegalStateException("Key type not supported: $this")
+    }
+
+    private fun KeyAlgorithm.toAriesKeyType() = when(this) {
+        KeyAlgorithm.EdDSA_Ed25519 -> DIDCreateOptions.KeyTypeEnum.ED25519
+        else -> throw IllegalStateException("Key algorithm not supported: $this")
+    }
+
+    private fun WalletType.toAriesWalletType() = org.hyperledger.aries.api.multitenancy.WalletType.valueOf(this.name)
 }
