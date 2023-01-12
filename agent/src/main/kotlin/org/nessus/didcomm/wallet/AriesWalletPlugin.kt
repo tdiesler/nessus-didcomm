@@ -15,9 +15,14 @@ import org.hyperledger.aries.api.multitenancy.WalletDispatchType
 import org.hyperledger.aries.api.wallet.WalletDIDCreate
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.protocol.Protocol
+import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol
+import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol
 import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.service.DidService
+import org.nessus.didcomm.service.PROTOCOL_URI_RFC0095_BASIC_MESSAGE
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
+import org.nessus.didcomm.service.ProtocolId
 import org.nessus.didcomm.service.WalletPlugin
 
 class AriesWalletPlugin: WalletPlugin() {
@@ -129,8 +134,17 @@ class AriesWalletPlugin: WalletPlugin() {
         return publicDid
     }
 
+    private val supportedProtocols: Map<ProtocolId<*>, Protocol> get() = mapOf(
+        PROTOCOL_URI_RFC0095_BASIC_MESSAGE to RFC0095BasicMessageProtocol(),
+        PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1 to RFC0434OutOfBandProtocol(),
+    )
+
+    override fun <T: Protocol> getProtocol(id: ProtocolId<T>): T? {
+        return supportedProtocols[id] as? T
+    }
+
     override fun listSupportedProtocols(): List<String> {
-        return listOf(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1.name)
+        return supportedProtocols.keys.map{ it.name }.toList()
     }
 
     override fun listDids(wallet: Wallet): List<Did> {

@@ -72,6 +72,10 @@ class WalletStoreService: NessusBaseService() {
         peerConnectionStore(walletId).addConnection(con)
     }
 
+    fun getPeerConnection(walletId: String, conId: String): PeerConnection? {
+        return peerConnectionStore(walletId).getConnection(conId)
+    }
+
     fun listPeerConnections(walletId: String): List<PeerConnection> {
         return peerConnectionStore(walletId).connections
     }

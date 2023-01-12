@@ -26,6 +26,7 @@ import mu.KotlinLogging
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.protocol.Protocol
 import org.nessus.didcomm.wallet.AriesWalletPlugin
 import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.NessusWalletPlugin
@@ -127,6 +128,10 @@ class WalletService : BaseService() {
         walletStore.addPeerConnection(wallet.id, con)
     }
 
+    fun getPeerConnection(wallet: Wallet, conId: String): PeerConnection? {
+        return walletStore.getPeerConnection(wallet.id, conId)
+    }
+
     fun listPeerConnections(wallet: Wallet): List<PeerConnection> {
         return walletStore.listPeerConnections(wallet.id)
     }
@@ -136,6 +141,14 @@ class WalletService : BaseService() {
      */
     fun publicDid(wallet: Wallet): Did? {
         return walletPlugin(wallet.walletAgent).publicDid(wallet)
+    }
+
+    fun <T: Protocol> assertProtocol(agent: WalletAgent, id: ProtocolId<T>): T {
+        return getProtocol(agent, id) ?: throw IllegalStateException("Unsupported protocol for ${agent.value}: $id")
+    }
+
+    fun <T: Protocol> getProtocol(agent: WalletAgent, id: ProtocolId<T>): T? {
+        return walletPlugin(agent).getProtocol(id)
     }
 
     /**
@@ -165,6 +178,8 @@ abstract class WalletPlugin {
         method: DidMethod?,
         algorithm: KeyAlgorithm? = null,
         seed: String? = null): Did
+
+    abstract fun <T: Protocol> getProtocol(id: ProtocolId<T>): T?
 
     abstract fun listSupportedProtocols(): List<String>
 

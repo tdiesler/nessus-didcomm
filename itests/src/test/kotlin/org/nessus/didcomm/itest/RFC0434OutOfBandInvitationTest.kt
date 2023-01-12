@@ -24,7 +24,7 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_AUTO_ACCEPT
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_METHOD
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.MESSAGE_EXCHANGE_PEER_CONNECTION_KEY
-import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.OOB_METHOD_RECEIVE_INVITATION
+import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.PROTOCOL_METHOD_RECEIVE_INVITATION
 import org.nessus.didcomm.service.ConnectionState
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
 import org.nessus.didcomm.wallet.Wallet
@@ -44,7 +44,7 @@ import kotlin.test.assertNotNull
  * DIDComm - Out Of Band Messages
  * https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
  */
-class RFC0434OutOfBandTest : AbstractIntegrationTest() {
+class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
 
     @Test
     fun test_FaberAcapy_invites_AliceAcapy() {
@@ -88,7 +88,7 @@ class RFC0434OutOfBandTest : AbstractIntegrationTest() {
              */
 
             mex.dispatchTo(invitee, mapOf(
-                MESSAGE_PROTOCOL_METHOD to OOB_METHOD_RECEIVE_INVITATION,
+                MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_RECEIVE_INVITATION,
                 MESSAGE_AUTO_ACCEPT to inviteeAutoAccept,
             ))
 

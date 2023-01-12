@@ -18,6 +18,6 @@ open class AttachmentKey<T>(val name: String, val type: Class<T>) {
 
     override fun toString(): String {
         val cname = type.name
-        return "[name=$name,type=$cname]"
+        return "[name=$name, type=$cname]"
     }
 }

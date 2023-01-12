@@ -27,7 +27,6 @@ import org.nessus.didcomm.service.PeerConnection
 import org.nessus.didcomm.service.ProtocolId
 import org.nessus.didcomm.service.ProtocolService
 import org.nessus.didcomm.service.WalletService
-import java.util.*
 
 enum class LedgerRole {
     TRUSTEE,
@@ -43,8 +42,8 @@ enum class DidMethod(val value: String) {
 }
 
 enum class WalletAgent(val value: String) {
-    ACAPY("acapy"),
-    NESSUS("nessus");
+    ACAPY("AcaPy"),
+    NESSUS("Nessus");
     companion object {
         fun fromValue(value: String) = DidMethod.valueOf(value.uppercase())
     }
@@ -56,10 +55,6 @@ enum class WalletType(val value: String) {
     companion object {
         fun fromValue(value: String) = DidMethod.valueOf(value.uppercase())
     }
-}
-
-fun createUUID(): String {
-    return UUID.randomUUID().toString()
 }
 
 /**
@@ -101,6 +96,10 @@ class Wallet(
 
     fun addPeerConnection(con: PeerConnection) {
         walletService.addPeerConnection(this, con)
+    }
+
+    fun getPeerConnection(conId: String): PeerConnection? {
+        return walletService.getPeerConnection(this, conId)
     }
 
     fun listPeerConnections(): List<PeerConnection> {

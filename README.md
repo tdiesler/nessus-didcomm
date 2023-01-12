@@ -49,3 +49,19 @@ siera configuration add -e default -a aca-py -k adminkey -u http://localhost:803
 ```
 
 The above should have created the respective siera enviroment.
+
+### Supported Protocols
+
+| Protocol                                      | AcaPy | Nessus |
+|:----------------------------------------------|:-----:|:------:|
+| [RFC0019 Encryption Envelope][rfc0019]        |       |        |
+| [RFC0023 DID Exchange Protocol 1.0][rfc0023]  |   x   |        |
+| [RFC0048 Trust Ping Protocol 1.0][rfc0048]    |       |        |
+| [RFC0095 Basic Message Protocol 1.0][rfc0095] |   x   |        |
+| [RFC0434 Out-of-Band Protocol 1.1][rfc0434]   |   x   |        |
+
+[rfc0019]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0019-encryption-envelope
+[rfc0023]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange
+[rfc0048]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0048-trust-ping
+[rfc0095]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0095-basic-message
+[rfc0434]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0434-outofband

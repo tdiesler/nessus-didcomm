@@ -37,8 +37,8 @@ class RFC0434OutOfBandProtocol: Protocol() {
     override val protocolUri = PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1.name
 
     companion object {
-        const val OOB_METHOD_CREATE_INVITATION = "/out-of-band/create-invitation"
-        const val OOB_METHOD_RECEIVE_INVITATION = "/out-of-band/receive-invitation"
+        const val PROTOCOL_METHOD_CREATE_INVITATION = "/out-of-band/create-invitation"
+        const val PROTOCOL_METHOD_RECEIVE_INVITATION = "/out-of-band/receive-invitation"
     }
 
     /**
@@ -65,7 +65,7 @@ class RFC0434OutOfBandProtocol: Protocol() {
 //
 //        val message = """
 //        {
-//          "@id": "${createUUID()}",
+//          "@id": "${UUID.randomUUID()}",
 //          "@type": "https://didcomm.org/out-of-band/1.1/invitation",
 //          "handshake_protocols": [ "https://didcomm.org/didexchange/1.0" ],
 //          "accept": [ "didcomm/v2" ],
@@ -97,8 +97,13 @@ class RFC0434OutOfBandProtocol: Protocol() {
 
     fun sendTo(to: Wallet, mex: MessageExchange): Boolean {
         checkProtocol(mex)
-        when(val protocolMethod = mex.message.protocolMethod) {
-            OOB_METHOD_RECEIVE_INVITATION -> receiveOutOfBandInvitation(to, mex)
+        when(val protocolMethod = mex.last.protocolMethod) {
+
+            // We can also send the output of OOB_METHOD_CREATE_INVITATION
+            // directly to the OOB_METHOD_RECEIVE_INVITATION target method
+            PROTOCOL_METHOD_CREATE_INVITATION -> receiveOutOfBandInvitation(to, mex)
+            PROTOCOL_METHOD_RECEIVE_INVITATION -> receiveOutOfBandInvitation(to, mex)
+            
             else -> throw IllegalStateException("Unsupported protocol method: $protocolMethod")
         }
         return true
@@ -138,7 +143,7 @@ class RFC0434OutOfBandProtocol: Protocol() {
         log.info { "Inviter Did: $myDid" }
 
         val epm = EndpointMessage(invitationRecord, mapOf(
-            MESSAGE_PROTOCOL_METHOD to OOB_METHOD_CREATE_INVITATION,
+            MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_CREATE_INVITATION,
             MESSAGE_PROTOCOL_URI to protocolUri,
             MESSAGE_THREAD_ID to invitationMessageId,
             MESSAGE_FROM_ID to inviter.id,
@@ -146,14 +151,14 @@ class RFC0434OutOfBandProtocol: Protocol() {
             MESSAGE_FROM_ALIAS to inviter.alias,
             MESSAGE_CONTENT_URI to invitationType,
         ))
-        return MessageExchange(invitationMessageId, epm)
+        return MessageExchange(epm, invitationMessageId)
     }
 
     private fun receiveOutOfBandInvitationAcapy(invitee: Wallet, mex: MessageExchange) {
         val invitationMessageId = mex.threadId
-        val invitationRecord = mex.message.body as InvitationRecord
+        val invitationRecord = mex.last.body as InvitationRecord
         val invitation = invitationRecord.invitation
-        val autoAccept = mex.message.autoAccept
+        val autoAccept = mex.last.autoAccept
 
         val invitationMessageBuilder = InvitationMessage.builder<InvitationMessage.InvitationMessageService>()
             .services(invitation.services.map {

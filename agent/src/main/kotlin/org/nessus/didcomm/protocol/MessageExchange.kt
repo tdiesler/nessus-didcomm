@@ -5,15 +5,15 @@ import org.nessus.didcomm.service.PeerConnection
 import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.AttachmentSupport
 import org.nessus.didcomm.wallet.Wallet
-
+import java.util.*
 
 
 /**
  * Records a sequence of messages associated with a protocol
  */
 class MessageExchange(
-    val threadId: String,
     msg: EndpointMessage? = null,
+    val threadId: String = "${UUID.randomUUID()}",
     val parent: MessageExchange? = null
 ): AttachmentSupport() {
 
@@ -31,23 +31,27 @@ class MessageExchange(
     }
 
     val messages get() = _messages.toList()
-    val message get() = messages.last()
-    val headers get() = message.headers
-    val body get() = message.body
+    val last get() = messages.last()
+    val headers get() = last.headers
+    val body get() = last.body
 
-    fun addSubExchange(messageExchange: MessageExchange) {
+    fun addSubExchange(messageExchange: MessageExchange) = apply {
         check(messageExchange.parent == this)
         subExchanges.add(messageExchange)
     }
 
-    fun addMessage(msg: EndpointMessage) {
+    fun addMessage(msg: EndpointMessage) = apply {
         check(msg.threadId == this.threadId) { "Invalid thread id: ${msg.threadId}" }
         _messages.add(msg)
     }
 
-    fun dispatchTo(target: Wallet, headers: Map<String, Any>) = apply {
+    fun dispatchTo(target: Wallet, headers: Map<String, Any> = mapOf()) = apply {
         addMessage(EndpointMessage.Builder(this).headers(headers).build())
         MessageDispatchService.getService().sendTo(target, this)
+    }
+
+    fun getPeerConnection(): PeerConnection? {
+        return getAttachment(MESSAGE_EXCHANGE_PEER_CONNECTION_KEY)
     }
 }
 
@@ -86,9 +90,10 @@ class EndpointMessage(val body: Any? = null, headers: Map<String, Any> = mapOf()
     }
 
     val autoAccept get() = headers[MESSAGE_AUTO_ACCEPT] as? Boolean ?: true
-    val protocolMethod get() = headers[MESSAGE_PROTOCOL_METHOD] ?: { "No MESSAGE_PROTOCOL_METHOD" }
-    val protocolUri get() = headers[MESSAGE_PROTOCOL_URI] ?: { "No MESSAGE_PROTOCOL_URI" }
-    val threadId get() = headers[MESSAGE_THREAD_ID] ?: { "No MESSAGE_THREAD_ID" }
+    val contentUri get() = headers[MESSAGE_CONTENT_URI] as? String ?: { "No MESSAGE_CONTENT_URI" }
+    val protocolMethod get() = headers[MESSAGE_PROTOCOL_METHOD] as? String ?: { "No MESSAGE_PROTOCOL_METHOD" }
+    val protocolUri get() = headers[MESSAGE_PROTOCOL_URI] as? String ?: { "No MESSAGE_PROTOCOL_URI" }
+    val threadId get() = headers[MESSAGE_THREAD_ID] as? String ?: { "No MESSAGE_THREAD_ID" }
 
     class Builder() {
         private var body: Any? = null

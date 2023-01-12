@@ -7,7 +7,7 @@ abstract class Protocol {
     abstract val protocolUri: String
 
     protected fun checkProtocol(mex: MessageExchange) {
-        check(mex.message.protocolUri == protocolUri) { "Invalid protocol: ${mex.message.protocolUri}" }
+        check(mex.last.protocolUri == protocolUri) { "Invalid protocol: ${mex.last.protocolUri}" }
 
     }
 }

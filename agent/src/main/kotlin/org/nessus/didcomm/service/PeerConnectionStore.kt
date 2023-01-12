@@ -38,7 +38,7 @@ class PeerConnectionStore {
         return storage.remove(id)
     }
 
-    fun findById(id: String): PeerConnection? {
+    fun getConnection(id: String): PeerConnection? {
         return storage[id]
     }
 
