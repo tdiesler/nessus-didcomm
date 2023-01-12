@@ -56,10 +56,10 @@ import kotlin.test.fail
  * 3. The responder uses sent DID Doc information to send a DID and DID Doc to the requester in a response message.
  * 4. The requester sends the responder a complete message that confirms the response message was received.
  */
-class DidExchangeTest : AbstractIntegrationTest() {
+class RFC0023DidExchangeTest : AbstractIntegrationTest() {
 
     @Test
-    fun didExchange_Faber_Alice() {
+    fun didExchange_FaberAcapy_AliceAcapy() {
 
         /**
          * Findings

@@ -21,8 +21,9 @@ package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.protocol.EndpointMessage
+import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.ConnectionState
-import org.nessus.didcomm.service.PROTOCOL_URI_RFC0095_BASIC_MESSAGE
+import org.nessus.didcomm.service.PROTOCOL_URI_RFC0048_TRUST_PING
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
 import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.WalletAgent
@@ -32,10 +33,10 @@ import kotlin.test.assertNotNull
 import kotlin.test.fail
 
 /**
- * Aries RFC 0095: Basic Message Protocol 1.0
- * https://github.com/hyperledger/aries-rfcs/tree/main/features/0095-basic-message
+ * Aries RFC 0048: Trust Ping Protocol 1.0
+ * https://github.com/hyperledger/aries-rfcs/tree/main/features/0048-trust-ping
  */
-class RFC0095BasicMessageTest : AbstractIntegrationTest() {
+class RFC0048TrustPingTest : AbstractIntegrationTest() {
 
     @Test
     fun test_FaberAcapy_AliceAcapy() {
@@ -58,23 +59,15 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
                 .dispatchTo(alice)
                 .getPeerConnection()
 
-            /** Verify connection state */
-
             assertNotNull(peerConnection, "No peer connection")
             assertEquals(ConnectionState.ACTIVE, peerConnection.state)
 
-            /** Send a basic message */
-
-            val userMessage = "Your hovercraft is full of eels."
-
-            val mex = alice.getProtocol(PROTOCOL_URI_RFC0095_BASIC_MESSAGE)
-                .sendMessage(alice, peerConnection.id, userMessage)
-
-            /** Verify message exchange state */
+            val mex: MessageExchange = alice.getProtocol(PROTOCOL_URI_RFC0048_TRUST_PING)
+                .sendPing(alice, peerConnection.id)
 
             val epm: EndpointMessage = mex.last
-            assertEquals("https://didcomm.org/basicmessage/1.0/message", epm.contentUri)
-            assertEquals(userMessage, epm.body)
+            assertEquals("https://didcomm.org/trust_ping/1.0/ping_response", epm.contentUri)
+            assertEquals(mapOf("thread_id" to mex.threadId), epm.bodyAsMap())
 
         } finally {
             removeWallet(alice)

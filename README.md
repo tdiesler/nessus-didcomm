@@ -54,9 +54,9 @@ The above should have created the respective siera enviroment.
 
 | Protocol                                      | AcaPy | Nessus |
 |:----------------------------------------------|:-----:|:------:|
-| [RFC0019 Encryption Envelope][rfc0019]        |       |        |
+| [RFC0019 Encryption Envelope][rfc0019]        |   x   |   x    |
 | [RFC0023 DID Exchange Protocol 1.0][rfc0023]  |   x   |        |
-| [RFC0048 Trust Ping Protocol 1.0][rfc0048]    |       |        |
+| [RFC0048 Trust Ping Protocol 1.0][rfc0048]    |   x   |        |
 | [RFC0095 Basic Message Protocol 1.0][rfc0095] |   x   |        |
 | [RFC0434 Out-of-Band Protocol 1.1][rfc0434]   |   x   |        |
 
@@ -65,3 +65,41 @@ The above should have created the respective siera enviroment.
 [rfc0048]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0048-trust-ping
 [rfc0095]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0095-basic-message
 [rfc0434]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0434-outofband
+
+### Code Example
+
+```kotlin
+    /** Create the wallets */
+    
+    val faber = getWalletByAlias(Faber.name) ?: fail("No Faber")
+    
+    val alice = Wallet.Builder(Alice.name)
+        .walletAgent(WalletAgent.ACAPY)
+        .walletType(WalletType.IN_MEMORY)
+        .build()
+            
+    /** Establish a peer connection */
+    
+    val peerConnection = faber.getProtocol(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1)
+        .createOutOfBandInvitation(faber)
+        .dispatchTo(alice)
+        .getPeerConnection()
+    
+    /** Verify connection state */
+    
+    assertNotNull(peerConnection, "No peer connection")
+    assertEquals(ConnectionState.ACTIVE, peerConnection.state)
+    
+    /** Send a basic message */
+    
+    val userMessage = "Your hovercraft is full of eels."
+    
+    val mex = alice.getProtocol(PROTOCOL_URI_RFC0095_BASIC_MESSAGE)
+        .sendMessage(alice, peerConnection.id, userMessage)
+    
+    /** Verify message exchange state */
+    
+    val epm: EndpointMessage = mex.last
+    assertEquals("https://didcomm.org/basicmessage/1.0/message", epm.contentUri)
+    assertEquals(userMessage, epm.body)
+```

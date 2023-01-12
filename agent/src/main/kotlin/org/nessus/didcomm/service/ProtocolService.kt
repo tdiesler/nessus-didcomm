@@ -22,12 +22,14 @@ package org.nessus.didcomm.service
 import id.walt.servicematrix.ServiceProvider
 import org.nessus.didcomm.protocol.Protocol
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
+import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol
 import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol
 import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol
 import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.wallet.WalletAgent
 
 val PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE = ProtocolId("https://rfc0019/application/didcomm-enc-env", RFC0019EncryptionEnvelope::class.java)
+val PROTOCOL_URI_RFC0048_TRUST_PING = ProtocolId("https://didcomm.org/trust_ping/1.0", RFC0048TrustPingProtocol::class.java)
 val PROTOCOL_URI_RFC0095_BASIC_MESSAGE = ProtocolId("https://didcomm.org/basicmessage/1.0", RFC0095BasicMessageProtocol::class.java)
 val PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1 = ProtocolId("https://didcomm.org/out-of-band/1.1", RFC0434OutOfBandProtocol::class.java)
 
@@ -47,8 +49,10 @@ class ProtocolService() : NessusBaseService() {
             val wallets = WalletService.getService()
             return wallets.assertProtocol(agent, id)
         }
+        // Add to respective WalletPlugins as well
         val protocol = when(id) {
             PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE -> RFC0019EncryptionEnvelope()
+            PROTOCOL_URI_RFC0048_TRUST_PING -> RFC0048TrustPingProtocol()
             PROTOCOL_URI_RFC0095_BASIC_MESSAGE -> RFC0095BasicMessageProtocol()
             PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1 -> RFC0434OutOfBandProtocol()
             else -> throw IllegalArgumentException("Unknown protocol: ${id.name}")

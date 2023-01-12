@@ -4,6 +4,8 @@ import org.nessus.didcomm.service.MessageDispatchService
 import org.nessus.didcomm.service.PeerConnection
 import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.AttachmentSupport
+import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.wallet.Wallet
 import java.util.*
 
@@ -94,6 +96,13 @@ class EndpointMessage(val body: Any? = null, headers: Map<String, Any> = mapOf()
     val protocolMethod get() = headers[MESSAGE_PROTOCOL_METHOD] as? String ?: { "No MESSAGE_PROTOCOL_METHOD" }
     val protocolUri get() = headers[MESSAGE_PROTOCOL_URI] as? String ?: { "No MESSAGE_PROTOCOL_URI" }
     val threadId get() = headers[MESSAGE_THREAD_ID] as? String ?: { "No MESSAGE_THREAD_ID" }
+
+    fun bodyAsMap(): Map<String, Any?> {
+        if (body is String)
+            return body.decodeJson()
+        val bodyJson = gson.toJson(body)
+        return bodyJson.decodeJson()
+    }
 
     class Builder() {
         private var body: Any? = null
