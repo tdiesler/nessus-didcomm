@@ -68,10 +68,10 @@ abstract class AbstractIntegrationTest {
 
     val adminClient get() = AriesAgent.adminClient()
 
-    val endpointService = CamelEndpointService.getService()
-    val messageDispatcher = MessageDispatchService.getService()
-    val protocolService = ProtocolService.getService()
-    val walletService = WalletService.getService()
+    val endpointService get() = CamelEndpointService.getService()
+    val messageDispatcher get() = MessageDispatchService.getService()
+    val protocolService get() = ProtocolService.getService()
+    val walletService get() = WalletService.getService()
 
     fun getWalletByAlias(alias: String): Wallet? {
         return walletService.findByAlias(alias)

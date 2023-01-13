@@ -59,8 +59,9 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
      */
     fun sendTo(to: Wallet, mex: MessageExchange): Boolean {
         val pid = when(val protocolUri = mex.last.protocolUri) {
-            PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1.name -> PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
-            else -> throw IllegalStateException("Unknown protocol: $protocolUri")
+            PROTOCOL_URI_RFC0023_DID_EXCHANGE.uri -> PROTOCOL_URI_RFC0023_DID_EXCHANGE
+            PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1.uri -> PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
+            else -> throw IllegalStateException("Unsupported dispatch protocol: $protocolUri")
         }
         val protocol = protocols.getProtocol(pid, to.walletAgent)
         return protocol.sendTo(to, mex)

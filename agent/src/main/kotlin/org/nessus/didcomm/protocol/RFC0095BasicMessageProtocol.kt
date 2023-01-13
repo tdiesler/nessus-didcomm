@@ -19,7 +19,7 @@ import org.nessus.didcomm.wallet.WalletAgent
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0095-basic-message
  */
 class RFC0095BasicMessageProtocol: Protocol() {
-    override val protocolUri = PROTOCOL_URI_RFC0095_BASIC_MESSAGE.name
+    override val protocolUri = PROTOCOL_URI_RFC0095_BASIC_MESSAGE.uri
 
     companion object {
         const val PROTOCOL_METHOD_SEND_MESSAGE = "/connections/send_message"

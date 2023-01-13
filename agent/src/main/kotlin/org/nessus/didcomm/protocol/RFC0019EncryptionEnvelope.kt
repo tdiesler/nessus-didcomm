@@ -29,7 +29,7 @@ import java.security.PublicKey
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0019-encryption-envelope
  */
 class RFC0019EncryptionEnvelope: Protocol() {
-    override val protocolUri = PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE.name
+    override val protocolUri = PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE.uri
 
     fun packRFC0019Envelope(senderKeys: java.security.KeyPair, recipientKey: PublicKey, message: String): String {
 

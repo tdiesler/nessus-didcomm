@@ -20,7 +20,7 @@ import org.nessus.didcomm.wallet.WalletAgent
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0048-trust-ping
  */
 class RFC0048TrustPingProtocol: Protocol() {
-    override val protocolUri = PROTOCOL_URI_RFC0048_TRUST_PING.name
+    override val protocolUri = PROTOCOL_URI_RFC0048_TRUST_PING.uri
 
     companion object {
         const val PROTOCOL_METHOD_SEND_PING = "/connections/send_ping"

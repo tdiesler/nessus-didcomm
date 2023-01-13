@@ -1,6 +1,7 @@
 package org.nessus.didcomm.service
 
 import id.walt.servicematrix.ServiceProvider
+import org.nessus.didcomm.protocol.MessageListener
 
 
 abstract class EndpointService<T: Any>: NessusBaseService() {
@@ -12,13 +13,12 @@ abstract class EndpointService<T: Any>: NessusBaseService() {
     }
 
     open val endpointUrl: String? get() = implementation.endpointUrl
-    protected val dispatcher get() = MessageDispatchService.getService()
 
     /**
      * Starts the endpoint service
      * @return A handle specific to the endpoint implementation
      */
-    open fun startEndpoint(): T? {
+    open fun startEndpoint(listener: MessageListener? = null): T? {
         return null
     }
 

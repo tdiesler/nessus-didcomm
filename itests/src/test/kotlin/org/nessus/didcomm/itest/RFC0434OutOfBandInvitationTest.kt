@@ -26,12 +26,14 @@ import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.MESSAGE_EXCHANGE_PEER_CONNECTION_KEY
 import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.PROTOCOL_METHOD_RECEIVE_INVITATION
 import org.nessus.didcomm.service.ConnectionState
+import org.nessus.didcomm.service.PROTOCOL_URI_RFC0023_DID_EXCHANGE
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
 import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.WalletAgent
 import org.nessus.didcomm.wallet.WalletType
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.fail
 
 
 /**
@@ -53,11 +55,7 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
          * Create the Wallets
          */
 
-        val inviter = Wallet.Builder(Faber.name)
-            .walletAgent(WalletAgent.ACAPY)
-            .walletType(WalletType.INDY)
-            .mayExist(true)
-            .build()
+        val inviter = getWalletByAlias(Faber.name) ?: fail("No Inviter")
 
         val invitee = Wallet.Builder(Alice.name)
             .walletAgent(WalletAgent.ACAPY)
@@ -65,7 +63,7 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
             .build()
 
         val inviterAutoAccept = true
-        val inviteeAutoAccept = true
+        val inviteeAutoAccept = false
 
         try {
 
@@ -96,7 +94,8 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
              * Invitee (Alice) accepts the Invitation
              */
             if (!inviteeAutoAccept) {
-                rfc0434.acceptDidExchange(invitee, mex)
+                val rfc0023 = mex.getProtocol(PROTOCOL_URI_RFC0023_DID_EXCHANGE)
+                rfc0023.acceptInvitation(invitee, mex)
             }
 
             /**
@@ -105,6 +104,79 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
             val peerConnection = mex.getAttachment(MESSAGE_EXCHANGE_PEER_CONNECTION_KEY)
             assertNotNull(peerConnection) {"${invitee.alias} has no peer connection"}
             assertEquals(ConnectionState.ACTIVE, peerConnection.state)
+
+        } finally {
+            removeWallet(invitee)
+        }
+    }
+
+    // @Test
+    fun test_FaberAcapy_invites_AliceNessus() {
+
+        /**
+         * Create the Wallets
+         */
+
+        val inviter = Wallet.Builder(Faber.name)
+            .walletAgent(WalletAgent.ACAPY)
+            .walletType(WalletType.INDY)
+            .mayExist(true)
+            .build()
+
+        val invitee = Wallet.Builder(Alice.name)
+            .walletAgent(WalletAgent.NESSUS)
+            .walletType(WalletType.IN_MEMORY)
+            .build()
+
+        val inviterAutoAccept = true
+        val inviteeAutoAccept = true
+
+        try {
+
+            /**
+             * Start the Camel endpoint service for the Nessus wallets
+             */
+
+            endpointService.startEndpoint().use {
+
+                /**
+                 * Inviter (Faber) creates an Out-of-Band Invitation
+                 */
+
+                val rfc0434 = inviter.getProtocol(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1)
+                val mex: MessageExchange = rfc0434.createOutOfBandInvitation(inviter, mapOf(
+                    "goalCode" to "Faber invites Alice",
+                    "autoAccept" to inviterAutoAccept,
+                    "usePublicDid" to false,
+                ))
+
+                /**
+                 * Invitee (Alice) receives the Invitation
+                 *
+                 * Note, we could equally call `rfc0434.receiveOutOfBandInvitation`
+                 * here we test the fluent API and the route through the MessageDispatcher
+                 */
+
+                mex.dispatchTo(invitee, mapOf(
+                    MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_RECEIVE_INVITATION,
+                    MESSAGE_AUTO_ACCEPT to inviteeAutoAccept,
+                ))
+
+                /**
+                 * Invitee (Alice) accepts the Invitation
+                 */
+                if (!inviteeAutoAccept) {
+                    val rfc0023 = mex.getProtocol(PROTOCOL_URI_RFC0023_DID_EXCHANGE)
+                    rfc0023.acceptInvitation(invitee, mex)
+                }
+
+                /**
+                 * Verify that we have an active connection
+                 */
+                val peerConnection = mex.getAttachment(MESSAGE_EXCHANGE_PEER_CONNECTION_KEY)
+                assertNotNull(peerConnection) {"${invitee.alias} has no peer connection"}
+                assertEquals(ConnectionState.ACTIVE, peerConnection.state)
+            }
 
         } finally {
             removeWallet(invitee)

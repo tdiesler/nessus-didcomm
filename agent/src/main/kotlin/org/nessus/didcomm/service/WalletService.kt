@@ -172,16 +172,20 @@ class WalletService : BaseService() {
         return getProtocol(agent, id) ?: throw IllegalStateException("Unsupported protocol for ${agent.value}: $id")
     }
 
+    @Suppress("UNCHECKED_CAST")
     fun <T: Protocol> getProtocol(agent: WalletAgent, id: ProtocolId<T>): T? {
-        return walletPlugin(agent).getProtocol(id)
+        val agentProtocols = ProtocolService.supportedProtocolsByAgent[agent]!!
+        return agentProtocols[id] as? T
     }
 
     /**
      * List supported protocols for the given agent type
      */
-    fun listProtocols(agent: WalletAgent): List<String> {
-        return walletPlugin(agent).listSupportedProtocols()
+    fun listSupportedProtocols(agent: WalletAgent): List<String> {
+        val agentProtocols = ProtocolService.supportedProtocolsByAgent[agent]!!
+        return agentProtocols.keys.map{ it.name }.toList()
     }
+
 
     // Private ---------------------------------------------------------------------------------------------------------
 
@@ -218,10 +222,6 @@ abstract class WalletPlugin {
         method: DidMethod?,
         algorithm: KeyAlgorithm? = null,
         seed: String? = null): Did
-
-    abstract fun <T: Protocol> getProtocol(id: ProtocolId<T>): T?
-
-    abstract fun listSupportedProtocols(): List<String>
 
     abstract fun publicDid(wallet: Wallet): Did?
 

@@ -67,7 +67,7 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
 
             val epm: EndpointMessage = mex.last
             assertEquals("https://didcomm.org/trust_ping/1.0/ping_response", epm.contentUri)
-            assertEquals(mapOf("thread_id" to mex.threadId), epm.bodyAsMap())
+            assertEquals(mapOf("thread_id" to mex.threadId), epm.bodyAsMap)
 
         } finally {
             removeWallet(alice)

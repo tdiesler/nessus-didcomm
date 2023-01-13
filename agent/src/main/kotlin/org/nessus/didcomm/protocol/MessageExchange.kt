@@ -1,12 +1,20 @@
 package org.nessus.didcomm.protocol
 
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_METHOD
+import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.PROTOCOL_METHOD_CREATE_INVITATION
+import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.PROTOCOL_METHOD_RECEIVE_INVITATION
 import org.nessus.didcomm.service.MessageDispatchService
+import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
 import org.nessus.didcomm.service.PeerConnection
+import org.nessus.didcomm.service.ProtocolId
+import org.nessus.didcomm.service.ProtocolService
 import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.AttachmentSupport
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.gson
+import org.nessus.didcomm.util.toUnionMap
 import org.nessus.didcomm.wallet.Wallet
+import org.nessus.didcomm.wallet.WalletAgent
 import java.util.*
 
 
@@ -29,6 +37,7 @@ class MessageExchange(
         /**
          * Attachment keys
          */
+        val MESSAGE_EXCHANGE_CONNECTION_ID_KEY = AttachmentKey("connectionId", String::class.java)
         val MESSAGE_EXCHANGE_PEER_CONNECTION_KEY = AttachmentKey(PeerConnection::class.java)
     }
 
@@ -47,9 +56,24 @@ class MessageExchange(
         _messages.add(msg)
     }
 
+    @Suppress("UNCHECKED_CAST")
     fun dispatchTo(target: Wallet, headers: Map<String, Any> = mapOf()) = apply {
-        addMessage(EndpointMessage.Builder(this).headers(headers).build())
+
+        // Do some auto protocol/method mapping
+        val effectiveHeaders = this.headers.toUnionMap(headers).toMutableMap() as MutableMap<String, Any>
+        if (last.protocolUri == PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1.uri && last.protocolMethod == PROTOCOL_METHOD_CREATE_INVITATION) {
+            effectiveHeaders[MESSAGE_PROTOCOL_METHOD] = PROTOCOL_METHOD_RECEIVE_INVITATION
+        }
+
+        if (effectiveHeaders != this.headers) {
+            addMessage(EndpointMessage(body, effectiveHeaders.toMap()))
+        }
+
         MessageDispatchService.getService().sendTo(target, this)
+    }
+
+    fun <T: Protocol> getProtocol(id: ProtocolId<T>, agent: WalletAgent? = null): T {
+        return ProtocolService.getService().getProtocol(id, agent)
     }
 
     fun getPeerConnection(): PeerConnection? {
@@ -69,7 +93,7 @@ class EndpointMessage(val body: Any? = null, headers: Map<String, Any> = mapOf()
 
     val headers: Map<String, Any>
     init {
-        this.headers = headers.toMap()
+        this.headers = headers.toSortedMap()
     }
 
     companion object {
@@ -97,7 +121,9 @@ class EndpointMessage(val body: Any? = null, headers: Map<String, Any> = mapOf()
     val protocolUri get() = headers[MESSAGE_PROTOCOL_URI] as? String ?: { "No MESSAGE_PROTOCOL_URI" }
     val threadId get() = headers[MESSAGE_THREAD_ID] as? String ?: { "No MESSAGE_THREAD_ID" }
 
-    fun bodyAsMap(): Map<String, Any?> {
+    val bodyAsMap: Map<String, Any?> get() = run {
+        if (body is Map<*, *>)
+            return body as Map<String, Any?>
         if (body is String)
             return body.decodeJson()
         val bodyJson = gson.toJson(body)
