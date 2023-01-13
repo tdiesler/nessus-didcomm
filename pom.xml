@@ -16,6 +16,7 @@
         <version.acapy.client>0.7.33</version.acapy.client>
         <version.apache.camel>3.20.0</version.apache.camel>
         <version.didcommx.didcomm>0.3.3-SNAPSHOT</version.didcommx.didcomm>
+        <version.fasterxml.jackson>2.14.1</version.fasterxml.jackson>
         <version.google.crypto.tink>1.7.0</version.google.crypto.tink>
         <version.lazysodium>5.1.2</version.lazysodium>
         <version.kotlin.logging>3.0.4</version.kotlin.logging>
@@ -56,6 +57,16 @@
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-core</artifactId>
                 <version>${version.logback}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.dataformat</groupId>
+                <artifactId>jackson-dataformat-yaml</artifactId>
+                <version>${version.fasterxml.jackson}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-kotlin</artifactId>
+                <version>${version.fasterxml.jackson}</version>
             </dependency>
             <dependency>
                 <groupId>com.github.terl</groupId>

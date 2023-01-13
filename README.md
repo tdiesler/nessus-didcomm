@@ -1,6 +1,6 @@
 ## Nessus DIDComm
 
-Nessus DIDComm is about digital identy and VCs based on [DIDComm](https://identity.foundation/didcomm-messaging/spec/v2.0).
+Nessus DIDComm is about digital identity and VCs based on [DIDComm](https://identity.foundation/didcomm-messaging/spec/v2.0).
 
 [<img src="docs/img/ssi-book.png" height="200" alt="self sovereign identity">](https://www.manning.com/books/self-sovereign-identity)
 
@@ -48,7 +48,7 @@ siera configuration add -e default -a aca-py -k adminkey -u http://localhost:803
 ./wallet-bootstrap --create Faber --ledger-role ENDORSER
 ```
 
-The above should have created the respective siera enviroment.
+The above should have created the respective siera environment.
 
 ### Supported Protocols
 
@@ -66,7 +66,7 @@ The above should have created the respective siera enviroment.
 [rfc0095]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0095-basic-message
 [rfc0434]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0434-outofband
 
-### Code Example
+### Code Sample
 
 ```kotlin
     /** Create the wallets */

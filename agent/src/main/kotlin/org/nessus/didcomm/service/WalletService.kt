@@ -19,6 +19,9 @@
  */
 package org.nessus.didcomm.service
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import id.walt.crypto.KeyAlgorithm
 import id.walt.servicematrix.BaseService
 import id.walt.servicematrix.ServiceProvider
@@ -34,6 +37,9 @@ import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.WalletAgent
 import org.nessus.didcomm.wallet.WalletConfig
 import org.nessus.didcomm.wallet.WalletType
+import java.nio.file.Files
+import java.nio.file.Paths
+import kotlin.io.path.isReadable
 
 class WalletService : BaseService() {
     override val implementation get() = serviceImplementation<WalletService>()
@@ -53,17 +59,36 @@ class WalletService : BaseService() {
     }
 
     init {
-        // Initialize wallets from ACAPy
         val adminClient = AriesAgent.adminClient()
-        adminClient.multitenancyWallets(null).get().forEach {
-            val walletId = it.walletId
-            val alias = it.settings.walletName
-            val walletType = WalletType.valueOf(it.settings.walletType.name)
-            val tokReq = CreateWalletTokenRequest.builder().build()
-            val tokRes = adminClient.multitenancyWalletToken(walletId, tokReq).get()
-            val wallet = Wallet(walletId, alias, WalletAgent.ACAPY, walletType, authToken=tokRes.token)
-            addWallet(wallet)
+
+        // Initialize wallets from Siera config
+        readSieraConfig()?.filterKeys { k -> k != "default" }?.forEach {
+            val values = it.value as Map<String, String>
+            val agent = values["agent"] ?: "aca-py"
+            check(agent == "aca-py") { "Unsupported agent: $agent" }
+            val alias = it.key
+            val authToken = values["auth_token"]
+            val endpointUri = values["endpoint"]
+            val walletRecord = adminClient.multitenancyWallets(alias).get().firstOrNull()
+            walletRecord?.run {
+                val walletId = walletRecord.walletId
+                val wallet = Wallet(walletId, alias, WalletAgent.ACAPY, WalletType.INDY, authToken=authToken)
+                addWallet(wallet)
+            }
         }
+
+        // Initialize wallets from ACAPy
+        adminClient.multitenancyWallets(null).get()
+            .filter { getWallet(it.walletId) == null }
+            .forEach {
+                val walletId = it.walletId
+                val alias = it.settings.walletName
+                val walletType = WalletType.valueOf(it.settings.walletType.name)
+                val tokReq = CreateWalletTokenRequest.builder().build()
+                val tokRes = adminClient.multitenancyWalletToken(walletId, tokReq).get()
+                val wallet = Wallet(walletId, alias, WalletAgent.ACAPY, walletType, authToken=tokRes.token)
+                addWallet(wallet)
+            }
     }
 
     fun createWallet(config: WalletConfig): Wallet {
@@ -162,6 +187,21 @@ class WalletService : BaseService() {
 
     private fun walletPlugin(walletAgent: WalletAgent): WalletPlugin {
         return plugins[walletAgent] as WalletPlugin
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun readSieraConfig(): Map<String, Any>? {
+        val mapper = ObjectMapper(YAMLFactory()).registerKotlinModule()
+
+        val homeDir = System.getenv("HOME")
+        val configPath = Paths.get("$homeDir/.config/siera/config.yaml")
+
+        return if (configPath.isReadable()) {
+            Files.newBufferedReader(configPath).use {
+                val config = mapper.readValue(it, Map::class.java)
+                return config["configurations"] as Map<String, Any>
+            }
+        } else null
     }
 }
 
