@@ -88,10 +88,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
             assertEquals(ConnectionState.ACTIVE, inviteeConnection?.state)
 
         } finally {
-            val inviterClient = AriesAgent.walletClient(inviter)
-            inviterClient.connections().get().forEach {
-                inviterClient.connectionsRemove(it.connectionId)
-            }
+            inviter.removePeerConnections()
             removeWallet(invitee)
         }
     }
@@ -200,7 +197,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
             it.invitationMsgId == invitationMsgId && it.stateIsActive()
         }
         checkNotNull(inviteeConnection) {"${invitee.alias} has no connection record in state 'active'"}
-        log.info {"${invitee.alias} connection: ${inviteeConnection?.state}"}
+        log.info {"${invitee.alias} connection: ${inviteeConnection.state}"}
         log.info("${invitee.alias}: {}", prettyGson.toJson(inviteeConnection))
 
         /**
@@ -211,7 +208,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
             it.invitationMsgId == invitationMsgId && it.stateIsActive()
         }
         checkNotNull(inviterConnection) {"${inviter.alias} has no connection record in state 'active'"}
-        log.info {"${inviter.alias} connection: ${inviterConnection?.state}"}
+        log.info {"${inviter.alias} connection: ${inviterConnection.state}"}
         log.info("${inviter.alias}: {}", prettyGson.toJson(inviterConnection))
 
         return mapOf(

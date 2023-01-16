@@ -45,5 +45,9 @@ class NessusWalletPlugin: WalletPlugin() {
         return WalletStoreService.getService().listDids(wallet.id)
     }
 
+    override fun removeConnections(wallet: Wallet) {
+        // nothing to do
+    }
+
     // Private ---------------------------------------------------------------------------------------------------------
 }

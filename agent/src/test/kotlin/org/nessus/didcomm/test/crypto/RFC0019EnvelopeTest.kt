@@ -24,6 +24,7 @@ import id.walt.crypto.encodeBase58
 import id.walt.services.keystore.KeyType
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.crypto.convertEd25519toRaw
+import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE
 import org.nessus.didcomm.test.AbstractDidcommTest
 import org.nessus.didcomm.test.Alice
@@ -45,9 +46,9 @@ class RFC0019EnvelopeTest: AbstractDidcommTest() {
         val aliceVerkey = aliceKeys.public.convertEd25519toRaw().encodeBase58()
         keyStore.addAlias(aliceKeyId, aliceVerkey)
 
-        val rfc0019 = protocolService.getProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
+        val rfc0019 = MessageExchange().withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
         val envelope = rfc0019.packRFC0019Envelope(faberKeys, aliceKeys.public, "Scheena Dog")
-        val message = rfc0019.unpackRFC0019Envelope(envelope)
+        val message = rfc0019.unpackRFC0019Envelope(envelope)?.first
         assertEquals("Scheena Dog", message)
     }
 

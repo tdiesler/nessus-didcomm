@@ -22,10 +22,18 @@ package org.nessus.didcomm.service
 import id.walt.common.prettyPrint
 import id.walt.servicematrix.ServiceProvider
 import org.nessus.didcomm.protocol.EndpointMessage
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PARENT_THREAD_ID
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_METHOD
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_URI
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THREAD_ID
 import org.nessus.didcomm.protocol.MessageExchange
+import org.nessus.didcomm.protocol.MessageExchange.Companion.findByThreadId
 import org.nessus.didcomm.protocol.MessageListener
+import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.PROTOCOL_METHOD_RECEIVE_REQUEST
 import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.util.prettyGson
+import org.nessus.didcomm.util.encodeJson
+import org.nessus.didcomm.util.selectJson
+import org.nessus.didcomm.util.toDeeplySortedMap
 import org.nessus.didcomm.wallet.Wallet
 
 /**
@@ -39,52 +47,93 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
         override fun getService() = implementation
     }
 
-    private val protocols get() = ProtocolService.getService()
+    private val protocolService get() = ProtocolService.getService()
 
     /**
-     * Entry point for all unqualified messages, for example coming
-     * in through an Http endpoint
+     * Entry point for all external messages sent to a wallet endpoint
      */
-    override fun invoke(msg: EndpointMessage): Boolean {
+    fun dispatchInbound(msg: EndpointMessage): Boolean {
         val contentType = msg.headers["Content-Type"] as? String
         checkNotNull(contentType) { "No Content-Type" }
         check(msg.body is String) { "No msg body" }
-        return messageHandler(contentType, msg.body)
+        log.info { "Message Content-Type: $contentType" }
+        log.info { "Message Body: ${msg.body.prettyPrint()}" }
+        when(contentType) {
+            "application/didcomm-envelope-enc" -> didcommEncryptedEnvelopeHandler(msg)
+            else -> throw IllegalStateException("Unsupported content type: $contentType")
+        }
+        return true
     }
 
     /**
      * Routes the message to a given target wallet through it's associated protocol.
-     *
-     * Note, the target protocol must support also support `sendTo`
      */
-    fun sendTo(to: Wallet, mex: MessageExchange): Boolean {
-        val pid = when(val protocolUri = mex.last.protocolUri) {
-            PROTOCOL_URI_RFC0023_DID_EXCHANGE.uri -> PROTOCOL_URI_RFC0023_DID_EXCHANGE
-            PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1.uri -> PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
-            else -> throw IllegalStateException("Unsupported dispatch protocol: $protocolUri")
-        }
-        val protocol = protocols.getProtocol(pid, to.walletAgent)
-        return protocol.sendTo(to, mex)
+    fun dispatchToWallet(target: Wallet, mex: MessageExchange): Boolean {
+
+        val protocolUri = mex.last.protocolUri as? String
+        val protocolMethod = mex.last.protocolMethod as? String
+        checkNotNull(protocolUri) { "No protocol uri" }
+        checkNotNull(protocolMethod) { "No protocol method" }
+
+        val key = ProtocolService.findProtocolKey(protocolUri)
+        val protocol = protocolService.getProtocol(key, mex, target.walletAgent)
+        return protocol.invokeMethod(target, protocolMethod)
     }
 
-    private fun messageHandler(contentType: String, envelope: String): Boolean {
-        log.info { "Content-Type: $contentType" }
-        log.info { envelope.prettyPrint() }
-        return when(contentType) {
-            "application/didcomm-envelope-enc" -> didcommEncryptedEnvelopeHandler(contentType, envelope)
-            else -> throw IllegalStateException("Unsupported content type: $contentType")
-        }
+    /**
+     * MessageListener invocation
+     */
+    override fun invoke(msg: EndpointMessage): Boolean {
+        return dispatchInbound(msg)
     }
 
-    private fun didcommEncryptedEnvelopeHandler(contentType: String, envelope: String): Boolean {
-        require("application/didcomm-envelope-enc" == contentType)
-        val protocols = ProtocolService.getService()
-        val rfc0019 = protocols.getProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
-        val unpacked = rfc0019.unpackRFC0019Envelope(envelope)
-        if (unpacked != null) {
-            val unpackedMap = unpacked.decodeJson()
-            log.info { "Unpacked Envelope: ${prettyGson.toJson(unpackedMap)}" }
+    private fun didcommEncryptedEnvelopeHandler(msg: EndpointMessage): Boolean {
+        val unpacked = MessageExchange()
+            .withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
+            .unpackRFC0019Envelope(msg.body as String)
+        checkNotNull(unpacked) { "Could not unpack encrypted envelope" }
+
+        val (body, recipientKid) = unpacked
+        val envelope = body.decodeJson().toDeeplySortedMap()
+        log.info { "Unpacked Envelope: ${envelope.encodeJson(true)}" }
+
+        /**
+         * Ok, we successfully unpacked the encrypted message.
+         *
+         * We now need tho find the target wallet and the MessageExchange
+         * that this message can be attached to
+         */
+
+        val thread = envelope["~thread"] as? String
+        val thid = envelope.selectJson("~thread.thid") as? String ?: envelope["@id"] as String
+        val pthid = envelope.selectJson("~thread.pthid") as? String
+
+        var mex = thid.run { findByThreadId(thid) }
+        if (mex == null && pthid != null) {
+            mex = findByThreadId(pthid)
         }
-        return unpacked != null
+        checkNotNull(mex) { "Cannot find message exchange for: $thread" }
+
+        val walletService = WalletService.getService()
+        val recipientWallet = walletService.findByVerkey(recipientKid)
+        checkNotNull(recipientWallet) { "Cannot fine recipient wallet for: $recipientKid" }
+
+        /**
+         * Now, we dispatch mex associated with the thread to the wallet
+         * identified by the recipient key(s)
+         */
+
+        val atType = envelope["@type"] as String
+        val (protocolUri, protocolMethod) = when(atType) {
+            "https://didcomm.org/didexchange/1.0/request" -> Pair(PROTOCOL_URI_RFC0023_DID_EXCHANGE.uri, PROTOCOL_METHOD_RECEIVE_REQUEST)
+            else -> throw IllegalStateException("Unsupported message type: $atType")
+        }
+        mex.addMessage(EndpointMessage(body, mapOf(
+            MESSAGE_THREAD_ID to thid,
+            MESSAGE_PARENT_THREAD_ID to pthid,
+            MESSAGE_PROTOCOL_URI to protocolUri,
+            MESSAGE_PROTOCOL_METHOD to protocolMethod
+        )))
+        return dispatchToWallet(recipientWallet, mex)
     }
 }

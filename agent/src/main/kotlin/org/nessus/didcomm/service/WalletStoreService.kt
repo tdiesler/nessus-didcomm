@@ -32,7 +32,7 @@ class WalletStoreService: NessusBaseService() {
     }
 
     private val walletStorage: MutableMap<String, Wallet> = mutableMapOf()
-    private val didStorage: MutableMap<String, MutableSet<Did>> = mutableMapOf()
+    private val didStorage: MutableMap<String, MutableList<Did>> = mutableMapOf()
     private val peerConnections: MutableMap<String, PeerConnectionStore> = mutableMapOf()
 
     val wallets get() = walletStorage.values.toList()
@@ -44,23 +44,29 @@ class WalletStoreService: NessusBaseService() {
         walletStorage[wallet.id] = wallet
     }
 
-    fun removeWallet(id: String): Wallet? {
-        didStorage.remove(id)
-        return walletStorage.remove(id)
+    fun removeWallet(walletId: String): Wallet? {
+        didStorage.remove(walletId)
+        return walletStorage.remove(walletId)
     }
 
-    fun getWallet(id: String): Wallet? {
-        return walletStorage[id]
+    fun getWallet(walletId: String): Wallet? {
+        return walletStorage[walletId]
     }
 
-    fun findByAlias(name: String): Wallet? {
-        return walletStorage.values.firstOrNull { w -> w.alias == name }
+    fun findByAlias(alias: String): Wallet? {
+        return walletStorage.values.firstOrNull { w -> w.alias == alias }
+    }
+
+    fun findByVerkey(verkey: String): Wallet? {
+        return didStorage
+            .filter { (_, dids) -> dids.any { it.verkey == verkey} }
+            .map { (wid, _) -> walletStorage[wid] }
+            .firstOrNull()
     }
 
     fun addDid(walletId: String, did: Did) {
         check(walletStorage.contains(walletId)) { "Unknown walletId" }
         didStore(walletId).add(did)
-
     }
 
     fun listDids(walletId: String): List<Did> {
@@ -80,11 +86,15 @@ class WalletStoreService: NessusBaseService() {
         return peerConnectionStore(walletId).connections
     }
 
+    fun removePeerConnections(walletId: String) {
+        peerConnections.remove(walletId)
+    }
+
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun didStore(walletId: String): MutableSet<Did> {
+    private fun didStore(walletId: String): MutableList<Did> {
         if (didStorage[walletId] == null) {
-            didStorage[walletId] = mutableSetOf()
+            didStorage[walletId] = mutableListOf()
         }
         return didStorage[walletId]!!
     }

@@ -21,6 +21,7 @@ package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.protocol.EndpointMessage
+import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.ConnectionState
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0095_BASIC_MESSAGE
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
@@ -53,10 +54,13 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
 
             /** Establish a peer connection */
 
-            val peerConnection = faber.getProtocol(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1)
+            val mex = MessageExchange()
+                .withProtocol(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1)
                 .createOutOfBandInvitation(faber)
-                .dispatchTo(alice)
-                .getPeerConnection()
+                .receiveOutOfBandInvitation(alice)
+                .peekMessageExchange()
+
+            val peerConnection = mex.awaitPeerConnection(alice)
 
             /** Verify connection state */
 
@@ -67,7 +71,7 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
 
             val userMessage = "Your hovercraft is full of eels."
 
-            val mex = alice.getProtocol(PROTOCOL_URI_RFC0095_BASIC_MESSAGE)
+            mex.withProtocol(PROTOCOL_URI_RFC0095_BASIC_MESSAGE)
                 .sendMessage(alice, peerConnection.id, userMessage)
 
             /** Verify message exchange state */

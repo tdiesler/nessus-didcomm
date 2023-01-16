@@ -1,6 +1,5 @@
 package org.nessus.didcomm.util
 
-import com.google.gson.FieldNamingPolicy
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import io.ipfs.multibase.Base58
@@ -10,50 +9,25 @@ import java.util.*
 /***********************************************************************************************************************
  * JSON
  */
-val gson: Gson = GsonBuilder()
-    .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
-    .create()
+val gson: Gson = GsonBuilder().create()
 
 val prettyGson: Gson = GsonBuilder()
-    .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
     .setPrettyPrinting()
     .create()
 
+@Suppress("UNCHECKED_CAST")
 fun Map<String, Any?>.encodeJson(pretty: Boolean = false): String {
     return if (pretty) {
-        fun putAll(src: Map<String, Any?>, dest: MutableMap<String, Any?>): Map<String, Any?> {
-            for (en in src) {
-                // The entry value is a Map
-                if (en.value is Map<*, *>) {
-                    dest[en.key] = putAll(en.value as Map<String, Any?>, mutableMapOf())
-                }
-                // The entry value is a List
-                else if (en.value is List<*>) {
-                    dest[en.key] = (en.value as List<Any>).map {
-                        // The list value is a Map
-                        if (it is Map<*, *>) {
-                            putAll(it as Map<String, Any?>, mutableMapOf())
-                        } else {
-                            it
-                        }
-                    }
-                }
-                // The entry value is none of the above
-                else {
-                    dest[en.key] = en.value
-                }
-            }
-            return dest.toSortedMap()
-        }
-        val srcMap = gson.fromJson(gson.toJson(this), Map::class.java)
-        val auxMap = putAll(srcMap as Map<String, Any?>, mutableMapOf())
-        prettyGson.toJson(auxMap)
+        prettyGson.toJson(this.toDeeplySortedMap())
     } else {
         gson.toJson(this)
     }
 }
 
-fun String.decodeJson(): Map<String, Any?> = gson.fromJson(this, Map::class.java) as Map<String, Any?>
+@Suppress("UNCHECKED_CAST")
+fun String.decodeJson(): Map<String, Any?> {
+    return gson.fromJson(this, Map::class.java) as Map<String, Any?>
+}
 
 /***********************************************************************************************************************
  * Base58

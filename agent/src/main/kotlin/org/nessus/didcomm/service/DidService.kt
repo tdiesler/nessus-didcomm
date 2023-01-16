@@ -2,6 +2,7 @@ package org.nessus.didcomm.service
 
 import id.walt.crypto.Key
 import id.walt.crypto.KeyAlgorithm
+import id.walt.crypto.KeyId
 import id.walt.crypto.convertRawKeyToMultiBase58Btc
 import id.walt.crypto.decodeRawPubKeyBase64
 import id.walt.crypto.getMulticodecKeyCode
@@ -49,29 +50,31 @@ class DidService: NessusBaseService() {
         // Add verkey and did as alias
         val did = Did(id, method, keyAlgorithm, verkey)
         keyStore.addAlias(keyId, did.qualified)
-        keyStore.addAlias(keyId, did.verkey!!)
+        keyStore.addAlias(keyId, did.verkey)
 
         return did
     }
 
-    fun registerDidVerkey(did: Did) {
+    fun registerVerkey(did: Did): KeyId {
         check(did.algorithm == KeyAlgorithm.EdDSA_Ed25519) { "Unsupported key algorithm: $did" }
-        checkNotNull(did.verkey) { "No verification key for: ${did.qualified}" }
         val algorithm = did.algorithm
         val rawBytes = did.verkey.decodeBase58()
         val keyFactory = KeyFactory.getInstance("Ed25519")
         val publicKey = decodeRawPubKeyBase64(rawBytes.encodeBase64(), keyFactory)
         val key = Key(newKeyId(), algorithm, CryptoProvider.SUN, KeyPair(publicKey, null))
+        val keyId = key.keyId
 
         val keyStore = KeyStoreService.getService()
         keyStore.store(key)
 
         // Add verkey and did as alias
-        keyStore.addAlias(key.keyId, did.qualified)
-        keyStore.addAlias(key.keyId, did.verkey)
+        keyStore.addAlias(keyId, did.qualified)
+        keyStore.addAlias(keyId, did.verkey)
 
         // Verify stored public key bytes
         val storedKey = keyStore.load(did.verkey, KeyType.PUBLIC)
         check(did.verkey == storedKey.getPublicKey().convertEd25519toRaw().encodeBase58())
+
+        return keyId
     }
 }

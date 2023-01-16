@@ -19,8 +19,10 @@
  */
 package org.nessus.didcomm.service
 
-import org.hyperledger.aries.api.connection.ConnectionRecord
+import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.util.decodeBase58
+import org.nessus.didcomm.util.encodeBase58
 
 class PeerConnectionStore {
     private val storage: MutableMap<String, PeerConnection> = mutableMapOf()
@@ -30,8 +32,8 @@ class PeerConnectionStore {
         return storage.values.filter { predicate.invoke(it) }.toList()
     }
 
-    fun addConnection(conn: PeerConnection) {
-        storage[conn.id] = conn
+    fun addConnection(con: PeerConnection) {
+        storage[con.id] = con
     }
 
     fun removeConnection(id: String): PeerConnection? {
@@ -61,7 +63,10 @@ enum class ConnectionState(val value: String) {
     ACTIVE("active"),
     COMPLETED("completed"),
     ABANDONED("abandoned"),
-    ERROR("error"),
+    ERROR("error");
+    companion object {
+        fun fromValue(value: String) = ConnectionState.valueOf(value.uppercase())
+    }
 }
 
 data class PeerConnection(
@@ -73,16 +78,25 @@ data class PeerConnection(
     val alias: String? = null,
 ) {
     companion object {
-        private fun fromSpec(spec: String): Did {
-            if (!spec.startsWith("did:")) {
-                return Did.fromSpec("did:sov:$spec")
-            }
-            return Did.fromSpec(spec)
+        // [TODO] supply the proper verkey or myDid directly
+        private fun dummyVerkey(id: String): String {
+            val log = KotlinLogging.logger {}
+            val dummyBytes = id.decodeBase58() + ByteArray(16)
+            val dummyVerkey = dummyBytes.encodeBase58()
+            log.warn { "Supplying dummy verkey: $dummyVerkey" }
+            return dummyVerkey
         }
-        fun fromAcapyRecord(cr: ConnectionRecord): PeerConnection {
-            val threadId = cr.invitationMsgId
-            val state = ConnectionState.valueOf(cr.state.name)
-            return PeerConnection(cr.connectionId, threadId, fromSpec(cr.myDid), fromSpec(cr.theirDid), state)
+        private fun fromDidSpec(spec: String, verkey: String?): Did {
+            require(!spec.startsWith("did:"))
+            return Did.fromSpec("did:sov:$spec", verkey)
+        }
+        fun fromJson(con: Map<String, Any?>): PeerConnection {
+            val threadId = con["invitationMsgId"] as String
+            val connectionId = con["connectionId"] as String
+            val myDid = fromDidSpec(con["myDid"] as String, dummyVerkey(con["myDid"] as String))
+            val theirDid = fromDidSpec(con["theirDid"] as String, dummyVerkey(con["theirDid"] as String))
+            val state = ConnectionState.fromValue(con["state"] as String)
+            return PeerConnection(connectionId, threadId, myDid, theirDid, state)
         }
     }
 }

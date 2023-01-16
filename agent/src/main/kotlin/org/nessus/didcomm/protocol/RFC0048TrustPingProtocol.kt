@@ -19,7 +19,7 @@ import org.nessus.didcomm.wallet.WalletAgent
  * Aries RFC 0048: Trust Ping Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0048-trust-ping
  */
-class RFC0048TrustPingProtocol: Protocol() {
+class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingProtocol>(mex) {
     override val protocolUri = PROTOCOL_URI_RFC0048_TRUST_PING.uri
 
     companion object {
@@ -29,38 +29,41 @@ class RFC0048TrustPingProtocol: Protocol() {
     /**
      * Send a basic message to a connection
      */
-    fun sendPing(from: Wallet, conId: String, comment: String? = "ping"): MessageExchange {
+    fun sendPing(sender: Wallet, conId: String, comment: String? = "ping"): MessageExchange {
 
-        if (from.walletAgent == WalletAgent.ACAPY)
-            return sendPingAcapy(from, conId, comment!!)
+        if (sender.walletAgent == WalletAgent.ACAPY)
+            return sendPingAcapy(sender, conId, comment!!)
 
         TODO("sendPing")
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun sendPingAcapy(from: Wallet, conId: String, comment: String): MessageExchange {
+    private fun sendPingAcapy(sender: Wallet, conId: String, comment: String): MessageExchange {
 
-        val pcon = from.getPeerConnection(conId)
+        val pcon = sender.getPeerConnection(conId)
         checkNotNull(pcon) { "Unknown connection id: $conId" }
 
-        val fromClient = AriesAgent.walletClient(from)
+        val senderClient = AriesAgent.walletClient(sender)
         val pingRequest = PingRequest.builder()
             .comment(comment)
             .build()
-        val pingResponse = fromClient.connectionsSendPing(conId, pingRequest).get()
+        val pingResponse = senderClient.connectionsSendPing(conId, pingRequest).get()
         val pingResponseJson = gson.toJson(pingResponse)
         val threadId = pingResponse.threadId
 
-        return MessageExchange(EndpointMessage(pingResponseJson, mapOf(
-            MESSAGE_DIRECTION to MessageDirection.INBOUND,
-            MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_SEND_PING,
-            MESSAGE_CONTENT_URI to "https://didcomm.org/trust_ping/1.0/ping_response",
-            MESSAGE_PROTOCOL_URI to protocolUri,
-            MESSAGE_THREAD_ID to threadId,
-            MESSAGE_FROM_ALIAS to from.alias,
-            MESSAGE_FROM_DID to pcon.myDid.qualified,
-            MESSAGE_FROM_ID to from.id,
-        )), threadId = threadId)
+        messageExchange.addMessage(EndpointMessage(
+            pingResponseJson, mapOf(
+                MESSAGE_THREAD_ID to threadId,
+                MESSAGE_DIRECTION to MessageDirection.INBOUND,
+                MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_SEND_PING,
+                MESSAGE_CONTENT_URI to "https://didcomm.org/trust_ping/1.0/ping_response",
+                MESSAGE_PROTOCOL_URI to protocolUri,
+                MESSAGE_FROM_ALIAS to sender.alias,
+                MESSAGE_FROM_DID to pcon.myDid.qualified,
+                MESSAGE_FROM_ID to sender.id,
+            )
+        ))
+        return messageExchange
     }
 }

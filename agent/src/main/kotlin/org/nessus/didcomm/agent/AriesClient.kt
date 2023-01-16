@@ -98,12 +98,12 @@ object AriesClientFactory {
      * Create a client for a multitenant wallet
      */
     fun walletClient(
-        config: AgentConfiguration?,
+        agentConfig: AgentConfiguration?,
         wallet: Wallet? = null,
         httpClient: OkHttpClient? = null,
         loggingInterceptor: HttpLoggingInterceptor? = null
     ): AriesClient {
-        val config = config ?: AgentConfiguration.defaultConfiguration
+        val config = agentConfig ?: AgentConfiguration.defaultConfiguration
         checkNotNull(config.adminUrl) { "No admin url in $config" }
         val auxHttpClient = httpClient ?: OkHttpClient.Builder()
             .writeTimeout(60, TimeUnit.SECONDS)

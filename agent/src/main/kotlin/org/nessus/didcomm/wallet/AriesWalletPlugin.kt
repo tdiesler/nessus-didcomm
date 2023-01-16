@@ -15,11 +15,8 @@ import org.hyperledger.aries.api.multitenancy.WalletDispatchType
 import org.hyperledger.aries.api.wallet.WalletDIDCreate
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.protocol.Protocol
 import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.service.DidService
-import org.nessus.didcomm.service.ProtocolId
-import org.nessus.didcomm.service.ProtocolService.Companion.supportedProtocolsByAgent
 import org.nessus.didcomm.service.WalletPlugin
 
 class AriesWalletPlugin: WalletPlugin() {
@@ -115,7 +112,7 @@ class AriesWalletPlugin: WalletPlugin() {
             .build()
         val ariesDid = walletClient.walletDidCreate(didCreate).get()
         val nessusDid = ariesDid.toNessusDid()
-        DidService.getService().registerDidVerkey(nessusDid)
+        DidService.getService().registerVerkey(nessusDid)
         return nessusDid
     }
 
@@ -126,7 +123,7 @@ class AriesWalletPlugin: WalletPlugin() {
         val publicDid = ariesDid.toNessusDid()
         val keyStore = KeyStoreService.getService()
         keyStore.getKeyId(publicDid.qualified) ?: run {
-            DidService.getService().registerDidVerkey(publicDid)
+            DidService.getService().registerVerkey(publicDid)
         }
         return publicDid
     }
@@ -136,7 +133,14 @@ class AriesWalletPlugin: WalletPlugin() {
         return walletClient.walletDid().get().map { it.toNessusDid() }
     }
 
-    // Private ---------------------------------------------------------------------------------------------------------
+    override fun removeConnections(wallet: Wallet) {
+        val walletClient = AriesAgent.walletClient(wallet)
+        walletClient.connectionIds().forEach {
+            walletClient.connectionsRemove( it )
+        }
+    }
+
+// Private ---------------------------------------------------------------------------------------------------------
 
     private fun DID.toNessusDid(): Did = run {
         val method = DidMethod.valueOf(this.method.name)

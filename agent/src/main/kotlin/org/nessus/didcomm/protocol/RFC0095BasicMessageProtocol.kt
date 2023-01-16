@@ -18,7 +18,7 @@ import org.nessus.didcomm.wallet.WalletAgent
  * Aries RFC 0095: Basic Message Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0095-basic-message
  */
-class RFC0095BasicMessageProtocol: Protocol() {
+class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMessageProtocol>(mex) {
     override val protocolUri = PROTOCOL_URI_RFC0095_BASIC_MESSAGE.uri
 
     companion object {
@@ -28,36 +28,37 @@ class RFC0095BasicMessageProtocol: Protocol() {
     /**
      * Send a basic message to a connection
      */
-    fun sendMessage(from: Wallet, conId: String, message: String): MessageExchange {
+    fun sendMessage(sender: Wallet, conId: String, message: String): MessageExchange {
 
-        if (from.walletAgent == WalletAgent.ACAPY)
-            return sendMessageAcapy(from, conId, message)
+        if (sender.walletAgent == WalletAgent.ACAPY)
+            return sendMessageAcapy(sender, conId, message)
 
         TODO("sendMessage")
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun sendMessageAcapy(from: Wallet, conId: String, message: String): MessageExchange {
+    private fun sendMessageAcapy(sender: Wallet, conId: String, message: String): MessageExchange {
 
-        val pcon = from.getPeerConnection(conId)
+        val pcon = sender.getPeerConnection(conId)
         checkNotNull(pcon) { "Unknown connection id: $conId" }
 
-        val fromClient = AriesAgent.walletClient(from)
+        val fromClient = AriesAgent.walletClient(sender)
         val basicMessage = SendMessage.builder().content(message).build()
         fromClient.connectionsSendMessage(conId, basicMessage)
 
-        val mex = MessageExchange()
-        mex.addMessage(EndpointMessage(message, mapOf(
-            MESSAGE_DIRECTION to MessageDirection.OUTBOUND,
-            MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_SEND_MESSAGE,
-            MESSAGE_CONTENT_URI to "https://didcomm.org/basicmessage/1.0/message",
-            MESSAGE_PROTOCOL_URI to protocolUri,
-            MESSAGE_THREAD_ID to mex.threadId,
-            MESSAGE_FROM_ALIAS to from.alias,
-            MESSAGE_FROM_DID to pcon.myDid.qualified,
-            MESSAGE_FROM_ID to from.id,
-        )))
-        return mex
+        messageExchange.addMessage(EndpointMessage(
+            message, mapOf(
+                MESSAGE_THREAD_ID to messageExchange.last.threadId,
+                MESSAGE_DIRECTION to MessageDirection.OUTBOUND,
+                MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_SEND_MESSAGE,
+                MESSAGE_CONTENT_URI to "https://didcomm.org/basicmessage/1.0/message",
+                MESSAGE_PROTOCOL_URI to protocolUri,
+                MESSAGE_FROM_ALIAS to sender.alias,
+                MESSAGE_FROM_DID to pcon.myDid.qualified,
+                MESSAGE_FROM_ID to sender.id,
+            )
+        ))
+        return messageExchange
     }
 }

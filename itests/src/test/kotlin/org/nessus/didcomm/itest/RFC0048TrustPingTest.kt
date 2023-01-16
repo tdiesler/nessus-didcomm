@@ -54,20 +54,23 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
 
             /** Establish a peer connection */
 
-            val peerConnection = faber.getProtocol(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1)
+            val mex = MessageExchange()
+                .withProtocol(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1)
                 .createOutOfBandInvitation(faber)
-                .dispatchTo(alice)
-                .getPeerConnection()
+                .receiveOutOfBandInvitation(alice)
+                .peekMessageExchange()
+
+            val peerConnection = mex.awaitPeerConnection(alice)
 
             assertNotNull(peerConnection, "No peer connection")
             assertEquals(ConnectionState.ACTIVE, peerConnection.state)
 
-            val mex: MessageExchange = alice.getProtocol(PROTOCOL_URI_RFC0048_TRUST_PING)
+            mex.withProtocol(PROTOCOL_URI_RFC0048_TRUST_PING)
                 .sendPing(alice, peerConnection.id)
 
             val epm: EndpointMessage = mex.last
             assertEquals("https://didcomm.org/trust_ping/1.0/ping_response", epm.contentUri)
-            assertEquals(mapOf("thread_id" to mex.threadId), epm.bodyAsMap)
+            assertEquals(mapOf("threadId" to epm.threadId), epm.bodyAsMap)
 
         } finally {
             removeWallet(alice)

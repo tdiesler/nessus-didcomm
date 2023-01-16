@@ -22,10 +22,7 @@ package org.nessus.didcomm.wallet
 
 import id.walt.crypto.KeyAlgorithm
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.protocol.Protocol
 import org.nessus.didcomm.service.PeerConnection
-import org.nessus.didcomm.service.ProtocolId
-import org.nessus.didcomm.service.ProtocolService
 import org.nessus.didcomm.service.WalletService
 
 enum class LedgerRole {
@@ -89,11 +86,6 @@ class Wallet(
         return walletService.listDids(this)
     }
 
-    fun <T: Protocol> getProtocol(id: ProtocolId<T>): T {
-        val protocols = ProtocolService.getService()
-        return protocols.getProtocol(id, walletAgent)
-    }
-
     fun addPeerConnection(con: PeerConnection) {
         walletService.addPeerConnection(this, con)
     }
@@ -104,6 +96,10 @@ class Wallet(
 
     fun listPeerConnections(): List<PeerConnection> {
         return walletService.listPeerConnections(this)
+    }
+
+    fun removePeerConnections() {
+        return walletService.removePeerConnections(this)
     }
 
     data class Builder (var alias: String) {

@@ -22,13 +22,14 @@ import org.nessus.didcomm.util.encodeBase58
 import org.nessus.didcomm.util.encodeBase64Url
 import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.util.encodeJson
+import org.nessus.didcomm.util.selectJson
 import java.security.PublicKey
 
 /**
  * Aries RFC 0019: Encryption Envelope
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0019-encryption-envelope
  */
-class RFC0019EncryptionEnvelope: Protocol() {
+class RFC0019EncryptionEnvelope(mex: MessageExchange): Protocol<RFC0019EncryptionEnvelope>(mex) {
     override val protocolUri = PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE.uri
 
     fun packRFC0019Envelope(senderKeys: java.security.KeyPair, recipientKey: PublicKey, message: String): String {
@@ -94,7 +95,13 @@ class RFC0019EncryptionEnvelope: Protocol() {
         """.trimIndent()
     }
 
-    fun unpackRFC0019Envelope(envelope: String): String? {
+    /**
+     * Unpack an encrypted envelope
+     *
+     * @return A Pair<decrypted message, recipient keyId>
+     */
+    @Suppress("UNCHECKED_CAST")
+    fun unpackRFC0019Envelope(envelope: String): Pair<String, String>? {
 
         // 1.Serialize data, so it can be used
         val envelopeMap = envelope.decodeJson()
@@ -110,20 +117,18 @@ class RFC0019EncryptionEnvelope: Protocol() {
         val keyStore = KeyStoreService.getService()
 
         val recipient = recipients.firstOrNull {
-            val header = it["header"] as? Map<String, Any>
-            checkNotNull(header) { "No 'header' in: $it"}
-            val kid = header["kid"] as? String
-            checkNotNull(kid) { "No 'kid' in: $header"}
+            val kid = it.selectJson("header.kid") as? String
+            checkNotNull(kid) { "No 'kid' in: $it"}
             keyStore.getKeyId(kid) != null
         } ?: return null
 
-        val header = recipient["header"] as Map<String, Any>
-        val kid = header["kid"] as String
-        val recipientKeys = keyStore.load(kid, KeyType.PRIVATE)!!.keyPair
-        val recipientCurve25519Keys = recipientKeys!!.convertEd25519toCurve25519()
+        val kid = recipient.selectJson("header.kid") as String
+        val recipientKeyPair = keyStore.load(kid, KeyType.PRIVATE).keyPair!!
+        val recipientCurve25519Keys = recipientKeyPair.convertEd25519toCurve25519()
+        log.info { "Recipient keyId: $kid"}
 
         // 3. Check if a sender field is used
-        val sender64 = header["sender"] as? String
+        val sender64 = recipient.selectJson("header.sender") as? String
         checkNotNull(sender64) { "anon_decrypt not supported" }
 
         // 3.1 Decrypt sender verkey using libsodium.crypto_box_seal_open(my_private_key, base64URLdecode(sender))
@@ -131,12 +136,12 @@ class RFC0019EncryptionEnvelope: Protocol() {
         val senderVerkey = boxLazy.cryptoBoxSealOpenEasy(sender64.decodeBase64Url().encodeHex(), recipientCurve25519Keys)
         val senderCurve25519Public = Key.fromBytes(senderVerkey.decodeBase58()).convertEd25519toCurve25519()
         val decryptKeys = KeyPair(senderCurve25519Public, recipientCurve25519Keys.secretKey)
-        log.info { "senderVerkey: $senderVerkey"}
+        log.info { "Sender verkey: $senderVerkey"}
 
         // 3.2 decrypt cek using libsodium.crypto_box_open(my_private_key, sender_verkey, encrypted_key, cek_iv)
         val encryptedKey64 = recipient["encrypted_key"] as? String
         checkNotNull(encryptedKey64) { "No 'encrypted_key' in: $recipient"}
-        val cekiv = header["iv"] as? String
+        val cekiv = recipient.selectJson("header.iv") as? String
         checkNotNull(cekiv) { "No cek 'iv' in: $recipient"}
         val boxNonce = cekiv.decodeBase64Url()
         val encryptedKey = encryptedKey64.decodeBase64Url()
@@ -154,7 +159,8 @@ class RFC0019EncryptionEnvelope: Protocol() {
         val encrypted = DetachedEncrypt(ciphertext.decodeBase64Url(), tag.decodeBase64Url())
         val aeadNonce = iv.decodeBase64Url()
         val decrypted = aeadLazy.decryptDetached(encrypted, protected, null, aeadNonce, cek, AEAD.Method.CHACHA20_POLY1305_IETF)
+        val message = decrypted.message.decodeToString()
 
-        return decrypted.message.decodeToString()
+        return Pair(message, kid)
     }
 }

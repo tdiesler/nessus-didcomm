@@ -29,7 +29,6 @@ import mu.KotlinLogging
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.protocol.Protocol
 import org.nessus.didcomm.wallet.AriesWalletPlugin
 import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.NessusWalletPlugin
@@ -63,12 +62,12 @@ class WalletService : BaseService() {
 
         // Initialize wallets from Siera config
         readSieraConfig()?.filterKeys { k -> k != "default" }?.forEach {
+            @Suppress("UNCHECKED_CAST")
             val values = it.value as Map<String, String>
             val agent = values["agent"] ?: "aca-py"
             check(agent == "aca-py") { "Unsupported agent: $agent" }
             val alias = it.key
             val authToken = values["auth_token"]
-            val endpointUri = values["endpoint"]
             val walletRecord = adminClient.multitenancyWallets(alias).get().firstOrNull()
             walletRecord?.run {
                 val walletId = walletRecord.walletId
@@ -89,6 +88,7 @@ class WalletService : BaseService() {
                 val wallet = Wallet(walletId, alias, WalletAgent.ACAPY, walletType, authToken=tokRes.token)
                 addWallet(wallet)
             }
+        log.info { "Done Wallet Init ".padEnd(120, '=') }
     }
 
     fun createWallet(config: WalletConfig): Wallet {
@@ -133,13 +133,20 @@ class WalletService : BaseService() {
         return walletStore.findByAlias(alias)
     }
 
+    fun findByVerkey(verkey: String): Wallet? {
+        return walletStore.findByVerkey(verkey)
+    }
+
     /**
      * Create a Did for the given wallet
      *
      * Nessus Dids are created locally and have their associated keys in the {@see KeyStoreService}
      */
     fun createDid(wallet: Wallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
-        return walletPlugin(wallet.walletAgent).createDid(wallet, method, algorithm, seed)
+        val did = walletPlugin(wallet.walletAgent).createDid(wallet, method, algorithm, seed)
+        log.info { "New DID for ${wallet.alias}: $did" }
+        walletStore.addDid(wallet.id, did)
+        return did
     }
 
     /**
@@ -161,31 +168,17 @@ class WalletService : BaseService() {
         return walletStore.listPeerConnections(wallet.id)
     }
 
+    fun removePeerConnections(wallet: Wallet) {
+        walletPlugin(wallet.walletAgent).removeConnections(wallet)
+        return walletStore.removePeerConnections(wallet.id)
+    }
+
     /**
      * Get the (optional) public Did for the given wallet
      */
     fun publicDid(wallet: Wallet): Did? {
         return walletPlugin(wallet.walletAgent).publicDid(wallet)
     }
-
-    fun <T: Protocol> assertProtocol(agent: WalletAgent, id: ProtocolId<T>): T {
-        return getProtocol(agent, id) ?: throw IllegalStateException("Unsupported protocol for ${agent.value}: $id")
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    fun <T: Protocol> getProtocol(agent: WalletAgent, id: ProtocolId<T>): T? {
-        val agentProtocols = ProtocolService.supportedProtocolsByAgent[agent]!!
-        return agentProtocols[id] as? T
-    }
-
-    /**
-     * List supported protocols for the given agent type
-     */
-    fun listSupportedProtocols(agent: WalletAgent): List<String> {
-        val agentProtocols = ProtocolService.supportedProtocolsByAgent[agent]!!
-        return agentProtocols.keys.map{ it.name }.toList()
-    }
-
 
     // Private ---------------------------------------------------------------------------------------------------------
 
@@ -226,5 +219,7 @@ abstract class WalletPlugin {
     abstract fun publicDid(wallet: Wallet): Did?
 
     abstract fun listDids(wallet: Wallet): List<Did>
+
+    abstract fun removeConnections(wallet: Wallet)
 }
 
