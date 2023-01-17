@@ -20,12 +20,14 @@
 package org.nessus.didcomm.itest
 
 import id.walt.servicematrix.ServiceMatrix
+import id.walt.services.crypto.CryptoService
+import id.walt.services.keystore.KeyStoreService
 import mu.KotlinLogging
 import org.junit.jupiter.api.BeforeAll
-import org.nessus.didcomm.agent.AriesAgent
+import org.nessus.didcomm.crypto.NessusCryptoService
 import org.nessus.didcomm.service.CamelEndpointService
-import org.nessus.didcomm.service.MessageDispatchService
-import org.nessus.didcomm.service.ProtocolService
+import org.nessus.didcomm.service.DidDocumentService
+import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.wallet.Wallet
@@ -66,11 +68,11 @@ abstract class AbstractIntegrationTest {
         }
     }
 
-    val adminClient get() = AriesAgent.adminClient()
-
+    val cryptoService get() = CryptoService.getService().implementation as NessusCryptoService
+    val didService get() = DidService.getService()
+    val didDocumentService = DidDocumentService.getService()
     val endpointService get() = CamelEndpointService.getService()
-    val messageDispatcher get() = MessageDispatchService.getService()
-    val protocolService get() = ProtocolService.getService()
+    val keyStore get() = KeyStoreService.getService()
     val walletService get() = WalletService.getService()
 
     fun getWalletByAlias(alias: String): Wallet? {

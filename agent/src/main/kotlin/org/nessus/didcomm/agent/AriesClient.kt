@@ -29,7 +29,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.util.encodeJson
+import org.nessus.didcomm.util.encodeJsonPretty
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.wallet.Wallet
 import org.slf4j.event.Level
@@ -130,7 +130,7 @@ object AriesClientFactory {
             if (log.isEnabledForLevel(level) && msg.isNotEmpty()) {
                 if (msg.startsWith("{")) {
                     val json = msg.decodeJson()
-                    log("{}", json.encodeJson(true))
+                    log("{}", json.encodeJsonPretty(sorted = true))
                 } else {
                     log("{}", msg)
                 }

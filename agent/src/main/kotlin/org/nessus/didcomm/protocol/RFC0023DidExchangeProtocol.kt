@@ -1,6 +1,5 @@
 package org.nessus.didcomm.protocol
 
-import com.google.gson.annotations.SerializedName
 import id.walt.common.prettyPrint
 import org.hyperledger.aries.api.did_exchange.DidExchangeAcceptInvitationFilter
 import org.nessus.didcomm.agent.AriesAgent
@@ -8,6 +7,7 @@ import org.nessus.didcomm.protocol.MessageExchange.Companion.MESSAGE_EXCHANGE_IN
 import org.nessus.didcomm.service.ConnectionState
 import org.nessus.didcomm.service.InvitationService
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0023_DID_EXCHANGE
+import org.nessus.didcomm.service.RFC0023DidDocument
 import org.nessus.didcomm.util.decodeBase64Str
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.selectJson
@@ -163,62 +163,3 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
     }
 }
 
-/**
- * Did Document format received by Acapy
- * https://didcomm.org/didexchange/1.0/request
- *
- * {
- *     "@context": "https://w3id.org/did/v1",
- *     "id": "did:sov:UyXWQepD9HCxfQCh1sJRdc",
- *     "publicKey": [
- *         {
- *             "id": "did:sov:UyXWQepD9HCxfQCh1sJRdc#1",
- *             "type": "Ed25519VerificationKey2018",
- *             "controller": "did:sov:UyXWQepD9HCxfQCh1sJRdc",
- *             "publicKeyBase58": "GFLFD3Cx6LfoMbBJDWDEpJ4XTsGqS5cmMUmYiC72FZA1"
- *         }
- *     ],
- *     "authentication": [
- *         {
- *             "type": "Ed25519SignatureAuthentication2018",
- *             "publicKey": "did:sov:UyXWQepD9HCxfQCh1sJRdc#1"
- *         }
- *     ],
- *     "service": [
- *         {
- *             "id": "did:sov:UyXWQepD9HCxfQCh1sJRdc;indy",
- *             "type": "IndyAgent",
- *             "priority": 0,
- *             "recipientKeys": [
- *                 "GFLFD3Cx6LfoMbBJDWDEpJ4XTsGqS5cmMUmYiC72FZA1"
- *             ],
- *             "serviceEndpoint": "http://localhost:8030"
- *         }
- *     ]
- * }
- */
-data class RFC0023DidDocument(
-    @SerializedName("@context")
-    val atContext: String,
-    val id: String,
-    val publicKey: List<PublicKey>,
-    val authentication: List<Authentication>,
-    val service: List<Service>,
-) {
-    data class PublicKey(
-        val id: String,
-        val type: String,
-        val controller: String,
-        val publicKeyBase58: String)
-
-    data class Authentication(
-        val type: String,
-        val publicKey: String)
-
-    data class Service(
-        val id: String,
-        val type: String,
-        val priority: Int,
-        val recipientKeys: List<String>,
-        val serviceEndpoint: String)
-}

@@ -31,7 +31,7 @@ import org.nessus.didcomm.protocol.MessageExchange.Companion.findByThreadId
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.PROTOCOL_METHOD_RECEIVE_REQUEST
 import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.util.encodeJson
+import org.nessus.didcomm.util.encodeJsonPretty
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.toDeeplySortedMap
 import org.nessus.didcomm.wallet.Wallet
@@ -95,7 +95,7 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
 
         val (body, recipientKid) = unpacked
         val envelope = body.decodeJson().toDeeplySortedMap()
-        log.info { "Unpacked Envelope: ${envelope.encodeJson(true)}" }
+        log.info { "Unpacked Envelope: ${envelope.encodeJsonPretty(sorted = true)}" }
 
         /**
          * Ok, we successfully unpacked the encrypted message.

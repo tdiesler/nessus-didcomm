@@ -93,12 +93,6 @@ class AriesWalletPlugin: WalletPlugin() {
                 .walletKey(accessToken)
                 .build()
         )
-
-        // Wait for the wallet to get removed
-        Thread.sleep(1000)
-        while (adminClient.multitenancyWallets(walletAlias).get().isNotEmpty()) {
-            Thread.sleep(500)
-        }
     }
 
     override fun createDid(wallet: Wallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
@@ -112,7 +106,7 @@ class AriesWalletPlugin: WalletPlugin() {
             .build()
         val ariesDid = walletClient.walletDidCreate(didCreate).get()
         val nessusDid = ariesDid.toNessusDid()
-        DidService.getService().registerVerkey(nessusDid)
+        DidService.getService().registerWithKeyStore(nessusDid)
         return nessusDid
     }
 
@@ -123,7 +117,7 @@ class AriesWalletPlugin: WalletPlugin() {
         val publicDid = ariesDid.toNessusDid()
         val keyStore = KeyStoreService.getService()
         keyStore.getKeyId(publicDid.qualified) ?: run {
-            DidService.getService().registerVerkey(publicDid)
+            DidService.getService().registerWithKeyStore(publicDid)
         }
         return publicDid
     }

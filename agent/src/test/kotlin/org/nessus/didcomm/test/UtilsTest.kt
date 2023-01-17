@@ -17,10 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.test.wallet
+package org.nessus.didcomm.test
 
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.test.AbstractDidcommTest
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.gson
@@ -31,7 +30,10 @@ import kotlin.test.assertEquals
 
 class UtilsTest: AbstractDidcommTest() {
 
-    private val fixture = """
+    @Test
+    fun deeplySortedMap() {
+
+        val fixture = """
         {
             "@type": "https://didcomm.org/didexchange/1.0/request",
             "@id": "130d9ccd-652d-4e57-80c4-22e1f28c9ad2",
@@ -58,14 +60,8 @@ class UtilsTest: AbstractDidcommTest() {
         }
         """.trimIndent()
 
-    @Test
-    fun selectJson() {
-        val was = fixture.selectJson("~thread.pthid")
-        assertEquals("43ccec84-c5a4-4378-9cd0-ae6607ea67fb", was)
-    }
-
-    @Test
-    fun deeplySortedMap() {
+        val pthid = fixture.selectJson("~thread.pthid")
+        assertEquals("43ccec84-c5a4-4378-9cd0-ae6607ea67fb", pthid)
 
         val exp = """
         {
@@ -107,13 +103,16 @@ class UtilsTest: AbstractDidcommTest() {
     @Test
     fun encode_decode_json() {
 
-        val map = mapOf("foo" to "bar")
+        // Naive decoding of int values may produce double
+        val map = mapOf("foo" to 0)
+
         val exp = gson.toJson(map)
         val was = map.encodeJson()
 
         log.info { was }
         assertEquals(exp, was)
-        assertEquals(map, was.decodeJson())
-    }
 
+        val decoded = was.decodeJson()
+        assertEquals(map, decoded)
+    }
 }

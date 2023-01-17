@@ -29,7 +29,6 @@ import kotlin.test.assertEquals
 
 /**
  * Onboard ENDORSER through TRUSTEE
- * https://github.com/tdiesler/nessus-didcomm/issues/9
  */
 class OnboardFaberTest : AbstractIntegrationTest() {
 

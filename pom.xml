@@ -19,6 +19,7 @@
         <version.fasterxml.jackson>2.14.1</version.fasterxml.jackson>
         <version.google.crypto.tink>1.7.0</version.google.crypto.tink>
         <version.lazysodium>5.1.2</version.lazysodium>
+        <version.nimbus.jose>9.28</version.nimbus.jose>
         <version.kotlin.logging>3.0.4</version.kotlin.logging>
         <version.waltid.servicematrix>1.1.2</version.waltid.servicematrix>
         <version.waltid.ssikit>1.13.0-SNAPSHOT4</version.waltid.ssikit>
@@ -77,6 +78,11 @@
                 <groupId>com.google.crypto.tink</groupId>
                 <artifactId>tink</artifactId>
                 <version>${version.google.crypto.tink}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>${version.nimbus.jose}</version>
             </dependency>
             <dependency>
                 <groupId>id.walt</groupId>

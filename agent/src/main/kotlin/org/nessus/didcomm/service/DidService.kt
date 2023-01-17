@@ -1,5 +1,6 @@
 package org.nessus.didcomm.service
 
+import com.nimbusds.jose.jwk.OctetKeyPair
 import id.walt.crypto.Key
 import id.walt.crypto.KeyAlgorithm
 import id.walt.crypto.KeyId
@@ -10,6 +11,7 @@ import id.walt.crypto.newKeyId
 import id.walt.servicematrix.ServiceProvider
 import id.walt.services.CryptoProvider
 import id.walt.services.crypto.CryptoService
+import id.walt.services.key.Keys
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import org.nessus.didcomm.crypto.NessusCryptoService
@@ -25,6 +27,12 @@ import java.security.KeyPair
 
 val DEFAULT_KEY_ALGORITHM = KeyAlgorithm.EdDSA_Ed25519
 
+fun Did.toOctetKeyPair(): OctetKeyPair {
+    val keyStore = KeyStoreService.getService()
+    val key = keyStore.load(this.qualified, KeyType.PRIVATE)
+    return Keys(key.keyId.id, key.keyPair!!, "SunEC").toOctetKeyPair()
+}
+
 class DidService: NessusBaseService() {
     override val implementation get() = serviceImplementation<DidService>()
 
@@ -34,7 +42,6 @@ class DidService: NessusBaseService() {
     }
 
     fun createDid(method: DidMethod, algorithm: KeyAlgorithm? = null, seed: ByteArray? = null): Did {
-        require(method == DidMethod.KEY) { "Method not supported: $method" }
 
         val cryptoService = CryptoService.getService().implementation as NessusCryptoService
         val keyAlgorithm = algorithm ?: DEFAULT_KEY_ALGORITHM
@@ -43,9 +50,17 @@ class DidService: NessusBaseService() {
         val keyStore = KeyStoreService.getService()
         val key = keyStore.load(keyId.id, KeyType.PUBLIC)
 
-        val pubKeyRaw = key.getPublicKey().convertEd25519toRaw()
-        val id = convertRawKeyToMultiBase58Btc(pubKeyRaw, getMulticodecKeyCode(keyAlgorithm))
-        val verkey = pubKeyRaw.encodeBase58()
+        val pubkeyBytes = key.getPublicKey().convertEd25519toRaw()
+        check(pubkeyBytes.size == 32) { "Unexpected key size" }
+        val verkey = pubkeyBytes.encodeBase58()
+        val id = when(method) {
+            DidMethod.KEY -> {
+                convertRawKeyToMultiBase58Btc(pubkeyBytes, getMulticodecKeyCode(keyAlgorithm))
+            }
+            DidMethod.SOV -> {
+                pubkeyBytes.dropLast(16).toByteArray().encodeBase58()
+            }
+        }
 
         // Add verkey and did as alias
         val did = Did(id, method, keyAlgorithm, verkey)
@@ -55,7 +70,7 @@ class DidService: NessusBaseService() {
         return did
     }
 
-    fun registerVerkey(did: Did): KeyId {
+    fun registerWithKeyStore(did: Did): KeyId {
         check(did.algorithm == KeyAlgorithm.EdDSA_Ed25519) { "Unsupported key algorithm: $did" }
         val algorithm = did.algorithm
         val rawBytes = did.verkey.decodeBase58()

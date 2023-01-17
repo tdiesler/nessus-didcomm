@@ -39,6 +39,10 @@ import kotlin.test.assertTrue
 /**
  * Ed25519 Online Tool - Sign or Verify
  * https://cyphr.me/ed25519_tool/ed.html
+ *
+ * did:key test vectors
+ * https://w3c-ccg.github.io/did-method-key/#test-vectors
+ * https://github.com/w3c-ccg/did-method-key/tree/main/test-vectors
  */
 class DidServiceTest: AbstractDidcommTest() {
 

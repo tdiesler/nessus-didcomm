@@ -11,7 +11,6 @@ import org.nessus.didcomm.util.encodeHex
 
 fun java.security.PublicKey.convertEd25519toRaw(): ByteArray {
     require(this.format == "X.509") { "Unexpected format: ${this.format}" }
-    requireNotNull(this.encoded) { "No encoded bytes" }
     val keySize = this.encoded.size
     return this.encoded.sliceArray(keySize - 32 until keySize)
 }
@@ -20,7 +19,7 @@ fun java.security.KeyPair.convertEd25519toRaw(): KeyPair {
     val publicKey = Key.fromBytes(this.public.convertEd25519toRaw())
     val secretKey = if (this.private != null) run {
         val prvKey = this.private
-        check(prvKey.format == "PKCS#8") { "Unexpected format: ${prvKey.format}" }
+        require(prvKey.format == "PKCS#8") { "Unexpected format: ${prvKey.format}" }
         val keySize = prvKey.encoded.size
         val secretPart = prvKey.encoded.sliceArray(keySize - 32 until keySize)
         Key.fromBytes(secretPart + publicKey.asBytes)

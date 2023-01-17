@@ -1,6 +1,5 @@
 package org.nessus.didcomm.crypto
 
-import com.goterl.lazysodium.interfaces.Sign
 import id.walt.crypto.Key
 import id.walt.crypto.KeyAlgorithm
 import id.walt.crypto.KeyId
@@ -34,17 +33,8 @@ class NessusCryptoService: SunCryptoService() {
 
         val keyPair = generator.generateKeyPair()
         val key = Key(newKeyId(), algorithm, CryptoProvider.SUN, keyPair)
-
-        // Verify that we have the same keys as from libsodium
-        if (seed != null) {
-            val signLazy = lazySodium as Sign.Lazy
-            val expPair = signLazy.cryptoSignSeedKeypair(seed)
-            val wasPair = keyPair.convertEd25519toRaw()
-            check(expPair.publicKey == wasPair.publicKey)
-            check(expPair.secretKey == wasPair.secretKey)
-        }
-
         keyStore.store(key)
+
         return key.keyId
     }
 }
