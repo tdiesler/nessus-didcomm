@@ -28,7 +28,7 @@ import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol
 import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol
 import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol
 import org.nessus.didcomm.util.AttachmentKey
-import org.nessus.didcomm.wallet.WalletAgent
+import org.nessus.didcomm.wallet.AgentType
 
 val PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE = ProtocolKey("https://rfc0019/application/didcomm-enc-env", RFC0019EncryptionEnvelope::class.java)
 val PROTOCOL_URI_RFC0023_DID_EXCHANGE = ProtocolKey("https://didcomm.org/didexchange/1.0", RFC0023DidExchangeProtocol::class.java)
@@ -55,15 +55,15 @@ class ProtocolService : NessusBaseService() {
                 PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1,
             )
 
-        val protocolsByAgent: Map<WalletAgent, List<ProtocolKey<*>>> get() = mapOf(
-            WalletAgent.ACAPY to listOf(
+        val protocolsByAgent: Map<AgentType, List<ProtocolKey<*>>> get() = mapOf(
+            AgentType.ACAPY to listOf(
                 PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE,
                 PROTOCOL_URI_RFC0023_DID_EXCHANGE,
                 PROTOCOL_URI_RFC0048_TRUST_PING,
                 PROTOCOL_URI_RFC0095_BASIC_MESSAGE,
                 PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1,
             ),
-            WalletAgent.NESSUS to listOf(
+            AgentType.NESSUS to listOf(
                 PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE,
                 PROTOCOL_URI_RFC0023_DID_EXCHANGE,
                 PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1,
@@ -78,7 +78,7 @@ class ProtocolService : NessusBaseService() {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <T: Protocol<T>> getProtocol(key: ProtocolKey<T>, mex: MessageExchange, agent: WalletAgent? = null): T {
+    fun <T: Protocol<T>> getProtocol(key: ProtocolKey<T>, mex: MessageExchange, agent: AgentType? = null): T {
         if (agent != null) check(protocolsByAgent[agent]!!.contains(key))
         return when(key) {
             PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE -> RFC0019EncryptionEnvelope(mex)

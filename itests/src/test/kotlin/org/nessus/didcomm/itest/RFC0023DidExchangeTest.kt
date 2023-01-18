@@ -29,13 +29,13 @@ import org.hyperledger.aries.api.out_of_band.InvitationCreateRequest
 import org.hyperledger.aries.api.out_of_band.InvitationMessage
 import org.hyperledger.aries.api.out_of_band.ReceiveInvitationFilter
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.agent.AriesAgent.Companion.awaitConnectionRecord
+import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.prettyGson
 import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.WalletAgent
-import org.nessus.didcomm.wallet.WalletType
+import org.nessus.didcomm.wallet.AgentType
+import org.nessus.didcomm.wallet.StorageType
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
@@ -70,8 +70,8 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
         val inviter = getWalletByAlias(Faber.name) ?: fail("Faber does not exist")
 
         val invitee = Wallet.Builder(Alice.name)
-            .walletAgent(WalletAgent.ACAPY)
-            .walletType(WalletType.IN_MEMORY)
+            .agentType(AgentType.ACAPY)
+            .storageType(StorageType.IN_MEMORY)
             .build()
 
         try {
@@ -88,15 +88,15 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
             assertEquals(ConnectionState.ACTIVE, inviteeConnection?.state)
 
         } finally {
-            inviter.removePeerConnections()
+            inviter.removeConnections()
             removeWallet(invitee)
         }
     }
 
     private fun didExchange(inviter: Wallet, invitee: Wallet): Map<String, Any> {
 
-        val inviterClient = AriesAgent.walletClient(inviter)
-        val inviteeClient = AriesAgent.walletClient(invitee)
+        val inviterClient = inviter.walletClient() as AriesClient
+        val inviteeClient = invitee.walletClient() as AriesClient
 
         val inviterAutoAccept = true
         val inviteeAutoAccept = false

@@ -2,7 +2,7 @@ package org.nessus.didcomm.protocol
 
 import id.walt.common.prettyPrint
 import org.hyperledger.aries.api.did_exchange.DidExchangeAcceptInvitationFilter
-import org.nessus.didcomm.agent.AriesAgent
+import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.protocol.MessageExchange.Companion.MESSAGE_EXCHANGE_INVITEE_CONNECTION_ID_KEY
 import org.nessus.didcomm.service.ConnectionState
 import org.nessus.didcomm.service.InvitationService
@@ -12,7 +12,7 @@ import org.nessus.didcomm.util.decodeBase64Str
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.WalletAgent
+import org.nessus.didcomm.wallet.AgentType
 import java.util.concurrent.TimeUnit
 
 /**
@@ -25,9 +25,6 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
     companion object {
         const val PROTOCOL_METHOD_ACCEPT_INVITATION = "/didexchange/accept-invitation"
         const val PROTOCOL_METHOD_RECEIVE_REQUEST = "/didexchange/receive-request"
-
-        const val PROTOCOL_ROLE_REQUESTER = "Requester"
-        const val PROTOCOL_ROLE_RESPONDER = "Responder"
     }
 
     override fun invokeMethod(to: Wallet, method: String): Boolean {
@@ -44,7 +41,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
      */
     fun acceptDidExchangeInvitation(invitee: Wallet) {
 
-        if (invitee.walletAgent == WalletAgent.ACAPY)
+        if (invitee.agentType == AgentType.ACAPY)
             return acceptInvitationAcapy(invitee)
 
         /*
@@ -155,7 +152,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         acceptInvitationFilter.myEndpoint = "http://localhost:8030"
         acceptInvitationFilter.myLabel = "Accept Invitation"
 
-        val responderClient = AriesAgent.walletClient(invitee)
+        val responderClient = invitee.walletClient() as AriesClient
         responderClient.didExchangeAcceptInvitation(responderConnectionId, acceptInvitationFilter).get()
 
         // Expect invitee connection in state 'active'

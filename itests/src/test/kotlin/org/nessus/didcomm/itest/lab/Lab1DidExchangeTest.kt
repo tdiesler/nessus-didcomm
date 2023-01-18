@@ -17,56 +17,49 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.itest
+package org.nessus.didcomm.itest.lab
 
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.agent.AriesAgent
-import org.nessus.didcomm.protocol.EndpointMessage
+import org.nessus.didcomm.itest.ACAPY_OPTIONS_01
+import org.nessus.didcomm.itest.ACAPY_OPTIONS_02
+import org.nessus.didcomm.itest.AbstractIntegrationTest
+import org.nessus.didcomm.itest.Alice
+import org.nessus.didcomm.itest.Faber
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageListener
+import org.nessus.didcomm.wallet.AgentType
+import org.nessus.didcomm.wallet.StorageType
 import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.WalletAgent
-import org.nessus.didcomm.wallet.WalletType
 import java.util.concurrent.CountDownLatch
-import kotlin.test.fail
 
-
-/**
- * Aries RFC 0434: Out-of-Band Protocol 1.1
- * https://github.com/hyperledger/aries-rfcs/tree/main/features/0434-outofband
- *
- * Aries RFC 0023: DID Exchange Protocol 1.0
- * https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange
- *
- * DIDComm - Out Of Band Messages
- * https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
- */
-class Lab1DidExchangeRequestTest : AbstractIntegrationTest() {
+class Lab1DidExchangeTest : AbstractIntegrationTest() {
 
     @Test
-    fun test_AliceNessus_invites_FaberAcapy() {
+    fun testOnboardWallets() {
 
-        val alice = Wallet.Builder(Alice.name)
-            .walletAgent(WalletAgent.NESSUS)
-            .walletType(WalletType.IN_MEMORY)
+        val faber = Wallet.Builder(Faber.name)
+            .options(ACAPY_OPTIONS_01)
+            .agentType(AgentType.ACAPY)
+            .storageType(StorageType.INDY)
+            .mayExist(true)
             .build()
 
-        val faber = getWalletByAlias(Faber.name) ?: fail("No Faber")
+        val alice = Wallet.Builder(Alice.name)
+            .options(ACAPY_OPTIONS_02)
+            .agentType(AgentType.ACAPY)
+            .storageType(StorageType.INDY)
+            .build()
+
+        val mex = MessageExchange()
+        val latch = CountDownLatch(1)
+        val listener: MessageListener = {
+            mex.addMessage(it)
+            latch.countDown()
+            true
+        }
 
         try {
-            val mex = MessageExchange()
-
-            val latch = CountDownLatch(1)
-            val listener: MessageListener = {
-                mex.addMessage(EndpointMessage(it.body, it.headers))
-                latch.countDown()
-                true
-            }
-
             endpointService.startEndpoint(listener).use {
-
-                val aliceClient = AriesAgent.walletClient(alice)
-                val faberClient = AriesAgent.walletClient(faber)
 
                 /**
                  * Faber creates an Invitation against a non-public Did
@@ -90,7 +83,6 @@ class Lab1DidExchangeRequestTest : AbstractIntegrationTest() {
             }
 
         } finally {
-            faber.removePeerConnections()
             removeWallet(alice)
         }
     }

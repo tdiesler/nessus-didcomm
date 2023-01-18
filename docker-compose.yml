@@ -155,9 +155,9 @@ services:
         --storage-path ${STORAGE_PATH:-/tmp/tails-files}
         --log-level ${LOG_LEVEL:-info}
 
-  acapy:
+  acapy01:
     image: nessusio/aries-cloudagent-python:${ACAPY_VERSION:-0.7.5}
-    container_name: acapy
+    container_name: acapy01
     ports:
       - ${ACAPY_USER_PORT:-8030}:${ACAPY_USER_PORT:-8030}
       - ${ACAPY_ADMIN_PORT:-8031}:${ACAPY_ADMIN_PORT:-8031}
@@ -175,7 +175,7 @@ services:
         --admin 0.0.0.0 ${ACAPY_ADMIN_PORT:-8031}
         --admin-api-key ${ACAPY_ADMIN_API_KEY:-adminkey}
         --jwt-secret ${ACAPY_MULTITENANT_JWT_SECRET:-jwtsecret}
-        --seed 000000000000000000000000Trustee1
+        --seed 00000000000000000000000Trustee01
         --multitenant-admin
         --multitenant
         --auto-ping-connection
@@ -191,6 +191,41 @@ services:
       - webserver
       - tails-server
 
+  acapy02:
+    image: nessusio/aries-cloudagent-python:${ACAPY_VERSION:-0.7.5}
+    container_name: acapy02
+    ports:
+      - ${ACAPY_USER_PORT:-8040}:${ACAPY_USER_PORT:-8040}
+      - ${ACAPY_ADMIN_PORT:-8041}:${ACAPY_ADMIN_PORT:-8041}
+    networks:
+      - von-network
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    command: >
+      start
+        --genesis-url http://${DOCKERHOST:-host.docker.internal}:9000/genesis
+        --endpoint http://${ACAPY_HOSTNAME:-localhost}:${ACAPY_USER_PORT:-8040}
+        --inbound-transport http 0.0.0.0 ${ACAPY_USER_PORT:-8040}
+        --outbound-transport http
+        --tails-server-base-url http://tails-server:6543
+        --admin 0.0.0.0 ${ACAPY_ADMIN_PORT:-8041}
+        --admin-api-key ${ACAPY_ADMIN_API_KEY:-adminkey}
+        --jwt-secret ${ACAPY_MULTITENANT_JWT_SECRET:-jwtsecret}
+        --seed 00000000000000000000000Trustee02
+        --multitenant-admin
+        --multitenant
+        --auto-ping-connection
+        --emit-new-didcomm-mime-type
+        --emit-new-didcomm-prefix
+        --recreate-wallet 
+        --log-level info
+    depends_on:
+      - node1
+      - node2
+      - node3
+      - node4
+      - webserver
+      - tails-server
 volumes:
   webserver-cli:
   webserver-ledger:

@@ -29,13 +29,13 @@ import mu.KotlinLogging
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.AriesWalletPlugin
 import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.NessusWalletPlugin
+import org.nessus.didcomm.wallet.StorageType
 import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.WalletAgent
 import org.nessus.didcomm.wallet.WalletConfig
-import org.nessus.didcomm.wallet.WalletType
 import java.nio.file.Files
 import java.nio.file.Paths
 import kotlin.io.path.isReadable
@@ -46,11 +46,6 @@ class WalletService : BaseService() {
     private val log = KotlinLogging.logger {}
 
     private val walletStore get() = WalletStoreService.getService()
-
-    private val plugins = mapOf(
-        WalletAgent.ACAPY to AriesWalletPlugin(),
-        WalletAgent.NESSUS to NessusWalletPlugin()
-    )
 
     companion object: ServiceProvider {
         private val implementation = WalletService()
@@ -71,7 +66,7 @@ class WalletService : BaseService() {
             val walletRecord = adminClient.multitenancyWallets(alias).get().firstOrNull()
             walletRecord?.run {
                 val walletId = walletRecord.walletId
-                val wallet = Wallet(walletId, alias, WalletAgent.ACAPY, WalletType.INDY, authToken=authToken)
+                val wallet = Wallet(walletId, alias, AgentType.ACAPY, StorageType.INDY, authToken=authToken)
                 addWallet(wallet)
             }
         }
@@ -82,10 +77,10 @@ class WalletService : BaseService() {
             .forEach {
                 val walletId = it.walletId
                 val alias = it.settings.walletName
-                val walletType = WalletType.valueOf(it.settings.walletType.name)
+                val storageType = StorageType.valueOf(it.settings.walletType.name)
                 val tokReq = CreateWalletTokenRequest.builder().build()
                 val tokRes = adminClient.multitenancyWalletToken(walletId, tokReq).get()
-                val wallet = Wallet(walletId, alias, WalletAgent.ACAPY, walletType, authToken=tokRes.token)
+                val wallet = Wallet(walletId, alias, AgentType.ACAPY, storageType, authToken=tokRes.token)
                 addWallet(wallet)
             }
         log.info { "Done Wallet Init ".padEnd(120, '=') }
@@ -93,14 +88,14 @@ class WalletService : BaseService() {
 
     fun createWallet(config: WalletConfig): Wallet {
         val maybeWallet = findByAlias(config.alias)
-        val walletAgent = config.walletAgent ?: WalletAgent.NESSUS
-        val walletType = config.walletType ?: WalletType.IN_MEMORY
+        val agentType = config.agentType ?: AgentType.NESSUS
+        val storageType = config.storageType ?: StorageType.IN_MEMORY
         if (config.mayExist && maybeWallet != null) {
-            check(maybeWallet.walletAgent == walletAgent) {"Wallet ${config.alias} exists, with other agent: ${maybeWallet.walletAgent}"}
-            check(maybeWallet.walletType == walletType)  {"Wallet ${config.alias} exists, with other type: ${maybeWallet.walletType}"}
+            check(maybeWallet.agentType == agentType) {"Wallet ${config.alias} exists, with other agent: ${maybeWallet.agentType}"}
+            check(maybeWallet.storageType == storageType)  {"Wallet ${config.alias} exists, with other type: ${maybeWallet.storageType}"}
             return maybeWallet
         }
-        val wallet = walletPlugin(walletAgent).createWallet(config)
+        val wallet = walletServicePlugin(agentType).createWallet(config)
         addWallet(wallet)
         return wallet
     }
@@ -115,7 +110,7 @@ class WalletService : BaseService() {
         val wallet = getWallet(id)
         if (wallet != null) {
             log.info {"Remove: $wallet" }
-            walletPlugin(wallet.walletAgent).removeWallet(wallet)
+            walletServicePlugin(wallet.agentType).removeWallet(wallet)
             return walletStore.removeWallet(id)
         }
         return null
@@ -143,7 +138,7 @@ class WalletService : BaseService() {
      * Nessus Dids are created locally and have their associated keys in the {@see KeyStoreService}
      */
     fun createDid(wallet: Wallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
-        val did = walletPlugin(wallet.walletAgent).createDid(wallet, method, algorithm, seed)
+        val did = wallet.walletPlugin.createDid(wallet, method, algorithm, seed)
         log.info { "New DID for ${wallet.alias}: $did" }
         walletStore.addDid(wallet.id, did)
         return did
@@ -153,37 +148,40 @@ class WalletService : BaseService() {
      * List Dids registered with the given wallet
      */
     fun listDids(wallet: Wallet): List<Did> {
-        return walletPlugin(wallet.walletAgent).listDids(wallet)
+        return wallet.walletPlugin.listDids(wallet)
     }
 
-    fun addPeerConnection(wallet: Wallet, con: PeerConnection) {
+    fun addConnection(wallet: Wallet, con: PeerConnection) {
         walletStore.addPeerConnection(wallet.id, con)
     }
 
-    fun getPeerConnection(wallet: Wallet, conId: String): PeerConnection? {
+    fun getConnection(wallet: Wallet, conId: String): PeerConnection? {
         return walletStore.getPeerConnection(wallet.id, conId)
     }
 
-    fun listPeerConnections(wallet: Wallet): List<PeerConnection> {
+    fun listConnections(wallet: Wallet): List<PeerConnection> {
         return walletStore.listPeerConnections(wallet.id)
     }
 
-    fun removePeerConnections(wallet: Wallet) {
-        walletPlugin(wallet.walletAgent).removeConnections(wallet)
+    fun removeConnections(wallet: Wallet) {
+        wallet.walletPlugin.removeConnections(wallet)
         return walletStore.removePeerConnections(wallet.id)
     }
 
     /**
      * Get the (optional) public Did for the given wallet
      */
-    fun publicDid(wallet: Wallet): Did? {
-        return walletPlugin(wallet.walletAgent).publicDid(wallet)
+    fun getPublicDid(wallet: Wallet): Did? {
+        return wallet.walletPlugin.publicDid(wallet)
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun walletPlugin(walletAgent: WalletAgent): WalletPlugin {
-        return plugins[walletAgent] as WalletPlugin
+    private fun walletServicePlugin(agentType: AgentType): WalletServicePlugin {
+        return when(agentType) {
+            AgentType.ACAPY -> AriesWalletPlugin()
+            AgentType.NESSUS -> NessusWalletPlugin()
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -202,24 +200,25 @@ class WalletService : BaseService() {
     }
 }
 
-abstract class WalletPlugin {
+interface WalletServicePlugin {
 
-    val log = KotlinLogging.logger {}
+    fun createWallet(config: WalletConfig): Wallet
 
-    abstract fun createWallet(config: WalletConfig): Wallet
+    fun removeWallet(wallet: Wallet)
+}
 
-    abstract fun removeWallet(wallet: Wallet)
+interface WalletPlugin {
 
-    abstract fun createDid(
+    fun createDid(
         wallet: Wallet,
         method: DidMethod?,
         algorithm: KeyAlgorithm? = null,
         seed: String? = null): Did
 
-    abstract fun publicDid(wallet: Wallet): Did?
+    fun publicDid(wallet: Wallet): Did?
 
-    abstract fun listDids(wallet: Wallet): List<Did>
+    fun listDids(wallet: Wallet): List<Did>
 
-    abstract fun removeConnections(wallet: Wallet)
+    fun removeConnections(wallet: Wallet)
 }
 

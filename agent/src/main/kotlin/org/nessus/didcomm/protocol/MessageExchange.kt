@@ -86,7 +86,7 @@ class MessageExchange (msg: EndpointMessage? = null): AttachmentSupport() {
         if (connection["state"] == "active") {
             val peerConnection = PeerConnection.fromJson(connection)
             putAttachment(MESSAGE_EXCHANGE_INVITEE_PEER_CONNECTION_KEY, peerConnection)
-            invitee.addPeerConnection(peerConnection)
+            invitee.addConnection(peerConnection)
         }
         return getAttachment(MESSAGE_EXCHANGE_INVITEE_PEER_CONNECTION_KEY)
     }

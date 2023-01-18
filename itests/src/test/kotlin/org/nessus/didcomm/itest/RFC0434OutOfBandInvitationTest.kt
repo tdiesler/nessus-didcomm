@@ -28,8 +28,8 @@ import org.nessus.didcomm.service.ConnectionState
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0023_DID_EXCHANGE
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
 import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.WalletAgent
-import org.nessus.didcomm.wallet.WalletType
+import org.nessus.didcomm.wallet.AgentType
+import org.nessus.didcomm.wallet.StorageType
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.fail
@@ -57,8 +57,8 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
         val inviter = getWalletByAlias(Faber.name) ?: fail("No Inviter")
 
         val invitee = Wallet.Builder(Alice.name)
-            .walletAgent(WalletAgent.ACAPY)
-            .walletType(WalletType.IN_MEMORY)
+            .agentType(AgentType.ACAPY)
+            .storageType(StorageType.IN_MEMORY)
             .build()
 
         val inviterAutoAccept = true

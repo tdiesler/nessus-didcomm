@@ -23,8 +23,8 @@ import org.junit.jupiter.api.Test
 import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.LedgerRole
 import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.WalletAgent
-import org.nessus.didcomm.wallet.WalletType
+import org.nessus.didcomm.wallet.AgentType
+import org.nessus.didcomm.wallet.StorageType
 import kotlin.test.assertEquals
 
 /**
@@ -41,15 +41,15 @@ class OnboardFaberTest : AbstractIntegrationTest() {
         // ./wallet-bootstrap --create Faber --ledger-role ENDORSER
         val maybeFaber = getWalletByAlias(Faber.name)
         val faber = maybeFaber ?: Wallet.Builder(Faber.name)
-            .walletAgent(WalletAgent.ACAPY)
+            .agentType(AgentType.ACAPY)
             .ledgerRole(LedgerRole.ENDORSER)
-            .walletType(WalletType.INDY)
+            .storageType(StorageType.INDY)
             .trusteeWallet(gov)
             .build()
 
         try {
 
-            val pubDid = faber.publicDid
+            val pubDid = faber.getPublicDid()
             assertEquals(DidMethod.SOV, pubDid?.method)
 
         } finally {

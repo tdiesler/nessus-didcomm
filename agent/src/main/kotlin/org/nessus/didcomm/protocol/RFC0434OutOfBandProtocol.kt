@@ -6,7 +6,7 @@ import org.hyperledger.aries.api.out_of_band.InvitationCreateRequest
 import org.hyperledger.aries.api.out_of_band.InvitationMessage
 import org.hyperledger.aries.api.out_of_band.ReceiveInvitationFilter
 import org.nessus.didcomm.agent.AgentConfiguration
-import org.nessus.didcomm.agent.AriesAgent
+import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_CONTENT_URI
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_FROM_ALIAS
@@ -23,7 +23,7 @@ import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.prettyGson
 import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.WalletAgent
+import org.nessus.didcomm.wallet.AgentType
 import java.util.*
 
 /**
@@ -68,7 +68,7 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
         val goalCode = options["goal_code"] as? String ?: "Invitation from ${inviter.alias}"
 
         // Create the legacy Acapy invitation
-        val invitation = if (inviter.walletAgent == WalletAgent.ACAPY) {
+        val invitation = if (inviter.agentType == AgentType.ACAPY) {
 
             createOutOfBandInvitationAcapy(inviter, goalCode, options)
 
@@ -121,7 +121,7 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
 
     fun receiveOutOfBandInvitation(invitee: Wallet): RFC0434OutOfBandProtocol {
 
-        if (invitee.walletAgent == WalletAgent.ACAPY) {
+        if (invitee.agentType == AgentType.ACAPY) {
             receiveOutOfBandInvitationAcapy(invitee)
             return this
         }
@@ -149,7 +149,7 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
             .autoAccept(autoAccept)
             .build()
 
-        val inviterClient = AriesAgent.walletClient(inviter)
+        val inviterClient = inviter.walletClient() as AriesClient
         val invitationRecord: InvitationRecord = inviterClient.outOfBandCreateInvitation(createInvRequest, createInvFilter).get()
         val ariesInvitation = invitationRecord.invitation
 
@@ -204,7 +204,7 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
             .autoAccept(autoAccept)
             .build()
 
-        val inviteeClient = AriesAgent.walletClient(invitee)
+        val inviteeClient = invitee.walletClient() as AriesClient
         val inviteeConnection = inviteeClient.outOfBandReceiveInvitation(invitationMessage, receiveInvFilter).get()
 
         messageExchange.putAttachment(MESSAGE_EXCHANGE_INVITEE_CONNECTION_ID_KEY, inviteeConnection.connectionId)

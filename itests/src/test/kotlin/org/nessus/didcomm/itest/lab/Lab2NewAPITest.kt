@@ -17,19 +17,22 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.itest
+package org.nessus.didcomm.itest.lab
 
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.agent.AriesAgent
+import org.nessus.didcomm.agent.AriesClient
+import org.nessus.didcomm.itest.AbstractIntegrationTest
+import org.nessus.didcomm.itest.Alice
+import org.nessus.didcomm.itest.Faber
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_METHOD
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.MESSAGE_EXCHANGE_INVITEE_CONNECTION_ID_KEY
 import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.PROTOCOL_METHOD_RECEIVE_INVITATION
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0023_DID_EXCHANGE
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
+import org.nessus.didcomm.wallet.AgentType
+import org.nessus.didcomm.wallet.StorageType
 import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.WalletAgent
-import org.nessus.didcomm.wallet.WalletType
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.fail
@@ -45,14 +48,14 @@ import kotlin.test.fail
  * DIDComm - Out Of Band Messages
  * https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
  */
-class AuxInvitationTest : AbstractIntegrationTest() {
+class Lab2NewAPITest : AbstractIntegrationTest() {
 
     @Test
     fun test_AliceNessus_invites_FaberAcapy() {
 
         val alice = Wallet.Builder(Alice.name)
-            .walletAgent(WalletAgent.NESSUS)
-            .walletType(WalletType.IN_MEMORY)
+            .agentType(AgentType.NESSUS)
+            .storageType(StorageType.IN_MEMORY)
             .build()
 
         val faber = getWalletByAlias(Faber.name) ?: fail("No Faber")
@@ -75,7 +78,7 @@ class AuxInvitationTest : AbstractIntegrationTest() {
                     .peekMessageExchange()
 
                 // Verify that the Faber connection is in state 'request'
-                val faberClient = AriesAgent.walletClient(faber)
+                val faberClient = faber.walletClient() as AriesClient
                 val faberConnectionId = mex.getAttachment(MESSAGE_EXCHANGE_INVITEE_CONNECTION_ID_KEY) as String
                 val connectionRecord = faberClient.connectionsGetById(faberConnectionId).get()
                 assertEquals("inviter", connectionRecord.theirRole.name.lowercase())
@@ -91,7 +94,7 @@ class AuxInvitationTest : AbstractIntegrationTest() {
             }
 
         } finally {
-            faber.removePeerConnections()
+            faber.removeConnections()
             removeWallet(alice)
         }
     }

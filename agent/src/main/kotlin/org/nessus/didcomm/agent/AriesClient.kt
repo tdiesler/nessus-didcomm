@@ -37,24 +37,27 @@ import java.util.concurrent.TimeUnit
 
 val JSON_TYPE: MediaType = "application/json; charset=utf-8".toMediaType()
 
-class AgentConfiguration private constructor(
-    val adminUrl: String?,
-    val userUrl: String?,
-    val apiKey: String?
+data class AgentConfiguration(
+    val adminUrl: String,
+    val userUrl: String,
+    val apiKey: String
 ) {
     companion object {
         private val host = System.getenv("ACAPY_HOSTNAME") ?: "localhost"
         private val adminPort = System.getenv("ACAPY_ADMIN_PORT") ?: "8031"
         private val userPort = System.getenv("ACAPY_USER_PORT") ?: "8030"
         private val apiKey = System.getenv("ACAPY_ADMIN_API_KEY") ?: "adminkey"
-        val defaultConfiguration = builder()
-                .adminUrl(String.format("http://%s:%s", host, adminPort))
-                .userUrl(String.format("http://%s:%s", host, userPort))
+        val defaultConfiguration = createConfiguration(mapOf())
+        fun createConfiguration(options: Map<String, Any>): AgentConfiguration {
+            val host = options["ACAPY_HOSTNAME"] as? String ?: AgentConfiguration.host
+            val adminPort = options["ACAPY_ADMIN_PORT"] as? Int ?: AgentConfiguration.adminPort
+            val userPort = options["ACAPY_USER_PORT"] as? Int ?: AgentConfiguration.userPort
+            val apiKey = options["ACAPY_ADMIN_API_KEY"] as? String ?: AgentConfiguration.apiKey
+            return AgentConfiguration.Builder()
+                .adminUrl("http://$host:$adminPort")
+                .userUrl("http://$host:$userPort")
                 .apiKey(apiKey)
                 .build()
-
-        fun builder(): Builder {
-            return Builder()
         }
     }
 
@@ -64,15 +67,15 @@ class AgentConfiguration private constructor(
     }
 
     data class Builder(
-            private var adminUrl: String? = null,
-            private var userUrl: String? = null,
-            private var apiKey: String? = null
+        private var adminUrl: String? = null,
+        private var userUrl: String? = null,
+        private var apiKey: String? = null
     ) {
 
         fun adminUrl(adminUrl: String) = apply { this.adminUrl = adminUrl }
         fun userUrl(userUrl: String) = apply { this.userUrl = userUrl }
         fun apiKey(apiKey: String) = apply { this.apiKey = apiKey }
-        fun build() = AgentConfiguration(adminUrl, userUrl, apiKey)
+        fun build() = AgentConfiguration(adminUrl!!, userUrl!!, apiKey!!)
     }
 }
 

@@ -25,8 +25,8 @@ import org.junit.jupiter.api.Test
 import org.nessus.didcomm.test.AbstractDidcommTest
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.WalletAgent
-import org.nessus.didcomm.wallet.WalletType
+import org.nessus.didcomm.wallet.AgentType
+import org.nessus.didcomm.wallet.StorageType
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -39,8 +39,8 @@ class WalletTest: AbstractDidcommTest() {
             .build()
 
         assertEquals("Faber1", faber.alias)
-        assertEquals(WalletAgent.NESSUS, faber.walletAgent)
-        assertEquals(WalletType.IN_MEMORY, faber.walletType)
+        assertEquals(AgentType.NESSUS, faber.agentType)
+        assertEquals(StorageType.IN_MEMORY, faber.storageType)
 
         val faberDid = faber.createDid(seed= Faber.seed)
 

@@ -1,7 +1,7 @@
 package org.nessus.didcomm.protocol
 
 import org.hyperledger.acy_py.generated.model.SendMessage
-import org.nessus.didcomm.agent.AriesAgent
+import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_CONTENT_URI
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_DIRECTION
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_FROM_ALIAS
@@ -12,7 +12,7 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_UR
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THREAD_ID
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0095_BASIC_MESSAGE
 import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.WalletAgent
+import org.nessus.didcomm.wallet.AgentType
 
 /**
  * Aries RFC 0095: Basic Message Protocol 1.0
@@ -30,7 +30,7 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
      */
     fun sendMessage(sender: Wallet, conId: String, message: String): MessageExchange {
 
-        if (sender.walletAgent == WalletAgent.ACAPY)
+        if (sender.agentType == AgentType.ACAPY)
             return sendMessageAcapy(sender, conId, message)
 
         TODO("sendMessage")
@@ -40,10 +40,10 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
 
     private fun sendMessageAcapy(sender: Wallet, conId: String, message: String): MessageExchange {
 
-        val pcon = sender.getPeerConnection(conId)
+        val pcon = sender.getConnection(conId)
         checkNotNull(pcon) { "Unknown connection id: $conId" }
 
-        val fromClient = AriesAgent.walletClient(sender)
+        val fromClient = sender.walletClient() as AriesClient
         val basicMessage = SendMessage.builder().content(message).build()
         fromClient.connectionsSendMessage(conId, basicMessage)
 

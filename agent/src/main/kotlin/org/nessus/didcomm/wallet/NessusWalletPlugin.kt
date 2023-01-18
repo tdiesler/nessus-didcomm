@@ -1,23 +1,26 @@
 package org.nessus.didcomm.wallet
 
 import id.walt.crypto.KeyAlgorithm
+import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.WalletPlugin
+import org.nessus.didcomm.service.WalletServicePlugin
 import org.nessus.didcomm.service.WalletStoreService
 import java.util.*
 
-class NessusWalletPlugin: WalletPlugin() {
+class NessusWalletPlugin: WalletServicePlugin, WalletPlugin {
+    val log = KotlinLogging.logger {}
 
     override fun createWallet(config: WalletConfig): Wallet {
         val walletId = "${UUID.randomUUID()}"
-        val walletAgent = WalletAgent.NESSUS
+        val agentType = AgentType.NESSUS
         val walletAlias = config.alias
-        val walletType = config.walletType ?: WalletType.IN_MEMORY
+        val storageType = config.storageType ?: StorageType.IN_MEMORY
         val endpointUrl = config.endpointUrl ?: EndpointService.getService().endpointUrl
-        return Wallet(walletId, walletAlias, walletAgent, walletType, endpointUrl)
+        return Wallet(walletId, walletAlias, agentType, storageType, endpointUrl, options = config.walletOptions)
     }
 
     override fun removeWallet(wallet: Wallet) {

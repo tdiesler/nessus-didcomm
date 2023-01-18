@@ -26,8 +26,8 @@ import org.nessus.didcomm.service.ConnectionState
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0048_TRUST_PING
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
 import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.WalletAgent
-import org.nessus.didcomm.wallet.WalletType
+import org.nessus.didcomm.wallet.AgentType
+import org.nessus.didcomm.wallet.StorageType
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.fail
@@ -46,8 +46,8 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
         val faber = getWalletByAlias(Faber.name) ?: fail("No Faber")
 
         val alice = Wallet.Builder(Alice.name)
-            .walletAgent(WalletAgent.ACAPY)
-            .walletType(WalletType.IN_MEMORY)
+            .agentType(AgentType.ACAPY)
+            .storageType(StorageType.IN_MEMORY)
             .build()
 
         try {

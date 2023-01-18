@@ -1,7 +1,7 @@
 package org.nessus.didcomm.protocol
 
 import org.hyperledger.aries.api.trustping.PingRequest
-import org.nessus.didcomm.agent.AriesAgent
+import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_CONTENT_URI
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_DIRECTION
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_FROM_ALIAS
@@ -13,7 +13,7 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THREAD_ID
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0048_TRUST_PING
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.WalletAgent
+import org.nessus.didcomm.wallet.AgentType
 
 /**
  * Aries RFC 0048: Trust Ping Protocol 1.0
@@ -31,7 +31,7 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
      */
     fun sendPing(sender: Wallet, conId: String, comment: String? = "ping"): MessageExchange {
 
-        if (sender.walletAgent == WalletAgent.ACAPY)
+        if (sender.agentType == AgentType.ACAPY)
             return sendPingAcapy(sender, conId, comment!!)
 
         TODO("sendPing")
@@ -41,10 +41,10 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
 
     private fun sendPingAcapy(sender: Wallet, conId: String, comment: String): MessageExchange {
 
-        val pcon = sender.getPeerConnection(conId)
+        val pcon = sender.getConnection(conId)
         checkNotNull(pcon) { "Unknown connection id: $conId" }
 
-        val senderClient = AriesAgent.walletClient(sender)
+        val senderClient = sender.walletClient() as AriesClient
         val pingRequest = PingRequest.builder()
             .comment(comment)
             .build()

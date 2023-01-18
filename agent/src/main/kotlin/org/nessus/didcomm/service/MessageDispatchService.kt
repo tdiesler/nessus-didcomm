@@ -76,7 +76,7 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
         checkNotNull(protocolMethod) { "No protocol method" }
 
         val key = ProtocolService.findProtocolKey(protocolUri)
-        val protocol = protocolService.getProtocol(key, mex, target.walletAgent)
+        val protocol = protocolService.getProtocol(key, mex, target.agentType)
         return protocol.invokeMethod(target, protocolMethod)
     }
 
