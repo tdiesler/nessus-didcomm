@@ -33,17 +33,13 @@ import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.wallet.Wallet
 
 val ACAPY_OPTIONS_01 = mapOf(
-    "ACAPY_HOSTNAME" to "localhost",
-    "ACAPY_ADMIN_PORT" to 8031,
-    "ACAPY_USER_PORT" to 8030,
-    "ACAPY_ADMIN_API_KEY" to "adminkey",
+    "ACAPY_ADMIN_PORT" to "8031",
+    "ACAPY_USER_PORT" to "8030",
 )
 
 val ACAPY_OPTIONS_02 = mapOf(
-    "ACAPY_HOSTNAME" to "localhost",
-    "ACAPY_ADMIN_PORT" to 8041,
-    "ACAPY_USER_PORT" to 8040,
-    "ACAPY_ADMIN_API_KEY" to "adminkey",
+    "ACAPY_ADMIN_PORT" to "8041",
+    "ACAPY_USER_PORT" to "8040",
 )
 
 object Government {

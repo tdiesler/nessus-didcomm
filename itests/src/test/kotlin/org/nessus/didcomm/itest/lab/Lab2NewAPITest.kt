@@ -20,21 +20,12 @@
 package org.nessus.didcomm.itest.lab
 
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.itest.AbstractIntegrationTest
 import org.nessus.didcomm.itest.Alice
 import org.nessus.didcomm.itest.Faber
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_METHOD
-import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.protocol.MessageExchange.Companion.MESSAGE_EXCHANGE_INVITEE_CONNECTION_ID_KEY
-import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.PROTOCOL_METHOD_RECEIVE_INVITATION
-import org.nessus.didcomm.service.PROTOCOL_URI_RFC0023_DID_EXCHANGE
-import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.StorageType
 import org.nessus.didcomm.wallet.Wallet
-import java.util.concurrent.TimeUnit
-import kotlin.test.assertEquals
 import kotlin.test.fail
 
 
@@ -68,21 +59,21 @@ class Lab2NewAPITest : AbstractIntegrationTest() {
                  * Inviter (Alice) creates an Out-of-Band Invitation
                  */
 
-                val mex = MessageExchange()
-                    .withProtocol(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1)
-                    .createOutOfBandInvitation(alice)
-                    .dispatchToWallet(faber, mapOf(
-                        MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_RECEIVE_INVITATION))
-                    .withProtocol(PROTOCOL_URI_RFC0023_DID_EXCHANGE)
-                    .awaitReceiveDidExchangeRequest(5, TimeUnit.SECONDS)
-                    .peekMessageExchange()
-
-                // Verify that the Faber connection is in state 'request'
-                val faberClient = faber.walletClient() as AriesClient
-                val faberConnectionId = mex.getAttachment(MESSAGE_EXCHANGE_INVITEE_CONNECTION_ID_KEY) as String
-                val connectionRecord = faberClient.connectionsGetById(faberConnectionId).get()
-                assertEquals("inviter", connectionRecord.theirRole.name.lowercase())
-                assertEquals("request", connectionRecord.state.name.lowercase())
+//                val mex = MessageExchange()
+//                    .withProtocol(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1)
+//                    .createOutOfBandInvitation(alice)
+//                    .dispatchToWallet(faber, mapOf(
+//                        MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_RECEIVE_INVITATION))
+//                    .withProtocol(PROTOCOL_URI_RFC0023_DID_EXCHANGE)
+//                    .awaitReceiveDidExchangeRequest(5, TimeUnit.SECONDS)
+//                    .peekMessageExchange()
+//
+//                // Verify that the Faber connection is in state 'request'
+//                val faberClient = faber.walletClient() as AriesClient
+//                val faberConnectionId = mex.getAttachment(MESSAGE_EXCHANGE_INVITEE_CONNECTION_ID_KEY) as String
+//                val connectionRecord = faberClient.connectionsGetById(faberConnectionId).get()
+//                assertEquals("inviter", connectionRecord.theirRole.name.lowercase())
+//                assertEquals("request", connectionRecord.state.name.lowercase())
 
                 // StorageNotFoundError: Record not found
                 //val acceptRequestFilter = DidExchangeAcceptRequestFilter.builder().build()

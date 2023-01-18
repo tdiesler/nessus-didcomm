@@ -11,8 +11,8 @@ import org.nessus.didcomm.service.RFC0023DidDocument
 import org.nessus.didcomm.util.decodeBase64Str
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.selectJson
-import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.AgentType
+import org.nessus.didcomm.wallet.Wallet
 import java.util.concurrent.TimeUnit
 
 /**
@@ -149,7 +149,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         checkNotNull(responderConnectionId) { "No connectionId attachment"}
 
         val acceptInvitationFilter = DidExchangeAcceptInvitationFilter()
-        acceptInvitationFilter.myEndpoint = "http://localhost:8030"
+        acceptInvitationFilter.myEndpoint = invitee.endpointUrl
         acceptInvitationFilter.myLabel = "Accept Invitation"
 
         val responderClient = invitee.walletClient() as AriesClient

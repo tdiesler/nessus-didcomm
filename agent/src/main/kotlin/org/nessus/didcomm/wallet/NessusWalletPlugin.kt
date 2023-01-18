@@ -5,7 +5,6 @@ import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.service.DidService
-import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.WalletPlugin
 import org.nessus.didcomm.service.WalletServicePlugin
 import org.nessus.didcomm.service.WalletStoreService
@@ -19,8 +18,7 @@ class NessusWalletPlugin: WalletServicePlugin, WalletPlugin {
         val agentType = AgentType.NESSUS
         val walletAlias = config.alias
         val storageType = config.storageType ?: StorageType.IN_MEMORY
-        val endpointUrl = config.endpointUrl ?: EndpointService.getService().endpointUrl
-        return Wallet(walletId, walletAlias, agentType, storageType, endpointUrl, options = config.walletOptions)
+        return Wallet(walletId, walletAlias, agentType, storageType, options = config.walletOptions)
     }
 
     override fun removeWallet(wallet: Wallet) {

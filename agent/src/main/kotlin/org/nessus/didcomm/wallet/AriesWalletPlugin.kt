@@ -39,7 +39,7 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
             IndyLedgerRoles.valueOf(ledgerRole.name.uppercase())
         else null
 
-        val agentConfig = AgentConfiguration.createConfiguration(walletOptions)
+        val agentConfig = AgentConfiguration.agentConfiguration(walletOptions)
         val adminClient = AriesAgent.adminClient(agentConfig)
 
         val walletRequest = CreateWalletRequest.builder()
@@ -49,8 +49,10 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
             .walletType(storageType.toAriesWalletType())
             .build()
         val walletRecord = adminClient.multitenancyWalletCreate(walletRequest).get()
-        val auxWallet = Wallet(walletRecord.walletId, walletAlias, agentType, storageType,
-            authToken=walletRecord.token, options = walletOptions)
+        val auxWallet = Wallet(
+            walletRecord.walletId, walletAlias, agentType, storageType,
+            authToken=walletRecord.token, options = walletOptions
+        )
 
         var publicDid: Did? = null
 
@@ -80,8 +82,7 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
             // Set the public DID for the wallet
             walletClient.walletDidPublic(publicDid.id)
 
-            val didEndpoint = walletClient.walletGetDidEndpoint(publicDid.id).get().endpoint
-            Wallet(auxWallet.id, walletAlias, agentType, storageType, didEndpoint, auxWallet.authToken, auxWallet.options)
+            Wallet(auxWallet.id, walletAlias, agentType, storageType, auxWallet.authToken, auxWallet.options)
         } else auxWallet
 
         log.info("{}: did={} endpoint={}", walletAlias, publicDid?.qualified, wallet.endpointUrl)

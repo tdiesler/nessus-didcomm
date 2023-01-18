@@ -21,9 +21,12 @@
 package org.nessus.didcomm.wallet
 
 import id.walt.crypto.KeyAlgorithm
-import org.nessus.didcomm.agent.AgentConfiguration.Companion.createConfiguration
+import org.nessus.didcomm.agent.AgentConfiguration.Companion.agentConfiguration
 import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.agent.AriesClientFactory
+import org.nessus.didcomm.agent.WebSocketClient
+import org.nessus.didcomm.agent.WebSocketEvent
+import org.nessus.didcomm.agent.WebSocketListener
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.service.PeerConnection
 import org.nessus.didcomm.service.WalletPlugin
@@ -73,22 +76,25 @@ class Wallet(
     val alias: String,
     val agentType: AgentType,
     val storageType: StorageType,
-    val endpointUrl: String? = null,
     val authToken: String? = null,
     val options: Map<String, Any> = mapOf(),
 ) {
+
+    val endpointUrl get() = agentConfiguration(options).userUrl
 
     private val walletService get() = WalletService.getService()
     internal val walletPlugin: WalletPlugin = when (agentType) {
         AgentType.ACAPY -> AriesWalletPlugin()
         AgentType.NESSUS -> NessusWalletPlugin()
     }
+
     private val interceptorLogLevel = Level.INFO
+    private var webSocketClient: WebSocketClient? = null
 
     // [TODO] Abstract the Agent client
     fun adminClient(): AriesClient? {
         return if (agentType == AgentType.ACAPY) {
-            val config = createConfiguration(options)
+            val config = agentConfiguration(options)
             AriesClientFactory.adminClient(config, level = interceptorLogLevel)
         } else null
     }
@@ -96,9 +102,29 @@ class Wallet(
     // [TODO] Abstract the Agent client
     fun walletClient(): AriesClient? {
         return if (agentType == AgentType.ACAPY) {
-            val config = createConfiguration(options)
+            val config = agentConfiguration(options)
             AriesClientFactory.walletClient(this, config, level = interceptorLogLevel)
         } else null
+    }
+
+    fun getWebSocketUrl(): String? {
+        return if (agentType == AgentType.ACAPY) {
+            agentConfiguration(options).wsUrl
+        } else null
+    }
+
+    fun openWebSocket(eventListener: (wse: WebSocketEvent) -> Unit) {
+        val webSocketListener = WebSocketListener(this, eventListener)
+        webSocketClient = WebSocketClient(this, webSocketListener).openWebSocket()
+    }
+
+    fun closeWebSocket() {
+        webSocketClient?.closeWebSocket()
+        webSocketClient = null
+    }
+
+    fun closeWallet() {
+        closeWebSocket()
     }
 
     fun createDid(method: DidMethod? = null, algorithm: KeyAlgorithm? = null, seed: String? = null): Did {
@@ -134,7 +160,6 @@ class Wallet(
         var storageType: StorageType? = null
         var options: MutableMap<String, Any> = mutableMapOf()
         var walletKey: String? = null
-        var endpointUrl: String? = null
         var ledgerRole: LedgerRole? = null
         var trusteeWallet: Wallet? = null
         var publicDidMethod: DidMethod? = null
@@ -143,7 +168,6 @@ class Wallet(
         fun agentType(agentType: AgentType?) = apply { this.agentType = agentType }
         fun options(options: Map<String, Any>) = apply { this.options.putAll(options) }
         fun storageType(storageType: StorageType?) = apply { this.storageType = storageType }
-        fun endpointUrl(endpointUrl: String) = apply { this.endpointUrl = endpointUrl }
         fun walletKey(walletKey: String?) = apply { this.walletKey = walletKey }
         fun publicDidMethod(didMethod: DidMethod?) = apply { this.publicDidMethod = didMethod }
         fun ledgerRole(ledgerRole: LedgerRole?) = apply { this.ledgerRole = ledgerRole }
@@ -152,8 +176,8 @@ class Wallet(
 
         fun build(): Wallet = WalletService.getService().createWallet(
             WalletConfig(
-                walletName, agentType, storageType, walletKey, endpointUrl,
-                ledgerRole, trusteeWallet, publicDidMethod, options.toMap(), mayExist
+                walletName, agentType, storageType, walletKey, ledgerRole, trusteeWallet, publicDidMethod,
+                options.toMap(), mayExist
             ))
 
     }
@@ -174,7 +198,6 @@ data class WalletConfig(
     val agentType: AgentType?,
     val storageType: StorageType?,
     val walletKey: String?,
-    val endpointUrl: String?,
     val ledgerRole: LedgerRole?,
     val trusteeWallet: Wallet?,
     val publicDidMethod: DidMethod?,
