@@ -33,13 +33,25 @@ import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.wallet.Wallet
 
 val ACAPY_OPTIONS_01 = mapOf(
+    "ACAPY_HOSTNAME" to System.getenv("EXTERNAL_IP"),
     "ACAPY_ADMIN_PORT" to "8031",
     "ACAPY_USER_PORT" to "8030",
 )
 
 val ACAPY_OPTIONS_02 = mapOf(
+    "ACAPY_HOSTNAME" to System.getenv("EXTERNAL_IP"),
     "ACAPY_ADMIN_PORT" to "8041",
     "ACAPY_USER_PORT" to "8040",
+)
+
+val NESSUS_OPTIONS_01 = mapOf(
+    "NESSUS_HOSTNAME" to System.getenv("EXTERNAL_IP"),
+    "NESSUS_USER_PORT" to "8130",
+)
+
+val NESSUS_OPTIONS_02 = mapOf(
+    "NESSUS_HOSTNAME" to System.getenv("EXTERNAL_IP"),
+    "NESSUS_USER_PORT" to "8140",
 )
 
 object Government {
@@ -80,7 +92,7 @@ abstract class AbstractIntegrationTest {
 
     val cryptoService get() = CryptoService.getService().implementation as NessusCryptoService
     val didService get() = DidService.getService()
-    val didDocumentService = DidDocumentService.getService()
+    val diddocService = DidDocumentService.getService()
     val endpointService get() = CamelEndpointService.getService()
     val keyStore get() = KeyStoreService.getService()
     val walletService get() = WalletService.getService()

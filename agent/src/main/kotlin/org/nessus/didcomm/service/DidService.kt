@@ -33,6 +33,13 @@ fun Did.toOctetKeyPair(): OctetKeyPair {
     return Keys(key.keyId.id, key.keyPair!!, "SunEC").toOctetKeyPair()
 }
 
+fun Key.toDidKey(): Did {
+    check(this.algorithm == KeyAlgorithm.EdDSA_Ed25519)
+    val pubkeyBytes = this.getPublicKey().convertEd25519toRaw()
+    val id = convertRawKeyToMultiBase58Btc(pubkeyBytes, getMulticodecKeyCode(this.algorithm))
+    return Did(id, DidMethod.KEY, this.algorithm, pubkeyBytes.encodeBase58())
+}
+
 class DidService: NessusBaseService() {
     override val implementation get() = serviceImplementation<DidService>()
 
@@ -51,7 +58,6 @@ class DidService: NessusBaseService() {
         val key = keyStore.load(keyId.id, KeyType.PUBLIC)
 
         val pubkeyBytes = key.getPublicKey().convertEd25519toRaw()
-        check(pubkeyBytes.size == 32) { "Unexpected key size" }
         val verkey = pubkeyBytes.encodeBase58()
         val id = when(method) {
             DidMethod.KEY -> {

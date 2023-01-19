@@ -6,7 +6,7 @@ import org.apache.camel.builder.RouteBuilder
 import org.apache.camel.impl.DefaultCamelContext
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.MessageListener
-import java.net.URL
+import org.nessus.didcomm.wallet.Wallet
 
 
 class CamelEndpointService: EndpointService<CamelContext>() {
@@ -16,17 +16,14 @@ class CamelEndpointService: EndpointService<CamelContext>() {
         override fun getService() = implementation
     }
 
-    override val endpointUrl: String?
-        get() = "http://host.docker.internal:9030"
-
-    override fun startEndpoint(listener: MessageListener?): CamelContext {
-        val port = URL(endpointUrl).port
-        log.info("Starting Camel endpoint on: $port")
+    override fun startEndpoint(wallet: Wallet, listener: MessageListener?): CamelContext {
+        val endpointUrl = wallet.endpointUrl
+        log.info("Starting Camel endpoint on: $endpointUrl")
         val camelctx: CamelContext = DefaultCamelContext()
         val dispatcher = listener ?: MessageDispatchService.getService()
         camelctx.addRoutes(object: RouteBuilder(camelctx) {
             override fun configure() {
-                from("undertow:http://0.0.0.0:${port}?matchOnUriPrefix=true")
+                from("undertow:$endpointUrl?matchOnUriPrefix=true")
                     .log("Req: \${headers.CamelHttpMethod} \${headers.CamelHttpPath} \${body}")
                     .process {
                         val headers = it.message.headers

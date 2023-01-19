@@ -29,6 +29,8 @@ import org.hyperledger.aries.api.out_of_band.ReceiveInvitationFilter
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.agent.AriesAgent.Companion.awaitConnectionRecord
 import org.nessus.didcomm.agent.AriesClient
+import org.nessus.didcomm.itest.ACAPY_OPTIONS_01
+import org.nessus.didcomm.itest.ACAPY_OPTIONS_02
 import org.nessus.didcomm.itest.AbstractIntegrationTest
 import org.nessus.didcomm.itest.Alice
 import org.nessus.didcomm.itest.Faber
@@ -38,7 +40,6 @@ import org.nessus.didcomm.util.sortedJson
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.StorageType
 import org.nessus.didcomm.wallet.Wallet
-import kotlin.test.fail
 
 /**
  * DIDComm - Out Of Band Messages
@@ -62,15 +63,15 @@ class Lab1DidExchangeTest : AbstractIntegrationTest() {
     @Test
     fun didExchange_FaberAcapy_AliceAcapy() {
 
-        /**
-         * Findings
-         *
-         * - When Faber uses a public DID, Alice needs to have an INDY wallet as well in order to resolve that DID
-         */
-
-        val inviter = getWalletByAlias(Faber.name) ?: fail("Faber does not exist")
+        val inviter = Wallet.Builder(Faber.name)
+            .options(ACAPY_OPTIONS_01)
+            .agentType(AgentType.ACAPY)
+            .storageType(StorageType.INDY)
+            .mayExist(true)
+            .build()
 
         val invitee = Wallet.Builder(Alice.name)
+            .options(ACAPY_OPTIONS_02)
             .agentType(AgentType.ACAPY)
             .storageType(StorageType.IN_MEMORY)
             .build()

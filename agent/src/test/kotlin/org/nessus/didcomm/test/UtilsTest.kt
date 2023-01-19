@@ -35,58 +35,66 @@ class UtilsTest: AbstractDidcommTest() {
 
         val fixture = """
         {
-            "@type": "https://didcomm.org/didexchange/1.0/request",
-            "@id": "130d9ccd-652d-4e57-80c4-22e1f28c9ad2",
-            "~thread": {
-                "thid": "130d9ccd-652d-4e57-80c4-22e1f28c9ad2",
-                "pthid": "43ccec84-c5a4-4378-9cd0-ae6607ea67fb"
-            },
-            "label": "Aries Cloud Agent",
-            "did": "DngzknmPCjQhnZ6SinQZtr",
-            "did_doc~attach": {
-                "@id": "f09caf59-d971-4ada-8571-79ffed6ea745",
-                "mime-type": "application/json",
-                "data": {
-                    "base64": "eyJAY29udGV...gwMzAifV19",
-                    "jws": {
-                        "header": {
-                            "kid": "did:key:z6MkmRWKF37kpn2XWbjR2R2CkejQtPaZBarffuowV3y8U6g7"
-                        },
-                        "protected": "eyJhbGciOiA...hVNmc3In19",
-                        "signature": "VFqhX3jGiZC-Ypu0Yj7-pdqMC5q_p8fvtpoDhtoJ4XNd-JOVPZe6Gz4pM_IxB_FkX_obaKIQ7rur-IBQu4KlDA"
-                    }
-                }
-            }
+          "trace": false,
+          "invitation": {
+            "@type": "https://didcomm.org/out-of-band/1.1/invitation",
+            "@id": "f3ea944d-ad92-42d8-b6e2-d14f2d6cee10",
+            "accept": [
+              "didcomm/v2"
+            ],
+            "label": "Invitation for Alice",
+            "handshake_protocols": [
+              "https://didcomm.org/didexchange/1.0"
+            ],
+            "services": [
+              {
+                "id": "#inline",
+                "type": "did-communication",
+                "recipientKeys": [
+                  "did:key:z6MkmK97sF2Ki68ETqH2fweyPSdptmBH7xJrFFphtE6eFpG9"
+                ],
+                "serviceEndpoint": "http://192.168.0.10:8030"
+              }
+            ]
+          },
+          "oob_id": "63a0a5fa-a207-4e92-83e6-17725c4d4490",
+          "invi_msg_id": "f3ea944d-ad92-42d8-b6e2-d14f2d6cee10",
+          "invitation_url": "http://192.168.0.10:8030?oob=eyJAdHlwZ...MzAifV19",
+          "state": "initial"
         }
         """.trimIndent()
 
-        val pthid = fixture.selectJson("~thread.pthid")
-        assertEquals("43ccec84-c5a4-4378-9cd0-ae6607ea67fb", pthid)
+        assertEquals("f3ea944d-ad92-42d8-b6e2-d14f2d6cee10", fixture.selectJson("invitation.@id"))
+        assertEquals("didcomm/v2", fixture.selectJson("invitation.accept[0]"))
 
         val exp = """
         {
-          "@id": "130d9ccd-652d-4e57-80c4-22e1f28c9ad2",
-          "@type": "https://didcomm.org/didexchange/1.0/request",
-          "~thread": {
-            "pthid": "43ccec84-c5a4-4378-9cd0-ae6607ea67fb",
-            "thid": "130d9ccd-652d-4e57-80c4-22e1f28c9ad2"
-          },
-          "did": "DngzknmPCjQhnZ6SinQZtr",
-          "did_doc~attach": {
-            "@id": "f09caf59-d971-4ada-8571-79ffed6ea745",
-            "data": {
-              "base64": "eyJAY29udGV...gwMzAifV19",
-              "jws": {
-                "header": {
-                  "kid": "did:key:z6MkmRWKF37kpn2XWbjR2R2CkejQtPaZBarffuowV3y8U6g7"
-                },
-                "protected": "eyJhbGciOiA...hVNmc3In19",
-                "signature": "VFqhX3jGiZC-Ypu0Yj7-pdqMC5q_p8fvtpoDhtoJ4XNd-JOVPZe6Gz4pM_IxB_FkX_obaKIQ7rur-IBQu4KlDA"
+          "invi_msg_id": "f3ea944d-ad92-42d8-b6e2-d14f2d6cee10",
+          "invitation": {
+            "@id": "f3ea944d-ad92-42d8-b6e2-d14f2d6cee10",
+            "@type": "https://didcomm.org/out-of-band/1.1/invitation",
+            "accept": [
+              "didcomm/v2"
+            ],
+            "handshake_protocols": [
+              "https://didcomm.org/didexchange/1.0"
+            ],
+            "label": "Invitation for Alice",
+            "services": [
+              {
+                "id": "#inline",
+                "recipientKeys": [
+                  "did:key:z6MkmK97sF2Ki68ETqH2fweyPSdptmBH7xJrFFphtE6eFpG9"
+                ],
+                "serviceEndpoint": "http://192.168.0.10:8030",
+                "type": "did-communication"
               }
-            },
-            "mime-type": "application/json"
+            ]
           },
-          "label": "Aries Cloud Agent"
+          "invitation_url": "http://192.168.0.10:8030?oob\u003deyJAdHlwZ...MzAifV19",
+          "oob_id": "63a0a5fa-a207-4e92-83e6-17725c4d4490",
+          "state": "initial",
+          "trace": false
         }
         """.trimIndent()
 

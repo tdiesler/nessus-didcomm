@@ -80,7 +80,7 @@ class Wallet(
     val options: Map<String, Any> = mapOf(),
 ) {
 
-    val endpointUrl get() = agentConfiguration(options).userUrl
+    val endpointUrl get() = walletPlugin.getEndpointUrl(this)
 
     private val walletService get() = WalletService.getService()
     internal val walletPlugin: WalletPlugin = when (agentType) {

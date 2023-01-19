@@ -25,6 +25,9 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
     companion object {
         const val PROTOCOL_METHOD_ACCEPT_INVITATION = "/didexchange/accept-invitation"
         const val PROTOCOL_METHOD_RECEIVE_REQUEST = "/didexchange/receive-request"
+
+        val MESSAGE_TYPE_RFC0023_DID_EXCHANGE_REQUEST = "${PROTOCOL_URI_RFC0023_DID_EXCHANGE.uri}/request"
+        val MESSAGE_TYPE_RFC0023_DID_EXCHANGE_RESPONSE = "${PROTOCOL_URI_RFC0023_DID_EXCHANGE.uri}/response"
     }
 
     override fun invokeMethod(to: Wallet, method: String): Boolean {

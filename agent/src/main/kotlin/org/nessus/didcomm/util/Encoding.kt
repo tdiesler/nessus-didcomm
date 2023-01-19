@@ -64,7 +64,7 @@ fun String.decodeBase64(): ByteArray = Base64.getDecoder().decode(this)
 
 fun String.decodeBase64Str(): String = String(this.decodeBase64())
 
-fun ByteArray.encodeBase64Url(padding: Boolean=false): String = run {
+fun ByteArray.encodeBase64Url(padding: Boolean = false): String = run {
     val encoder = if (padding) Base64.getUrlEncoder()
     else Base64.getUrlEncoder().withoutPadding()
     String(encoder.encode(this))

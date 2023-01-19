@@ -103,3 +103,8 @@ The above should have created the respective siera environment.
     assertEquals("https://didcomm.org/basicmessage/1.0/message", epm.contentUri)
     assertEquals(userMessage, epm.body)
 ```
+
+```
+docker compose logs -f acapy01 2> /dev/null | grep Expanded
+docker compose logs -f acapy02 2> /dev/null | grep Expanded
+```

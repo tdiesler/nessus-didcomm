@@ -2,10 +2,12 @@ package org.nessus.didcomm.service
 
 import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
+import id.walt.common.prettyPrint
 import id.walt.crypto.KeyId
 import id.walt.servicematrix.ServiceProvider
 import id.walt.services.crypto.CryptoService
 import id.walt.services.keystore.KeyStoreService
+import id.walt.services.keystore.KeyType
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.util.decodeBase64Url
 import org.nessus.didcomm.util.decodeBase64UrlStr
@@ -64,22 +66,28 @@ class DidDocumentService: NessusBaseService() {
         return gson.fromJson(template, RFC0023DidDocument::class.java)
     }
 
-    fun createAttachment(didDocument: RFC0023DidDocument, sigDid: Did, hdrDid: Did): JsonObject {
+    fun createAttachment(diddocJson: String, sigDid: Did): JsonObject {
+        val didDoc = gson.fromJson(diddocJson, RFC0023DidDocument::class.java)
+        return createAttachment(didDoc, sigDid)
+    }
+
+    fun createAttachment(didDocument: RFC0023DidDocument, sigDid: Did): JsonObject {
 
         val didDocumentJson = gson.toJson(didDocument)
         val didDocument64 = didDocumentJson.toByteArray().encodeBase64Url()
 
-        val octetKeyPair = hdrDid.toOctetKeyPair()
+        val octetKeyPair = sigDid.toOctetKeyPair()
+        val didKey = keyStore.load(sigDid.verkey, KeyType.PUBLIC).toDidKey()
 
         val protectedTemplate = """
         {
             "alg": "${octetKeyPair.algorithm}",
-            "kid": "${octetKeyPair.keyID}",
+            "kid": "${didKey.qualified}",
             "jwk": {
                 "kty": "${octetKeyPair.keyType}",
                 "crv": "${octetKeyPair.curve}",
                 "x": "${octetKeyPair.x}",
-                "kid": "${octetKeyPair.keyID}"
+                "kid": "${didKey.qualified}"
             }
         }            
         """.trimJson()
@@ -98,7 +106,7 @@ class DidDocumentService: NessusBaseService() {
               "base64": "$didDocument64",
               "jws": {
                 "header": {
-                  "kid": "${hdrDid.qualified}"
+                  "kid": "${didKey.qualified}"
                 },
                 "protected": "$protected64",
                 "signature": "$signature64"
@@ -137,6 +145,7 @@ class DidDocumentService: NessusBaseService() {
 
         val signature = signature64.decodeBase64Url()
         val data = "$protected64.$didDocument64".toByteArray()
+        log.info { "Extracted Did Document: ${diddocJson.prettyPrint()}" }
         check(cryptoService.verify(keyId, signature, data)) { "Did document verification failed" }
 
         return didDocument

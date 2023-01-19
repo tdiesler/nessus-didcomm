@@ -2,6 +2,7 @@ package org.nessus.didcomm.service
 
 import id.walt.servicematrix.ServiceProvider
 import org.nessus.didcomm.protocol.MessageListener
+import org.nessus.didcomm.wallet.Wallet
 
 
 abstract class EndpointService<T: Any>: NessusBaseService() {
@@ -12,13 +13,12 @@ abstract class EndpointService<T: Any>: NessusBaseService() {
         override fun defaultImplementation() = CamelEndpointService()
     }
 
-    open val endpointUrl: String? get() = implementation.endpointUrl
-
     /**
-     * Starts the endpoint service
+     * Starts the endpoint service for a given wallet
+     *
      * @return A handle specific to the endpoint implementation
      */
-    open fun startEndpoint(listener: MessageListener? = null): T? {
+    open fun startEndpoint(wallet: Wallet, listener: MessageListener? = null): T? {
         return null
     }
 

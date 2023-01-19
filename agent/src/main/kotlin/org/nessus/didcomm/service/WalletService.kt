@@ -83,7 +83,7 @@ class WalletService : BaseService() {
                 val wallet = Wallet(walletId, alias, AgentType.ACAPY, storageType, authToken=tokRes.token)
                 addWallet(wallet)
             }
-        log.info { "Done Wallet Init ".padEnd(120, '=') }
+        log.info { "Done Wallet Init ".padEnd(180, '=') }
     }
 
     fun createWallet(config: WalletConfig): Wallet {
@@ -208,6 +208,8 @@ interface WalletServicePlugin {
 }
 
 interface WalletPlugin {
+
+    fun getEndpointUrl(wallet: Wallet): String
 
     fun createDid(
         wallet: Wallet,

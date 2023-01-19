@@ -52,7 +52,7 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
     /**
      * Entry point for all external messages sent to a wallet endpoint
      */
-    fun dispatchInbound(msg: EndpointMessage): Boolean {
+    fun dispatchInbound(msg: EndpointMessage) {
         val contentType = msg.headers["Content-Type"] as? String
         checkNotNull(contentType) { "No Content-Type" }
         check(msg.body is String) { "No msg body" }
@@ -62,7 +62,6 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
             "application/didcomm-envelope-enc" -> didcommEncryptedEnvelopeHandler(msg)
             else -> throw IllegalStateException("Unsupported content type: $contentType")
         }
-        return true
     }
 
     /**
@@ -83,7 +82,7 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
     /**
      * MessageListener invocation
      */
-    override fun invoke(msg: EndpointMessage): Boolean {
+    override fun invoke(msg: EndpointMessage) {
         return dispatchInbound(msg)
     }
 

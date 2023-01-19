@@ -38,7 +38,7 @@ import kotlin.test.assertTrue
 class RFC0023DidDocumentTest: AbstractDidcommTest() {
 
     @Test
-    fun did_doc_attach_parse_verify() {
+    fun diddoc_attach_parse_verify() {
 
         // did_doc~attach
         val attachment = """
@@ -103,10 +103,10 @@ class RFC0023DidDocumentTest: AbstractDidcommTest() {
         // Verify Did
         val didSpec = didDocument.selectJson("publicKey[0].controller") as String
         val didVerkey = didDocument.selectJson("publicKey[0].publicKeyBase58") as String
-        val did = Did.fromSpec(didSpec, didVerkey)
-        val keyId = didService.registerWithKeyStore(did)
-        assertEquals("did:sov:DD3druQ4tFQHZjcwgn3KSc", did.qualified)
-        assertEquals("7euiJpCar5AZMoXGspdSBhJBKzj8QZM5U3QSSSh8LAA5", did.verkey)
+        val didSov = Did.fromSpec(didSpec, didVerkey)
+        val keyId = didService.registerWithKeyStore(didSov)
+        assertEquals("did:sov:DD3druQ4tFQHZjcwgn3KSc", didSov.qualified)
+        assertEquals("7euiJpCar5AZMoXGspdSBhJBKzj8QZM5U3QSSSh8LAA5", didSov.verkey)
 
         val protected64 = attachment.selectJson("data.jws.protected") as String
         val protected = protected64.decodeBase64UrlStr() // Contains json whitespace
@@ -126,6 +126,10 @@ class RFC0023DidDocumentTest: AbstractDidcommTest() {
         """.trimJson()
         assertEquals(expJws, protected.trimJson())
 
+        // The did:key referenced in the jws section is just another representation of the DidDoc publicKey
+        val didKey = Did.fromSpec("did:key:z6Mkm7Aku4T2Bcf2UJMyZPbH2nrB9ZzypSbSA4KNGif9FNwT")
+        assertEquals(didSov.verkey, didKey.verkey)
+
         // Verify the Jws signature
         val signature64 = attachment.selectJson("data.jws.signature") as String
         val signature = signature64.decodeBase64Url()
@@ -140,7 +144,7 @@ class RFC0023DidDocumentTest: AbstractDidcommTest() {
     }
 
     @Test
-    fun did_doc_create_verify() {
+    fun diddoc_create_verify() {
 
         val seedSov = "0000000000000000000000000000000000000000000000000000000000000005".decodeHex()
         val didSov = didService.createDid(DidMethod.SOV, KeyAlgorithm.EdDSA_Ed25519, seedSov)
@@ -150,9 +154,7 @@ class RFC0023DidDocumentTest: AbstractDidcommTest() {
 
         log.info { "Did Document: ${didDocumentJson.prettyPrint()}" }
 
-        val seedKey = "0000000000000000000000000000000000000000000000000000000000000006".decodeHex()
-        val didKey = didService.createDid(DidMethod.KEY, KeyAlgorithm.EdDSA_Ed25519, seedKey)
-        val attachmentJson = didDocumentService.createAttachment(didDocument, didSov, didKey)
+        val attachmentJson = didDocumentService.createAttachment(didDocument, didSov)
         val attachment = gson.toJson(attachmentJson)
 
         log.info { "Attachment: ${attachment.prettyPrint()}" }

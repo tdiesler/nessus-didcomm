@@ -140,16 +140,21 @@ class AriesClient(val adminUrl: String, private val apiKey: String?, private val
 
     val log = KotlinLogging.logger {}
 
-    fun post(path: String, body: Any, options: Map<String, Any>? = null): Response {
+    fun adminPost(path: String, body: Any, params: Map<String, Any>? = null, headers: Map<String, String>? = null): Response {
+        return post(adminUrl + path, body, params, headers)
+    }
+
+    fun post(reqUrl: String, body: Any, params: Map<String, Any>? = null, headers: Map<String, String>? = null): Response {
 
         // Build the Request
-        var reqUrl = adminUrl + path
-        if (options != null) {
-            reqUrl += "?"
-            options.forEach {(k, v) -> reqUrl += "$k=$v&"}
-            reqUrl = reqUrl.dropLast(1)
+        var actUrl = reqUrl
+        if (params != null) {
+            actUrl += "?"
+            params.forEach { (k, v) -> actUrl += "$k=$v&"}
+            actUrl = actUrl.dropLast(1)
         }
-        val builder = Request.Builder().url(reqUrl)
+        val builder = Request.Builder().url(actUrl)
+        headers?.forEach { (k, v) -> builder.header(k, v) }
         if (apiKey != null)
             builder.header("X-API-KEY", apiKey)
         if (authToken != null)

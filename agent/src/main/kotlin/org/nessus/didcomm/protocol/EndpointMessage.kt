@@ -80,4 +80,4 @@ enum class MessageDirection {
     OUTBOUND
 }
 
-typealias MessageListener = (msg: EndpointMessage) -> Boolean
+typealias MessageListener = (msg: EndpointMessage) -> Unit

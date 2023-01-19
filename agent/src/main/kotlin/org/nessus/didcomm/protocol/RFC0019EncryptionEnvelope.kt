@@ -5,25 +5,24 @@ import com.goterl.lazysodium.interfaces.Box
 import com.goterl.lazysodium.utils.DetachedEncrypt
 import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
+import id.walt.common.prettyPrint
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import org.nessus.didcomm.crypto.convertEd25519toCurve25519
-import org.nessus.didcomm.crypto.convertEd25519toRaw
 import org.nessus.didcomm.crypto.cryptoBoxEasy
 import org.nessus.didcomm.crypto.cryptoBoxOpenEasy
 import org.nessus.didcomm.crypto.lazySodium
+import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE
 import org.nessus.didcomm.util.decodeBase58
 import org.nessus.didcomm.util.decodeBase64Url
 import org.nessus.didcomm.util.decodeBase64UrlStr
 import org.nessus.didcomm.util.decodeHex
 import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.util.encodeBase58
 import org.nessus.didcomm.util.encodeBase64Url
 import org.nessus.didcomm.util.encodeHex
-import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.selectJson
-import java.security.PublicKey
+import org.nessus.didcomm.util.trimJson
 
 /**
  * Aries RFC 0019: Encryption Envelope
@@ -32,10 +31,19 @@ import java.security.PublicKey
 class RFC0019EncryptionEnvelope(mex: MessageExchange): Protocol<RFC0019EncryptionEnvelope>(mex) {
     override val protocolUri = PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE.uri
 
-    fun packRFC0019Envelope(senderKeys: java.security.KeyPair, recipientKey: PublicKey, message: String): String {
+    companion object {
+        const val RFC0019_ENCRYPTED_ENVELOPE_CONTENT_TYPE = "application/didcomm-envelope-enc"
+    }
 
-        val senderVerkey = senderKeys.public.convertEd25519toRaw().encodeBase58()
-        val recipientVerkey = recipientKey.convertEd25519toRaw().encodeBase58()
+    val keyStore get() = KeyStoreService.getService()
+
+    fun packRFC0019Envelope(envelope: String, sender: Did, recipient: Did): String {
+
+        val senderKeys = keyStore.load(sender.verkey, KeyType.PRIVATE).keyPair!!
+        val senderVerkey = sender.verkey
+
+        val recipientKey = Key.fromBytes(recipient.verkey.decodeBase58())
+        val recipientVerkey = recipient.verkey
 
         val recipientCurve25519Public = recipientKey.convertEd25519toCurve25519()
         val senderCurve25519Keys = senderKeys.convertEd25519toCurve25519()
@@ -76,29 +84,32 @@ class RFC0019EncryptionEnvelope(mex: MessageExchange): Protocol<RFC0019Encryptio
                 }
             ]
         }            
-        """.decodeJson().encodeJson()
+        """.trimJson()
+        log.info { "Protected: ${protected.prettyPrint()}"}
 
         // 4. encrypt the message using libsodium.crypto_aead_chacha20poly1305_ietf_encrypt_detached(
         //    message, protected_value_encoded, iv, cek) this is the ciphertext.
         val aeadNonce = lazySodium.nonce(AEAD.CHACHA20POLY1305_IETF_NPUBBYTES)
-        val ciphertext = aeadLazy.encryptDetached(message, protected.toByteArray().encodeBase64Url(),
+        val ciphertext = aeadLazy.encryptDetached(
+            envelope, protected.toByteArray().encodeBase64Url(),
             null, aeadNonce, cek, AEAD.Method.CHACHA20_POLY1305_IETF)
 
         // 5. base64URLencode the iv, ciphertext, and tag then serialize the format into the output format listed above.
+        val padding = false
         return """
-            {
-                "protected": "${protected.toByteArray().encodeBase64Url()}",
-                "ciphertext": "${ciphertext.cipher.encodeBase64Url()}",
-                "iv": "${aeadNonce.encodeBase64Url()}",
-                "tag": "${ciphertext.mac.encodeBase64Url()}"
-            }            
-        """.trimIndent()
+        {
+            "protected": "${protected.toByteArray().encodeBase64Url(padding)}",
+            "iv": "${aeadNonce.encodeBase64Url(padding)}",
+            "ciphertext": "${ciphertext.cipher.encodeBase64Url(padding)}",
+            "tag": "${ciphertext.mac.encodeBase64Url(padding)}"
+        }            
+        """.trimJson()
     }
 
     /**
      * Unpack an encrypted envelope
      *
-     * @return A Pair<decrypted message, recipient keyId>
+     * @return A Pair<decrypted message, recipient verkey>
      */
     @Suppress("UNCHECKED_CAST")
     fun unpackRFC0019Envelope(envelope: String): Pair<String, String>? {
@@ -107,14 +118,14 @@ class RFC0019EncryptionEnvelope(mex: MessageExchange): Protocol<RFC0019Encryptio
         val envelopeMap = envelope.decodeJson()
 
         // 2. Lookup the kid for each recipient in the wallet
-        val protected = envelopeMap["protected"] as? String
-        checkNotNull(protected) { "No 'protected' in: $envelope"}
+        val protected64 = envelopeMap["protected"] as? String
+        checkNotNull(protected64) { "No 'protected' in: $envelope"}
+        val protectedJson = protected64.decodeBase64UrlStr()
+        log.info { "Unpacked protected: ${protectedJson.prettyPrint()}"}
 
-        val protectedMap = protected.decodeBase64UrlStr().decodeJson()
+        val protectedMap = protectedJson.decodeJson()
         val recipients = protectedMap["recipients"] as? List<Map<String, Any>>
         checkNotNull(recipients) { "No 'recipients' in: $protectedMap"}
-
-        val keyStore = KeyStoreService.getService()
 
         val recipient = recipients.firstOrNull {
             val kid = it.selectJson("header.kid") as? String
@@ -125,7 +136,7 @@ class RFC0019EncryptionEnvelope(mex: MessageExchange): Protocol<RFC0019Encryptio
         val kid = recipient.selectJson("header.kid") as String
         val recipientKeyPair = keyStore.load(kid, KeyType.PRIVATE).keyPair!!
         val recipientCurve25519Keys = recipientKeyPair.convertEd25519toCurve25519()
-        log.info { "Recipient keyId: $kid"}
+        log.info { "Recipient verkey: $kid"}
 
         // 3. Check if a sender field is used
         val sender64 = recipient.selectJson("header.sender") as? String
@@ -158,9 +169,11 @@ class RFC0019EncryptionEnvelope(mex: MessageExchange): Protocol<RFC0019Encryptio
         checkNotNull(tag) { "No 'tag' in: $envelope"}
         val encrypted = DetachedEncrypt(ciphertext.decodeBase64Url(), tag.decodeBase64Url())
         val aeadNonce = iv.decodeBase64Url()
-        val decrypted = aeadLazy.decryptDetached(encrypted, protected, null, aeadNonce, cek, AEAD.Method.CHACHA20_POLY1305_IETF)
-        val message = decrypted.message.decodeToString()
+        val decrypted = aeadLazy.decryptDetached(encrypted, protected64, null, aeadNonce, cek, AEAD.Method.CHACHA20_POLY1305_IETF)
+        val unpacked = decrypted.message.decodeToString()
 
-        return Pair(message, kid)
+        log.info { "Unpacked Envelope: ${unpacked.prettyPrint()}" }
+
+        return Pair(unpacked, kid)
     }
 }

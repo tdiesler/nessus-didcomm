@@ -25,6 +25,10 @@ import org.nessus.didcomm.service.WalletServicePlugin
 class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
     val log = KotlinLogging.logger {}
 
+    override fun getEndpointUrl(wallet: Wallet): String {
+        return AgentConfiguration.agentConfiguration(wallet.options).userUrl
+    }
+
     override fun createWallet(config: WalletConfig): Wallet {
 
         val agentType = AgentType.ACAPY

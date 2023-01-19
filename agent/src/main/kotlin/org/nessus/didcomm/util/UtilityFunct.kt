@@ -14,7 +14,7 @@ fun Map<*, *>.toUnionMap(other: Map<*, *>): Map<*, *> {
 @Suppress("UNCHECKED_CAST")
 fun Map<String, Any?>.toDeeplySortedMap(): Map<String, Any?> {
     val auxMap = this.toMutableMap()
-    fun procList(lst: List<*>) {
+    fun procList(lst: List<*>): List<*> = run {
         lst.map {
             when (val v = it) {
                 is Map<*, *> -> (v as Map<String, Any?>).toDeeplySortedMap()
@@ -46,8 +46,12 @@ fun Map<String, Any?>.toDeeplySortedMap(): Map<String, Any?> {
  * Json
  */
 
-fun String.selectJson(path: String): Any? {
-    return this.decodeJson().selectJson(path)
+fun String.selectJson(path: String): String? {
+    val selected = this.decodeJson().selectJson(path)
+    return if (selected == null || selected is String)
+        selected as? String
+    else
+        gson.toJson(selected)
 }
 
 @Suppress("UNCHECKED_CAST")

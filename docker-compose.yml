@@ -182,7 +182,7 @@ services:
         --emit-new-didcomm-mime-type
         --emit-new-didcomm-prefix
         --recreate-wallet 
-        --log-level info
+        --log-level ${ACAPY_LOG_LEVEL:-INFO}
     depends_on:
       - node1
       - node2
@@ -218,7 +218,7 @@ services:
         --emit-new-didcomm-mime-type
         --emit-new-didcomm-prefix
         --recreate-wallet 
-        --log-level info
+        --log-level ${ACAPY_LOG_LEVEL:-INFO}
     depends_on:
       - node1
       - node2

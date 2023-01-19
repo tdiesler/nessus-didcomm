@@ -13,6 +13,12 @@ import java.util.*
 class NessusWalletPlugin: WalletServicePlugin, WalletPlugin {
     val log = KotlinLogging.logger {}
 
+    override fun getEndpointUrl(wallet: Wallet): String {
+        val hostname = wallet.options["NESSUS_HOSTNAME"] ?: System.getenv("NESSUS_HOSTNAME") ?: "localhost"
+        val userPort = wallet.options["NESSUS_USER_PORT"] ?: System.getenv("NESSUS_USER_PORT") ?: "8130"
+        return "http://$hostname:$userPort"
+    }
+
     override fun createWallet(config: WalletConfig): Wallet {
         val walletId = "${UUID.randomUUID()}"
         val agentType = AgentType.NESSUS
