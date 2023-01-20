@@ -23,17 +23,16 @@ import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyType
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.MESSAGE_TYPE_RFC0023_DID_EXCHANGE_REQUEST
-import org.nessus.didcomm.service.PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE
-import org.nessus.didcomm.test.AbstractDidcommTest
+import org.nessus.didcomm.service.RFC0019_ENCRYPTED_ENVELOPE
+import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.trimJson
 import org.nessus.didcomm.wallet.DidMethod
 import kotlin.test.assertEquals
 
-class RFC0019EnvelopeTest: AbstractDidcommTest() {
+class RFC0019EnvelopeTest: AbstractDidCommTest() {
 
     @Test
     fun pack_unpack_envelope() {
@@ -45,7 +44,7 @@ class RFC0019EnvelopeTest: AbstractDidcommTest() {
         val aliceKey = keyStore.load(aliceDid.verkey, KeyType.PRIVATE)
         keyStore.delete(aliceDid.verkey)
 
-        val rfc0019 = MessageExchange().withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
+        val rfc0019 = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
         val envelope = rfc0019.packRFC0019Envelope("Scheena Dog", faberDid, aliceDid)
 
         // Restore the key to store (i.e. Alice's Did is internal for unpack)
@@ -72,7 +71,7 @@ class RFC0019EnvelopeTest: AbstractDidcommTest() {
         }
         """.trimJson()
 
-        val rfc0019 = MessageExchange().withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
+        val rfc0019 = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
         val (unpacked, recipientVerkey) = rfc0019.unpackRFC0019Envelope(envelope)!!
         assertEquals(MESSAGE_TYPE_RFC0023_DID_EXCHANGE_REQUEST, unpacked.selectJson("@type"))
         assertEquals(aliceDidSov.verkey, recipientVerkey)

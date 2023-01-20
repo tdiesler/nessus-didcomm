@@ -37,7 +37,7 @@ import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.MESSAGE_
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.MESSAGE_TYPE_RFC0023_DID_EXCHANGE_RESPONSE
 import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.MESSAGE_TYPE_RFC0048_TRUST_PING
 import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.MESSAGE_TYPE_RFC0048_TRUST_PING_RESPONSE
-import org.nessus.didcomm.service.PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE
+import org.nessus.didcomm.service.RFC0019_ENCRYPTED_ENVELOPE
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.matches
 import org.nessus.didcomm.util.selectJson
@@ -92,8 +92,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
             val contentType = epm.headers["Content-Type"] as? String
             checkNotNull(contentType) { "No 'Content-Type' header"}
             if (RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE.matches(contentType)) {
-                val message = mex
-                    .withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
+                val message = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
                     .unpackRFC0019Envelope(epm.bodyAsJson)?.first
                 if (message != null) {
                     val atType = message.selectJson("@type")
@@ -199,7 +198,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                 }
                 """.trimJson()
 
-                val packedDidExRequest = mex.withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
+                val packedDidExRequest = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
                     .packRFC0019Envelope(didexRequest, aliceDid, faberDid)
 
                 run {
@@ -236,7 +235,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                 }
                 """.trimJson()
 
-                val packedDidExComplete = mex.withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
+                val packedDidExComplete = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
                     .packRFC0019Envelope(didexComplete, aliceDid, faberDid)
 
                 run {
@@ -260,7 +259,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                 }
                 """.trimJson()
 
-                val packedTrustPing = mex.withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
+                val packedTrustPing = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
                     .packRFC0019Envelope(trustPing, aliceDid, faberDid)
 
                 run {

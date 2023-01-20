@@ -14,7 +14,7 @@ import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxEasyBytes
 import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxOpenEasyBytes
 import org.nessus.didcomm.crypto.LazySodiumService.lazySodium
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.service.PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE
+import org.nessus.didcomm.service.RFC0019_ENCRYPTED_ENVELOPE
 import org.nessus.didcomm.util.decodeBase58
 import org.nessus.didcomm.util.decodeBase64Url
 import org.nessus.didcomm.util.decodeBase64UrlStr
@@ -29,8 +29,8 @@ import org.nessus.didcomm.util.trimJson
  * Aries RFC 0019: Encryption Envelope
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0019-encryption-envelope
  */
-class RFC0019EncryptionEnvelope(mex: MessageExchange): Protocol<RFC0019EncryptionEnvelope>(mex) {
-    override val protocolUri = PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE.uri
+class RFC0019EncryptionEnvelope: Protocol() {
+    override val protocolUri = RFC0019_ENCRYPTED_ENVELOPE.uri
 
     companion object {
         val RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE = "application/didcomm-envelope-enc; charset=utf-8".toMediaType()
@@ -177,3 +177,6 @@ class RFC0019EncryptionEnvelope(mex: MessageExchange): Protocol<RFC0019Encryptio
         return Pair(unpacked, kid)
     }
 }
+
+class RFC0019EncryptionEnvelopeWrapper(mex: MessageExchange):
+    ProtocolWrapper<RFC0019EncryptionEnvelopeWrapper, RFC0019EncryptionEnvelope>(RFC0019EncryptionEnvelope(), mex)

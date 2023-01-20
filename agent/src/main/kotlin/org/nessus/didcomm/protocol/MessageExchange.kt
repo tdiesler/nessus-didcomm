@@ -9,8 +9,12 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_FROM_ID
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THREAD_ID
 import org.nessus.didcomm.service.ConnectionState
 import org.nessus.didcomm.service.PeerConnection
-import org.nessus.didcomm.service.ProtocolKey
-import org.nessus.didcomm.service.ProtocolService
+import org.nessus.didcomm.service.ProtocolWrapperKey
+import org.nessus.didcomm.service.RFC0019_ENCRYPTED_ENVELOPE_WRAPPER
+import org.nessus.didcomm.service.RFC0023_DID_EXCHANGE_WRAPPER
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_WRAPPER
+import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_WRAPPER
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_WRAPPER
 import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.AttachmentSupport
 import org.nessus.didcomm.util.decodeJson
@@ -64,8 +68,16 @@ class MessageExchange (msg: EndpointMessage? = null): AttachmentSupport() {
         _messages.add(msg)
     }
 
-    fun <T: Protocol<T>> withProtocol(key: ProtocolKey<T>): T {
-        return ProtocolService.getService().getProtocol(key, this)
+    @Suppress("UNCHECKED_CAST")
+    fun <W: ProtocolWrapper<W, *>> withProtocol(key: ProtocolWrapperKey<W>): W {
+        return when(key) {
+            RFC0019_ENCRYPTED_ENVELOPE_WRAPPER -> RFC0019EncryptionEnvelopeWrapper(this)
+            RFC0023_DID_EXCHANGE_WRAPPER -> RFC0023DidExchangeProtocolWrapper(this)
+            RFC0048_TRUST_PING_WRAPPER -> RFC0048TrustPingProtocolWrapper(this)
+            RFC0095_BASIC_MESSAGE_WRAPPER -> RFC0095BasicMessageProtocolWrapper(this)
+            RFC0434_OUT_OF_BAND_WRAPPER -> RFC0434OutOfBandProtocolWrapper(this)
+            else -> throw IllegalStateException("Unknown protocol: $key")
+        } as W
     }
 
     fun addThreadIdFuture(thid: String) {

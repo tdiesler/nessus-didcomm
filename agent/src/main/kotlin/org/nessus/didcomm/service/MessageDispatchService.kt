@@ -75,8 +75,8 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
         checkNotNull(protocolMethod) { "No protocol method" }
 
         val key = ProtocolService.findProtocolKey(protocolUri)
-        val protocol = protocolService.getProtocol(key, mex, target.agentType)
-        return protocol.invokeMethod(target, protocolMethod)
+        val protocol = protocolService.getProtocol(key)
+        return protocol.invokeMethod(target, protocolMethod, mex)
     }
 
     /**
@@ -87,8 +87,7 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
     }
 
     private fun didcommEncryptedEnvelopeHandler(msg: EndpointMessage): Boolean {
-        val unpacked = MessageExchange()
-            .withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
+        val unpacked = protocolService.getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
             .unpackRFC0019Envelope(msg.body as String)
         checkNotNull(unpacked) { "Could not unpack encrypted envelope" }
 
@@ -124,7 +123,7 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
 
         val atType = envelope["@type"] as String
         val (protocolUri, protocolMethod) = when(atType) {
-            "https://didcomm.org/didexchange/1.0/request" -> Pair(PROTOCOL_URI_RFC0023_DID_EXCHANGE.uri, PROTOCOL_METHOD_RECEIVE_REQUEST)
+            "https://didcomm.org/didexchange/1.0/request" -> Pair(RFC0023_DID_EXCHANGE.uri, PROTOCOL_METHOD_RECEIVE_REQUEST)
             else -> throw IllegalStateException("Unsupported message type: $atType")
         }
         mex.addMessage(EndpointMessage(body, mapOf(

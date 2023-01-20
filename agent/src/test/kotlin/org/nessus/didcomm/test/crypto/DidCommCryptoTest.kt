@@ -23,7 +23,7 @@ import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.service.toOctetKeyPair
-import org.nessus.didcomm.test.AbstractDidcommTest
+import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.util.decodeHex
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.trimJson
@@ -35,7 +35,7 @@ import kotlin.test.assertEquals
  * https://w3c-ccg.github.io/did-method-key/#test-vectors
  * https://github.com/w3c-ccg/did-method-key/tree/main/test-vectors
  */
-class DidCommCryptoTest: AbstractDidcommTest() {
+class DidCommCryptoTest: AbstractDidCommTest() {
 
     @Test
     fun extract_key_from_Ed25519VerificationKey2018() {

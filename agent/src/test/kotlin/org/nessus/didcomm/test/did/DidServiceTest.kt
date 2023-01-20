@@ -28,7 +28,7 @@ import id.walt.crypto.getMulticodecKeyCode
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.test.AbstractDidcommTest
+import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.wallet.DidMethod
@@ -44,7 +44,7 @@ import kotlin.test.assertTrue
  * https://w3c-ccg.github.io/did-method-key/#test-vectors
  * https://github.com/w3c-ccg/did-method-key/tree/main/test-vectors
  */
-class DidServiceTest: AbstractDidcommTest() {
+class DidServiceTest: AbstractDidCommTest() {
 
     @Test
     fun test_RawPubKey_to_DidKey() {

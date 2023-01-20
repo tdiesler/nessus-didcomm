@@ -23,8 +23,8 @@ import org.junit.jupiter.api.Test
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.ConnectionState
-import org.nessus.didcomm.service.PROTOCOL_URI_RFC0048_TRUST_PING
-import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_WRAPPER
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_WRAPPER
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.StorageType
 import org.nessus.didcomm.wallet.Wallet
@@ -55,7 +55,7 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
             /** Establish a peer connection */
 
             val mex = MessageExchange()
-                .withProtocol(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1)
+                .withProtocol(RFC0434_OUT_OF_BAND_WRAPPER)
                 .createOutOfBandInvitation(faber)
                 .receiveOutOfBandInvitation(alice)
                 .peekMessageExchange()
@@ -65,7 +65,7 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
             assertNotNull(peerConnection, "No peer connection")
             assertEquals(ConnectionState.ACTIVE, peerConnection.state)
 
-            mex.withProtocol(PROTOCOL_URI_RFC0048_TRUST_PING)
+            mex.withProtocol(RFC0048_TRUST_PING_WRAPPER)
                 .sendPing(alice, peerConnection.id)
 
             val epm: EndpointMessage = mex.last

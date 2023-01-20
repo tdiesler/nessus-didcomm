@@ -1,43 +1,28 @@
 package org.nessus.didcomm.protocol
 
 import id.walt.common.prettyPrint
-import org.hyperledger.aries.api.did_exchange.DidExchangeAcceptInvitationFilter
-import org.nessus.didcomm.agent.AriesClient
-import org.nessus.didcomm.protocol.MessageExchange.Companion.MESSAGE_EXCHANGE_INVITEE_CONNECTION_ID_KEY
-import org.nessus.didcomm.service.ConnectionState
 import org.nessus.didcomm.service.InvitationService
-import org.nessus.didcomm.service.PROTOCOL_URI_RFC0023_DID_EXCHANGE
+import org.nessus.didcomm.service.RFC0023_DID_EXCHANGE
 import org.nessus.didcomm.service.RFC0023DidDocument
 import org.nessus.didcomm.util.decodeBase64Str
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.selectJson
-import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
-import java.util.concurrent.TimeUnit
 
 /**
  * Aries RFC 0023: DID Exchange Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange
  */
-class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExchangeProtocol>(mex) {
-    override val protocolUri = PROTOCOL_URI_RFC0023_DID_EXCHANGE.uri
+class RFC0023DidExchangeProtocol(): Protocol() {
+    override val protocolUri = RFC0023_DID_EXCHANGE.uri
 
     companion object {
         const val PROTOCOL_METHOD_ACCEPT_INVITATION = "/didexchange/accept-invitation"
         const val PROTOCOL_METHOD_RECEIVE_REQUEST = "/didexchange/receive-request"
 
-        val MESSAGE_TYPE_RFC0023_DID_EXCHANGE_REQUEST = "${PROTOCOL_URI_RFC0023_DID_EXCHANGE.uri}/request"
-        val MESSAGE_TYPE_RFC0023_DID_EXCHANGE_RESPONSE = "${PROTOCOL_URI_RFC0023_DID_EXCHANGE.uri}/response"
-        val MESSAGE_TYPE_RFC0023_DID_EXCHANGE_COMPLETE = "${PROTOCOL_URI_RFC0023_DID_EXCHANGE.uri}/complete"
-    }
-
-    override fun invokeMethod(to: Wallet, method: String): Boolean {
-        when(method) {
-            PROTOCOL_METHOD_ACCEPT_INVITATION -> acceptDidExchangeInvitation(to)
-            PROTOCOL_METHOD_RECEIVE_REQUEST -> receiveDidExchangeRequest(to)
-            else -> throw IllegalStateException("Unsupported protocol method: $method")
-        }
-        return true
+        val MESSAGE_TYPE_RFC0023_DID_EXCHANGE_REQUEST = "${RFC0023_DID_EXCHANGE.uri}/request"
+        val MESSAGE_TYPE_RFC0023_DID_EXCHANGE_RESPONSE = "${RFC0023_DID_EXCHANGE.uri}/response"
+        val MESSAGE_TYPE_RFC0023_DID_EXCHANGE_COMPLETE = "${RFC0023_DID_EXCHANGE.uri}/complete"
     }
 
     /**
@@ -45,8 +30,8 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
      */
     fun acceptDidExchangeInvitation(invitee: Wallet) {
 
-        if (invitee.agentType == AgentType.ACAPY)
-            return acceptInvitationAcapy(invitee)
+//        if (invitee.agentType == AgentType.ACAPY)
+//            return acceptInvitationAcapy(invitee)
 
         /*
             {
@@ -69,19 +54,19 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         TODO("acceptInvitation")
     }
 
-    fun awaitReceiveDidExchangeRequest(timeout: Int, unit: TimeUnit): RFC0023DidExchangeProtocol {
-
-        val thid = messageExchange.messages
-            .filter { it.protocolMethod == RFC0434OutOfBandProtocol.PROTOCOL_METHOD_CREATE_INVITATION }
-            .map { it.threadId }
-            .firstOrNull()
-        checkNotNull(thid) { "Cannot find threadId for created invitation" }
-
-        val future = messageExchange.getThreadIdFuture(thid)
-        future?.get(timeout.toLong(), unit)
-
-        return this
-    }
+//    fun awaitReceiveDidExchangeRequest(timeout: Int, unit: TimeUnit): RFC0023DidExchangeProtocol {
+//
+//        val thid = messageExchange.messages
+//            .filter { it.protocolMethod == RFC0434OutOfBandProtocol.PROTOCOL_METHOD_CREATE_INVITATION }
+//            .map { it.threadId }
+//            .firstOrNull()
+//        checkNotNull(thid) { "Cannot find threadId for created invitation" }
+//
+//        val future = messageExchange.getThreadIdFuture(thid)
+//        future?.get(timeout.toLong(), unit)
+//
+//        return this
+//    }
 
     /**
      * Receive a connection request
@@ -99,10 +84,9 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
      *      - If the did is resolvable (either an inline peer:did or a publicly resolvable DID), the did_doc~attach attribute should not be included.
      *      - If the DID is a did:peer DID, the DIDDoc must be as outlined in RFC 0627 Static Peer DIDs.
      */
-    fun receiveDidExchangeRequest(responder: Wallet) {
+    fun receiveDidExchangeRequest(responder: Wallet, epm: EndpointMessage) {
 
-        val epm = messageExchange.last
-        val body = messageExchange.last.bodyAsJson
+        val body = epm.bodyAsJson
 
         val pthid = epm.parentThreadId
         checkNotNull(pthid) { "Must include the ID of the parent thread" }
@@ -141,26 +125,39 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         log.info { "JWS protected: ${protected?.prettyPrint()}" }
 
         // Complete the threadId future waiting for this message
-        messageExchange.completeThreadIdFuture(invitation.atId, rfc0023DidDoc)
+        // messageExchange.completeThreadIdFuture(invitation.atId, rfc0023DidDoc)
     }
 
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun acceptInvitationAcapy(invitee: Wallet) {
+//    private fun acceptInvitationAcapy(invitee: Wallet) {
+//
+//        val responderConnectionId = messageExchange.getAttachment(MESSAGE_EXCHANGE_INVITEE_CONNECTION_ID_KEY)
+//        checkNotNull(responderConnectionId) { "No connectionId attachment"}
+//
+//        val acceptInvitationFilter = DidExchangeAcceptInvitationFilter()
+//        acceptInvitationFilter.myEndpoint = invitee.endpointUrl
+//        acceptInvitationFilter.myLabel = "Accept Invitation"
+//
+//        val responderClient = invitee.walletClient() as AriesClient
+//        responderClient.didExchangeAcceptInvitation(responderConnectionId, acceptInvitationFilter).get()
+//
+//        // Expect invitee connection in state 'active'
+//        messageExchange.awaitConnectionState(invitee, setOf(ConnectionState.ACTIVE))
+//    }
+}
 
-        val responderConnectionId = messageExchange.getAttachment(MESSAGE_EXCHANGE_INVITEE_CONNECTION_ID_KEY)
-        checkNotNull(responderConnectionId) { "No connectionId attachment"}
+class RFC0023DidExchangeProtocolWrapper(mex: MessageExchange):
+    ProtocolWrapper<RFC0023DidExchangeProtocolWrapper, RFC0023DidExchangeProtocol>(RFC0023DidExchangeProtocol(), mex) {
 
-        val acceptInvitationFilter = DidExchangeAcceptInvitationFilter()
-        acceptInvitationFilter.myEndpoint = invitee.endpointUrl
-        acceptInvitationFilter.myLabel = "Accept Invitation"
-
-        val responderClient = invitee.walletClient() as AriesClient
-        responderClient.didExchangeAcceptInvitation(responderConnectionId, acceptInvitationFilter).get()
-
-        // Expect invitee connection in state 'active'
-        messageExchange.awaitConnectionState(invitee, setOf(ConnectionState.ACTIVE))
+    override fun invokeMethod(to: Wallet, method: String): Boolean {
+        when(method) {
+            RFC0023DidExchangeProtocol.PROTOCOL_METHOD_ACCEPT_INVITATION -> protocol.acceptDidExchangeInvitation(to)
+            RFC0023DidExchangeProtocol.PROTOCOL_METHOD_RECEIVE_REQUEST -> protocol.receiveDidExchangeRequest(to, mex.last)
+            else -> throw IllegalStateException("Unsupported protocol method: $method")
+        }
+        return true
     }
 }
 

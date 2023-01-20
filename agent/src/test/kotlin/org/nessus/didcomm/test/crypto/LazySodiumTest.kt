@@ -30,14 +30,14 @@ import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toCurve25519
 import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxEasyBytes
 import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxOpenEasyBytes
 import org.nessus.didcomm.crypto.LazySodiumService.lazySodium
-import org.nessus.didcomm.test.AbstractDidcommTest
+import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.util.decodeHex
 import org.nessus.didcomm.util.encodeHex
 import kotlin.test.assertEquals
 
-class LazySodiumTest: AbstractDidcommTest() {
+class LazySodiumTest: AbstractDidCommTest() {
 
     @Test
     fun lazyBoxEasy() {

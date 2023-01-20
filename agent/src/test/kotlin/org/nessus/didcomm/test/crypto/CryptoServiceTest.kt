@@ -23,12 +23,12 @@ import id.walt.crypto.KeyAlgorithm
 import id.walt.services.crypto.CryptoService
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.crypto.NessusCryptoService
-import org.nessus.didcomm.test.AbstractDidcommTest
+import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.util.decodeHex
 import kotlin.test.assertTrue
 
-class CryptoServiceTest: AbstractDidcommTest() {
+class CryptoServiceTest: AbstractDidCommTest() {
 
     @Test
     fun signVerifySeedMessage() {

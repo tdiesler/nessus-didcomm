@@ -26,9 +26,8 @@ import org.junit.jupiter.api.Test
 import org.nessus.didcomm.crypto.LibIndyService.closeAndDeleteWallet
 import org.nessus.didcomm.crypto.LibIndyService.createAnOpenWallet
 import org.nessus.didcomm.crypto.LibIndyService.createAndStoreDid
-import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.service.PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE
-import org.nessus.didcomm.test.AbstractDidcommTest
+import org.nessus.didcomm.service.RFC0019_ENCRYPTED_ENVELOPE
+import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.test.NESSUS_OPTIONS_01
@@ -49,7 +48,7 @@ import kotlin.test.assertEquals
  *
  * rm -rf ~/.indy_client
  */
-class LibIndyTest: AbstractDidcommTest() {
+class LibIndyTest: AbstractDidCommTest() {
 
     @Test
     fun auth_crypt() {
@@ -133,8 +132,7 @@ class LibIndyTest: AbstractDidcommTest() {
             val packed = String(Crypto.packMessage(faber, receivers, faberDid.verkey, message.toByteArray()).get())
             log.info { "Packed: ${packed.prettyPrint()}" }
 
-            val (unpacked, recipientVerkey) = MessageExchange()
-                .withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
+            val (unpacked, recipientVerkey) = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
                 .unpackRFC0019Envelope(packed)!!
             log.info { "Unpacked: $unpacked"}
             assertEquals(aliceDid.verkey, recipientVerkey)
@@ -163,8 +161,7 @@ class LibIndyTest: AbstractDidcommTest() {
             val aliceDid = didService.createDid(DidMethod.SOV, KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
 
             val message = "Your hovercraft is full of eels."
-            val packed = MessageExchange()
-                .withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
+            val packed = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
                 .packRFC0019Envelope(message, aliceDid, faberDid)
             log.info { "Packed: ${packed.prettyPrint()}" }
 

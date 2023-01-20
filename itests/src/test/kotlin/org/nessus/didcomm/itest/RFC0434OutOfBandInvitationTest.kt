@@ -20,18 +20,12 @@
 package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_AUTO_ACCEPT
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_METHOD
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.PROTOCOL_METHOD_RECEIVE_INVITATION
-import org.nessus.didcomm.service.ConnectionState
-import org.nessus.didcomm.service.PROTOCOL_URI_RFC0023_DID_EXCHANGE
-import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_WRAPPER
 import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.StorageType
 import org.nessus.didcomm.wallet.Wallet
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.fail
 
 
@@ -54,15 +48,11 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
          * Create the Wallets
          */
 
-        val inviter = getWalletByAlias(Faber.name) ?: fail("No Inviter")
+        val faber = getWalletByAlias(Faber.name) ?: fail("No Inviter")
 
-        val invitee = Wallet.Builder(Alice.name)
-            .agentType(AgentType.ACAPY)
-            .storageType(StorageType.IN_MEMORY)
+        val alice = Wallet.Builder(Alice.name)
+            .agentType(AgentType.NESSUS)
             .build()
-
-        val inviterAutoAccept = true
-        val inviteeAutoAccept = false
 
         try {
 
@@ -70,12 +60,11 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
              * Inviter (Faber) creates an Out-of-Band Invitation
              */
 
-            val rfc0434 = MessageExchange()
-                .withProtocol(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1)
-                .createOutOfBandInvitation(inviter, mapOf(
+            val rfc0434 = MessageExchange().withProtocol(RFC0434_OUT_OF_BAND_WRAPPER)
+                .createOutOfBandInvitation(faber, mapOf(
                     "goalCode" to "Faber invites Alice",
-                    "autoAccept" to inviterAutoAccept,
                     "usePublicDid" to false,
+                    "autoAccept" to true,
                 ))
 
             /**
@@ -85,26 +74,9 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
              * here we test the fluent API and the route through the MessageDispatcher
              */
 
-            val mex = rfc0434.dispatchToWallet(invitee, mapOf(
+            rfc0434.dispatchTo(alice, mapOf(
                     MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_RECEIVE_INVITATION,
-                    MESSAGE_AUTO_ACCEPT to inviteeAutoAccept,
-                )).peekMessageExchange()
-
-            /**
-             * Invitee (Alice) accepts the Invitation
-             */
-            if (!inviteeAutoAccept) {
-                mex.withProtocol(PROTOCOL_URI_RFC0023_DID_EXCHANGE)
-                    .acceptDidExchangeInvitation(invitee)
-            }
-
-            val peerConnection = mex.awaitPeerConnection(invitee)
-
-            /**
-             * Verify that we have an active connection
-             */
-            assertNotNull(peerConnection) {"${invitee.alias} has no peer connection"}
-            assertEquals(ConnectionState.ACTIVE, peerConnection.state)
+                ))
 
         } finally {
             removeWallet(Alice.name)

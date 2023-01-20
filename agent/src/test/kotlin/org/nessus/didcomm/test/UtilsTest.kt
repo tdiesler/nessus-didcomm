@@ -28,7 +28,7 @@ import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.toDeeplySortedMap
 import kotlin.test.assertEquals
 
-class UtilsTest: AbstractDidcommTest() {
+class UtilsTest: AbstractDidCommTest() {
 
     @Test
     fun deeplySortedMap() {

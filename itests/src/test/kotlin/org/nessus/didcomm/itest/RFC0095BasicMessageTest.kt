@@ -23,8 +23,8 @@ import org.junit.jupiter.api.Test
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.ConnectionState
-import org.nessus.didcomm.service.PROTOCOL_URI_RFC0095_BASIC_MESSAGE
-import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
+import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_WRAPPER
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_WRAPPER
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.StorageType
 import org.nessus.didcomm.wallet.Wallet
@@ -55,7 +55,7 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
             /** Establish a peer connection */
 
             val mex = MessageExchange()
-                .withProtocol(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1)
+                .withProtocol(RFC0434_OUT_OF_BAND_WRAPPER)
                 .createOutOfBandInvitation(faber)
                 .receiveOutOfBandInvitation(alice)
                 .peekMessageExchange()
@@ -71,7 +71,7 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
 
             val userMessage = "Your hovercraft is full of eels."
 
-            mex.withProtocol(PROTOCOL_URI_RFC0095_BASIC_MESSAGE)
+            mex.withProtocol(RFC0095_BASIC_MESSAGE_WRAPPER)
                 .sendMessage(alice, peerConnection.id, userMessage)
 
             /** Verify message exchange state */

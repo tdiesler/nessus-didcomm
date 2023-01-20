@@ -25,8 +25,11 @@ import id.walt.services.keystore.KeyStoreService
 import mu.KotlinLogging
 import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.crypto.NessusCryptoService
+import org.nessus.didcomm.protocol.Protocol
 import org.nessus.didcomm.service.DidDocumentService
 import org.nessus.didcomm.service.DidService
+import org.nessus.didcomm.service.ProtocolKey
+import org.nessus.didcomm.service.ProtocolService
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
 
@@ -76,7 +79,7 @@ object Alice {
 
 const val RESOURCES_PATH: String = "src/test/resources"
 
-abstract class AbstractDidcommTest {
+abstract class AbstractDidCommTest {
 
     val log = KotlinLogging.logger {}
 
@@ -92,7 +95,12 @@ abstract class AbstractDidcommTest {
     val didDocumentService = DidDocumentService.getService()
     val didService get() = DidService.getService()
     val keyStore get() = KeyStoreService.getService()
+    val protocolService get() = ProtocolService.getService()
     val walletService get() = WalletService.getService()
+
+    fun <P: Protocol> getProtocol(key: ProtocolKey<P>): P {
+       return protocolService.getProtocol(key)
+    }
 
     fun removeWallet(alias: String) {
         walletService.findByAlias(alias)?.run {

@@ -24,7 +24,7 @@ import id.walt.crypto.KeyAlgorithm
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.service.RFC0023DidDocument
-import org.nessus.didcomm.test.AbstractDidcommTest
+import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.util.decodeBase64Url
 import org.nessus.didcomm.util.decodeBase64UrlStr
 import org.nessus.didcomm.util.decodeHex
@@ -35,7 +35,7 @@ import org.nessus.didcomm.wallet.DidMethod
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class RFC0023DidDocumentTest: AbstractDidcommTest() {
+class RFC0023DidDocumentTest: AbstractDidCommTest() {
 
     @Test
     fun diddoc_attach_parse_verify() {
