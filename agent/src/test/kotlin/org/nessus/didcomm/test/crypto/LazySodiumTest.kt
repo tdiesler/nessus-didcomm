@@ -26,10 +26,10 @@ import com.goterl.lazysodium.utils.KeyPair
 import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyType
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.crypto.convertEd25519toCurve25519
-import org.nessus.didcomm.crypto.cryptoBoxEasy
-import org.nessus.didcomm.crypto.cryptoBoxOpenEasy
-import org.nessus.didcomm.crypto.lazySodium
+import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toCurve25519
+import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxEasyBytes
+import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxOpenEasyBytes
+import org.nessus.didcomm.crypto.LazySodiumService.lazySodium
 import org.nessus.didcomm.test.AbstractDidcommTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
@@ -77,8 +77,8 @@ class LazySodiumTest: AbstractDidcommTest() {
         val decryptKeys = KeyPair(faberKeys.publicKey, aliceKeys.secretKey)
 
         val messageLen = AEAD.XCHACHA20POLY1305_IETF_KEYBYTES
-        val cipherTextLazy = boxLazy.cryptoBoxEasy(cek.asBytes, nonce, encryptKeys)
-        val message = boxLazy.cryptoBoxOpenEasy(cipherTextLazy.decodeHex(), messageLen, nonce, decryptKeys)
+        val cipherTextLazy = boxLazy.cryptoBoxEasyBytes(cek.asBytes, nonce, encryptKeys)
+        val message = boxLazy.cryptoBoxOpenEasyBytes(cipherTextLazy.decodeHex(), messageLen, nonce, decryptKeys)
         assertEquals(cek.asBytes.encodeHex(), message)
     }
 

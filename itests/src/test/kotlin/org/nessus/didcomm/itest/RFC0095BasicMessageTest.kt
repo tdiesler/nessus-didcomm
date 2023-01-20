@@ -25,9 +25,9 @@ import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.ConnectionState
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0095_BASIC_MESSAGE
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
-import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.StorageType
+import org.nessus.didcomm.wallet.Wallet
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.fail
@@ -81,7 +81,7 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
             assertEquals(userMessage, epm.body)
 
         } finally {
-            removeWallet(alice)
+            removeWallet(Alice.name)
         }
     }
 }

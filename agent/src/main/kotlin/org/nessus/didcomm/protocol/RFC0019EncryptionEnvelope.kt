@@ -8,10 +8,10 @@ import com.goterl.lazysodium.utils.KeyPair
 import id.walt.common.prettyPrint
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
-import org.nessus.didcomm.crypto.convertEd25519toCurve25519
-import org.nessus.didcomm.crypto.cryptoBoxEasy
-import org.nessus.didcomm.crypto.cryptoBoxOpenEasy
-import org.nessus.didcomm.crypto.lazySodium
+import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toCurve25519
+import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxEasyBytes
+import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxOpenEasyBytes
+import org.nessus.didcomm.crypto.LazySodiumService.lazySodium
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE
 import org.nessus.didcomm.util.decodeBase58
@@ -58,7 +58,7 @@ class RFC0019EncryptionEnvelope(mex: MessageExchange): Protocol<RFC0019Encryptio
         val boxLazy = lazySodium as Box.Lazy
         val boxNonce = lazySodium.nonce(Box.NONCEBYTES)
         val encryptKeys = KeyPair(recipientCurve25519Public, senderCurve25519Keys.secretKey)
-        val encryptedKey = boxLazy.cryptoBoxEasy(cek.asBytes, boxNonce, encryptKeys).decodeHex()
+        val encryptedKey = boxLazy.cryptoBoxEasyBytes(cek.asBytes, boxNonce, encryptKeys).decodeHex()
 
         // 2.2 Set sender value to base64URLencode(libsodium.crypto_box_seal(their_vk, sender_vk_string))
         val senderSealed = boxLazy.cryptoBoxSealEasy(senderVerkey, recipientCurve25519Public).decodeHex()
@@ -156,7 +156,7 @@ class RFC0019EncryptionEnvelope(mex: MessageExchange): Protocol<RFC0019Encryptio
         checkNotNull(cekiv) { "No cek 'iv' in: $recipient"}
         val boxNonce = cekiv.decodeBase64Url()
         val encryptedKey = encryptedKey64.decodeBase64Url()
-        val cekHex = boxLazy.cryptoBoxOpenEasy(encryptedKey, AEAD.XCHACHA20POLY1305_IETF_KEYBYTES, boxNonce, decryptKeys)
+        val cekHex = boxLazy.cryptoBoxOpenEasyBytes(encryptedKey, AEAD.XCHACHA20POLY1305_IETF_KEYBYTES, boxNonce, decryptKeys)
         val cek = Key.fromBytes(cekHex.decodeHex())
 
         // 3.3 decrypt ciphertext using libsodium.crypto_aead_chacha20poly1305_ietf_open_detached(base64URLdecode(ciphertext_bytes), base64URLdecode(protected_data_as_bytes), base64URLdecode(nonce), cek)

@@ -85,6 +85,13 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
+        <!-- Runtime -->
+        <dependency>
+            <groupId>org.hyperledger</groupId>
+            <artifactId>indy</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -103,4 +110,8 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+        </plugins>
+    </build>
 </project>

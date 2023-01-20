@@ -101,7 +101,9 @@ abstract class AbstractIntegrationTest {
         return walletService.findByAlias(alias)
     }
 
-    fun removeWallet(wallet: Wallet?) {
-        wallet?.run { walletService.removeWallet(wallet.id) }
+    fun removeWallet(alias: String) {
+        walletService.findByAlias(alias)?.run {
+            walletService.removeWallet(this.id)
+        }
     }
 }

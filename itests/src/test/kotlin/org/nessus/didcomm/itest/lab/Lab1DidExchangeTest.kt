@@ -206,7 +206,7 @@ class Lab1DidExchangeTest : AbstractIntegrationTest() {
 
         } finally {
             inviter.removeConnections()
-            removeWallet(invitee)
+            removeWallet(Alice.name)
         }
     }
 }

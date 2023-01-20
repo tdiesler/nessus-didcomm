@@ -14,8 +14,8 @@ import id.walt.services.crypto.CryptoService
 import id.walt.services.key.Keys
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
+import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toRaw
 import org.nessus.didcomm.crypto.NessusCryptoService
-import org.nessus.didcomm.crypto.convertEd25519toRaw
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.util.decodeBase58
 import org.nessus.didcomm.util.encodeBase58

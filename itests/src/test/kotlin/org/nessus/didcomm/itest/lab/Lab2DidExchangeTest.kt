@@ -21,9 +21,11 @@ package org.nessus.didcomm.itest.lab
 
 import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
+import org.hyperledger.indy.sdk.crypto.Crypto
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.agent.AriesAgent.Companion.awaitConnectionRecord
 import org.nessus.didcomm.agent.AriesClient
+import org.nessus.didcomm.crypto.LibIndyService
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.itest.ACAPY_OPTIONS_02
 import org.nessus.didcomm.itest.AbstractIntegrationTest
@@ -50,6 +52,7 @@ import org.nessus.didcomm.wallet.Wallet
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertEquals
 import kotlin.test.fail
 
 /**
@@ -154,7 +157,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
         } finally {
             log.info { "Done ".padEnd(180, '=') }
             faber.removeConnections()
-            removeWallet(alice)
+            removeWallet(Alice.name)
         }
     }
 
@@ -270,7 +273,8 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                  */
 
                 val didexRequestId = "${UUID.randomUUID()}"
-                val aliceDidSov = didService.createDid(DidMethod.SOV, KeyAlgorithm.EdDSA_Ed25519)
+                val aliceDidSov = didService.createDid(DidMethod.SOV, KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
+                assertEquals("did:sov:RfoA7oboFMiFuJPEtPdvKP", aliceDidSov.qualified)
 
                 val aliceDidDoc = """
                 {
@@ -322,9 +326,21 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                 }
                 """.trimJson()
 
-                val packedDidExRequest = mex
-                    .withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
-                    .packRFC0019Envelope(didexRequest, aliceDidSov, faberDid)
+//                val packedDidExRequest = mex
+//                    .withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
+//                    .packRFC0019Envelope(didexRequest, aliceDidSov, faberDid)
+
+                log.info("Create wallet - Alice")
+                val aliceIndy = LibIndyService.createAnOpenWallet(Alice.name)
+                val aliceDidIndy = LibIndyService.createAndStoreDid(aliceIndy, Alice.seed)
+                log.info { "Alice Did: ${aliceDidIndy.qualified}" }
+                assertEquals(aliceDidSov.qualified, aliceDidIndy.qualified)
+
+                val receivers = gson.toJson(listOf(faberDid.verkey))
+                val packedDidExRequest = String(Crypto.packMessage(aliceIndy, receivers, aliceDidIndy.verkey, didexRequest.toByteArray()).get())
+                log.info { "Packed: ${packedDidExRequest.prettyPrint()}"}
+
+                LibIndyService.closeAndDeleteWallet(Alice.name)
 
                 run {
                     // https://github.com/hyperledger/aries-cloudagent-python/issues/2083
@@ -337,7 +353,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
         } finally {
             log.info { "Done ".padEnd(180, '=') }
             faber.removeConnections()
-            removeWallet(alice)
+            removeWallet(Alice.name)
         }
     }
 
@@ -514,7 +530,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
         } finally {
             log.info { "Done ".padEnd(180, '=') }
             faber.removeConnections()
-            removeWallet(alice)
+            removeWallet(Alice.name)
         }
     }
 }

@@ -20,10 +20,10 @@
 package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.wallet.DidMethod
-import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.AgentType
+import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.StorageType
+import org.nessus.didcomm.wallet.Wallet
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -48,7 +48,7 @@ class OnboardAliceTest : AbstractIntegrationTest() {
             assertTrue(did.qualified.startsWith("did:key"))
 
         } finally {
-            removeWallet(alice)
+            removeWallet(Alice.name)
         }
     }
 }

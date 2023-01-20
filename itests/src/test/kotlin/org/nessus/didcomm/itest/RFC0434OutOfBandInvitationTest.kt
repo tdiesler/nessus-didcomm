@@ -27,9 +27,9 @@ import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.PROTOCOL_M
 import org.nessus.didcomm.service.ConnectionState
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0023_DID_EXCHANGE
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1
-import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.StorageType
+import org.nessus.didcomm.wallet.Wallet
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.fail
@@ -107,7 +107,7 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
             assertEquals(ConnectionState.ACTIVE, peerConnection.state)
 
         } finally {
-            removeWallet(invitee)
+            removeWallet(Alice.name)
         }
     }
 }

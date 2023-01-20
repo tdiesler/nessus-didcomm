@@ -18,6 +18,7 @@
         <version.didcommx.didcomm>0.3.3-SNAPSHOT</version.didcommx.didcomm>
         <version.fasterxml.jackson>2.14.1</version.fasterxml.jackson>
         <version.google.crypto.tink>1.7.0</version.google.crypto.tink>
+        <version.hyperledger.indy>1.16.0</version.hyperledger.indy>
         <version.lazysodium>5.1.2</version.lazysodium>
         <version.nimbus.jose>9.28</version.nimbus.jose>
         <version.kotlin.logging>3.0.4</version.kotlin.logging>
@@ -127,6 +128,11 @@
                 <version>${version.didcommx.didcomm}</version>
             </dependency>
             <dependency>
+                <groupId>org.hyperledger</groupId>
+                <artifactId>indy</artifactId>
+                <version>${version.hyperledger.indy}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
                 <version>${version.junit}</version>
@@ -224,6 +230,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <failIfNoTests>false</failIfNoTests>
+                </configuration>
             </plugin>
         </plugins>
     </build>
