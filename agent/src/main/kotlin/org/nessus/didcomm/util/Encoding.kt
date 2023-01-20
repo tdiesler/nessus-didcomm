@@ -4,6 +4,8 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import io.ipfs.multibase.Base58
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaType
 import org.web3j.utils.Numeric
 import java.util.*
 
@@ -82,4 +84,14 @@ fun ByteArray.encodeHex(): String = Numeric.toHexString(this).substring(2)
 
 fun String.decodeHex(): ByteArray = Numeric.hexStringToByteArray(this)
 
+/***********************************************************************************************************************
+ * MediaType
+ */
+
+fun MediaType.matches(contentType: String?): Boolean {
+    return if (contentType != null) {
+        val other = contentType.toMediaType()
+        this.type == other.type && this.subtype == other .subtype
+    } else false
+}
 

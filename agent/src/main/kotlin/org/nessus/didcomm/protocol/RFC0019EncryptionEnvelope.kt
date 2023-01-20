@@ -8,6 +8,7 @@ import com.goterl.lazysodium.utils.KeyPair
 import id.walt.common.prettyPrint
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
+import okhttp3.MediaType.Companion.toMediaType
 import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toCurve25519
 import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxEasyBytes
 import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxOpenEasyBytes
@@ -32,7 +33,7 @@ class RFC0019EncryptionEnvelope(mex: MessageExchange): Protocol<RFC0019Encryptio
     override val protocolUri = PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE.uri
 
     companion object {
-        const val RFC0019_ENCRYPTED_ENVELOPE_CONTENT_TYPE = "application/didcomm-envelope-enc"
+        val RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE = "application/didcomm-envelope-enc; charset=utf-8".toMediaType()
     }
 
     val keyStore get() = KeyStoreService.getService()
@@ -95,13 +96,12 @@ class RFC0019EncryptionEnvelope(mex: MessageExchange): Protocol<RFC0019Encryptio
             null, aeadNonce, cek, AEAD.Method.CHACHA20_POLY1305_IETF)
 
         // 5. base64URLencode the iv, ciphertext, and tag then serialize the format into the output format listed above.
-        val padding = false
         return """
         {
-            "protected": "${protected.toByteArray().encodeBase64Url(padding)}",
-            "iv": "${aeadNonce.encodeBase64Url(padding)}",
-            "ciphertext": "${ciphertext.cipher.encodeBase64Url(padding)}",
-            "tag": "${ciphertext.mac.encodeBase64Url(padding)}"
+            "protected": "${protected.toByteArray().encodeBase64Url()}",
+            "iv": "${aeadNonce.encodeBase64Url()}",
+            "ciphertext": "${ciphertext.cipher.encodeBase64Url()}",
+            "tag": "${ciphertext.mac.encodeBase64Url()}"
         }            
         """.trimJson()
     }

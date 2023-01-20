@@ -21,11 +21,9 @@ package org.nessus.didcomm.itest.lab
 
 import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
-import org.hyperledger.indy.sdk.crypto.Crypto
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.agent.AriesAgent.Companion.awaitConnectionRecord
 import org.nessus.didcomm.agent.AriesClient
-import org.nessus.didcomm.crypto.LibIndyService
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.itest.ACAPY_OPTIONS_02
 import org.nessus.didcomm.itest.AbstractIntegrationTest
@@ -34,7 +32,7 @@ import org.nessus.didcomm.itest.Faber
 import org.nessus.didcomm.itest.NESSUS_OPTIONS_01
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageListener
-import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_CONTENT_TYPE
+import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.MESSAGE_TYPE_RFC0023_DID_EXCHANGE_REQUEST
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.MESSAGE_TYPE_RFC0023_DID_EXCHANGE_RESPONSE
 import org.nessus.didcomm.service.Invitation
@@ -42,6 +40,7 @@ import org.nessus.didcomm.service.PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE
 import org.nessus.didcomm.service.toDidKey
 import org.nessus.didcomm.util.decodeBase64UrlStr
 import org.nessus.didcomm.util.gson
+import org.nessus.didcomm.util.matches
 import org.nessus.didcomm.util.prettyGson
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.trimJson
@@ -52,7 +51,6 @@ import org.nessus.didcomm.wallet.Wallet
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
-import kotlin.test.assertEquals
 import kotlin.test.fail
 
 /**
@@ -216,7 +214,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
         val listener: MessageListener = { epm ->
             val contentType = epm.headers["Content-Type"] as? String
             checkNotNull(contentType) { "No 'Content-Type' header"}
-            if (contentType == RFC0019_ENCRYPTED_ENVELOPE_CONTENT_TYPE) {
+            if (contentType == "$RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE") {
                 val envelope = mex
                     .withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
                     .unpackRFC0019Envelope(epm.bodyAsJson)?.first
@@ -273,34 +271,33 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                  */
 
                 val didexRequestId = "${UUID.randomUUID()}"
-                val aliceDidSov = didService.createDid(DidMethod.SOV, KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
-                assertEquals("did:sov:RfoA7oboFMiFuJPEtPdvKP", aliceDidSov.qualified)
+                val aliceDid = didService.createDid(DidMethod.SOV, KeyAlgorithm.EdDSA_Ed25519)
 
                 val aliceDidDoc = """
                 {
                     "@context": "https://w3id.org/did/v1",
-                    "id": "${aliceDidSov.qualified}",
+                    "id": "${aliceDid.qualified}",
                     "publicKey": [
                         {
-                            "id": "${aliceDidSov.qualified}#1",
+                            "id": "${aliceDid.qualified}#1",
                             "type": "Ed25519VerificationKey2018",
-                            "controller": "${aliceDidSov.qualified}",
-                            "publicKeyBase58": "${aliceDidSov.verkey}"
+                            "controller": "${aliceDid.qualified}",
+                            "publicKeyBase58": "${aliceDid.verkey}"
                         }
                     ],
                     "authentication": [
                         {
                             "type": "Ed25519SignatureAuthentication2018",
-                            "publicKey": "${aliceDidSov.qualified}#1"
+                            "publicKey": "${aliceDid.qualified}#1"
                         }
                     ],
                     "service": [
                         {
-                            "id": "${aliceDidSov.qualified};memory",
+                            "id": "${aliceDid.qualified};memory",
                             "type": "NessusAgent",
                             "priority": 0,
                             "recipientKeys": [
-                                "${aliceDidSov.verkey}"
+                                "${aliceDid.verkey}"
                             ],
                             "serviceEndpoint": "${alice.endpointUrl}"
                         }
@@ -310,7 +307,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
 
                 log.info { "Invitee DidDoc: ${aliceDidDoc.prettyPrint()}" }
 
-                val aliceDidDocAttach = diddocService.createAttachment(aliceDidDoc, aliceDidSov)
+                val aliceDidDocAttach = diddocService.createAttachment(aliceDidDoc, aliceDid)
 
                 val didexRequest = """
                 {
@@ -321,31 +318,20 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                         "pthid": "$invitationId"
                     },
                     "did_doc~attach": $aliceDidDocAttach,
-                    "did": "${aliceDidSov.id}",
+                    "did": "${aliceDid.id}",
                     "label": "Nessus Agent"
                 }
                 """.trimJson()
+                log.info("DidEx Request: ${didexRequest.prettyPrint()}")
 
-//                val packedDidExRequest = mex
-//                    .withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
-//                    .packRFC0019Envelope(didexRequest, aliceDidSov, faberDid)
-
-                log.info("Create wallet - Alice")
-                val aliceIndy = LibIndyService.createAnOpenWallet(Alice.name)
-                val aliceDidIndy = LibIndyService.createAndStoreDid(aliceIndy, Alice.seed)
-                log.info { "Alice Did: ${aliceDidIndy.qualified}" }
-                assertEquals(aliceDidSov.qualified, aliceDidIndy.qualified)
-
-                val receivers = gson.toJson(listOf(faberDid.verkey))
-                val packedDidExRequest = String(Crypto.packMessage(aliceIndy, receivers, aliceDidIndy.verkey, didexRequest.toByteArray()).get())
+                val packedDidExRequest = mex
+                    .withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
+                    .packRFC0019Envelope(didexRequest, aliceDid, faberDid)
                 log.info { "Packed: ${packedDidExRequest.prettyPrint()}"}
 
-                LibIndyService.closeAndDeleteWallet(Alice.name)
-
                 run {
-                    // https://github.com/hyperledger/aries-cloudagent-python/issues/2083
                     val res = faberClient.post(faberServiceEndpoint, packedDidExRequest, headers = mapOf(
-                        "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_CONTENT_TYPE
+                        "Content-Type" to "$RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE"
                     ))
                     check(res.isSuccessful) { "Call failed with ${res.code} ${res.message}" }
                 }
@@ -377,7 +363,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
         val listener: MessageListener = { epm ->
             val contentType = epm.headers["Content-Type"] as? String
             checkNotNull(contentType) { "No 'Content-Type' header"}
-            if (contentType == RFC0019_ENCRYPTED_ENVELOPE_CONTENT_TYPE) {
+            if (RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE.matches(contentType)) {
                 val envelope = mex
                     .withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
                     .unpackRFC0019Envelope(epm.bodyAsJson)?.first
@@ -399,8 +385,8 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                 /**
                  * Inviter (Alice) creates an Out-of-Band Invitation
                  */
-                val aliceDidSov = didService.createDid(DidMethod.SOV, KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
-                val aliceDidKey = keyStore.load(aliceDidSov.verkey).toDidKey()
+                val aliceDid = didService.createDid(DidMethod.SOV, KeyAlgorithm.EdDSA_Ed25519)
+                val aliceDidKey = keyStore.load(aliceDid.verkey).toDidKey()
                 val invitationId = "${UUID.randomUUID()}"
                 val invitation = """
                 {
@@ -462,28 +448,28 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                 val aliceDidDoc = """
                 {
                     "@context": "https://w3id.org/did/v1",
-                    "id": "${aliceDidSov.qualified}",
+                    "id": "${aliceDid.qualified}",
                     "publicKey": [
                         {
-                            "id": "${aliceDidSov.qualified}#1",
+                            "id": "${aliceDid.qualified}#1",
                             "type": "Ed25519VerificationKey2018",
-                            "controller": "${aliceDidSov.qualified}",
-                            "publicKeyBase58": "${aliceDidSov.verkey}"
+                            "controller": "${aliceDid.qualified}",
+                            "publicKeyBase58": "${aliceDid.verkey}"
                         }
                     ],
                     "authentication": [
                         {
                             "type": "Ed25519SignatureAuthentication2018",
-                            "publicKey": "${aliceDidSov.qualified}#1"
+                            "publicKey": "${aliceDid.qualified}#1"
                         }
                     ],
                     "service": [
                         {
-                            "id": "${aliceDidSov.qualified};memory",
+                            "id": "${aliceDid.qualified};memory",
                             "type": "NessusAgent",
                             "priority": 0,
                             "recipientKeys": [
-                                "${aliceDidSov.verkey}"
+                                "${aliceDid.verkey}"
                             ],
                             "serviceEndpoint": "${alice.endpointUrl}"
                         }
@@ -497,23 +483,22 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                     '@type': '$MESSAGE_TYPE_RFC0023_DID_EXCHANGE_RESPONSE',
                     '@id': '${UUID.randomUUID()}',
                     '~thread': {
-                        'thid': '$didexRequestId',
-                        'pthid': '$invitationId'
+                        'thid': '$didexRequestId'
                     },
-                    'did_doc~attach': ${diddocService.createAttachment(aliceDidDoc, aliceDidSov)},
-                    'did': '${aliceDidSov.id}'
+                    'did_doc~attach': ${diddocService.createAttachment(aliceDidDoc, aliceDid)},
+                    'did': '${aliceDid.id}'
                 }                    
                 """.trimJson()
                 log.info { "DidEx Response: ${didexResponse.prettyPrint()}" }
 
                 val packedDidExResponse = mex
                     .withProtocol(PROTOCOL_URI_RFC0019_ENCRYPTED_ENVELOPE)
-                    .packRFC0019Envelope(didexResponse, aliceDidSov, faberDid)
+                    .packRFC0019Envelope(didexResponse, aliceDid, faberDid)
 
                 run {
                     // https://github.com/hyperledger/aries-cloudagent-python/issues/2083
                     val res = faberClient.post(faberServiceEndpoint, packedDidExResponse, headers = mapOf(
-                        "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_CONTENT_TYPE
+                        "Content-Type" to "$RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE"
                     ))
                     check(res.isSuccessful) { "Call failed with ${res.code} ${res.message}" }
                 }

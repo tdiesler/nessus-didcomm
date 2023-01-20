@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.agent
 
-import com.google.gson.JsonObject
 import mu.KotlinLogging
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
@@ -154,18 +153,21 @@ class AriesClient(val adminUrl: String, private val apiKey: String?, private val
             actUrl = actUrl.dropLast(1)
         }
         val builder = Request.Builder().url(actUrl)
-        headers?.forEach { (k, v) -> builder.header(k, v) }
+
+        // Add the headers
+        headers?.filterKeys { it != "Content-Type" }?.forEach {
+                (k, v) -> builder.header(k, v)
+        }
         if (apiKey != null)
             builder.header("X-API-KEY", apiKey)
         if (authToken != null)
             builder.header("Authorization", "Bearer $authToken")
-        val bodyJson = if (body is String && body.trim().startsWith("{")) {
-            val jsonObj = gson.fromJson(body, JsonObject::class.java)
-            gson.toJson(jsonObj)
-        } else {
-            gson.toJson(body)
-        }
-        val req = builder.post(bodyJson.toRequestBody(JSON_TYPE)).build()
+
+        val bodyJson = if (body is String) body else gson.toJson(body)
+        val mediaType = headers?.get("Content-Type")?.toMediaType()
+        val reqBody = bodyJson.toRequestBody(mediaType ?: JSON_TYPE)
+
+        val req = builder.post(reqBody).build()
         val res = httpClient.newCall(req).execute()
         log.debug { "code=${res.code} message=${res.message}" }
         return res
