@@ -38,7 +38,7 @@ class RFC0019EncryptionEnvelope(mex: MessageExchange): Protocol<RFC0019Encryptio
 
     val keyStore get() = KeyStoreService.getService()
 
-    fun packRFC0019Envelope(envelope: String, sender: Did, recipient: Did): String {
+    fun packRFC0019Envelope(message: String, sender: Did, recipient: Did): String {
 
         val senderKeys = keyStore.load(sender.verkey, KeyType.PRIVATE).keyPair!!
         val senderVerkey = sender.verkey
@@ -92,7 +92,7 @@ class RFC0019EncryptionEnvelope(mex: MessageExchange): Protocol<RFC0019Encryptio
         //    message, protected_value_encoded, iv, cek) this is the ciphertext.
         val aeadNonce = lazySodium.nonce(AEAD.CHACHA20POLY1305_IETF_NPUBBYTES)
         val ciphertext = aeadLazy.encryptDetached(
-            envelope, protected.toByteArray().encodeBase64Url(),
+            message, protected.toByteArray().encodeBase64Url(),
             null, aeadNonce, cek, AEAD.Method.CHACHA20_POLY1305_IETF)
 
         // 5. base64URLencode the iv, ciphertext, and tag then serialize the format into the output format listed above.

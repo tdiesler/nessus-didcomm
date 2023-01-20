@@ -118,7 +118,7 @@ class DidDocumentService: NessusBaseService() {
         return gson.fromJson(template, JsonObject::class.java)!!
     }
 
-    fun extractFromAttachment(attachment: String): RFC0023DidDocument {
+    fun extractFromAttachment(attachment: String, altDid: Did? = null): RFC0023DidDocument {
 
         val didDocument64 = attachment.selectJson("data.base64") as? String
         val protected64 = attachment.selectJson("data.jws.protected") as? String
@@ -136,17 +136,32 @@ class DidDocumentService: NessusBaseService() {
         checkNotNull(didSpec) { "No 'publicKey[0].controller'" }
         checkNotNull(didVerkey) { "No 'publicKey[0].publicKeyBase58'" }
 
-        val did = Did.fromSpec(didSpec, didVerkey)
-        val keyId = if (keyStore.getKeyId(did.verkey) != null) {
-            KeyId(keyStore.getKeyId(did.verkey)!!)
-        } else {
-            didService.registerWithKeyStore(did)
-        }
-
         val signature = signature64.decodeBase64Url()
         val data = "$protected64.$didDocument64".toByteArray()
         log.info { "Extracted Did Document: ${diddocJson.prettyPrint()}" }
-        check(cryptoService.verify(keyId, signature, data)) { "Did document verification failed" }
+
+        // [TODO] verification may fail in DidEx Response
+        // https://github.com/tdiesler/nessus-didcomm/issues/32
+
+        fun verifyWith(did: Did): Boolean {
+            val keyId = if (keyStore.getKeyId(did.verkey) != null) {
+                KeyId(keyStore.getKeyId(did.verkey)!!)
+            } else {
+                didService.registerWithKeyStore(did)
+            }
+            return cryptoService.verify(keyId, signature, data)
+        }
+
+        // First try the Did from this Doc
+        val thisDid = Did.fromSpec(didSpec, didVerkey)
+        if (!verifyWith(thisDid)) {
+            log.error { "Did document verification failed with: ${thisDid.qualified}" }
+
+            // Then try an alternative Did
+            if (altDid != null && verifyWith(altDid)) {
+                log.error { "Did document verification ok with: ${altDid.qualified}" }
+            }
+        }
 
         return didDocument
     }

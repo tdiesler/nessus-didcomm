@@ -12,8 +12,8 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_UR
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THREAD_ID
 import org.nessus.didcomm.service.PROTOCOL_URI_RFC0048_TRUST_PING
 import org.nessus.didcomm.util.gson
-import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.AgentType
+import org.nessus.didcomm.wallet.Wallet
 
 /**
  * Aries RFC 0048: Trust Ping Protocol 1.0
@@ -24,6 +24,9 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
 
     companion object {
         const val PROTOCOL_METHOD_SEND_PING = "/connections/send_ping"
+
+        val MESSAGE_TYPE_RFC0048_TRUST_PING = "${PROTOCOL_URI_RFC0048_TRUST_PING.uri}/ping"
+        val MESSAGE_TYPE_RFC0048_TRUST_PING_RESPONSE = "${PROTOCOL_URI_RFC0048_TRUST_PING.uri}/ping_response"
     }
 
     /**
