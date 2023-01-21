@@ -103,7 +103,7 @@ abstract class AbstractDidCommTest {
     }
 
     fun removeWallet(alias: String) {
-        walletService.findByAlias(alias)?.run {
+        walletService.findByName(alias)?.run {
             walletService.removeWallet(this.id)
         }
     }

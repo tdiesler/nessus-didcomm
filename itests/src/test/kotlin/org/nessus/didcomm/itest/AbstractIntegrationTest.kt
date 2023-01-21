@@ -102,7 +102,7 @@ abstract class AbstractIntegrationTest {
     val walletService get() = WalletService.getService()
 
     fun getWalletByAlias(alias: String): Wallet? {
-        return walletService.findByAlias(alias)
+        return walletService.findByName(alias)
     }
 
     fun <P: Protocol> getProtocol(key: ProtocolKey<P>): P {
@@ -110,7 +110,7 @@ abstract class AbstractIntegrationTest {
     }
 
     fun removeWallet(alias: String) {
-        walletService.findByAlias(alias)?.run {
+        walletService.findByName(alias)?.run {
             walletService.removeWallet(this.id)
         }
     }

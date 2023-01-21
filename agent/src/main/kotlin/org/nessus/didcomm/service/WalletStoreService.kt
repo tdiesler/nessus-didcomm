@@ -53,8 +53,8 @@ class WalletStoreService: NessusBaseService() {
         return walletStorage[walletId]
     }
 
-    fun findByAlias(alias: String): Wallet? {
-        return walletStorage.values.firstOrNull { w -> w.alias == alias }
+    fun findByName(name: String): Wallet? {
+        return walletStorage.values.firstOrNull { w -> w.name == name }
     }
 
     fun findByVerkey(verkey: String): Wallet? {

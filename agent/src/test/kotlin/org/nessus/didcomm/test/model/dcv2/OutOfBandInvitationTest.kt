@@ -17,16 +17,16 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.test.model
+package org.nessus.didcomm.test.model.dcv2
 
 import mu.KotlinLogging
 import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
 import org.hyperledger.acy_py.generated.model.InvitationRecord
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.model.MessageReader
-import org.nessus.didcomm.model.MessageWriter
-import org.nessus.didcomm.model.OutOfBandInvitation
+import org.nessus.didcomm.model.dcv2.MessageReader
+import org.nessus.didcomm.model.dcv2.MessageWriter
+import org.nessus.didcomm.model.dcv2.OutOfBandInvitation
 import kotlin.test.assertEquals
 
 class OutOfBandInvitationTest {

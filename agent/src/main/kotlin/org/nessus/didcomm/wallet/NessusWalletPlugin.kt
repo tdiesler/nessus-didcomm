@@ -22,9 +22,9 @@ class NessusWalletPlugin: WalletServicePlugin, WalletPlugin {
     override fun createWallet(config: WalletConfig): Wallet {
         val walletId = "${UUID.randomUUID()}"
         val agentType = AgentType.NESSUS
-        val walletAlias = config.alias
+        val walletName = config.name
         val storageType = config.storageType ?: StorageType.IN_MEMORY
-        return Wallet(walletId, walletAlias, agentType, storageType, options = config.walletOptions)
+        return Wallet(walletId, walletName, agentType, storageType, options = config.walletOptions)
     }
 
     override fun removeWallet(wallet: Wallet) {

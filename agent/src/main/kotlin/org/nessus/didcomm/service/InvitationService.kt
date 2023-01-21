@@ -19,8 +19,8 @@
  */
 package org.nessus.didcomm.service
 
-import com.google.gson.annotations.SerializedName
 import id.walt.servicematrix.ServiceProvider
+import org.nessus.didcomm.model.Invitation
 
 class InvitationService: NessusBaseService() {
     override val implementation get() = serviceImplementation<InvitationService>()
@@ -48,24 +48,3 @@ class InvitationService: NessusBaseService() {
 
 }
 
-data class Invitation(
-    @SerializedName("@id")
-    val atId: String,
-    @SerializedName("@type")
-    val atType: String,
-    @SerializedName("handshake_protocols")
-    val handshakeProtocols: List<String>,
-    @SerializedName("accept")
-    val accept: List<String>,
-    @SerializedName("goal_code")
-    val goalCode: String,
-    @SerializedName("services")
-    val services: List<Service>,
-) {
-    data class Service(
-        val id: String,
-        val type: String,
-        val recipientKeys: List<String>,
-        val serviceEndpoint: String,
-    )
-}

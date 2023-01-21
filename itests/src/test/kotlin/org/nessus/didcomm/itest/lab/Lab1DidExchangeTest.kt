@@ -76,12 +76,12 @@ class Lab1DidExchangeTest : AbstractIntegrationTest() {
         val aliceClient = alice.walletClient() as AriesClient
 
         faber.openWebSocket {
-            log.info { "WebSocket ${faber.alias}: ${it.topic}" }
+            log.info { "WebSocket ${faber.name}: ${it.topic}" }
             log.info { it.payload.sortedJson().prettyPrint() }
         }
 
         alice.openWebSocket {
-            log.info { "WebSocket ${alice.alias}: ${it.topic}" }
+            log.info { "WebSocket ${alice.name}: ${it.topic}" }
             log.info { it.payload.sortedJson().prettyPrint() }
         }
 
@@ -96,8 +96,8 @@ class Lab1DidExchangeTest : AbstractIntegrationTest() {
 
             val createInvRequest = InvitationCreateRequest.builder()
                 .accept(listOf("didcomm/v2"))
-                .alias("${faber.alias}/${alice.alias}")
-                .myLabel("Invitation for ${alice.alias}")
+                .alias("${faber.name}/${alice.name}")
+                .myLabel("Invitation for ${alice.name}")
                 .handshakeProtocols(listOf("https://didcomm.org/didexchange/1.0"))
                 .protocolVersion("1.1")
                 .usePublicDid(false)
@@ -113,9 +113,9 @@ class Lab1DidExchangeTest : AbstractIntegrationTest() {
             var faberConnection = awaitConnectionRecord(faber) {
                 it.invitationMsgId == invitationId && it.stateIsInvitation()
             }
-            checkNotNull(faberConnection) {"${faber.alias} has no connection record in state 'invitation'"}
-            log.info {"${faber.alias} connection: ${faberConnection?.state}"}
-            log.info("${faber.alias}: {}", prettyGson.toJson(faberConnection))
+            checkNotNull(faberConnection) {"${faber.name} has no connection record in state 'invitation'"}
+            log.info {"${faber.name} connection: ${faberConnection?.state}"}
+            log.info("${faber.name}: {}", prettyGson.toJson(faberConnection))
 
             /**
              * Invitee (Alice) receives the Invitation
@@ -142,9 +142,9 @@ class Lab1DidExchangeTest : AbstractIntegrationTest() {
             var aliceConnection = awaitConnectionRecord(alice) {
                 it.invitationMsgId == invitationId && it.stateIsInvitation()
             }
-            checkNotNull(aliceConnection) {"${alice.alias} has no connection record in state 'invitation'"}
-            log.info {"${alice.alias} connection: ${aliceConnection?.state}"}
-            log.info("${alice.alias}: {}", prettyGson.toJson(aliceConnection))
+            checkNotNull(aliceConnection) {"${alice.name} has no connection record in state 'invitation'"}
+            log.info {"${alice.name} connection: ${aliceConnection?.state}"}
+            log.info("${alice.name}: {}", prettyGson.toJson(aliceConnection))
 
             /**
              * Invitee (Alice) manually accepts the Invitation
@@ -183,9 +183,9 @@ class Lab1DidExchangeTest : AbstractIntegrationTest() {
             aliceConnection = awaitConnectionRecord(alice) {
                 it.invitationMsgId == invitationId && it.stateIsActive()
             }
-            checkNotNull(aliceConnection) {"${alice.alias} has no connection record in state 'active'"}
-            log.info {"${alice.alias} connection: ${aliceConnection.state}"}
-            log.info("${alice.alias}: {}", prettyGson.toJson(aliceConnection))
+            checkNotNull(aliceConnection) {"${alice.name} has no connection record in state 'active'"}
+            log.info {"${alice.name} connection: ${aliceConnection.state}"}
+            log.info("${alice.name}: {}", prettyGson.toJson(aliceConnection))
 
             /**
              * Inviter (Faber) awaits it's active Connection
@@ -194,9 +194,9 @@ class Lab1DidExchangeTest : AbstractIntegrationTest() {
             faberConnection = awaitConnectionRecord(faber) {
                 it.invitationMsgId == invitationId && it.stateIsActive()
             }
-            checkNotNull(faberConnection) {"${faber.alias} has no connection record in state 'active'"}
-            log.info {"${faber.alias} connection: ${faberConnection.state}"}
-            log.info("${faber.alias}: {}", prettyGson.toJson(faberConnection))
+            checkNotNull(faberConnection) {"${faber.name} has no connection record in state 'active'"}
+            log.info {"${faber.name} connection: ${faberConnection.state}"}
+            log.info("${faber.name}: {}", prettyGson.toJson(faberConnection))
 
         } finally {
             faber.removeConnections()

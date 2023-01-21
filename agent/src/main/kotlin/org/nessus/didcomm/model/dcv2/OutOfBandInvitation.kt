@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.model
+package org.nessus.didcomm.model.dcv2
 
 import com.google.gson.Gson
 

@@ -39,17 +39,17 @@ class WebSocketListener(val wallet: Wallet, private val eventListener: (wse: Web
     private val accessLock: Lock = ReentrantLock()
 
     override fun onOpen(webSocket: WebSocket, response: Response) {
-        log.info("{}: WebSocket Open: {}", wallet.alias, response)
+        log.info("{}: WebSocket Open: {}", wallet.name, response)
         webSocketState = WebSocketState.OPEN
     }
 
     override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-        log.info("{}: WebSocket Closing: {} {}", wallet.alias, code, reason)
+        log.info("{}: WebSocket Closing: {} {}", wallet.name, code, reason)
         webSocketState = WebSocketState.CLOSING
     }
 
     override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-        log.info("{}: WebSocket Closed: {} {}", wallet.alias, code, reason)
+        log.info("{}: WebSocket Closed: {} {}", wallet.name, code, reason)
         accessLock.lock()
         try {
             webSocketState = WebSocketState.CLOSED
@@ -61,7 +61,7 @@ class WebSocketListener(val wallet: Wallet, private val eventListener: (wse: Web
     override fun onFailure(webSocket: WebSocket, th: Throwable, response: Response?) {
         val message = response?.message ?: th.message!!
         if ("Socket closed" != message)
-            log.error("[${wallet.alias}] Failure: $message", th)
+            log.error("[${wallet.name}] Failure: $message", th)
     }
 
     override fun onMessage(webSocket: WebSocket, text: String) {
@@ -76,7 +76,7 @@ class WebSocketListener(val wallet: Wallet, private val eventListener: (wse: Web
             if (notWsPing(topic, payload) && isForWalletId(walletId)) {
                 val event = WebSocketEvent(walletId, topic, payload)
                 if (walletId == null) {
-                    log.info { "${wallet.alias} Untargeted Event: $text" }
+                    log.info { "${wallet.name} Untargeted Event: $text" }
                 } else if (walletId == wallet.id) {
                     eventListener.invoke(event)
                 }

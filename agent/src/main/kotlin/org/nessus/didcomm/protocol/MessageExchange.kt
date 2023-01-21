@@ -119,11 +119,11 @@ class MessageExchange (msg: EndpointMessage? = null): AttachmentSupport() {
                 val currentState = ConnectionState.fromValue(it.state.name)
                 it.invitationMsgId == last.threadId && targetStates.contains(currentState)
             }
-            checkNotNull(record) {"${wallet.alias} has no connection record in state $targetStates"}
+            checkNotNull(record) {"${wallet.name} has no connection record in state $targetStates"}
 
             val connectionProtocol = record.connectionProtocol.value
             check(supportedProtocols.contains(connectionProtocol)) { "Unsupported connection protocol: $connectionProtocol" }
-            log.info { "${wallet.alias} connection: ${record.state}" }
+            log.info { "${wallet.name} connection: ${record.state}" }
             connection = gson.toJson(record).decodeJson()
 
             addMessage(EndpointMessage(
@@ -131,7 +131,7 @@ class MessageExchange (msg: EndpointMessage? = null): AttachmentSupport() {
                     MESSAGE_THREAD_ID to last.threadId,
                     MESSAGE_DIRECTION to MessageDirection.INBOUND,
                     MESSAGE_FROM_ID to wallet.id,
-                    MESSAGE_FROM_ALIAS to wallet.alias,
+                    MESSAGE_FROM_ALIAS to wallet.name,
                     MESSAGE_CONTENT_URI to connectionProtocol,
                 )
             ))

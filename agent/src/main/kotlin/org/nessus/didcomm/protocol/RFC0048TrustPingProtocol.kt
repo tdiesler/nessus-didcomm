@@ -70,7 +70,7 @@ class RFC0048TrustPingProtocolWrapper(mex: MessageExchange):
                 MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_SEND_PING,
                 MESSAGE_CONTENT_URI to "https://didcomm.org/trust_ping/1.0/ping_response",
                 MESSAGE_PROTOCOL_URI to protocol.protocolUri,
-                MESSAGE_FROM_ALIAS to sender.alias,
+                MESSAGE_FROM_ALIAS to sender.name,
                 MESSAGE_FROM_ID to sender.id,
             )
         ))

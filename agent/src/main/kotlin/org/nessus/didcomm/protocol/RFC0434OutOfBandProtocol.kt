@@ -15,7 +15,7 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_ME
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_URI
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THREAD_ID
 import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.PROTOCOL_METHOD_CREATE_INVITATION
-import org.nessus.didcomm.service.Invitation
+import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.service.InvitationService
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
 import org.nessus.didcomm.util.gson
@@ -64,7 +64,7 @@ class RFC0434OutOfBandProtocol: Protocol() {
 
         val invitationService = InvitationService.getService()
 
-        val goalCode = options["goal_code"] as? String ?: "Invitation from ${inviter.alias}"
+        val goalCode = options["goal_code"] as? String ?: "Invitation from ${inviter.name}"
 
         // Create the legacy Acapy invitation
         val invitation = if (inviter.agentType == AgentType.ACAPY) {
@@ -122,7 +122,7 @@ class RFC0434OutOfBandProtocol: Protocol() {
 
         val createInvRequest = InvitationCreateRequest.builder()
             .accept(listOf("didcomm/v2"))
-            .alias(inviter.alias)
+            .alias(inviter.name)
             .myLabel(goalCode)
             .handshakeProtocols(listOf("https://didcomm.org/didexchange/1.0"))
             .protocolVersion("1.1")
@@ -203,7 +203,7 @@ class RFC0434OutOfBandProtocolWrapper(mex: MessageExchange):
                 MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_CREATE_INVITATION,
                 MESSAGE_PROTOCOL_URI to protocol.protocolUri,
                 MESSAGE_FROM_ID to inviter.id,
-                MESSAGE_FROM_ALIAS to inviter.alias,
+                MESSAGE_FROM_ALIAS to inviter.name,
                 MESSAGE_CONTENT_URI to invitation.atType,
             )
         ))

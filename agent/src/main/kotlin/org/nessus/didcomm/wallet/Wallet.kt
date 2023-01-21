@@ -73,7 +73,7 @@ enum class StorageType(val value: String) {
  */
 class Wallet(
     val id: String,
-    val alias: String,
+    val name: String,
     val agentType: AgentType,
     val storageType: StorageType,
     val authToken: String? = null,
@@ -186,7 +186,7 @@ class Wallet(
         var redactedToken: String? = null
         if (authToken != null)
             redactedToken = authToken.substring(0, 6) + "..." + authToken.substring(authToken.length - 6)
-        return "Wallet(id='$id', agent=$agentType, type=$storageType, alias=$alias, endpointUrl=$endpointUrl, options=$options, authToken=$redactedToken)"
+        return "Wallet(id='$id', agent=$agentType, type=$storageType, alias=$name, endpointUrl=$endpointUrl, options=$options, authToken=$redactedToken)"
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
@@ -194,7 +194,7 @@ class Wallet(
 }
 
 data class WalletConfig(
-    val alias: String,
+    val name: String,
     val agentType: AgentType?,
     val storageType: StorageType?,
     val walletKey: String?,

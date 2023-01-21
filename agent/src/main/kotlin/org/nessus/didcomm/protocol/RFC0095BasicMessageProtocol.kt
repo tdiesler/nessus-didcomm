@@ -61,7 +61,7 @@ class RFC0095BasicMessageProtocolWrapper(mex: MessageExchange):
                 MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_SEND_MESSAGE,
                 MESSAGE_CONTENT_URI to "https://didcomm.org/basicmessage/1.0/message",
                 MESSAGE_PROTOCOL_URI to protocol.protocolUri,
-                MESSAGE_FROM_ALIAS to sender.alias,
+                MESSAGE_FROM_ALIAS to sender.name,
                 MESSAGE_FROM_ID to sender.id,
             )
         ))

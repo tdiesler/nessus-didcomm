@@ -21,19 +21,19 @@ configDir="${HOME}/.config/acapy/wallet"
 mkdir -p ${configDir}
 
 createWallet() {
-  walletAlias="$1"
+  walletName="$1"
   walletKey="$2"
   ledgerRole="$3"
 
-  if [[ -z ${walletAlias} ]]; then
+  if [[ -z ${walletName} ]]; then
     help; exit 1
   fi
   if [[ -z ${walletKey} ]]; then
-    walletKey="${walletAlias}Key"
+    walletKey="${walletName}Key"
   fi
 
-  echo "Create Wallet for ${walletAlias} ..."
-  jsonData="{\"wallet_name\":\"${walletAlias}\",\"wallet_key\":\"${walletKey}\",\"wallet_dispatch_type\":\"default\",\"wallet_type\":\"indy\"}"
+  echo "Create Wallet for ${walletName} ..."
+  jsonData="{\"wallet_name\":\"${walletName}\",\"wallet_key\":\"${walletKey}\",\"wallet_dispatch_type\":\"default\",\"wallet_type\":\"indy\"}"
   echo ${jsonData} | jq .
 
   jsonResponse=$(curl --silent --request POST "http://${ACAPY_HOSTNAME}:${ACAPY_ADMIN_PORT}/multitenancy/wallet" \
@@ -57,7 +57,7 @@ createWallet() {
   if [[ ! -z ${ledgerRole} ]]; then
 
     echo "Register DID with the Ledger ..."
-    jsonData="{\"alias\":\"${walletAlias}\",\"did\":\"${publicDid}\",\"verkey\":\"${publicVkey}\",\"role\":\"${ledgerRole}\"}"
+    jsonData="{\"alias\":\"${walletName}\",\"did\":\"${publicDid}\",\"verkey\":\"${publicVkey}\",\"role\":\"${ledgerRole}\"}"
     echo ${jsonData} | jq .
 
     jsonResponse=$(curl --silent --request POST "http://${INDY_WEB_SERVER_HOST}:${INDY_WEB_SERVER_PORT}/register" \
@@ -71,16 +71,16 @@ createWallet() {
     echo ${jsonResponse} | jq .
   fi
 
-  configFile="${configDir}/${walletAlias}.json"
+  configFile="${configDir}/${walletName}.json"
 
   echo "Wallet Config: ${configFile}"
-  jsonData="{\"wallet_name\":\"${walletAlias}\",\"wallet_key\":\"${walletKey}\",\"ledger_role\":\"${ledgerRole}\""
+  jsonData="{\"wallet_name\":\"${walletName}\",\"wallet_key\":\"${walletKey}\",\"ledger_role\":\"${ledgerRole}\""
   jsonData="${jsonData},\"wallet_id\":\"${walletId}\",\"did\":\"${publicDid}\",\"verkey\":\"${publicVkey}\",\"auth_token\":\"${accessToken}\"}"
   echo "${jsonData}" > ${configFile}
   cat ${configFile} | jq .
 
-  echo "Create CLI environment for ${walletAlias} ..."
-  siera configuration add --environment="${walletAlias}" --agent="aca-py" --agent-url="http://${ACAPY_HOSTNAME}:${ACAPY_ADMIN_PORT}" --api-key="${ACAPY_ADMIN_KEY}" --token="${accessToken}"
+  echo "Create CLI environment for ${walletName} ..."
+  siera configuration add --environment="${walletName}" --agent="aca-py" --agent-url="http://${ACAPY_HOSTNAME}:${ACAPY_ADMIN_PORT}" --api-key="${ACAPY_ADMIN_KEY}" --token="${accessToken}"
   siera configuration view
 }
 
@@ -92,18 +92,18 @@ listWallets() {
 }
 
 removeWallet() {
-  walletAlias="$1"
+  walletName="$1"
 
-  if [[ -z ${walletAlias} ]]; then
+  if [[ -z ${walletName} ]]; then
     help; exit 1
   fi
 
-  configFile="${configDir}/${walletAlias}.json"
+  configFile="${configDir}/${walletName}.json"
 
   if [[ -f ${configFile} ]]; then
     walletId=$(cat ${configFile} | jq -r .wallet_id)
 
-    echo "Remove wallet for ${walletAlias}"
+    echo "Remove wallet for ${walletName}"
     jsonResponse=$(curl --silent --request POST "http://${ACAPY_HOSTNAME}:${ACAPY_ADMIN_PORT}/multitenancy/wallet/${walletId}/remove" \
       --header "X-API-KEY: ${ACAPY_ADMIN_KEY}")
 
@@ -115,16 +115,16 @@ removeWallet() {
 }
 
 switchWallet() {
-  walletAlias="$1"
+  walletName="$1"
 
-  if [[ -z ${walletAlias} ]]; then
+  if [[ -z ${walletName} ]]; then
     help; exit 1
   fi
 
-  configFile="${configDir}/${walletAlias}.json"
+  configFile="${configDir}/${walletName}.json"
   accessToken=$(cat ${configFile} | jq -r .auth_token)
 
-  echo "Switching CLI environment to ${walletAlias}"
+  echo "Switching CLI environment to ${walletName}"
   siera configuration add --environment="default" --agent-url="http://${ACAPY_HOSTNAME}:${ACAPY_ADMIN_PORT}" --api-key="${ACAPY_ADMIN_KEY}" --token="${accessToken}"
 }
 
@@ -138,7 +138,7 @@ do
   # echo "$i/$j: ${key} ${val}"
 
   case ${key} in
-    --create | --remove | --switch) walletAlias=${val};;
+    --create | --remove | --switch) walletName=${val};;
     --wallet-key) walletKey=${val};;
     --ledger-role) ledgerRole=${val};;
   esac
@@ -146,7 +146,7 @@ done
 
 if [[ $1 == "--create" ]]; then
 
-  createWallet "${walletAlias}" "${walletKey}" "${ledgerRole}"
+  createWallet "${walletName}" "${walletKey}" "${ledgerRole}"
 
 elif [[ $1 == "--list" ]]; then
 
@@ -154,11 +154,11 @@ elif [[ $1 == "--list" ]]; then
 
 elif [[ $1 == "--remove" ]]; then
 
-  removeWallet ${walletAlias}
+  removeWallet ${walletName}
 
 elif [[ $1 == "--switch" ]]; then
 
-  switchWallet ${walletAlias}
+  switchWallet ${walletName}
 
 else
   help

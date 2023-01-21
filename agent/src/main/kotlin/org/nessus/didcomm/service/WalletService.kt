@@ -29,6 +29,7 @@ import mu.KotlinLogging
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.model.WalletModel
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.AriesWalletPlugin
 import org.nessus.didcomm.wallet.DidMethod
@@ -46,6 +47,7 @@ class WalletService : BaseService() {
     private val log = KotlinLogging.logger {}
 
     private val walletStore get() = WalletStoreService.getService()
+    private val modelManager get() = ModelManagerService.getService()
 
     companion object: ServiceProvider {
         private val implementation = WalletService()
@@ -87,12 +89,12 @@ class WalletService : BaseService() {
     }
 
     fun createWallet(config: WalletConfig): Wallet {
-        val maybeWallet = findByAlias(config.alias)
+        val maybeWallet = findByName(config.name)
         val agentType = config.agentType ?: AgentType.NESSUS
         val storageType = config.storageType ?: StorageType.IN_MEMORY
         if (config.mayExist && maybeWallet != null) {
-            check(maybeWallet.agentType == agentType) {"Wallet ${config.alias} exists, with other agent: ${maybeWallet.agentType}"}
-            check(maybeWallet.storageType == storageType)  {"Wallet ${config.alias} exists, with other type: ${maybeWallet.storageType}"}
+            check(maybeWallet.agentType == agentType) {"Wallet ${config.name} exists, with other agent: ${maybeWallet.agentType}"}
+            check(maybeWallet.storageType == storageType)  {"Wallet ${config.name} exists, with other type: ${maybeWallet.storageType}"}
             return maybeWallet
         }
         val wallet = walletServicePlugin(agentType).createWallet(config)
@@ -101,9 +103,10 @@ class WalletService : BaseService() {
     }
 
     fun addWallet(wallet: Wallet) {
-        check(findByAlias(wallet.alias) == null) {"Wallet already exists: ${wallet.alias}"}
+        check(findByName(wallet.name) == null) {"Wallet already exists: ${wallet.name}"}
         log.info {"Add: $wallet" }
         walletStore.addWallet(wallet)
+        modelManager.addWallet(WalletModel.fromWallet(wallet))
     }
 
     fun removeWallet(id: String): Wallet? {
@@ -111,9 +114,10 @@ class WalletService : BaseService() {
         if (wallet != null) {
             log.info {"Remove: $wallet" }
             walletServicePlugin(wallet.agentType).removeWallet(wallet)
-            return walletStore.removeWallet(id)
+            walletStore.removeWallet(id)
+            modelManager.removeWallet(id)
         }
-        return null
+        return wallet
     }
 
     fun getWallets(): List<Wallet> {
@@ -124,8 +128,8 @@ class WalletService : BaseService() {
         return walletStore.getWallet(id)
     }
 
-    fun findByAlias(alias: String): Wallet? {
-        return walletStore.findByAlias(alias)
+    fun findByName(name: String): Wallet? {
+        return walletStore.findByName(name)
     }
 
     fun findByVerkey(verkey: String): Wallet? {
@@ -139,7 +143,7 @@ class WalletService : BaseService() {
      */
     fun createDid(wallet: Wallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
         val did = wallet.walletPlugin.createDid(wallet, method, algorithm, seed)
-        log.info { "New DID for ${wallet.alias}: $did" }
+        log.info { "New DID for ${wallet.name}: $did" }
         walletStore.addDid(wallet.id, did)
         return did
     }

@@ -38,7 +38,7 @@ class WalletTest: AbstractDidCommTest() {
         val faber: Wallet = Wallet.Builder("Faber1")
             .build()
 
-        assertEquals("Faber1", faber.alias)
+        assertEquals("Faber1", faber.name)
         assertEquals(AgentType.NESSUS, faber.agentType)
         assertEquals(StorageType.IN_MEMORY, faber.storageType)
 

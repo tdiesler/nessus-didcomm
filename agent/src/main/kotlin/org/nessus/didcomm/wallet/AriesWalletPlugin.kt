@@ -32,9 +32,9 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
     override fun createWallet(config: WalletConfig): Wallet {
 
         val agentType = AgentType.ACAPY
-        val walletAlias = config.alias
+        val walletName = config.name
         val storageType = config.storageType ?: StorageType.IN_MEMORY
-        val walletKey = config.walletKey ?: (walletAlias + "Key")
+        val walletKey = config.walletKey ?: (walletName + "Key")
         val publicDidMethod = config.publicDidMethod
         val ledgerRole = config.ledgerRole
         val trusteeWallet = config.trusteeWallet
@@ -47,14 +47,14 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
         val adminClient = AriesAgent.adminClient(agentConfig)
 
         val walletRequest = CreateWalletRequest.builder()
-            .walletName(walletAlias)
+            .walletName(walletName)
             .walletKey(walletKey)
             .walletDispatchType(WalletDispatchType.DEFAULT)
             .walletType(storageType.toAriesWalletType())
             .build()
         val walletRecord = adminClient.multitenancyWalletCreate(walletRequest).get()
         val auxWallet = Wallet(
-            walletRecord.walletId, walletAlias, agentType, storageType,
+            walletRecord.walletId, walletName, agentType, storageType,
             authToken=walletRecord.token, options = walletOptions
         )
 
@@ -73,7 +73,7 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
             publicDid = walletClient.walletDidCreate(didCreate).get().toNessusDid()
 
             val trusteeClient = AriesAgent.walletClient(trusteeWallet, agentConfig)
-            val trusteeName: String = trusteeWallet.alias
+            val trusteeName: String = trusteeWallet.name
             val nymResponse = trusteeClient.ledgerRegisterNym(
                 RegisterNymFilter.builder()
                     .did(publicDid.id)
@@ -81,24 +81,24 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
                     .role(indyLedgerRole)
                     .build()
             ).get()
-            log.info("{} for {}: {}", trusteeName, walletAlias, nymResponse)
+            log.info("{} for {}: {}", trusteeName, walletName, nymResponse)
 
             // Set the public DID for the wallet
             walletClient.walletDidPublic(publicDid.id)
 
-            Wallet(auxWallet.id, walletAlias, agentType, storageType, auxWallet.authToken, auxWallet.options)
+            Wallet(auxWallet.id, walletName, agentType, storageType, auxWallet.authToken, auxWallet.options)
         } else auxWallet
 
-        log.info("{}: did={} endpoint={}", walletAlias, publicDid?.qualified, wallet.endpointUrl)
+        log.info("{}: did={} endpoint={}", walletName, publicDid?.qualified, wallet.endpointUrl)
         return wallet
     }
 
     override fun removeWallet(wallet: Wallet) {
 
         val walletId = wallet.id
-        val walletAlias = wallet.alias
+        val walletName = wallet.name
         val accessToken = wallet.authToken
-        log.info("Remove Wallet: {}", walletAlias)
+        log.info("Remove Wallet: {}", walletName)
 
         val adminClient = wallet.adminClient() as AriesClient
         adminClient.multitenancyWalletRemove(

@@ -121,8 +121,8 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
 
                 val createInvRequest = InvitationCreateRequest.builder()
                     .accept(listOf("didcomm/v2"))
-                    .alias("${faber.alias}/${alice.alias}")
-                    .myLabel("Invitation for ${alice.alias}")
+                    .alias("${faber.name}/${alice.name}")
+                    .myLabel("Invitation for ${alice.name}")
                     .handshakeProtocols(listOf("https://didcomm.org/didexchange/1.0"))
                     .protocolVersion("1.1")
                     .usePublicDid(false)

@@ -2,17 +2,25 @@ package org.nessus.didcomm.util
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonArray
+import com.google.gson.JsonElement
 import com.google.gson.JsonObject
+import com.google.gson.JsonSerializationContext
+import com.google.gson.JsonSerializer
 import io.ipfs.multibase.Base58
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
 import org.web3j.utils.Numeric
+import java.lang.reflect.Type
 import java.util.*
 
 /***********************************************************************************************************************
  * JSON
  */
-val gson: Gson = GsonBuilder().create()
+val gson: Gson = GsonBuilder()
+    .registerTypeHierarchyAdapter(Collection::class.java, CollectionAdapter())
+    .registerTypeHierarchyAdapter(Map::class.java, MapAdapter())
+    .create()
 
 val prettyGson: Gson = GsonBuilder()
     .setPrettyPrinting()
@@ -46,6 +54,28 @@ fun String.trimJson(): String {
 
 fun String.sortedJson(): String {
     return this.decodeJson().encodeJson(true)
+}
+
+internal class CollectionAdapter : JsonSerializer<Collection<*>> {
+    override fun serialize(src: Collection<*>, type: Type, ctx: JsonSerializationContext): JsonElement? {
+        if (src.isEmpty()) return null
+        val array = JsonArray()
+        src.forEach {
+            array.add(ctx.serialize(it))
+        }
+        return array
+    }
+}
+
+internal class MapAdapter : JsonSerializer<Map<String, *>> {
+    override fun serialize(src: Map<String, *>, type: Type, ctx: JsonSerializationContext): JsonElement? {
+        if (src.isEmpty()) return null
+        val obj = JsonObject()
+        src.forEach {(k, v) ->
+            obj.add(k, ctx.serialize(v))
+        }
+        return obj
+    }
 }
 
 /***********************************************************************************************************************

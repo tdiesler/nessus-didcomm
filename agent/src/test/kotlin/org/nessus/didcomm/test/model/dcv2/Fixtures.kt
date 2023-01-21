@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.test.model
+package org.nessus.didcomm.test.model.dcv2
 
-import org.nessus.didcomm.model.MessageReader
+import org.nessus.didcomm.model.dcv2.MessageReader
 
 class OutOfBand {
 
