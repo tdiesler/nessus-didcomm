@@ -35,13 +35,13 @@ import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocolWrapper
 import org.nessus.didcomm.util.AttachmentKey
 
 val RFC0019_ENCRYPTED_ENVELOPE = ProtocolKey("https://rfc0019/application/didcomm-enc-env", RFC0019EncryptionEnvelope::class.java)
-val RFC0023_DID_EXCHANGE = ProtocolKey("https://didcomm.org/didexchange/1.0", RFC0023DidExchangeProtocol::class.java)
+val RFC0023_DIDEXCHANGE = ProtocolKey("https://didcomm.org/didexchange/1.0", RFC0023DidExchangeProtocol::class.java)
 val RFC0048_TRUST_PING = ProtocolKey("https://didcomm.org/trust_ping/1.0", RFC0048TrustPingProtocol::class.java)
 val RFC0095_BASIC_MESSAGE = ProtocolKey("https://didcomm.org/basicmessage/1.0", RFC0095BasicMessageProtocol::class.java)
 val RFC0434_OUT_OF_BAND = ProtocolKey("https://didcomm.org/out-of-band/1.1", RFC0434OutOfBandProtocol::class.java)
 
 val RFC0019_ENCRYPTED_ENVELOPE_WRAPPER = ProtocolWrapperKey("https://rfc0019/application/didcomm-enc-env", RFC0019EncryptionEnvelopeWrapper::class.java)
-val RFC0023_DID_EXCHANGE_WRAPPER = ProtocolWrapperKey("https://didcomm.org/didexchange/1.0", RFC0023DidExchangeProtocolWrapper::class.java)
+val RFC0023_DIDEXCHANGE_WRAPPER = ProtocolWrapperKey("https://didcomm.org/didexchange/1.0", RFC0023DidExchangeProtocolWrapper::class.java)
 val RFC0048_TRUST_PING_WRAPPER = ProtocolWrapperKey("https://didcomm.org/trust_ping/1.0", RFC0048TrustPingProtocolWrapper::class.java)
 val RFC0095_BASIC_MESSAGE_WRAPPER = ProtocolWrapperKey("https://didcomm.org/basicmessage/1.0", RFC0095BasicMessageProtocolWrapper::class.java)
 val RFC0434_OUT_OF_BAND_WRAPPER = ProtocolWrapperKey("https://didcomm.org/out-of-band/1.1", RFC0434OutOfBandProtocolWrapper::class.java)
@@ -63,7 +63,7 @@ class ProtocolService : NessusBaseService() {
 
         val supportedProtocols: List<ProtocolKey<*>> get() = listOf(
                 RFC0019_ENCRYPTED_ENVELOPE,
-                RFC0023_DID_EXCHANGE,
+                RFC0023_DIDEXCHANGE,
                 RFC0048_TRUST_PING,
                 RFC0095_BASIC_MESSAGE,
                 RFC0434_OUT_OF_BAND,
@@ -80,7 +80,7 @@ class ProtocolService : NessusBaseService() {
     fun <P: Protocol> getProtocol(key: ProtocolKey<P>): P {
         return when(key) {
             RFC0019_ENCRYPTED_ENVELOPE -> RFC0019EncryptionEnvelope()
-            RFC0023_DID_EXCHANGE -> RFC0023DidExchangeProtocol()
+            RFC0023_DIDEXCHANGE -> RFC0023DidExchangeProtocol()
             RFC0048_TRUST_PING -> RFC0048TrustPingProtocol()
             RFC0095_BASIC_MESSAGE -> RFC0095BasicMessageProtocol()
             RFC0434_OUT_OF_BAND -> RFC0434OutOfBandProtocol()

@@ -26,8 +26,8 @@ class RFC0048TrustPingProtocol(): Protocol() {
     companion object {
         const val PROTOCOL_METHOD_SEND_PING = "/connections/send_ping"
 
-        val MESSAGE_TYPE_RFC0048_TRUST_PING = "${RFC0048_TRUST_PING.uri}/ping"
-        val MESSAGE_TYPE_RFC0048_TRUST_PING_RESPONSE = "${RFC0048_TRUST_PING.uri}/ping_response"
+        val RFC0048_TRUST_PING_MESSAGE_TYPE_PING = "${RFC0048_TRUST_PING.uri}/ping"
+        val RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE = "${RFC0048_TRUST_PING.uri}/ping_response"
     }
 
     /**

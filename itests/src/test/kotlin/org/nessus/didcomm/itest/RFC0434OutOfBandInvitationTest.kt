@@ -22,7 +22,7 @@ package org.nessus.didcomm.itest
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_METHOD
 import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.PROTOCOL_METHOD_RECEIVE_INVITATION
+import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.RFC0434_OUT_OF_BAND_METHOD_RECEIVE_INVITATION
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_WRAPPER
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
@@ -75,7 +75,7 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
              */
 
             rfc0434.dispatchTo(alice, mapOf(
-                    MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_RECEIVE_INVITATION,
+                    MESSAGE_PROTOCOL_METHOD to RFC0434_OUT_OF_BAND_METHOD_RECEIVE_INVITATION,
                 ))
 
         } finally {

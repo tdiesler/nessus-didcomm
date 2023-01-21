@@ -1,9 +1,8 @@
 package org.nessus.didcomm.protocol
 
 import id.walt.common.prettyPrint
-import org.nessus.didcomm.service.InvitationService
-import org.nessus.didcomm.service.RFC0023_DID_EXCHANGE
 import org.nessus.didcomm.service.RFC0023DidDocument
+import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.util.decodeBase64Str
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.selectJson
@@ -14,15 +13,15 @@ import org.nessus.didcomm.wallet.Wallet
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange
  */
 class RFC0023DidExchangeProtocol(): Protocol() {
-    override val protocolUri = RFC0023_DID_EXCHANGE.uri
+    override val protocolUri = RFC0023_DIDEXCHANGE.uri
 
     companion object {
-        const val PROTOCOL_METHOD_ACCEPT_INVITATION = "/didexchange/accept-invitation"
-        const val PROTOCOL_METHOD_RECEIVE_REQUEST = "/didexchange/receive-request"
+        const val RFC0023_DIDEXCHANGE_METHOD_ACCEPT_INVITATION = "/didexchange/accept-invitation"
+        const val RFC0023_DIDEXCHANGE_METHOD_RECEIVE_REQUEST = "/didexchange/receive-request"
 
-        val MESSAGE_TYPE_RFC0023_DID_EXCHANGE_REQUEST = "${RFC0023_DID_EXCHANGE.uri}/request"
-        val MESSAGE_TYPE_RFC0023_DID_EXCHANGE_RESPONSE = "${RFC0023_DID_EXCHANGE.uri}/response"
-        val MESSAGE_TYPE_RFC0023_DID_EXCHANGE_COMPLETE = "${RFC0023_DID_EXCHANGE.uri}/complete"
+        val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST = "${RFC0023_DIDEXCHANGE.uri}/request"
+        val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE = "${RFC0023_DIDEXCHANGE.uri}/response"
+        val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE = "${RFC0023_DIDEXCHANGE.uri}/complete"
     }
 
     /**
@@ -98,8 +97,7 @@ class RFC0023DidExchangeProtocol(): Protocol() {
          *  - An explicit out-of-band invitation with its own @id.
          *  - An implicit invitation contained in a DID document's service attribute that conforms to the DIDComm conventions.
          */
-        val invitationService = InvitationService.getService()
-        val invitation = invitationService.getInvitation(pthid)
+        val invitation = modelService.getWallet(responder.id)?.getInvitation(pthid)
         checkNotNull(invitation) { "Cannot find invitation for: $pthid" }
 
         /**
@@ -153,8 +151,8 @@ class RFC0023DidExchangeProtocolWrapper(mex: MessageExchange):
 
     override fun invokeMethod(to: Wallet, method: String): Boolean {
         when(method) {
-            RFC0023DidExchangeProtocol.PROTOCOL_METHOD_ACCEPT_INVITATION -> protocol.acceptDidExchangeInvitation(to)
-            RFC0023DidExchangeProtocol.PROTOCOL_METHOD_RECEIVE_REQUEST -> protocol.receiveDidExchangeRequest(to, mex.last)
+            RFC0023DidExchangeProtocol.RFC0023_DIDEXCHANGE_METHOD_ACCEPT_INVITATION -> protocol.acceptDidExchangeInvitation(to)
+            RFC0023DidExchangeProtocol.RFC0023_DIDEXCHANGE_METHOD_RECEIVE_REQUEST -> protocol.receiveDidExchangeRequest(to, mex.last)
             else -> throw IllegalStateException("Unsupported protocol method: $method")
         }
         return true

@@ -9,7 +9,7 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_FROM_ID
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_METHOD
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_URI
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THREAD_ID
-import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol.Companion.PROTOCOL_METHOD_SEND_MESSAGE
+import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol.Companion.RFC0095_BASIC_MESSAGE_METHOD_SEND_MESSAGE
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
@@ -22,7 +22,7 @@ class RFC0095BasicMessageProtocol(): Protocol() {
     override val protocolUri = RFC0095_BASIC_MESSAGE.uri
 
     companion object {
-        const val PROTOCOL_METHOD_SEND_MESSAGE = "/connections/send_message"
+        const val RFC0095_BASIC_MESSAGE_METHOD_SEND_MESSAGE = "/connections/send_message"
     }
 
     /**
@@ -58,7 +58,7 @@ class RFC0095BasicMessageProtocolWrapper(mex: MessageExchange):
             message, mapOf(
                 MESSAGE_THREAD_ID to mex.last.threadId,
                 MESSAGE_DIRECTION to MessageDirection.OUTBOUND,
-                MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_SEND_MESSAGE,
+                MESSAGE_PROTOCOL_METHOD to RFC0095_BASIC_MESSAGE_METHOD_SEND_MESSAGE,
                 MESSAGE_CONTENT_URI to "https://didcomm.org/basicmessage/1.0/message",
                 MESSAGE_PROTOCOL_URI to protocol.protocolUri,
                 MESSAGE_FROM_ALIAS to sender.name,

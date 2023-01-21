@@ -32,11 +32,11 @@ import org.nessus.didcomm.itest.NESSUS_OPTIONS_01
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
-import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.MESSAGE_TYPE_RFC0023_DID_EXCHANGE_COMPLETE
-import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.MESSAGE_TYPE_RFC0023_DID_EXCHANGE_REQUEST
-import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.MESSAGE_TYPE_RFC0023_DID_EXCHANGE_RESPONSE
-import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.MESSAGE_TYPE_RFC0048_TRUST_PING
-import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.MESSAGE_TYPE_RFC0048_TRUST_PING_RESPONSE
+import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE
+import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST
+import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE
+import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING
+import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE
 import org.nessus.didcomm.service.RFC0019_ENCRYPTED_ENVELOPE
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.matches
@@ -96,9 +96,9 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                     .unpackRFC0019Envelope(epm.bodyAsJson)?.first
                 if (message != null) {
                     val atType = message.selectJson("@type")
-                    if (atType == MESSAGE_TYPE_RFC0023_DID_EXCHANGE_RESPONSE) {
+                    if (atType == RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE) {
                         didexResponseFuture.complete(message) }
-                    else if (atType == MESSAGE_TYPE_RFC0048_TRUST_PING_RESPONSE) {
+                    else if (atType == RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE) {
                         trustPingResponseFuture.complete(message)
                     } else {
                         log.warn { "Unknown message type: $atType" }
@@ -186,7 +186,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                 val didexRequestId = "${UUID.randomUUID()}"
                 val didexRequest = """
                 {
-                    "@type": "$MESSAGE_TYPE_RFC0023_DID_EXCHANGE_REQUEST",
+                    "@type": "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST",
                     "@id": "$didexRequestId",
                     "~thread": {
                         "thid": "$didexRequestId",
@@ -226,7 +226,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
 
                 val didexComplete = """
                 {
-                    "@type": "$MESSAGE_TYPE_RFC0023_DID_EXCHANGE_COMPLETE",
+                    "@type": "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE",
                     "@id": "${UUID.randomUUID()}",
                     "~thread": {
                         "thid": "$didexRequestId",
@@ -253,7 +253,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
 
                 val trustPing = """
                 {
-                    "@type": "$MESSAGE_TYPE_RFC0048_TRUST_PING",
+                    "@type": "$RFC0048_TRUST_PING_MESSAGE_TYPE_PING",
                     "@id": "${UUID.randomUUID()}",
                     "response_requested": True
                 }

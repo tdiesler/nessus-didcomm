@@ -6,14 +6,22 @@ import org.nessus.didcomm.wallet.Wallet
 data class WalletModel(
     val id: String,
     val name: String,
-    val dids: MutableMap<String, DidModel> = mutableMapOf(),
-    val invitations: MutableMap<String, Invitation> = mutableMapOf(),
-    val connections: MutableMap<String, Connection> = mutableMapOf(),
+    val dids: MutableList<DidModel> = mutableListOf(),
+    val invitations: MutableList<Invitation> = mutableListOf(),
+    val connections: MutableList<Connection> = mutableListOf(),
 ) {
     companion object {
         fun fromWallet(wallet: Wallet): WalletModel {
             return WalletModel(wallet.id,wallet.name)
         }
+    }
+
+    fun addInvitation(invitation: Invitation) {
+        invitations.add(invitation)
+    }
+
+    fun getInvitation(id: String): Invitation? {
+        return invitations.firstOrNull { it.id == id }
     }
 }
 
@@ -28,9 +36,9 @@ data class DidModel(
 
 data class Invitation(
     @SerializedName("@id")
-    val atId: String,
+    val id: String,
     @SerializedName("@type")
-    val atType: String,
+    val type: String,
     @SerializedName("handshake_protocols")
     val handshakeProtocols: List<String>,
     @SerializedName("accept")

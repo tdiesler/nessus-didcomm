@@ -2,8 +2,9 @@ package org.nessus.didcomm.protocol
 
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.PROTOCOL_METHOD_RECEIVE_INVITATION
+import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.RFC0434_OUT_OF_BAND_METHOD_RECEIVE_INVITATION
 import org.nessus.didcomm.service.MessageDispatchService
+import org.nessus.didcomm.service.ModelManagerService
 import org.nessus.didcomm.service.ProtocolWrapperKey
 import org.nessus.didcomm.util.toUnionMap
 import org.nessus.didcomm.wallet.Wallet
@@ -12,6 +13,8 @@ abstract class Protocol {
     val log = KotlinLogging.logger {}
 
     abstract val protocolUri: String
+
+    val modelService get() = ModelManagerService.getService()
 
     open fun invokeMethod(to: Wallet, method: String, mex: MessageExchange): Boolean {
         throw IllegalStateException("Dispatch not supported in protocol: $protocolUri")
@@ -46,7 +49,7 @@ abstract class ProtocolWrapper<W: ProtocolWrapper<W, P>, P: Protocol>(
         }
 
         val protocolMethod = mex.last.protocolMethod as? String
-        if (protocolMethod == PROTOCOL_METHOD_RECEIVE_INVITATION) {
+        if (protocolMethod == RFC0434_OUT_OF_BAND_METHOD_RECEIVE_INVITATION) {
             val thid = mex.last.threadId ?: throw IllegalStateException("No threadId in ${mex.last}")
             mex.addThreadIdFuture(thid)
         }

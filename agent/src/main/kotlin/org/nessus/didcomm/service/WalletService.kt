@@ -47,7 +47,7 @@ class WalletService : BaseService() {
     private val log = KotlinLogging.logger {}
 
     private val walletStore get() = WalletStoreService.getService()
-    private val modelManager get() = ModelManagerService.getService()
+    private val modelService get() = ModelManagerService.getService()
 
     companion object: ServiceProvider {
         private val implementation = WalletService()
@@ -106,7 +106,7 @@ class WalletService : BaseService() {
         check(findByName(wallet.name) == null) {"Wallet already exists: ${wallet.name}"}
         log.info {"Add: $wallet" }
         walletStore.addWallet(wallet)
-        modelManager.addWallet(WalletModel.fromWallet(wallet))
+        modelService.addWallet(WalletModel.fromWallet(wallet))
     }
 
     fun removeWallet(id: String): Wallet? {
@@ -115,7 +115,7 @@ class WalletService : BaseService() {
             log.info {"Remove: $wallet" }
             walletServicePlugin(wallet.agentType).removeWallet(wallet)
             walletStore.removeWallet(id)
-            modelManager.removeWallet(id)
+            modelService.removeWallet(id)
         }
         return wallet
     }

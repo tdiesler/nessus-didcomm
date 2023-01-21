@@ -32,24 +32,24 @@ import kotlin.test.assertNull
 
 class ModelManagerTest: AbstractDidCommTest() {
 
-    val manager get() = ModelManagerService.getService()
+    private val modelService get() = ModelManagerService.getService()
 
     @Test
     fun testModelManager() {
 
         // Show empty state
-        log.info { manager.modelAsJson.prettyPrint() }
+        log.info { modelService.modelAsJson.prettyPrint() }
 
         Wallet.Builder(Alice.name)
             .agentType(AgentType.NESSUS)
             .build()
 
-        assertEquals(3, manager.listWallets().size)
-        assertNotNull(manager.findWalletByName(Alice.name))
-        log.info { manager.modelAsJson.prettyPrint() }
+        assertEquals(3, modelService.listWallets().size)
+        assertNotNull(modelService.findWalletByName(Alice.name))
+        log.info { modelService.modelAsJson.prettyPrint() }
 
         removeWallet(Alice.name)
-        assertEquals(2, manager.listWallets().size)
-        assertNull(manager.findWalletByName(Alice.name))
+        assertEquals(2, modelService.listWallets().size)
+        assertNull(modelService.findWalletByName(Alice.name))
     }
 }

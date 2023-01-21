@@ -23,7 +23,7 @@ import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyType
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.MESSAGE_TYPE_RFC0023_DID_EXCHANGE_REQUEST
+import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST
 import org.nessus.didcomm.service.RFC0019_ENCRYPTED_ENVELOPE
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Alice
@@ -73,7 +73,7 @@ class RFC0019EnvelopeTest: AbstractDidCommTest() {
 
         val rfc0019 = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
         val (unpacked, recipientVerkey) = rfc0019.unpackRFC0019Envelope(envelope)!!
-        assertEquals(MESSAGE_TYPE_RFC0023_DID_EXCHANGE_REQUEST, unpacked.selectJson("@type"))
+        assertEquals(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST, unpacked.selectJson("@type"))
         assertEquals(aliceDidSov.verkey, recipientVerkey)
 
         val didDocument = didDocumentService.extractFromAttachment(unpacked.selectJson("did_doc~attach") as String)

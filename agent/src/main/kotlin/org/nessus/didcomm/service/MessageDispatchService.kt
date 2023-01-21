@@ -29,7 +29,7 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THREAD_ID
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.findByThreadId
 import org.nessus.didcomm.protocol.MessageListener
-import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.PROTOCOL_METHOD_RECEIVE_REQUEST
+import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_METHOD_RECEIVE_REQUEST
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJsonPretty
 import org.nessus.didcomm.util.selectJson
@@ -123,7 +123,7 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
 
         val atType = envelope["@type"] as String
         val (protocolUri, protocolMethod) = when(atType) {
-            "https://didcomm.org/didexchange/1.0/request" -> Pair(RFC0023_DID_EXCHANGE.uri, PROTOCOL_METHOD_RECEIVE_REQUEST)
+            "https://didcomm.org/didexchange/1.0/request" -> Pair(RFC0023_DIDEXCHANGE.uri, RFC0023_DIDEXCHANGE_METHOD_RECEIVE_REQUEST)
             else -> throw IllegalStateException("Unsupported message type: $atType")
         }
         mex.addMessage(EndpointMessage(body, mapOf(
