@@ -137,7 +137,9 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
 
     override fun listDids(wallet: Wallet): List<Did> {
         val walletClient = wallet.walletClient() as AriesClient
-        return walletClient.walletDid().get().map { it.toNessusDid() }
+        val dids = walletClient.walletDid().get().map { it.toNessusDid() }
+        dids.forEach { wallet.toWalletModel().addDid(it) }
+        return dids
     }
 
     override fun removeConnections(wallet: Wallet) {

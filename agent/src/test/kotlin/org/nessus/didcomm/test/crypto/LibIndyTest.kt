@@ -132,10 +132,10 @@ class LibIndyTest: AbstractDidCommTest() {
             val packed = String(Crypto.packMessage(faber, receivers, faberDid.verkey, message.toByteArray()).get())
             log.info { "Packed: ${packed.prettyPrint()}" }
 
-            val (unpacked, recipientVerkey) = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
-                .unpackRFC0019Envelope(packed)!!
+            val unpacked = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
+                .unpackEncryptedEnvelope(packed)
             log.info { "Unpacked: $unpacked"}
-            assertEquals(aliceDid.verkey, recipientVerkey)
+            assertEquals(aliceDid.verkey, unpacked?.recipientVerkey)
 
         } finally {
             closeAndDeleteWallet(Faber.name)
@@ -162,7 +162,7 @@ class LibIndyTest: AbstractDidCommTest() {
 
             val message = "Your hovercraft is full of eels."
             val packed = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
-                .packRFC0019Envelope(message, aliceDid, faberDid)
+                .packEncryptedEnvelope(message, aliceDid, faberDid)
             log.info { "Packed: ${packed.prettyPrint()}" }
 
             val unpackedJson = String(Crypto.unpackMessage(faber, packed.toByteArray()).get())

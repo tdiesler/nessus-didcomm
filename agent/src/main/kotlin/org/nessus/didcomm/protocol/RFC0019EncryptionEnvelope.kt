@@ -38,7 +38,7 @@ class RFC0019EncryptionEnvelope: Protocol() {
 
     val keyStore get() = KeyStoreService.getService()
 
-    fun packRFC0019Envelope(message: String, sender: Did, recipient: Did): String {
+    fun packEncryptedEnvelope(message: String, sender: Did, recipient: Did): String {
 
         val senderKeys = keyStore.load(sender.verkey, KeyType.PRIVATE).keyPair!!
         val senderVerkey = sender.verkey
@@ -108,11 +108,9 @@ class RFC0019EncryptionEnvelope: Protocol() {
 
     /**
      * Unpack an encrypted envelope
-     *
-     * @return A Pair<decrypted message, recipient verkey>
      */
     @Suppress("UNCHECKED_CAST")
-    fun unpackRFC0019Envelope(envelope: String): Pair<String, String>? {
+    fun unpackEncryptedEnvelope(envelope: String): UnpackResponse? {
 
         // 1.Serialize data, so it can be used
         val envelopeMap = envelope.decodeJson()
@@ -133,10 +131,10 @@ class RFC0019EncryptionEnvelope: Protocol() {
             keyStore.getKeyId(kid) != null
         } ?: return null
 
-        val kid = recipient.selectJson("header.kid") as String
-        val recipientKeyPair = keyStore.load(kid, KeyType.PRIVATE).keyPair!!
+        val recipientVerkey = recipient.selectJson("header.kid") as String
+        val recipientKeyPair = keyStore.load(recipientVerkey, KeyType.PRIVATE).keyPair!!
         val recipientCurve25519Keys = recipientKeyPair.convertEd25519toCurve25519()
-        log.info { "Recipient verkey: $kid"}
+        log.info { "Recipient verkey: $recipientVerkey"}
 
         // 3. Check if a sender field is used
         val sender64 = recipient.selectJson("header.sender") as? String
@@ -174,8 +172,13 @@ class RFC0019EncryptionEnvelope: Protocol() {
 
         log.info { "Unpacked Envelope: ${unpacked.prettyPrint()}" }
 
-        return Pair(unpacked, kid)
+        return UnpackResponse(unpacked, senderVerkey, recipientVerkey)
     }
+    data class UnpackResponse(
+        val message: String,
+        val senderVerkey: String,
+        val recipientVerkey: String,
+    )
 }
 
 class RFC0019EncryptionEnvelopeWrapper(mex: MessageExchange):

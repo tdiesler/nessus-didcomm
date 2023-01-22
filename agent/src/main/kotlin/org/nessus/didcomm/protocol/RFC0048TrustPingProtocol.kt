@@ -2,19 +2,19 @@ package org.nessus.didcomm.protocol
 
 import org.hyperledger.aries.api.trustping.PingRequest
 import org.nessus.didcomm.agent.AriesClient
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_CONTENT_URI
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_DIRECTION
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_FROM_ALIAS
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_FROM_ID
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_METHOD
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_URI
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THREAD_ID
-import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.PROTOCOL_METHOD_SEND_PING
+import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE
 import org.nessus.didcomm.service.RFC0048_TRUST_PING
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_WRAPPER
+import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.gson
-import org.nessus.didcomm.util.selectJson
+import org.nessus.didcomm.util.trimJson
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
+import org.nessus.didcomm.wallet.toWalletModel
+import java.util.*
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
 
 /**
  * Aries RFC 0048: Trust Ping Protocol 1.0
@@ -33,47 +33,106 @@ class RFC0048TrustPingProtocol(): Protocol() {
     /**
      * Send a basic message to a connection
      */
-    fun sendPing(sender: Wallet, conId: String, comment: String? = "ping"): String {
+    fun sendTrustPing(sender: Wallet, conId: String): EndpointMessage {
 
-        if (sender.agentType == AgentType.ACAPY)
-            return sendPingAcapy(sender, conId, comment!!)
-
-        TODO("sendPing")
+        return if (sender.agentType == AgentType.ACAPY)
+            sendTrustPingAcapy(sender, conId)
+        else {
+            sendTrustPingNessus(sender, conId)
+        }
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun sendPingAcapy(sender: Wallet, conId: String, comment: String): String {
+    private fun sendTrustPingAcapy(sender: Wallet, conId: String): EndpointMessage {
 
-        val pcon = sender.getConnection(conId)
+        val pcon = sender.toWalletModel().getConnection(conId)
         checkNotNull(pcon) { "Unknown connection id: $conId" }
 
         val senderClient = sender.walletClient() as AriesClient
-        val pingRequest = PingRequest.builder()
-            .comment(comment)
-            .build()
+        val pingRequest = PingRequest.builder().comment("ping").build()
         val pingResponse = senderClient.connectionsSendPing(conId, pingRequest).get()
-        return gson.toJson(pingResponse)
+        return EndpointMessage(gson.toJson(pingResponse))
+    }
+
+    private fun sendTrustPingNessus(sender: Wallet, conId: String): EndpointMessage {
+
+        val pcon = sender.toWalletModel().getConnection(conId)
+        checkNotNull(pcon) { "Unknown connection id: $conId" }
+
+        val trustPing = """
+                {
+                    "@type": "$RFC0048_TRUST_PING_MESSAGE_TYPE_PING",
+                    "@id": "${UUID.randomUUID()}",
+                    "response_requested": True
+                }
+                """.trimJson()
+
+        return EndpointMessage(trustPing)
     }
 }
 
 class RFC0048TrustPingProtocolWrapper(mex: MessageExchange):
     ProtocolWrapper<RFC0048TrustPingProtocolWrapper, RFC0048TrustPingProtocol>(RFC0048TrustPingProtocol(), mex) {
 
-    fun sendPing(sender: Wallet, conId: String, comment: String? = "ping"): RFC0048TrustPingProtocolWrapper {
-        val pingResponse = protocol.sendPing(sender, conId, comment)
-        val threadId = pingResponse.selectJson("threadId") as String
-        mex.addMessage(EndpointMessage(
-            pingResponse, mapOf(
-                MESSAGE_THREAD_ID to threadId,
-                MESSAGE_DIRECTION to MessageDirection.INBOUND,
-                MESSAGE_PROTOCOL_METHOD to PROTOCOL_METHOD_SEND_PING,
-                MESSAGE_CONTENT_URI to "https://didcomm.org/trust_ping/1.0/ping_response",
-                MESSAGE_PROTOCOL_URI to protocol.protocolUri,
-                MESSAGE_FROM_ALIAS to sender.name,
-                MESSAGE_FROM_ID to sender.id,
-            )
+    override fun invokeMethod(to: Wallet, messageType: String): Boolean {
+        when (messageType) {
+            RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE -> receiveTrustPingResponse(to)
+            else -> throw IllegalStateException("Unsupported message type: $messageType")
+        }
+        return true
+    }
+
+    fun sendTrustPing(sender: Wallet): RFC0048TrustPingProtocolWrapper {
+
+        val conId = mex.last.thid as String
+        val connection = sender.toWalletModel().getConnection(conId)
+        checkNotNull(connection) { "No connection with id: $conId" }
+        check(connection.state == ConnectionState.COMPLETED) { "Unexpected connection state: $connection" }
+
+        val pingRequest = protocol.sendTrustPing(sender, conId)
+
+        val packedPingRequest = RFC0019EncryptionEnvelope()
+            .packEncryptedEnvelope(pingRequest.bodyAsJson, connection.myDid, connection.theirDid)
+
+        val packedEpm = EndpointMessage(packedPingRequest, mapOf(
+            "Content-Type" to RFC0019EncryptionEnvelope.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
         ))
+
+        // Start a new thread
+        val childMex = MessageExchange(pingRequest)
+
+        // Register the response future with the message exchange
+        val futureId = "${RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE}?thid=${pingRequest.thid}"
+        val futureKey = AttachmentKey(futureId, CompletableFuture::class.java)
+        childMex.putAttachment(futureKey, CompletableFuture<EndpointMessage>())
+
+        return childMex.withProtocol(RFC0048_TRUST_PING_WRAPPER)
+            .dispatchToEndpoint(connection.theirEndpointUrl, packedEpm)
+    }
+
+    fun awaitTrustPingResponse(timeout: Int, unit: TimeUnit): RFC0048TrustPingProtocolWrapper {
+        val pingThreadId = mex.last.thid as String
+        val futureId = "${RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE}?thid=$pingThreadId"
+        val futureKey = AttachmentKey(futureId, CompletableFuture::class.java)
+        val future = mex.getAttachment(futureKey)
+        if (future != null) {
+            log.info {"Wait on future: $futureKey"}
+            future.get(timeout.toLong(), unit)
+        }
+        return this
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun receiveTrustPingResponse(requester: Wallet): RFC0048TrustPingProtocolWrapper {
+        val pingThreadId = mex.last.thid as String
+        val futureId = "${RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE}?thid=$pingThreadId"
+        val futureKey = AttachmentKey(futureId, CompletableFuture::class.java)
+        val future = mex.removeAttachment(futureKey) as? CompletableFuture<EndpointMessage>
+        if (future != null) {
+            log.info {"Complete future: $futureKey"}
+            future.complete(mex.last)
+        }
         return this
     }
 }

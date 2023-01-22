@@ -1,15 +1,8 @@
 package org.nessus.didcomm.protocol
 
-import org.hyperledger.acy_py.generated.model.SendMessage
-import org.nessus.didcomm.agent.AriesClient
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_CONTENT_URI
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_DIRECTION
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_FROM_ALIAS
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_FROM_ID
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_METHOD
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_URI
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THREAD_ID
-import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol.Companion.RFC0095_BASIC_MESSAGE_METHOD_SEND_MESSAGE
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THID
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_TYPE
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
@@ -40,12 +33,12 @@ class RFC0095BasicMessageProtocol(): Protocol() {
 
     private fun sendMessageAcapy(sender: Wallet, conId: String, message: String) {
 
-        val pcon = sender.getConnection(conId)
-        checkNotNull(pcon) { "Unknown connection id: $conId" }
-
-        val fromClient = sender.walletClient() as AriesClient
-        val basicMessage = SendMessage.builder().content(message).build()
-        fromClient.connectionsSendMessage(conId, basicMessage)
+//        val pcon = sender.getConnection(conId)
+//        checkNotNull(pcon) { "Unknown connection id: $conId" }
+//
+//        val fromClient = sender.walletClient() as AriesClient
+//        val basicMessage = SendMessage.builder().content(message).build()
+//        fromClient.connectionsSendMessage(conId, basicMessage)
     }
 }
 
@@ -56,13 +49,9 @@ class RFC0095BasicMessageProtocolWrapper(mex: MessageExchange):
         protocol.sendMessage(sender, conId, message)
         mex.addMessage(EndpointMessage(
             message, mapOf(
-                MESSAGE_THREAD_ID to mex.last.threadId,
-                MESSAGE_DIRECTION to MessageDirection.OUTBOUND,
-                MESSAGE_PROTOCOL_METHOD to RFC0095_BASIC_MESSAGE_METHOD_SEND_MESSAGE,
-                MESSAGE_CONTENT_URI to "https://didcomm.org/basicmessage/1.0/message",
+                MESSAGE_THID to mex.last.thid,
+                MESSAGE_TYPE to "https://didcomm.org/basicmessage/1.0/message",
                 MESSAGE_PROTOCOL_URI to protocol.protocolUri,
-                MESSAGE_FROM_ALIAS to sender.name,
-                MESSAGE_FROM_ID to sender.id,
             )
         ))
         return this

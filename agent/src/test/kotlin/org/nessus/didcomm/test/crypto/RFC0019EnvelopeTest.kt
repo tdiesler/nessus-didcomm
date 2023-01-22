@@ -45,14 +45,14 @@ class RFC0019EnvelopeTest: AbstractDidCommTest() {
         keyStore.delete(aliceDid.verkey)
 
         val rfc0019 = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
-        val envelope = rfc0019.packRFC0019Envelope("Scheena Dog", faberDid, aliceDid)
+        val envelope = rfc0019.packEncryptedEnvelope("Scheena Dog", faberDid, aliceDid)
 
         // Restore the key to store (i.e. Alice's Did is internal for unpack)
         keyStore.store(aliceKey)
         keyStore.addAlias(aliceKey.keyId, aliceDid.qualified)
         keyStore.addAlias(aliceKey.keyId, aliceDid.verkey)
 
-        val message = rfc0019.unpackRFC0019Envelope(envelope)?.first
+        val message = rfc0019.unpackEncryptedEnvelope(envelope)?.message
         assertEquals("Scheena Dog", message)
     }
 
@@ -72,11 +72,11 @@ class RFC0019EnvelopeTest: AbstractDidCommTest() {
         """.trimJson()
 
         val rfc0019 = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
-        val (unpacked, recipientVerkey) = rfc0019.unpackRFC0019Envelope(envelope)!!
-        assertEquals(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST, unpacked.selectJson("@type"))
+        val (message, _, recipientVerkey) = rfc0019.unpackEncryptedEnvelope(envelope)!!
+        assertEquals(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST, message.selectJson("@type"))
         assertEquals(aliceDidSov.verkey, recipientVerkey)
 
-        val didDocument = didDocumentService.extractFromAttachment(unpacked.selectJson("did_doc~attach") as String)
+        val didDocument = didDocumentService.extractFromAttachment(message.selectJson("did_doc~attach") as String)
         val diddocAttach = didDocumentService.createAttachment(didDocument, aliceDidSov) // This should be Faber's Did, but we don't have the secret
 
         val didRequest = """
@@ -97,7 +97,7 @@ class RFC0019EnvelopeTest: AbstractDidCommTest() {
         val faberDid = Did.fromSpec(didDocument.publicKey[0].controller, faberVerkey)
         log.info { "Faber Did: ${faberDid.qualified}" }
 
-        rfc0019.packRFC0019Envelope(didRequest, aliceDidSov, faberDid)
+        rfc0019.packEncryptedEnvelope(didRequest, aliceDidSov, faberDid)
     }
 }
 

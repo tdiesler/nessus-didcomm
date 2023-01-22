@@ -20,6 +20,7 @@
 package org.nessus.didcomm.service
 
 import id.walt.servicematrix.ServiceProvider
+import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.Protocol
 import org.nessus.didcomm.protocol.ProtocolWrapper
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
@@ -61,19 +62,25 @@ class ProtocolService : NessusBaseService() {
         private val implementation = ProtocolService()
         override fun getService() = implementation
 
-        val supportedProtocols: List<ProtocolKey<*>> get() = listOf(
-                RFC0019_ENCRYPTED_ENVELOPE,
-                RFC0023_DIDEXCHANGE,
-                RFC0048_TRUST_PING,
-                RFC0095_BASIC_MESSAGE,
-                RFC0434_OUT_OF_BAND,
+        val supportedProtocols: List<Pair<ProtocolKey<*>,ProtocolWrapperKey<*>>> get() = listOf(
+                Pair(RFC0019_ENCRYPTED_ENVELOPE, RFC0019_ENCRYPTED_ENVELOPE_WRAPPER),
+                Pair(RFC0023_DIDEXCHANGE, RFC0023_DIDEXCHANGE_WRAPPER),
+                Pair(RFC0048_TRUST_PING, RFC0048_TRUST_PING_WRAPPER),
+                Pair(RFC0095_BASIC_MESSAGE, RFC0095_BASIC_MESSAGE_WRAPPER),
+                Pair(RFC0434_OUT_OF_BAND, RFC0434_OUT_OF_BAND_WRAPPER),
             )
+    }
 
-        fun findProtocolKey(uri: String): ProtocolKey<*> {
-            val key = supportedProtocols.find { it.uri == uri }
-            checkNotNull(key) { "Unknown protocol uri: $uri" }
-            return key
-        }
+    fun findProtocolKey(uri: String): ProtocolKey<*> {
+        val keyPair = supportedProtocols.find { it.first.uri == uri }
+        checkNotNull(keyPair) { "Unknown protocol uri: $uri" }
+        return keyPair.first
+    }
+
+    fun findProtocolWrapperKey(uri: String): ProtocolWrapperKey<*> {
+        val keyPair = supportedProtocols.find { it.first.uri == uri }
+        checkNotNull(keyPair) { "Unknown protocol uri: $uri" }
+        return keyPair.second
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -86,5 +93,17 @@ class ProtocolService : NessusBaseService() {
             RFC0434_OUT_OF_BAND -> RFC0434OutOfBandProtocol()
             else -> throw IllegalStateException("Unknown protocol: $key")
         } as P
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun <W: ProtocolWrapper<W, *>> getProtocolWrapper(key: ProtocolWrapperKey<W>, mex: MessageExchange): W {
+        return when(key) {
+            RFC0019_ENCRYPTED_ENVELOPE_WRAPPER -> RFC0019EncryptionEnvelopeWrapper(mex)
+            RFC0023_DIDEXCHANGE_WRAPPER -> RFC0023DidExchangeProtocolWrapper(mex)
+            RFC0048_TRUST_PING_WRAPPER -> RFC0048TrustPingProtocolWrapper(mex)
+            RFC0095_BASIC_MESSAGE_WRAPPER -> RFC0095BasicMessageProtocolWrapper(mex)
+            RFC0434_OUT_OF_BAND_WRAPPER -> RFC0434OutOfBandProtocolWrapper(mex)
+            else -> throw IllegalStateException("Unknown protocol: $key")
+        } as W
     }
 }

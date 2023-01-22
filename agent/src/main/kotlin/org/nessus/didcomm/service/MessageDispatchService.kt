@@ -21,19 +21,18 @@ package org.nessus.didcomm.service
 
 import id.walt.common.prettyPrint
 import id.walt.servicematrix.ServiceProvider
+import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.protocol.EndpointMessage
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PARENT_THREAD_ID
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_METHOD
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_URI
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THREAD_ID
 import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.protocol.MessageExchange.Companion.findByThreadId
+import org.nessus.didcomm.protocol.MessageExchange.Companion.findMessageExchange
 import org.nessus.didcomm.protocol.MessageListener
-import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_METHOD_RECEIVE_REQUEST
-import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.util.encodeJsonPretty
+import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
+import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE
+import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE
+import org.nessus.didcomm.util.matches
 import org.nessus.didcomm.util.selectJson
-import org.nessus.didcomm.util.toDeeplySortedMap
 import org.nessus.didcomm.wallet.Wallet
 
 /**
@@ -47,21 +46,30 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
         override fun getService() = implementation
     }
 
-    private val protocolService get() = ProtocolService.getService()
+    private val httpService get() = HttpService.getService()
 
     /**
      * Entry point for all external messages sent to a wallet endpoint
      */
-    fun dispatchInbound(msg: EndpointMessage) {
-        val contentType = msg.headers["Content-Type"] as? String
-        checkNotNull(contentType) { "No Content-Type" }
-        check(msg.body is String) { "No msg body" }
-        log.info { "Message Content-Type: $contentType" }
-        log.info { "Message Body: ${msg.body.prettyPrint()}" }
-        when(contentType) {
-            "application/didcomm-envelope-enc" -> didcommEncryptedEnvelopeHandler(msg)
-            else -> throw IllegalStateException("Unsupported content type: $contentType")
+    fun dispatchInbound(epm: EndpointMessage) {
+        val contentType = epm.headers["Content-Type"] as? String
+        checkNotNull(contentType) { "No 'Content-Type' header"}
+        if (RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE.matches(contentType)) {
+            dispatchEncryptedEnvelope(epm)
+        } else {
+            log.warn { "Unknown content type: $contentType" }
         }
+    }
+
+    fun dispatchToDid(did: Did, epm: EndpointMessage): Boolean {
+        TODO("dispatchToDid")
+    }
+
+    fun dispatchToEndpoint(url: String, epm: EndpointMessage): Boolean {
+        val httpClient = httpService.httpClient()
+        val res = httpClient.post(url, epm.body, headers = epm.headers.mapValues { (_, v) -> v.toString() })
+        check(res.isSuccessful) { "Call failed with ${res.code} ${res.message}" }
+        return res.isSuccessful
     }
 
     /**
@@ -70,13 +78,14 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
     fun dispatchToWallet(target: Wallet, mex: MessageExchange): Boolean {
 
         val protocolUri = mex.last.protocolUri as? String
-        val protocolMethod = mex.last.protocolMethod as? String
+        val messageType = mex.last.messageType as? String
         checkNotNull(protocolUri) { "No protocol uri" }
-        checkNotNull(protocolMethod) { "No protocol method" }
+        checkNotNull(messageType) { "No message type" }
 
-        val key = ProtocolService.findProtocolKey(protocolUri)
-        val protocol = protocolService.getProtocol(key)
-        return protocol.invokeMethod(target, protocolMethod, mex)
+        val protocolService = ProtocolService.getService()
+        val key = protocolService.findProtocolWrapperKey(protocolUri)
+        val protocolWrapper = protocolService.getProtocolWrapper(key, mex)
+        return protocolWrapper.invokeMethod(target, messageType)
     }
 
     /**
@@ -86,14 +95,16 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
         return dispatchInbound(msg)
     }
 
-    private fun didcommEncryptedEnvelopeHandler(msg: EndpointMessage): Boolean {
-        val unpacked = protocolService.getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
-            .unpackRFC0019Envelope(msg.body as String)
-        checkNotNull(unpacked) { "Could not unpack encrypted envelope" }
+    // Private ---------------------------------------------------------------------------------------------------------
 
-        val (body, recipientKid) = unpacked
-        val envelope = body.decodeJson().toDeeplySortedMap()
-        log.info { "Unpacked Envelope: ${envelope.encodeJsonPretty(sorted = true)}" }
+    private fun dispatchEncryptedEnvelope(msg: EndpointMessage) {
+        val rfc0019 = RFC0019EncryptionEnvelope()
+        val unpacked = rfc0019.unpackEncryptedEnvelope(msg.body as String)
+        checkNotNull(unpacked) { "Unknown recipients" }
+
+        val message = unpacked.message
+        val recipientVerkey = unpacked.recipientVerkey
+        log.info { "Unpacked Envelope: ${message.prettyPrint()}" }
 
         /**
          * Ok, we successfully unpacked the encrypted message.
@@ -102,36 +113,36 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
          * that this message can be attached to
          */
 
-        val thread = envelope["~thread"] as? String
-        val thid = envelope.selectJson("~thread.thid") as? String ?: envelope["@id"] as String
-        val pthid = envelope.selectJson("~thread.pthid") as? String
+        val id = message.selectJson("@id") as String
+        val thid = message.selectJson("~thread.thid") ?: id
 
-        var mex = thid.run { findByThreadId(thid) }
-        if (mex == null && pthid != null) {
-            mex = findByThreadId(pthid)
-        }
-        checkNotNull(mex) { "Cannot find message exchange for: $thread" }
+        val mex = (findMessageExchange(thid) ?: MessageExchange())
+        val aux = EndpointMessage(message)
 
         val walletService = WalletService.getService()
-        val recipientWallet = walletService.findByVerkey(recipientKid)
-        checkNotNull(recipientWallet) { "Cannot fine recipient wallet for: $recipientKid" }
+        val recipientWallet = walletService.findByVerkey(recipientVerkey)
+        checkNotNull(recipientWallet) { "Cannot find recipient wallet for: $recipientVerkey" }
 
         /**
          * Now, we dispatch mex associated with the thread to the wallet
          * identified by the recipient key(s)
          */
 
-        val atType = envelope["@type"] as String
-        val (protocolUri, protocolMethod) = when(atType) {
-            "https://didcomm.org/didexchange/1.0/request" -> Pair(RFC0023_DIDEXCHANGE.uri, RFC0023_DIDEXCHANGE_METHOD_RECEIVE_REQUEST)
-            else -> throw IllegalStateException("Unsupported message type: $atType")
+        when (aux.messageType) {
+            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE -> {
+                mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
+                    .header(MESSAGE_PROTOCOL_URI, RFC0023_DIDEXCHANGE.uri)
+                    .build())
+            }
+            RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE -> {
+                mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
+                    .header(MESSAGE_PROTOCOL_URI, RFC0048_TRUST_PING.uri)
+                    .build())
+            }
+            else -> {
+                log.warn { "Unknown message type: ${aux.messageType}" }
+            }
         }
-        mex.addMessage(EndpointMessage(body, mapOf(
-            MESSAGE_THREAD_ID to thid,
-            MESSAGE_PARENT_THREAD_ID to pthid,
-            MESSAGE_PROTOCOL_URI to protocolUri,
-            MESSAGE_PROTOCOL_METHOD to protocolMethod
-        )))
-        return dispatchToWallet(recipientWallet, mex)
+        dispatchToWallet(recipientWallet, mex)
     }
 }

@@ -9,13 +9,10 @@ import org.nessus.didcomm.agent.AgentConfiguration
 import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.Invitation
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_CONTENT_URI
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_FROM_ALIAS
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_FROM_ID
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_METHOD
+import org.nessus.didcomm.model.InvitationState
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_URI
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THREAD_ID
-import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.RFC0434_OUT_OF_BAND_METHOD_CREATE_INVITATION
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THID
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_TYPE
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
 import org.nessus.didcomm.util.gson
@@ -23,6 +20,7 @@ import org.nessus.didcomm.util.prettyGson
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.Wallet
+import org.nessus.didcomm.wallet.toWalletModel
 import java.util.*
 
 /**
@@ -39,18 +37,7 @@ class RFC0434OutOfBandProtocol: Protocol() {
     override val protocolUri = RFC0434_OUT_OF_BAND.uri
 
     companion object {
-        const val RFC0434_OUT_OF_BAND_METHOD_CREATE_INVITATION = "/out-of-band/create-invitation"
-        const val RFC0434_OUT_OF_BAND_METHOD_RECEIVE_INVITATION = "/out-of-band/receive-invitation"
-
         val RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION = "${RFC0434_OUT_OF_BAND.uri}/invitation"
-    }
-
-    override fun invokeMethod(to: Wallet, method: String, mex: MessageExchange): Boolean {
-        when(method) {
-            RFC0434_OUT_OF_BAND_METHOD_RECEIVE_INVITATION -> receiveOutOfBandInvitation(to, mex.last.body as Invitation)
-            else -> throw IllegalStateException("Unsupported protocol method: $method")
-        }
-        return true
     }
 
     /**
@@ -77,23 +64,33 @@ class RFC0434OutOfBandProtocol: Protocol() {
         checkNotNull(service) { "Cannot find service of type 'did-communication' in: ${invitation.services}"}
         check(service.recipientKeys.size == 1) { "Unexpected number of recipientKeys: ${service.recipientKeys}" }
 
+        val recipientDid = Did.fromSpec(service.recipientKeys[0])
+        didService.registerWithKeyStore(recipientDid)
+
         log.info { "Created Invitation: ${prettyGson.toJson(invitation)}" }
 
         // Associate this invitation with the inviter wallet
-        modelService.getWallet(inviter.id)?.addInvitation(invitation)
+        val walletModel = inviter.toWalletModel()
+        walletModel.addInvitation(invitation)
+        walletModel.addDid(recipientDid)
 
         return invitation
     }
 
-    fun receiveOutOfBandInvitation(invitee: Wallet, invitation: Invitation, options: Map<String, Any> = mapOf()) {
+    fun receiveOutOfBandInvitation(invitee: Wallet, invitation: Invitation, options: Map<String, Any> = mapOf()): Invitation {
+        check(invitation.state == InvitationState.INITIAL) { "Unexpected invitation state: $invitation" }
 
         if (invitee.agentType == AgentType.ACAPY) {
             receiveOutOfBandInvitationAcapy(invitee, invitation, options)
         } else {
             receiveOutOfBandInvitationNessus(invitee, invitation, options)
         }
+
         // Associate this invitation with the inviter wallet
-        modelService.getWallet(invitee.id)?.addInvitation(invitation)
+        invitation.state = InvitationState.RECEIVED
+        invitee.toWalletModel().addInvitation(invitation)
+
+        return invitation
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
@@ -117,11 +114,11 @@ class RFC0434OutOfBandProtocol: Protocol() {
             .build()
 
         val inviterClient = inviter.walletClient() as AriesClient
-        val invitationRecord: InvitationRecord = inviterClient.outOfBandCreateInvitation(createInvRequest, createInvFilter).get()
-        val ariesInvitation = invitationRecord.invitation
+        val inviRecord: InvitationRecord = inviterClient.outOfBandCreateInvitation(createInvRequest, createInvFilter).get()
+        val acapyInvitation = inviRecord.invitation
 
-        val service = (ariesInvitation.services as List<Map<String, Any>>).firstOrNull { it["type"] == "did-communication" }
-        checkNotNull(service) { "Cannot find service of type 'did-communication' in: ${ariesInvitation.services}"}
+        val service = (acapyInvitation.services as List<Map<String, Any>>).firstOrNull { it["type"] == "did-communication" }
+        checkNotNull(service) { "Cannot find service of type 'did-communication' in: ${acapyInvitation.services}"}
         val recipientKeys = service["recipientKeys"] as List<String>
         check(recipientKeys.size == 1) { "Unexpected number of recipientKeys: $recipientKeys" }
 
@@ -129,11 +126,11 @@ class RFC0434OutOfBandProtocol: Protocol() {
         val endpointUrl = inviter.endpointUrl ?: AgentConfiguration.defaultConfiguration.userUrl
 
         return Invitation(
-            id = ariesInvitation.atId,
-            type = ariesInvitation.atType,
-            handshakeProtocols = ariesInvitation.handshakeProtocols,
-            accept = ariesInvitation.accept,
-            goalCode = ariesInvitation.label,
+            id = acapyInvitation.atId,
+            type = acapyInvitation.atType,
+            handshakeProtocols = acapyInvitation.handshakeProtocols,
+            accept = acapyInvitation.accept,
+            goalCode = acapyInvitation.label,
             services = listOf(
                 Invitation.Service(
                     id = service["id"] as String,
@@ -141,7 +138,8 @@ class RFC0434OutOfBandProtocol: Protocol() {
                     recipientKeys = listOf(inviterDid.qualified),
                     serviceEndpoint = endpointUrl as String
                 )
-            )
+            ),
+            state = InvitationState.INITIAL
         )
     }
 
@@ -161,7 +159,8 @@ class RFC0434OutOfBandProtocol: Protocol() {
                     recipientKeys = listOf(inviterDid.qualified),
                     serviceEndpoint = inviter.endpointUrl
                 )
-            )
+            ),
+            state = InvitationState.INITIAL
         )
     }
 
@@ -171,7 +170,7 @@ class RFC0434OutOfBandProtocol: Protocol() {
 
         val autoAccept = options["autoAccept"] as? Boolean ?: true
 
-        val invitationMessageBuilder = InvitationMessage.builder<InvitationMessage.InvitationMessageService>()
+        val invitationMessage = InvitationMessage.builder<InvitationMessage.InvitationMessageService>()
             .atId(invitation.id)
             .atType(invitation.type)
             .goalCode(invitation.goalCode)
@@ -180,18 +179,14 @@ class RFC0434OutOfBandProtocol: Protocol() {
             .handshakeProtocols(invitation.handshakeProtocols)
             .services(invitation.services.map {
                 gson.fromJson(gson.toJson(it), InvitationMessage.InvitationMessageService::class.java)
-            })
-        val invitationMessage = invitationMessageBuilder.build()
-
+            }).build()
         val receiveInvFilter = ReceiveInvitationFilter.builder()
             .useExistingConnection(false)
             .autoAccept(autoAccept)
             .build()
 
         val inviteeClient = invitee.walletClient() as AriesClient
-        val inviteeConnection = inviteeClient.outOfBandReceiveInvitation(invitationMessage, receiveInvFilter).get()
-
-        //messageExchange.putAttachment(MESSAGE_EXCHANGE_INVITEE_CONNECTION_ID_KEY, inviteeConnection.connectionId)
+        inviteeClient.outOfBandReceiveInvitation(invitationMessage, receiveInvFilter).get()
     }
 
     private fun receiveOutOfBandInvitationNessus(invitee: Wallet, invitation: Invitation, options: Map<String, Any>) {
@@ -207,20 +202,17 @@ class RFC0434OutOfBandProtocolWrapper(mex: MessageExchange):
         val invitation = protocol.createOutOfBandInvitation(inviter, options)
         mex.addMessage(EndpointMessage(
             invitation, mapOf(
-                MESSAGE_THREAD_ID to invitation.id,
-                MESSAGE_PROTOCOL_METHOD to RFC0434_OUT_OF_BAND_METHOD_CREATE_INVITATION,
+                MESSAGE_THID to invitation.id,
                 MESSAGE_PROTOCOL_URI to protocol.protocolUri,
-                MESSAGE_FROM_ID to inviter.id,
-                MESSAGE_FROM_ALIAS to inviter.name,
-                MESSAGE_CONTENT_URI to invitation.type,
+                MESSAGE_TYPE to invitation.type,
             )
         ))
         return this
     }
 
     fun receiveOutOfBandInvitation(invitee: Wallet, options: Map<String, Any> = mapOf()): RFC0434OutOfBandProtocolWrapper {
-        val invitation = mex.last.body as Invitation
-        protocol.receiveOutOfBandInvitation(invitee, invitation, options)
+        val createdInv = mex.last.body as Invitation
+        protocol.receiveOutOfBandInvitation(invitee, createdInv, options)
         return this
     }
 }

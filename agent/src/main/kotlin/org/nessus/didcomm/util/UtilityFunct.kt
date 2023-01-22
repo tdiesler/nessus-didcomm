@@ -1,6 +1,9 @@
 package org.nessus.didcomm.util
 
 
+// A mutable holder of a nullable type
+data class Holder<T>(var obj: T?)
+
 /***********************************************************************************************************************
  * Map
  */

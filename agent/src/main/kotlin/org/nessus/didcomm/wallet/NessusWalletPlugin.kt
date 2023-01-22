@@ -7,7 +7,6 @@ import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.WalletPlugin
 import org.nessus.didcomm.service.WalletServicePlugin
-import org.nessus.didcomm.service.WalletStoreService
 import java.util.*
 
 class NessusWalletPlugin: WalletServicePlugin, WalletPlugin {
@@ -49,7 +48,7 @@ class NessusWalletPlugin: WalletServicePlugin, WalletPlugin {
     }
 
     override fun listDids(wallet: Wallet): List<Did> {
-        return WalletStoreService.getService().listDids(wallet.id)
+        return wallet.toWalletModel().listDids()
     }
 
     override fun removeConnections(wallet: Wallet) {

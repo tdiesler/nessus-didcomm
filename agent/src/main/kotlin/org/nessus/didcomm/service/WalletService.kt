@@ -29,7 +29,7 @@ import mu.KotlinLogging
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.model.WalletModel
+import org.nessus.didcomm.model.toWallet
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.AriesWalletPlugin
 import org.nessus.didcomm.wallet.DidMethod
@@ -37,6 +37,7 @@ import org.nessus.didcomm.wallet.NessusWalletPlugin
 import org.nessus.didcomm.wallet.StorageType
 import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.WalletConfig
+import org.nessus.didcomm.wallet.toWalletModel
 import java.nio.file.Files
 import java.nio.file.Paths
 import kotlin.io.path.isReadable
@@ -47,7 +48,7 @@ class WalletService : BaseService() {
     private val log = KotlinLogging.logger {}
 
     private val walletStore get() = WalletStoreService.getService()
-    private val modelService get() = ModelManagerService.getService()
+    private val modelService get() = DataModelService.getService()
 
     companion object: ServiceProvider {
         private val implementation = WalletService()
@@ -73,9 +74,9 @@ class WalletService : BaseService() {
             }
         }
 
-        // Initialize wallets from ACAPy
+        // Initialize wallets from AcaPy
         adminClient.multitenancyWallets(null).get()
-            .filter { getWallet(it.walletId) == null }
+            .filter { modelService.getWallet(it.walletId) == null }
             .forEach {
                 val walletId = it.walletId
                 val alias = it.settings.walletName
@@ -103,25 +104,20 @@ class WalletService : BaseService() {
     }
 
     fun addWallet(wallet: Wallet) {
-        check(findByName(wallet.name) == null) {"Wallet already exists: ${wallet.name}"}
-        log.info {"Add: $wallet" }
         walletStore.addWallet(wallet)
-        modelService.addWallet(WalletModel.fromWallet(wallet))
     }
 
     fun removeWallet(id: String): Wallet? {
         val wallet = getWallet(id)
         if (wallet != null) {
-            log.info {"Remove: $wallet" }
             walletServicePlugin(wallet.agentType).removeWallet(wallet)
             walletStore.removeWallet(id)
-            modelService.removeWallet(id)
         }
         return wallet
     }
 
-    fun getWallets(): List<Wallet> {
-        return walletStore.wallets
+    fun listWallets(): List<Wallet> {
+        return modelService.listWallets().map { it.toWallet() }
     }
 
     fun getWallet(id: String): Wallet? {
@@ -129,11 +125,11 @@ class WalletService : BaseService() {
     }
 
     fun findByName(name: String): Wallet? {
-        return walletStore.findByName(name)
+        return modelService.findWalletByName(name)?.toWallet()
     }
 
     fun findByVerkey(verkey: String): Wallet? {
-        return walletStore.findByVerkey(verkey)
+        return modelService.findWalletByVerkey(verkey)?.toWallet()
     }
 
     /**
@@ -143,33 +139,21 @@ class WalletService : BaseService() {
      */
     fun createDid(wallet: Wallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
         val did = wallet.walletPlugin.createDid(wallet, method, algorithm, seed)
-        log.info { "New DID for ${wallet.name}: $did" }
-        walletStore.addDid(wallet.id, did)
+        wallet.toWalletModel().addDid(did)
         return did
     }
 
     /**
      * List Dids registered with the given wallet
+     * Note, the internal model may differ from external agent model
      */
     fun listDids(wallet: Wallet): List<Did> {
         return wallet.walletPlugin.listDids(wallet)
     }
 
-    fun addConnection(wallet: Wallet, con: PeerConnection) {
-        walletStore.addPeerConnection(wallet.id, con)
-    }
-
-    fun getConnection(wallet: Wallet, conId: String): PeerConnection? {
-        return walletStore.getPeerConnection(wallet.id, conId)
-    }
-
-    fun listConnections(wallet: Wallet): List<PeerConnection> {
-        return walletStore.listPeerConnections(wallet.id)
-    }
-
     fun removeConnections(wallet: Wallet) {
         wallet.walletPlugin.removeConnections(wallet)
-        return walletStore.removePeerConnections(wallet.id)
+        return wallet.toWalletModel().removeConnections()
     }
 
     /**

@@ -29,7 +29,6 @@ import org.nessus.didcomm.itest.AbstractIntegrationTest
 import org.nessus.didcomm.itest.Alice
 import org.nessus.didcomm.itest.Faber
 import org.nessus.didcomm.itest.NESSUS_OPTIONS_01
-import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE
@@ -84,7 +83,6 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
         val faberClient = faber.walletClient() as AriesClient
         val faberAutoAccept = true
 
-        val mex = MessageExchange()
         val didexResponseFuture = CompletableFuture<String>()
         val trustPingResponseFuture = CompletableFuture<String>()
 
@@ -93,7 +91,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
             checkNotNull(contentType) { "No 'Content-Type' header"}
             if (RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE.matches(contentType)) {
                 val message = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
-                    .unpackRFC0019Envelope(epm.bodyAsJson)?.first
+                    .unpackEncryptedEnvelope(epm.bodyAsJson)?.message
                 if (message != null) {
                     val atType = message.selectJson("@type")
                     if (atType == RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE) {
@@ -199,10 +197,10 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                 """.trimJson()
 
                 val packedDidExRequest = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
-                    .packRFC0019Envelope(didexRequest, aliceDid, faberDid)
+                    .packEncryptedEnvelope(didexRequest, aliceDid, faberDid)
 
                 run {
-                    val res = faberClient.post(
+                    val res = httpClient.post(
                         faberServiceEndpoint, packedDidExRequest, headers = mapOf(
                             "Content-Type" to "$RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE"
                         )
@@ -218,7 +216,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                 val faberDidDocAttach = didexResponse.selectJson("did_doc~attach") as? String
                 checkNotNull(faberDidDocAttach) { "No attached Did Document in DidEx Response" }
 
-                val faberDidDoc = diddocService.extractFromAttachment(faberDidDocAttach, faberDid)
+                diddocService.extractFromAttachment(faberDidDocAttach, faberDid)
 
                 /**
                  * Requester (Alice) sends the DidEx Complete message
@@ -236,10 +234,10 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                 """.trimJson()
 
                 val packedDidExComplete = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
-                    .packRFC0019Envelope(didexComplete, aliceDid, faberDid)
+                    .packEncryptedEnvelope(didexComplete, aliceDid, faberDid)
 
                 run {
-                    val res = faberClient.post(
+                    val res = httpClient.post(
                         faberServiceEndpoint, packedDidExComplete, headers = mapOf(
                             "Content-Type" to "$RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE"
                         )
@@ -260,10 +258,10 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                 """.trimJson()
 
                 val packedTrustPing = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
-                    .packRFC0019Envelope(trustPing, aliceDid, faberDid)
+                    .packEncryptedEnvelope(trustPing, aliceDid, faberDid)
 
                 run {
-                    val res = faberClient.post(
+                    val res = httpClient.post(
                         faberServiceEndpoint, packedTrustPing, headers = mapOf(
                             "Content-Type" to "$RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE"
                         )

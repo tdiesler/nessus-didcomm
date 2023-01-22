@@ -2,18 +2,33 @@ package org.nessus.didcomm.protocol
 
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.gson
+import org.nessus.didcomm.util.isJson
+import org.nessus.didcomm.util.selectJson
 
 /**
  * Associates an endpoint message with additional metadata
  */
 class EndpointMessage(
-    val body: Any? = null,
+    val body: Any,
     headers: Map<String, Any?> = mapOf()
 ) {
 
     val headers: Map<String, Any?>
     init {
-        this.headers = headers.toSortedMap()
+        if (body is String && body.isJson()) {
+            val id = body.selectJson("@id")
+            val type = body.selectJson("@type")
+            val thid = body.selectJson("~thread.thid") ?: id
+            val pthid = body.selectJson("~thread.pthid")
+            val effHeaders = headers.toMutableMap()
+            id?.run { effHeaders[MESSAGE_ID] = id }
+            type?.run { effHeaders[MESSAGE_TYPE] = type }
+            thid?.run { effHeaders[MESSAGE_THID] = thid }
+            pthid?.run { effHeaders[MESSAGE_PTHID] = pthid }
+            this.headers = effHeaders.toSortedMap()
+        } else {
+            this.headers = headers.toSortedMap()
+        }
     }
 
     companion object {
@@ -21,27 +36,19 @@ class EndpointMessage(
          * Header constants
          */
         const val MESSAGE_AUTO_ACCEPT = "MessageAutoAccept"
-        const val MESSAGE_CONTENT_URI = "MessageContentUri"
-        const val MESSAGE_DIRECTION = "MessageDirection"
-        const val MESSAGE_FROM_ALIAS = "MessageFromAlias"
-        const val MESSAGE_FROM_DID = "MessageFromDid"
-        const val MESSAGE_FROM_ID = "MessageFromId"
-        const val MESSAGE_PROTOCOL_METHOD = "MessageProtocolMethod"
-        const val MESSAGE_PROTOCOL_PARAMS = "MessageProtocolParams"
+        const val MESSAGE_ID = "MessageId"
         const val MESSAGE_PROTOCOL_URI = "MessageProtocolUri"
-        const val MESSAGE_PARENT_THREAD_ID = "MessageParentThreadId"
-        const val MESSAGE_THREAD_ID = "MessageThreadId"
-        const val MESSAGE_TO_ALIAS = "MessageToAlias"
-        const val MESSAGE_TO_DID = "MessageToDid"
-        const val MESSAGE_TO_ID = "MessageToId"
+        const val MESSAGE_PTHID = "MessageParentThreadId"
+        const val MESSAGE_THID = "MessageThreadId"
+        const val MESSAGE_TYPE = "MessageType"
     }
 
     val autoAccept get() = headers[MESSAGE_AUTO_ACCEPT] as? Boolean ?: true
-    val contentUri get() = headers[MESSAGE_CONTENT_URI] as? String ?: { "No MESSAGE_CONTENT_URI" }
-    val protocolMethod get() = headers[MESSAGE_PROTOCOL_METHOD] as? String ?: { "No MESSAGE_PROTOCOL_METHOD" }
+    val messageId get() = headers[MESSAGE_ID] as? String ?: { "No MESSAGE_ID" }
+    val messageType get() = headers[MESSAGE_TYPE] as? String ?: { "No MESSAGE_TYPE" }
     val protocolUri get() = headers[MESSAGE_PROTOCOL_URI] as? String ?: { "No MESSAGE_PROTOCOL_URI" }
-    val parentThreadId get() = headers[MESSAGE_PARENT_THREAD_ID] as? String
-    val threadId get() = headers[MESSAGE_THREAD_ID] as? String
+    val pthid get() = headers[MESSAGE_PTHID] as? String
+    val thid get() = headers[MESSAGE_THID] as? String
 
     val bodyAsJson: String get() = run {
         if (body is String) return body
@@ -58,13 +65,10 @@ class EndpointMessage(
         return bodyJson.decodeJson()
     }
 
-    class Builder() {
-        private var body: Any? = null
+    class Builder(var body: Any) {
         private var headers: MutableMap<String, Any?> = mutableMapOf()
 
-        constructor(mex: MessageExchange): this(mex.last.body, mex.last.headers)
-        constructor(body: Any? = null, headers: Map<String, Any?>): this() {
-            this.body = body
+        constructor(body: Any, headers: Map<String, Any?>): this(body) {
             this.headers.putAll(headers)
         }
 

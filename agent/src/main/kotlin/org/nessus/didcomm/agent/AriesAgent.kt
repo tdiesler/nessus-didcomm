@@ -2,15 +2,13 @@ package org.nessus.didcomm.agent
 
 import org.hyperledger.aries.api.connection.ConnectionRecord
 import org.nessus.didcomm.wallet.Wallet
-import org.slf4j.event.Level
 
 class AriesAgent {
 
     companion object {
 
-        private val interceptorLogLevel = Level.INFO
-        fun adminClient(config: AgentConfiguration? = null) = AriesClientFactory.adminClient(config, level = interceptorLogLevel)
-        fun walletClient(wallet: Wallet, config: AgentConfiguration) = AriesClientFactory.walletClient(wallet = wallet, config, level = interceptorLogLevel)
+        fun adminClient(config: AgentConfiguration? = null) = AriesClientFactory.adminClient(config)
+        fun walletClient(wallet: Wallet, config: AgentConfiguration) = AriesClientFactory.walletClient(wallet = wallet, config)
 
         fun awaitConnectionRecord(wallet: Wallet, predicate: (cr: ConnectionRecord) -> Boolean): ConnectionRecord? {
             var retries = 10

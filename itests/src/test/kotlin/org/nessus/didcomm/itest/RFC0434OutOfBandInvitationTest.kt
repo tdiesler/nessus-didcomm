@@ -20,9 +20,7 @@
 package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_METHOD
 import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.RFC0434_OUT_OF_BAND_METHOD_RECEIVE_INVITATION
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_WRAPPER
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
@@ -51,6 +49,7 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
         val faber = getWalletByAlias(Faber.name) ?: fail("No Inviter")
 
         val alice = Wallet.Builder(Alice.name)
+            .options(NESSUS_OPTIONS_01)
             .agentType(AgentType.NESSUS)
             .build()
 
@@ -69,14 +68,9 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
 
             /**
              * Invitee (Alice) receives the Invitation
-             *
-             * Note, we could equally call `rfc0434.receiveOutOfBandInvitation`
-             * here we test the fluent API and the route through the MessageDispatcher
              */
 
-            rfc0434.dispatchTo(alice, mapOf(
-                    MESSAGE_PROTOCOL_METHOD to RFC0434_OUT_OF_BAND_METHOD_RECEIVE_INVITATION,
-                ))
+            rfc0434.receiveOutOfBandInvitation(alice)
 
         } finally {
             removeWallet(Alice.name)

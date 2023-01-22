@@ -20,21 +20,13 @@
 package org.nessus.didcomm.agent
 
 import mu.KotlinLogging
-import okhttp3.MediaType
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
-import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.util.encodeJsonPretty
-import org.nessus.didcomm.util.gson
+import org.nessus.didcomm.service.HttpService
+import org.nessus.didcomm.service.HttpService.HttpClient.Companion.createHttpLoggingInterceptor
 import org.nessus.didcomm.wallet.Wallet
 import org.slf4j.event.Level
-import java.util.concurrent.TimeUnit
-
-val JSON_TYPE: MediaType = "application/json; charset=utf-8".toMediaType()
 
 data class AgentConfiguration(
     val hostname: String,
@@ -96,80 +88,31 @@ object AriesClientFactory {
     ): AriesClient {
         val config = agentConfig ?: AgentConfiguration.defaultConfiguration
         checkNotNull(config.adminUrl) { "No admin url in $config" }
-        val auxHttpClient = httpClient ?: OkHttpClient.Builder()
-            .writeTimeout(60, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .connectTimeout(60, TimeUnit.SECONDS)
-            .callTimeout(60, TimeUnit.SECONDS)
-            .addInterceptor(loggingInterceptor ?: createHttpLoggingInterceptor(Level.TRACE))
-            .build()
-        return AriesClient(config.adminUrl, config.apiKey, wallet?.authToken, auxHttpClient)
+        return AriesClient(config.adminUrl, config.apiKey, wallet?.authToken, loggingInterceptor, httpClient)
     }
 
-    private fun createHttpLoggingInterceptor(level: Level): HttpLoggingInterceptor {
-        val log = KotlinLogging.logger {}
-        fun log(spec: String, msg: String) {
-            when(level) {
-                Level.ERROR -> log.error(spec, msg)
-                Level.WARN -> log.warn(spec, msg)
-                Level.INFO -> log.info(spec, msg)
-                Level.DEBUG -> log.debug(spec, msg)
-                else -> log.trace(spec, msg)
-            }
-        }
-        val interceptor = HttpLoggingInterceptor { msg: String ->
-            if (log.isEnabledForLevel(level) && msg.isNotEmpty()) {
-                if (msg.startsWith("{")) {
-                    val json = msg.decodeJson()
-                    log("{}", json.encodeJsonPretty(sorted = true))
-                } else {
-                    log("{}", msg)
-                }
-            }
-        }
-        interceptor.level = HttpLoggingInterceptor.Level.BODY
-        interceptor.redactHeader("X-API-Key")
-        interceptor.redactHeader("Authorization")
-        return interceptor
-    }
 }
 
-class AriesClient(val adminUrl: String, private val apiKey: String?, private val authToken: String?, private val httpClient: OkHttpClient) :
+class AriesClient(
+    val adminUrl: String,
+    private val apiKey: String?,
+    private val authToken: String?,
+    private val loggingInterceptor: HttpLoggingInterceptor? = null,
+    private val httpClient: OkHttpClient? = null):
     org.hyperledger.aries.AriesClient(adminUrl, apiKey, authToken, httpClient) {
 
     val log = KotlinLogging.logger {}
 
-    fun adminPost(path: String, body: Any, params: Map<String, Any>? = null, headers: Map<String, String>? = null): Response {
-        return post(adminUrl + path, body, params, headers)
-    }
+    private val httpService get() = HttpService.getService()
 
-    fun post(reqUrl: String, body: Any, params: Map<String, Any>? = null, headers: Map<String, String>? = null): Response {
-
-        // Build the Request
-        var actUrl = reqUrl
-        if (params != null) {
-            actUrl += "?"
-            params.forEach { (k, v) -> actUrl += "$k=$v&"}
-            actUrl = actUrl.dropLast(1)
-        }
-        val builder = Request.Builder().url(actUrl)
-
-        // Add the headers
-        headers?.filterKeys { it != "Content-Type" }?.forEach {
-                (k, v) -> builder.header(k, v)
-        }
+    fun adminPost(path: String, body: Any, params: Map<String, Any>? = null, headers: Map<String, String> = mapOf()): Response {
+        val mutableHeaders = headers.toMutableMap()
         if (apiKey != null)
-            builder.header("X-API-KEY", apiKey)
+            mutableHeaders["X-API-KEY"] = apiKey
         if (authToken != null)
-            builder.header("Authorization", "Bearer $authToken")
-
-        val bodyJson = if (body is String) body else gson.toJson(body)
-        val mediaType = headers?.get("Content-Type")?.toMediaType()
-        val reqBody = bodyJson.toRequestBody(mediaType ?: JSON_TYPE)
-
-        val req = builder.post(reqBody).build()
-        val res = httpClient.newCall(req).execute()
-        log.debug { "code=${res.code} message=${res.message}" }
-        return res
+            mutableHeaders["Authorization"] = "Bearer $authToken"
+        val httpClient = httpService.httpClient(loggingInterceptor, httpClient)
+        return httpClient.post(adminUrl + path, body, params, mutableHeaders.toMap())
     }
 }
+

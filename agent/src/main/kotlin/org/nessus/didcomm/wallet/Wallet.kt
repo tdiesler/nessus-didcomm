@@ -28,7 +28,8 @@ import org.nessus.didcomm.agent.WebSocketClient
 import org.nessus.didcomm.agent.WebSocketEvent
 import org.nessus.didcomm.agent.WebSocketListener
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.service.PeerConnection
+import org.nessus.didcomm.model.WalletModel
+import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.service.WalletPlugin
 import org.nessus.didcomm.service.WalletService
 import org.slf4j.event.Level
@@ -62,6 +63,11 @@ enum class StorageType(val value: String) {
     }
 }
 
+fun Wallet.toWalletModel(): WalletModel {
+    val modelService = DataModelService.getService()
+    return modelService.getWallet(this.id) as WalletModel
+}
+
 /**
  * A NessusWallet provides access to general wallet functionality.
  *
@@ -79,14 +85,14 @@ class Wallet(
     val authToken: String? = null,
     val options: Map<String, Any> = mapOf(),
 ) {
+    val endpointUrl: String get() = walletPlugin.getEndpointUrl(this)
 
-    val endpointUrl get() = walletPlugin.getEndpointUrl(this)
-
-    private val walletService get() = WalletService.getService()
     internal val walletPlugin: WalletPlugin = when (agentType) {
         AgentType.ACAPY -> AriesWalletPlugin()
         AgentType.NESSUS -> NessusWalletPlugin()
     }
+
+    private val walletService get() = WalletService.getService()
 
     private val interceptorLogLevel = Level.INFO
     private var webSocketClient: WebSocketClient? = null
@@ -131,24 +137,8 @@ class Wallet(
         return walletService.createDid(this, method, algorithm, seed)
     }
 
-    fun listDids(): List<Did> {
-        return walletService.listDids(this)
-    }
-
     fun getPublicDid(): Did? {
         return walletService.getPublicDid(this)
-    }
-
-    fun addConnection(con: PeerConnection) {
-        walletService.addConnection(this, con)
-    }
-
-    fun getConnection(conId: String): PeerConnection? {
-        return walletService.getConnection(this, conId)
-    }
-
-    fun listConnections(): List<PeerConnection> {
-        return walletService.listConnections(this)
     }
 
     fun removeConnections() {

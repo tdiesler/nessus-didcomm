@@ -21,7 +21,7 @@ package org.nessus.didcomm.test.model
 
 import id.walt.common.prettyPrint
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.service.ModelManagerService
+import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.wallet.AgentType
@@ -32,7 +32,7 @@ import kotlin.test.assertNull
 
 class ModelManagerTest: AbstractDidCommTest() {
 
-    private val modelService get() = ModelManagerService.getService()
+    private val modelService get() = DataModelService.getService()
 
     @Test
     fun testModelManager() {

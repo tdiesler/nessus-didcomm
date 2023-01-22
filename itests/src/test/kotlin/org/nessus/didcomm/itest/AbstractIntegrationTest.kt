@@ -27,8 +27,10 @@ import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.crypto.NessusCryptoService
 import org.nessus.didcomm.protocol.Protocol
 import org.nessus.didcomm.service.CamelEndpointService
+import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.service.DidDocumentService
 import org.nessus.didcomm.service.DidService
+import org.nessus.didcomm.service.HttpService
 import org.nessus.didcomm.service.ProtocolKey
 import org.nessus.didcomm.service.ProtocolService
 import org.nessus.didcomm.service.WalletService
@@ -97,9 +99,13 @@ abstract class AbstractIntegrationTest {
     val didService get() = DidService.getService()
     val diddocService = DidDocumentService.getService()
     val endpointService get() = CamelEndpointService.getService()
+    val httpService get() = HttpService.getService()
     val keyStore get() = KeyStoreService.getService()
+    val modelService get() = DataModelService.getService()
     val protocolService get() = ProtocolService.getService()
     val walletService get() = WalletService.getService()
+
+    val httpClient get() = httpService.httpClient()
 
     fun getWalletByAlias(alias: String): Wallet? {
         return walletService.findByName(alias)

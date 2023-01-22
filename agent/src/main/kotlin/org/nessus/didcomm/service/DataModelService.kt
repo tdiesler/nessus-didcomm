@@ -21,13 +21,14 @@ package org.nessus.didcomm.service
 
 import id.walt.servicematrix.ServiceProvider
 import org.nessus.didcomm.model.AgentModel
+import org.nessus.didcomm.model.InvitationState
 import org.nessus.didcomm.model.WalletModel
 
-class ModelManagerService : NessusBaseService() {
-    override val implementation get() = serviceImplementation<ModelManagerService>()
+class DataModelService : NessusBaseService() {
+    override val implementation get() = serviceImplementation<DataModelService>()
 
     companion object: ServiceProvider {
-        private val implementation = ModelManagerService()
+        private val implementation = DataModelService()
         override fun getService() = implementation
     }
 
@@ -36,30 +37,42 @@ class ModelManagerService : NessusBaseService() {
 
     fun addWallet(wallet: WalletModel) {
         check(findWalletByName(wallet.name) == null) { "Wallet already exists: ${wallet.name}" }
+        log.info {"Add: $wallet" }
         model.addWallet(wallet)
-    }
-
-    fun removeWallet(id: String): WalletModel? {
-        return model.removeWallet(id)
-    }
-
-    /**
-     * List wallets by (id, name)
-     */
-    fun listWallets(): List<Pair<String, String>> {
-        return model.wallets
-            .map { w -> Pair(w.id, w.name) }
-            .sortedBy { it.second }
-            .toList()
     }
 
     fun getWallet(id: String): WalletModel? {
         return model.walletsMap[id]
     }
 
+    fun listWallets(): List<WalletModel> {
+        return model.wallets.sortedBy { it.name }
+    }
+
+    fun removeWallet(id: String): WalletModel? {
+        val wallet = getWallet(id)
+        if (wallet != null) {
+            log.info {"Remove: $wallet" }
+            model.removeWallet(id)
+        }
+        return wallet
+    }
+
     fun findWalletByName(name: String): WalletModel? {
         return model.wallets.firstOrNull { it.name == name }
     }
 
+    fun findWalletByVerkey(verkey: String): WalletModel? {
+        return model.wallets.firstOrNull {
+            it.dids.firstOrNull { did -> did.verkey == verkey } != null
+        }
+    }
+
+    fun findWalletByInvitation(id: String, state: InvitationState): WalletModel? {
+        return model.wallets.firstOrNull {
+            val invi = it.getInvitation(id)
+            invi?.state == state
+        }
+    }
 
 }

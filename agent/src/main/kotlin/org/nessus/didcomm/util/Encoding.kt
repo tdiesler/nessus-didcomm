@@ -40,6 +40,10 @@ fun Map<String, Any?>.encodeJsonPretty(sorted: Boolean = false): String {
     return prettyGson.toJson(input)
 }
 
+fun Any.isJson(): Boolean {
+    return this is String && this.trim().startsWith('{')
+}
+
 @Suppress("UNCHECKED_CAST")
 fun String.decodeJson(): Map<String, Any?> {
     // Naive decoding of int values may produce double

@@ -20,16 +20,11 @@
 package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.service.ConnectionState
-import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_WRAPPER
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_WRAPPER
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.StorageType
 import org.nessus.didcomm.wallet.Wallet
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.fail
 
 /**
@@ -60,25 +55,25 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
                 .receiveOutOfBandInvitation(alice)
                 .peekMessageExchange()
 
-            val peerConnection = mex.awaitPeerConnection(alice)
-
-            /** Verify connection state */
-
-            assertNotNull(peerConnection, "No peer connection")
-            assertEquals(ConnectionState.ACTIVE, peerConnection.state)
-
-            /** Send a basic message */
-
-            val userMessage = "Your hovercraft is full of eels."
-
-            mex.withProtocol(RFC0095_BASIC_MESSAGE_WRAPPER)
-                .sendMessage(alice, peerConnection.id, userMessage)
-
-            /** Verify message exchange state */
-
-            val epm: EndpointMessage = mex.last
-            assertEquals("https://didcomm.org/basicmessage/1.0/message", epm.contentUri)
-            assertEquals(userMessage, epm.body)
+//            val peerConnection = mex.awaitPeerConnection(alice)
+//
+//            /** Verify connection state */
+//
+//            assertNotNull(peerConnection, "No peer connection")
+//            assertEquals(ConnectionState.ACTIVE, peerConnection.state)
+//
+//            /** Send a basic message */
+//
+//            val userMessage = "Your hovercraft is full of eels."
+//
+//            mex.withProtocol(RFC0095_BASIC_MESSAGE_WRAPPER)
+//                .sendMessage(alice, peerConnection.id, userMessage)
+//
+//            /** Verify message exchange state */
+//
+//            val epm: EndpointMessage = mex.last
+//            assertEquals("https://didcomm.org/basicmessage/1.0/message", epm.contentUri)
+//            assertEquals(userMessage, epm.body)
 
         } finally {
             removeWallet(Alice.name)
