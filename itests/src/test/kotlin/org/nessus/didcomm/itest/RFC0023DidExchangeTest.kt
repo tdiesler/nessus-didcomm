@@ -21,9 +21,9 @@ package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_WRAPPER
-import org.nessus.didcomm.service.RFC0048_TRUST_PING_WRAPPER
-import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_WRAPPER
+import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
+import org.nessus.didcomm.service.RFC0048_TRUST_PING
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
 import java.util.concurrent.TimeUnit
@@ -63,7 +63,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                  * Inviter (Faber) creates an Out-of-Band Invitation
                  */
 
-                val rfc0434 = MessageExchange().withProtocol(RFC0434_OUT_OF_BAND_WRAPPER)
+                val rfc0434 = MessageExchange().withProtocol(RFC0434_OUT_OF_BAND)
                     .createOutOfBandInvitation(faber, mapOf(
                         "goalCode" to "Faber invites Alice",
                         "usePublicDid" to false,
@@ -75,7 +75,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                  */
 
                 val rfc0023 = rfc0434.receiveOutOfBandInvitation(alice)
-                    .withProtocol(RFC0023_DIDEXCHANGE_WRAPPER)
+                    .withProtocol(RFC0023_DIDEXCHANGE)
                     .acceptOutOfBandInvitation(alice)
                     .sendDidExchangeRequest(alice)
 
@@ -95,7 +95,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                  * Requester (Alice) sends a Trust Ping
                  */
 
-                val rfc0048 = rfc0023.withProtocol(RFC0048_TRUST_PING_WRAPPER)
+                val rfc0048 = rfc0023.withProtocol(RFC0048_TRUST_PING)
                     .sendTrustPing(alice)
 
                 /**

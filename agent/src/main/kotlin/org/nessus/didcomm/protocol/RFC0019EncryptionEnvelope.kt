@@ -9,10 +9,10 @@ import id.walt.common.prettyPrint
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import okhttp3.MediaType.Companion.toMediaType
+import org.nessus.didcomm.crypto.LazySodiumService
 import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toCurve25519
 import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxEasyBytes
 import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxOpenEasyBytes
-import org.nessus.didcomm.crypto.LazySodiumService.lazySodium
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.service.RFC0019_ENCRYPTED_ENVELOPE
 import org.nessus.didcomm.util.decodeBase58
@@ -29,7 +29,9 @@ import org.nessus.didcomm.util.trimJson
  * Aries RFC 0019: Encryption Envelope
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0019-encryption-envelope
  */
-class RFC0019EncryptionEnvelope: Protocol() {
+class RFC0019EncryptionEnvelope():
+    Protocol<RFC0019EncryptionEnvelope>(MessageExchange()) {
+
     override val protocolUri = RFC0019_ENCRYPTED_ENVELOPE.uri
 
     companion object {
@@ -50,14 +52,14 @@ class RFC0019EncryptionEnvelope: Protocol() {
         val senderCurve25519Keys = senderKeys.convertEd25519toCurve25519()
 
         // 1. Generate a content encryption key (symmetrical encryption key)
-        val aeadLazy = lazySodium as AEAD.Lazy
+        val aeadLazy = LazySodiumService.lazySodium as AEAD.Lazy
         val cek: Key = aeadLazy.keygen(AEAD.Method.XCHACHA20_POLY1305_IETF)
 
         // 2. Encrypt the CEK for each recipient's public key using Authcrypt
 
         // 2.1 Set encrypted_key value to base64URLencode(libsodium.crypto_box(my_key, their_vk, cek, cek_iv))
-        val boxLazy = lazySodium as Box.Lazy
-        val boxNonce = lazySodium.nonce(Box.NONCEBYTES)
+        val boxLazy = LazySodiumService.lazySodium as Box.Lazy
+        val boxNonce = LazySodiumService.lazySodium.nonce(Box.NONCEBYTES)
         val encryptKeys = KeyPair(recipientCurve25519Public, senderCurve25519Keys.secretKey)
         val encryptedKey = boxLazy.cryptoBoxEasyBytes(cek.asBytes, boxNonce, encryptKeys).decodeHex()
 
@@ -90,7 +92,7 @@ class RFC0019EncryptionEnvelope: Protocol() {
 
         // 4. encrypt the message using libsodium.crypto_aead_chacha20poly1305_ietf_encrypt_detached(
         //    message, protected_value_encoded, iv, cek) this is the ciphertext.
-        val aeadNonce = lazySodium.nonce(AEAD.CHACHA20POLY1305_IETF_NPUBBYTES)
+        val aeadNonce = LazySodiumService.lazySodium.nonce(AEAD.CHACHA20POLY1305_IETF_NPUBBYTES)
         val ciphertext = aeadLazy.encryptDetached(
             message, protected.toByteArray().encodeBase64Url(),
             null, aeadNonce, cek, AEAD.Method.CHACHA20_POLY1305_IETF)
@@ -141,7 +143,7 @@ class RFC0019EncryptionEnvelope: Protocol() {
         checkNotNull(sender64) { "anon_decrypt not supported" }
 
         // 3.1 Decrypt sender verkey using libsodium.crypto_box_seal_open(my_private_key, base64URLdecode(sender))
-        val boxLazy = lazySodium as Box.Lazy
+        val boxLazy = LazySodiumService.lazySodium as Box.Lazy
         val senderVerkey = boxLazy.cryptoBoxSealOpenEasy(sender64.decodeBase64Url().encodeHex(), recipientCurve25519Keys)
         val senderCurve25519Public = Key.fromBytes(senderVerkey.decodeBase58()).convertEd25519toCurve25519()
         val decryptKeys = KeyPair(senderCurve25519Public, recipientCurve25519Keys.secretKey)
@@ -158,7 +160,7 @@ class RFC0019EncryptionEnvelope: Protocol() {
         val cek = Key.fromBytes(cekHex.decodeHex())
 
         // 3.3 decrypt ciphertext using libsodium.crypto_aead_chacha20poly1305_ietf_open_detached(base64URLdecode(ciphertext_bytes), base64URLdecode(protected_data_as_bytes), base64URLdecode(nonce), cek)
-        val aeadLazy = lazySodium as AEAD.Lazy
+        val aeadLazy = LazySodiumService.lazySodium as AEAD.Lazy
         val ciphertext = envelopeMap["ciphertext"] as? String
         checkNotNull(ciphertext) { "No 'ciphertext' in: $envelope"}
         val iv = envelopeMap["iv"] as? String
@@ -180,6 +182,3 @@ class RFC0019EncryptionEnvelope: Protocol() {
         val recipientVerkey: String,
     )
 }
-
-class RFC0019EncryptionEnvelopeWrapper(mex: MessageExchange):
-    ProtocolWrapper<RFC0019EncryptionEnvelopeWrapper, RFC0019EncryptionEnvelope>(RFC0019EncryptionEnvelope(), mex)

@@ -82,8 +82,8 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
         checkNotNull(messageType) { "No message type" }
 
         val protocolService = ProtocolService.getService()
-        val key = protocolService.findProtocolWrapperKey(protocolUri)
-        val protocolWrapper = protocolService.getProtocolWrapper(key, mex)
+        val key = protocolService.findProtocolKey(protocolUri)
+        val protocolWrapper = protocolService.getProtocol(key, mex)
         return protocolWrapper.invokeMethod(target, messageType)
     }
 

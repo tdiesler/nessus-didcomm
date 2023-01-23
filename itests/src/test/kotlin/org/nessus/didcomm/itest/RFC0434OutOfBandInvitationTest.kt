@@ -21,7 +21,7 @@ package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_WRAPPER
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
 import kotlin.test.fail
@@ -59,7 +59,7 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
              * Inviter (Faber) creates an Out-of-Band Invitation
              */
 
-            val rfc0434 = MessageExchange().withProtocol(RFC0434_OUT_OF_BAND_WRAPPER)
+            val rfc0434 = MessageExchange().withProtocol(RFC0434_OUT_OF_BAND)
                 .createOutOfBandInvitation(faber, mapOf(
                     "goalCode" to "Faber invites Alice",
                     "usePublicDid" to false,

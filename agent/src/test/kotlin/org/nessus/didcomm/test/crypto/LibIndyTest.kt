@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test
 import org.nessus.didcomm.crypto.LibIndyService.closeAndDeleteWallet
 import org.nessus.didcomm.crypto.LibIndyService.createAnOpenWallet
 import org.nessus.didcomm.crypto.LibIndyService.createAndStoreDid
-import org.nessus.didcomm.service.RFC0019_ENCRYPTED_ENVELOPE
+import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
@@ -132,7 +132,7 @@ class LibIndyTest: AbstractDidCommTest() {
             val packed = String(Crypto.packMessage(faber, receivers, faberDid.verkey, message.toByteArray()).get())
             log.info { "Packed: ${packed.prettyPrint()}" }
 
-            val unpacked = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
+            val unpacked = RFC0019EncryptionEnvelope()
                 .unpackEncryptedEnvelope(packed)
             log.info { "Unpacked: $unpacked"}
             assertEquals(aliceDid.verkey, unpacked?.recipientVerkey)
@@ -161,7 +161,7 @@ class LibIndyTest: AbstractDidCommTest() {
             val aliceDid = didService.createDid(DidMethod.SOV, KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
 
             val message = "Your hovercraft is full of eels."
-            val packed = getProtocol(RFC0019_ENCRYPTED_ENVELOPE)
+            val packed = RFC0019EncryptionEnvelope()
                 .packEncryptedEnvelope(message, aliceDid, faberDid)
             log.info { "Packed: ${packed.prettyPrint()}" }
 

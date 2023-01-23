@@ -20,10 +20,12 @@
 package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
+import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_WRAPPER
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
+import kotlin.test.assertEquals
 import kotlin.test.fail
 
 /**
@@ -47,13 +49,13 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
         try {
             endpointService.startEndpoint(alice).use {
 
-                /** Establish a peer connection */
-
-                MessageExchange()
-                    .withProtocol(RFC0434_OUT_OF_BAND_WRAPPER)
+                val pcon = MessageExchange()
+                    .withProtocol(RFC0434_OUT_OF_BAND)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
                     .acceptConnectionFrom(alice)
                     .getConnection()
+
+                assertEquals(ConnectionState.ACTIVE, pcon?.state)
             }
 
         } finally {

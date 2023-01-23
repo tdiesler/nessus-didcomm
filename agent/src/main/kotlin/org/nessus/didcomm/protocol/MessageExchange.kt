@@ -3,7 +3,7 @@ package org.nessus.didcomm.protocol
 import mu.KotlinLogging
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.service.ProtocolService
-import org.nessus.didcomm.service.ProtocolWrapperKey
+import org.nessus.didcomm.service.ProtocolKey
 import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.AttachmentSupport
 
@@ -59,8 +59,8 @@ class MessageExchange(): AttachmentSupport() {
         return getAttachment(AttachmentKey(Connection::class.java))
     }
 
-    fun <W: ProtocolWrapper<W, *>> withProtocol(key: ProtocolWrapperKey<W>): W {
+    fun <T: Protocol<T>> withProtocol(key: ProtocolKey<T>): T {
         val protocolService = ProtocolService.getService()
-        return protocolService.getProtocolWrapper(key, this)
+        return protocolService.getProtocol(key, this)
     }
 }

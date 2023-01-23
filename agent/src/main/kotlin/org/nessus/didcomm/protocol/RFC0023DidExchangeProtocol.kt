@@ -7,7 +7,6 @@ import org.nessus.didcomm.model.ConnectionState.REQUEST
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.InvitationState
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
-import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE
 import org.nessus.didcomm.service.RFC0023DidDocument
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.util.AttachmentKey
@@ -27,7 +26,9 @@ import java.util.concurrent.TimeUnit
  * Aries RFC 0023: DID Exchange Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange
  */
-class RFC0023DidExchangeProtocol(): Protocol() {
+class RFC0023DidExchangeProtocol(mex: MessageExchange):
+    Protocol<RFC0023DidExchangeProtocol>(mex) {
+
     override val protocolUri = RFC0023_DIDEXCHANGE.uri
 
     companion object {
@@ -36,19 +37,114 @@ class RFC0023DidExchangeProtocol(): Protocol() {
         val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE = "${RFC0023_DIDEXCHANGE.uri}/complete"
     }
 
+    override fun invokeMethod(to: Wallet, messageType: String): Boolean {
+        when (messageType) {
+            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE -> receiveDidExchangeResponse(to)
+            else -> throw IllegalStateException("Unsupported message type: $messageType")
+        }
+        return true
+    }
+
     /**
      * Accept an Out-of-Band Invitation
      */
-    fun acceptInvitation(invitee: Wallet, invitation: Invitation): Invitation {
+    fun acceptOutOfBandInvitation(invitee: Wallet): RFC0023DidExchangeProtocol {
+
+        val invId = mex.last.thid as String
+        val invitation = invitee.toWalletModel().getInvitation(invId)
+        checkNotNull(invitation) { "No invitation with id: $invId" }
+
         checkNotNull(invitee.toWalletModel().getInvitation(invitation.id)) { "Unknown invitation" }
         invitation.state = InvitationState.DONE
-        return invitation
+        return this
+    }
+
+    fun sendDidExchangeRequest(requester: Wallet): RFC0023DidExchangeProtocol {
+        val invId = mex.last.thid as String
+        val invitation = requester.toWalletModel().getInvitation(invId)
+        checkNotNull(invitation) { "No invitation with id: $invId" }
+
+        val didexRequest = buildDidExRequestMessage(requester, invitation)
+        check(didexRequest.messageId == didexRequest.thid) { "Unexpected thread id: $didexRequest" }
+        mex.addMessage(didexRequest)
+
+        val conId = didexRequest.messageId as String
+        val pcon = requester.toWalletModel().getConnection(conId)
+        checkNotNull(pcon) { "No peer connection with id: $conId" }
+
+        // Attach the Connection
+        val pconKey = AttachmentKey(Connection::class.java)
+        mex.putAttachment(pconKey, pcon)
+
+        // Register the response future with the message exchange
+        val futureId = "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE/${didexRequest.thid}"
+        val futureKey = AttachmentKey(futureId, CompletableFuture::class.java)
+        mex.putAttachment(futureKey, CompletableFuture<EndpointMessage>())
+
+        val packedDidExRequest = RFC0019EncryptionEnvelope()
+            .packEncryptedEnvelope(didexRequest.bodyAsJson, pcon.myDid, pcon.theirDid)
+
+        val packedEpm = EndpointMessage(packedDidExRequest, mapOf(
+            "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+        ))
+
+        return dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
+    }
+
+    fun awaitDidExchangeResponse(timeout: Int, unit: TimeUnit): RFC0023DidExchangeProtocol {
+        val didexThreadId = mex.last.thid as String
+        val futureId = "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE/$didexThreadId"
+        val futureKey = AttachmentKey(futureId, CompletableFuture::class.java)
+        val future = mex.getAttachment(futureKey)
+        if (future != null) {
+            log.info {"Wait on future: $futureKey"}
+            future.get(timeout.toLong(), unit)
+        }
+        return this
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun receiveDidExchangeResponse(requester: Wallet): RFC0023DidExchangeProtocol {
+
+        val didexThreadId = mex.last.thid as String
+        val futureId = "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE/$didexThreadId"
+        val futureKey = AttachmentKey(futureId, CompletableFuture::class.java)
+        val future = mex.removeAttachment(futureKey) as? CompletableFuture<EndpointMessage>
+        if (future != null) {
+            log.info {"Complete future: $futureKey"}
+            future.complete(mex.last)
+        }
+        return this
+    }
+
+    fun sendDidExchangeComplete(requester: Wallet): RFC0023DidExchangeProtocol {
+
+        val pcon = mex.getConnection()
+        checkNotNull(pcon) { "No peer connection" }
+
+        val invId = mex.last.pthid as String
+        val invitation = requester.toWalletModel().getInvitation(invId)
+        checkNotNull(invitation) { "No invitation with id: $invId" }
+
+        val didexComplete = receiveDidExResponseMessage(requester, mex.last)
+        val theirServiceEndpoint = invitation.getRecipientServiceEndpoint()
+
+        val packedDidExComplete = RFC0019EncryptionEnvelope()
+            .packEncryptedEnvelope(didexComplete.bodyAsJson, pcon.myDid, pcon.theirDid)
+
+        val packedEpm = EndpointMessage(packedDidExComplete, mapOf(
+            "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+        ))
+
+        dispatchToEndpoint(theirServiceEndpoint, packedEpm)
+        pcon.state = ConnectionState.COMPLETED
+        return this
     }
 
     /**
      * Create a DidExchange Request
      */
-    fun sendDidExchangeRequest(requester: Wallet, invitation: Invitation): EndpointMessage {
+    fun buildDidExRequestMessage(requester: Wallet, invitation: Invitation): EndpointMessage {
         val epm = if (requester.agentType == AgentType.ACAPY) {
             sendDidExchangeRequestAcapy(requester, invitation)
         } else {
@@ -116,7 +212,7 @@ class RFC0023DidExchangeProtocol(): Protocol() {
         // messageExchange.completeThreadIdFuture(invitation.atId, rfc0023DidDoc)
     }
 
-    fun receiveResponse(requester: Wallet, epm: EndpointMessage): EndpointMessage {
+    fun receiveDidExResponseMessage(requester: Wallet, epm: EndpointMessage): EndpointMessage {
         val didexComplete = """
         {
             "@type": "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE",
@@ -211,110 +307,6 @@ class RFC0023DidExchangeProtocol(): Protocol() {
         requester.toWalletModel().addConnection(con)
 
         return EndpointMessage(didexRequest)
-    }
-}
-
-class RFC0023DidExchangeProtocolWrapper(mex: MessageExchange):
-    ProtocolWrapper<RFC0023DidExchangeProtocolWrapper, RFC0023DidExchangeProtocol>(RFC0023DidExchangeProtocol(), mex) {
-
-    override fun invokeMethod(to: Wallet, messageType: String): Boolean {
-        when (messageType) {
-            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE -> receiveDidExchangeResponse(to)
-            else -> throw IllegalStateException("Unsupported message type: $messageType")
-        }
-        return true
-    }
-
-    fun acceptOutOfBandInvitation(invitee: Wallet): RFC0023DidExchangeProtocolWrapper {
-
-        val invId = mex.last.thid as String
-        val invitation = invitee.toWalletModel().getInvitation(invId)
-        checkNotNull(invitation) { "No invitation with id: $invId" }
-
-        protocol.acceptInvitation(invitee, invitation)
-        return this
-    }
-
-    fun sendDidExchangeRequest(requester: Wallet): RFC0023DidExchangeProtocolWrapper {
-        val invId = mex.last.thid as String
-        val invitation = requester.toWalletModel().getInvitation(invId)
-        checkNotNull(invitation) { "No invitation with id: $invId" }
-
-        val didexRequest = protocol.sendDidExchangeRequest(requester, invitation)
-        check(didexRequest.messageId == didexRequest.thid) { "Unexpected thread id: $didexRequest" }
-        mex.addMessage(didexRequest)
-
-        val conId = didexRequest.messageId as String
-        val pcon = requester.toWalletModel().getConnection(conId)
-        checkNotNull(pcon) { "No peer connection with id: $conId" }
-
-        // Attach the Connection
-        val pconKey = AttachmentKey(Connection::class.java)
-        mex.putAttachment(pconKey, pcon)
-
-        // Register the response future with the message exchange
-        val futureId = "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE?thid=${didexRequest.thid}"
-        val futureKey = AttachmentKey(futureId, CompletableFuture::class.java)
-        mex.putAttachment(futureKey, CompletableFuture<EndpointMessage>())
-
-        val packedDidExRequest = RFC0019EncryptionEnvelope()
-            .packEncryptedEnvelope(didexRequest.bodyAsJson, pcon.myDid, pcon.theirDid)
-
-        val packedEpm = EndpointMessage(packedDidExRequest, mapOf(
-            "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
-        ))
-
-        return dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
-    }
-
-    fun awaitDidExchangeResponse(timeout: Int, unit: TimeUnit): RFC0023DidExchangeProtocolWrapper {
-        val didexThreadId = mex.last.thid as String
-        val futureId = "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE?thid=$didexThreadId"
-        val futureKey = AttachmentKey(futureId, CompletableFuture::class.java)
-        val future = mex.getAttachment(futureKey)
-        if (future != null) {
-            log.info {"Wait on future: $futureKey"}
-            future.get(timeout.toLong(), unit)
-        }
-        return this
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    fun receiveDidExchangeResponse(requester: Wallet): RFC0023DidExchangeProtocolWrapper {
-
-        val didexThreadId = mex.last.thid as String
-        val futureId = "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE?thid=$didexThreadId"
-        val futureKey = AttachmentKey(futureId, CompletableFuture::class.java)
-        val future = mex.removeAttachment(futureKey) as? CompletableFuture<EndpointMessage>
-        if (future != null) {
-            log.info {"Complete future: $futureKey"}
-            future.complete(mex.last)
-        }
-        return this
-    }
-
-    fun sendDidExchangeComplete(requester: Wallet): RFC0023DidExchangeProtocolWrapper {
-
-        val pcon = mex.getConnection()
-        checkNotNull(pcon) { "No peer connection" }
-
-        val invId = mex.last.pthid as String
-        val invitation = requester.toWalletModel().getInvitation(invId)
-        checkNotNull(invitation) { "No invitation with id: $invId" }
-
-        val didexComplete = protocol.receiveResponse(requester, mex.last)
-        val theirServiceEndpoint = invitation.getRecipientServiceEndpoint()
-
-        val packedDidExComplete = RFC0019EncryptionEnvelope()
-            .packEncryptedEnvelope(didexComplete.bodyAsJson, pcon.myDid, pcon.theirDid)
-
-        val packedEpm = EndpointMessage(packedDidExComplete, mapOf(
-            "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
-        ))
-
-        dispatchToEndpoint(theirServiceEndpoint, packedEpm)
-        pcon.state = ConnectionState.COMPLETED
-        return this
     }
 }
 

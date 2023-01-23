@@ -27,8 +27,8 @@ import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol.Companion.RFC0095_BASIC_MESSAGE_TYPE
-import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_WRAPPER
-import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_WRAPPER
+import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
@@ -70,14 +70,14 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
             endpointService.startEndpoint(alice, listener).use {
 
                 val mex = MessageExchange()
-                    .withProtocol(RFC0434_OUT_OF_BAND_WRAPPER)
+                    .withProtocol(RFC0434_OUT_OF_BAND)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
                     .acceptConnectionFrom(alice)
 
                 val pcon = mex.getConnection()
                 assertEquals(ConnectionState.ACTIVE, pcon?.state)
 
-                mex.withProtocol(RFC0095_BASIC_MESSAGE_WRAPPER)
+                mex.withProtocol(RFC0095_BASIC_MESSAGE)
                     .sendMessage("Ich habe Sauerkraut in meinen Lederhosen")
 
                 val myDid = pcon?.myDid

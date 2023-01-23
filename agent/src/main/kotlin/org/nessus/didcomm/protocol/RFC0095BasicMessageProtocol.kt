@@ -4,7 +4,7 @@ import id.walt.common.prettyPrint
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.toWallet
-import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol.Companion.RFC0095_BASIC_MESSAGE_TYPE
+import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE
 import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.trimJson
@@ -19,17 +19,61 @@ import java.util.concurrent.CompletableFuture
  * Aries RFC 0095: Basic Message Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0095-basic-message
  */
-class RFC0095BasicMessageProtocol(): Protocol() {
+class RFC0095BasicMessageProtocol(mex: MessageExchange):
+    Protocol<RFC0095BasicMessageProtocol>(mex) {
     override val protocolUri = RFC0095_BASIC_MESSAGE.uri
 
     companion object {
         val RFC0095_BASIC_MESSAGE_TYPE = "${RFC0095_BASIC_MESSAGE.uri}/message"
     }
 
+    override fun invokeMethod(to: Wallet, messageType: String): Boolean {
+        when (messageType) {
+            RFC0095_BASIC_MESSAGE_TYPE -> receiveMessage(to)
+            else -> throw IllegalStateException("Unsupported message type: $messageType")
+        }
+        return true
+    }
+
+    fun sendMessage(message: String): RFC0095BasicMessageProtocol {
+
+        val pcon = mex.getConnection()
+        checkNotNull(pcon) { "No peer connection" }
+        check(pcon.state == ConnectionState.ACTIVE) { "Connection not active: $pcon" }
+
+        val basicMessage = buildBasicSendMessage(pcon.id, message)
+
+        val packedPingRequest = RFC0019EncryptionEnvelope()
+            .packEncryptedEnvelope(basicMessage.bodyAsJson, pcon.myDid, pcon.theirDid)
+
+        val packedEpm = EndpointMessage(packedPingRequest, mapOf(
+            "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+        ))
+
+        // Start a new thread
+        return dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun receiveMessage(receiver: Wallet): RFC0095BasicMessageProtocol {
+
+        val bodyJson = mex.last.bodyAsJson
+        log.info { "Received basic message: ${bodyJson.prettyPrint()}" }
+
+        val futureKey = AttachmentKey(RFC0095_BASIC_MESSAGE_TYPE, CompletableFuture::class.java)
+        val future = mex.removeAttachment(futureKey) as? CompletableFuture<EndpointMessage>
+        if (future != null) {
+            log.info {"Complete future: $futureKey"}
+            future.complete(mex.last)
+        }
+
+        return this
+    }
+
     /**
      * Send a basic message to a connection
      */
-    fun sendMessage(conId: String, message: String): EndpointMessage {
+    fun buildBasicSendMessage(conId: String, message: String): EndpointMessage {
 
         val pcon: Connection? = modelService.getConnection(conId)
         checkNotNull(pcon) { "No peer connection" }
@@ -73,53 +117,6 @@ class RFC0095BasicMessageProtocol(): Protocol() {
         }
         """.trimJson()
         return EndpointMessage(basicMsg)
-    }
-}
-
-class RFC0095BasicMessageProtocolWrapper(mex: MessageExchange):
-    ProtocolWrapper<RFC0095BasicMessageProtocolWrapper, RFC0095BasicMessageProtocol>(RFC0095BasicMessageProtocol(), mex) {
-
-    override fun invokeMethod(to: Wallet, messageType: String): Boolean {
-        when (messageType) {
-            RFC0095_BASIC_MESSAGE_TYPE -> receiveMessage(to)
-            else -> throw IllegalStateException("Unsupported message type: $messageType")
-        }
-        return true
-    }
-
-    fun sendMessage(message: String): RFC0095BasicMessageProtocolWrapper {
-
-        val pcon = mex.getConnection()
-        checkNotNull(pcon) { "No peer connection" }
-        check(pcon.state == ConnectionState.ACTIVE) { "Connection not active: $pcon" }
-
-        val basicMessage = protocol.sendMessage(pcon.id, message)
-
-        val packedPingRequest = RFC0019EncryptionEnvelope()
-            .packEncryptedEnvelope(basicMessage.bodyAsJson, pcon.myDid, pcon.theirDid)
-
-        val packedEpm = EndpointMessage(packedPingRequest, mapOf(
-            "Content-Type" to RFC0019EncryptionEnvelope.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
-        ))
-
-        // Start a new thread
-        return dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    fun receiveMessage(receiver: Wallet): RFC0095BasicMessageProtocolWrapper {
-
-        val bodyJson = mex.last.bodyAsJson
-        log.info { "Received basic message: ${bodyJson.prettyPrint()}" }
-
-        val futureKey = AttachmentKey(RFC0095_BASIC_MESSAGE_TYPE, CompletableFuture::class.java)
-        val future = mex.removeAttachment(futureKey) as? CompletableFuture<EndpointMessage>
-        if (future != null) {
-            log.info {"Complete future: $futureKey"}
-            future.complete(mex.last)
-        }
-
-        return this
     }
 }
 
