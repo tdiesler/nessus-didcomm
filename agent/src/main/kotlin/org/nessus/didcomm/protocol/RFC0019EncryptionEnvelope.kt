@@ -29,8 +29,7 @@ import org.nessus.didcomm.util.trimJson
  * Aries RFC 0019: Encryption Envelope
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0019-encryption-envelope
  */
-class RFC0019EncryptionEnvelope():
-    Protocol<RFC0019EncryptionEnvelope>(MessageExchange()) {
+class RFC0019EncryptionEnvelope: Protocol<RFC0019EncryptionEnvelope>(MessageExchange()) {
 
     override val protocolUri = RFC0019_ENCRYPTED_ENVELOPE.uri
 

@@ -59,6 +59,27 @@ data class WalletModel(
         return dids
     }
 
+    fun addConnection(con: Connection) {
+        check(!hasConnection(con.id)) { "Connection already added" }
+        connectionsInternal.add(con)
+    }
+
+    fun getConnection(id: String): Connection? {
+        return connectionsInternal.firstOrNull { it.id == id }
+    }
+
+    fun hasConnection(id: String): Boolean {
+        return getConnection(id) != null
+    }
+
+    fun findConnectionByVerkey(verkey: String): Connection? {
+        return connectionsInternal.firstOrNull { it.myDid.verkey == verkey }
+    }
+
+    fun removeConnections() {
+        connectionsInternal.clear()
+    }
+
     fun addInvitation(invitation: Invitation) {
         check(!hasInvitation(invitation.id)) { "Invitation already added" }
         invitationsInternal.add(invitation)
@@ -70,23 +91,6 @@ data class WalletModel(
 
     fun hasInvitation(id: String): Boolean {
         return getInvitation(id) != null
-    }
-
-    fun addConnection(con: Connection) {
-        check(!hasConnection(con.id)) { "Connection already added" }
-        connectionsInternal.add(con)
-    }
-    
-    fun getConnection(id: String): Connection? {
-        return connectionsInternal.firstOrNull { it.id == id }
-    }
-
-    fun hasConnection(id: String): Boolean {
-        return getConnection(id) != null
-    }
-
-    fun removeConnections() {
-        connectionsInternal.clear()
     }
 }
 
@@ -119,7 +123,7 @@ class Invitation(
             val transitions = mapOf(
                 INITIAL to RECEIVED,
                 RECEIVED to DONE)
-            require(transitions[field] == next) { "Invalid state transition: $field => $next" }
+            require(field == next || transitions[field] == next) { "Invalid state transition: $field => $next" }
             field = next
         }
 
@@ -166,7 +170,7 @@ class Connection(
                 REQUEST to COMPLETED,
                 COMPLETED to ACTIVE,
                 )
-            require(transitions[field] == next) { "Invalid state transition: $field => $next" }
+            require(field == next || transitions[field] == next) { "Invalid state transition: $field => $next" }
             field = next
         }
     

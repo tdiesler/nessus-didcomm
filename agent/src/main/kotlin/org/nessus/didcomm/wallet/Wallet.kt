@@ -28,6 +28,8 @@ import org.nessus.didcomm.agent.WebSocketClient
 import org.nessus.didcomm.agent.WebSocketEvent
 import org.nessus.didcomm.agent.WebSocketListener
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.WalletModel
 import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.service.WalletPlugin
@@ -139,6 +141,18 @@ class Wallet(
 
     fun getPublicDid(): Did? {
         return walletService.getPublicDid(this)
+    }
+
+    fun getConnection(conId: String): Connection? {
+        return toWalletModel().getConnection(conId)
+    }
+
+    fun getConnection(myDid: Did, theirDid: Did): Connection? {
+        return walletService.getConnection(this, myDid, theirDid)
+    }
+
+    fun getInvitation(invId: String): Invitation? {
+        return toWalletModel().getInvitation(invId)
     }
 
     fun removeConnections() {

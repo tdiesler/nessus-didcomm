@@ -22,10 +22,13 @@ package org.nessus.didcomm.itest
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.protocol.MessageExchange
+import org.nessus.didcomm.service.RFC0048_TRUST_PING
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
+import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.fail
 
 /**
@@ -35,7 +38,7 @@ import kotlin.test.fail
 class RFC0048TrustPingTest : AbstractIntegrationTest() {
 
     @Test
-    fun test_FaberAcapy_AliceAcapy() {
+    fun test_FaberAcapy_AliceNessus() {
 
         /** Create the wallets */
 
@@ -49,13 +52,27 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
         try {
             endpointService.startEndpoint(alice).use {
 
-                val pcon = MessageExchange()
+                val aliceFaber = MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
                     .acceptConnectionFrom(alice)
                     .getConnection()
 
-                assertEquals(ConnectionState.ACTIVE, pcon?.state)
+                assertNotNull(aliceFaber)
+                assertEquals(ConnectionState.ACTIVE, aliceFaber.state)
+
+                // Send an explicit trust ping
+                MessageExchange()
+                    .withProtocol(RFC0048_TRUST_PING)
+                    .sendTrustPing(aliceFaber)
+                    .awaitTrustPingResponse(5, TimeUnit.SECONDS)
+
+                // Send a reverse trust ping
+                val faberAlice = faber.getConnection(aliceFaber.theirDid, aliceFaber.myDid)
+                MessageExchange()
+                    .withProtocol(RFC0048_TRUST_PING)
+                    .sendTrustPing(faberAlice)
+                    .awaitTrustPingResponse(5, TimeUnit.SECONDS)
             }
 
         } finally {

@@ -24,12 +24,15 @@ import id.walt.servicematrix.ServiceProvider
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_URI
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_RECIPIENT_VERKEY
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_SENDER_VERKEY
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.findMessageExchange
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE
+import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING
 import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE
 import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol.Companion.RFC0095_BASIC_MESSAGE_TYPE
 import org.nessus.didcomm.util.matches
@@ -112,7 +115,10 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
          * that this message can be attached to
          */
 
-        val aux = EndpointMessage(message)
+        val aux = EndpointMessage(message, mapOf(
+            MESSAGE_SENDER_VERKEY to unpacked.senderVerkey,
+            MESSAGE_RECIPIENT_VERKEY to unpacked.recipientVerkey
+        ))
 
         val walletService = WalletService.getService()
         val recipientWallet = walletService.findByVerkey(recipientVerkey)
@@ -129,6 +135,13 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
                 checkNotNull(mex) { "No message exchange for: $aux"}
                 mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
                     .header(MESSAGE_PROTOCOL_URI, RFC0023_DIDEXCHANGE.uri)
+                    .build())
+                mex
+            }
+            RFC0048_TRUST_PING_MESSAGE_TYPE_PING -> {
+                val mex = findMessageExchange(aux) ?: MessageExchange()
+                mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
+                    .header(MESSAGE_PROTOCOL_URI, RFC0048_TRUST_PING.uri)
                     .build())
                 mex
             }

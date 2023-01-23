@@ -17,13 +17,19 @@ import org.hyperledger.aries.api.wallet.WalletDIDCreate
 import org.nessus.didcomm.agent.AgentConfiguration
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.model.toWallet
 import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
+import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.WalletPlugin
 import org.nessus.didcomm.service.WalletServicePlugin
 
 class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
     val log = KotlinLogging.logger {}
+
+    val modelService get() = DataModelService.getService()
 
     override fun getEndpointUrl(wallet: Wallet): String {
         return AgentConfiguration.agentConfiguration(wallet.options).userUrl
@@ -140,6 +146,18 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
         val dids = walletClient.walletDid().get().map { it.toNessusDid() }
         dids.forEach { wallet.toWalletModel().addDid(it) }
         return dids
+    }
+
+    override fun getConnection(wallet: Wallet, myDid: Did, theirDid: Did): Connection? {
+        val walletClient = wallet.walletClient() as AriesClient
+        val cr = walletClient.connections().get().firstOrNull { it.theirDid == theirDid.id } ?: return null
+        val theirWallet = modelService.findWalletByVerkey(theirDid.verkey)?.toWallet() ?: return null
+        return Connection(
+            id = cr.connectionId,
+            myDid = myDid,
+            theirDid = theirDid,
+            theirEndpointUrl = theirWallet.endpointUrl,
+            state = ConnectionState.valueOf(cr.state.name.uppercase()))
     }
 
     override fun removeConnections(wallet: Wallet) {

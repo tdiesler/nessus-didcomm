@@ -29,6 +29,7 @@ import mu.KotlinLogging
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.toWallet
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.AriesWalletPlugin
@@ -151,16 +152,20 @@ class WalletService : BaseService() {
         return wallet.walletPlugin.listDids(wallet)
     }
 
-    fun removeConnections(wallet: Wallet) {
-        wallet.walletPlugin.removeConnections(wallet)
-        return wallet.toWalletModel().removeConnections()
-    }
-
     /**
      * Get the (optional) public Did for the given wallet
      */
     fun getPublicDid(wallet: Wallet): Did? {
         return wallet.walletPlugin.publicDid(wallet)
+    }
+
+    fun getConnection(wallet: Wallet, myDid: Did, theirDid: Did): Connection? {
+        return wallet.walletPlugin.getConnection(wallet, myDid, theirDid)
+    }
+
+    fun removeConnections(wallet: Wallet) {
+        wallet.walletPlugin.removeConnections(wallet)
+        return wallet.toWalletModel().removeConnections()
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
@@ -208,6 +213,8 @@ interface WalletPlugin {
     fun publicDid(wallet: Wallet): Did?
 
     fun listDids(wallet: Wallet): List<Did>
+
+    fun getConnection(wallet: Wallet, myDid: Did, theirDid: Did): Connection?
 
     fun removeConnections(wallet: Wallet)
 }

@@ -1,12 +1,14 @@
 package org.nessus.didcomm.protocol
 
 import id.walt.common.prettyPrint
+import org.hyperledger.aries.api.did_exchange.DidExchangeAcceptInvitationFilter
+import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.ConnectionState.REQUEST
 import org.nessus.didcomm.model.Invitation
-import org.nessus.didcomm.model.InvitationState
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.INVITEE_WALLET_ATTACHMENT
 import org.nessus.didcomm.service.RFC0023DidDocument
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.util.AttachmentKey
@@ -26,8 +28,7 @@ import java.util.concurrent.TimeUnit
  * Aries RFC 0023: DID Exchange Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange
  */
-class RFC0023DidExchangeProtocol(mex: MessageExchange):
-    Protocol<RFC0023DidExchangeProtocol>(mex) {
+class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExchangeProtocol>(mex) {
 
     override val protocolUri = RFC0023_DIDEXCHANGE.uri
 
@@ -45,32 +46,27 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange):
         return true
     }
 
-    /**
-     * Accept an Out-of-Band Invitation
-     */
-    fun acceptOutOfBandInvitation(invitee: Wallet): RFC0023DidExchangeProtocol {
+    fun sendDidExchangeRequest(): RFC0023DidExchangeProtocol {
+
+        val requester = mex.getAttachment(INVITEE_WALLET_ATTACHMENT)
+        checkNotNull(requester)  { "No requester attachment" }
 
         val invId = mex.last.thid as String
-        val invitation = invitee.toWalletModel().getInvitation(invId)
+        val invitation = requester.getInvitation(invId)
         checkNotNull(invitation) { "No invitation with id: $invId" }
 
-        checkNotNull(invitee.toWalletModel().getInvitation(invitation.id)) { "Unknown invitation" }
-        invitation.state = InvitationState.DONE
-        return this
-    }
+        val didexRequest = if (requester.agentType == AgentType.ACAPY) {
+            sendDidExchangeRequestAcapy(requester, invitation)
+        } else {
+            sendDidExchangeRequestNessus(requester, invitation)
+        }
 
-    fun sendDidExchangeRequest(requester: Wallet): RFC0023DidExchangeProtocol {
-        val invId = mex.last.thid as String
-        val invitation = requester.toWalletModel().getInvitation(invId)
-        checkNotNull(invitation) { "No invitation with id: $invId" }
-
-        val didexRequest = buildDidExRequestMessage(requester, invitation)
         check(didexRequest.messageId == didexRequest.thid) { "Unexpected thread id: $didexRequest" }
         mex.addMessage(didexRequest)
 
         val conId = didexRequest.messageId as String
-        val pcon = requester.toWalletModel().getConnection(conId)
-        checkNotNull(pcon) { "No peer connection with id: $conId" }
+        val pcon = requester.getConnection(conId)
+        checkNotNull(pcon) { "No peer connection" }
 
         // Attach the Connection
         val pconKey = AttachmentKey(Connection::class.java)
@@ -88,7 +84,8 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange):
             "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
         ))
 
-        return dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
+        dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
+        return this
     }
 
     fun awaitDidExchangeResponse(timeout: Int, unit: TimeUnit): RFC0023DidExchangeProtocol {
@@ -117,13 +114,16 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange):
         return this
     }
 
-    fun sendDidExchangeComplete(requester: Wallet): RFC0023DidExchangeProtocol {
+    fun sendDidExchangeComplete(): RFC0023DidExchangeProtocol {
+
+        val requester = mex.getAttachment(INVITEE_WALLET_ATTACHMENT)
+        checkNotNull(requester)  { "No requester attachment" }
 
         val pcon = mex.getConnection()
         checkNotNull(pcon) { "No peer connection" }
 
         val invId = mex.last.pthid as String
-        val invitation = requester.toWalletModel().getInvitation(invId)
+        val invitation = requester.getInvitation(invId)
         checkNotNull(invitation) { "No invitation with id: $invId" }
 
         val didexComplete = receiveDidExResponseMessage(requester, mex.last)
@@ -144,14 +144,6 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange):
     /**
      * Create a DidExchange Request
      */
-    fun buildDidExRequestMessage(requester: Wallet, invitation: Invitation): EndpointMessage {
-        val epm = if (requester.agentType == AgentType.ACAPY) {
-            sendDidExchangeRequestAcapy(requester, invitation)
-        } else {
-            sendDidExchangeRequestNessus(requester, invitation)
-        }
-        return epm
-    }
 
     /**
      * Receive a DidExchange Request
@@ -183,7 +175,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange):
          *  - An explicit out-of-band invitation with its own @id.
          *  - An implicit invitation contained in a DID document's service attribute that conforms to the DIDComm conventions.
          */
-        val invitation = responder.toWalletModel().getInvitation(pthid)
+        val invitation = responder.getInvitation(pthid)
         checkNotNull(invitation) { "Cannot find invitation for: $pthid" }
 
         /**
@@ -229,21 +221,19 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange):
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun sendDidExchangeRequestAcapy(invitee: Wallet, invitation: Invitation): EndpointMessage {
-        TODO("acceptInvitationAcapy")
+    private fun sendDidExchangeRequestAcapy(requester: Wallet, invitation: Invitation): EndpointMessage {
 
-//        val responderConnectionId = messageExchange.getAttachment(MESSAGE_EXCHANGE_INVITEE_CONNECTION_ID_KEY)
-//        checkNotNull(responderConnectionId) { "No peer connectionId attachment"}
-//
-//        val acceptInvitationFilter = DidExchangeAcceptInvitationFilter()
-//        acceptInvitationFilter.myEndpoint = invitee.endpointUrl
-//        acceptInvitationFilter.myLabel = "Accept Invitation"
-//
-//        val responderClient = invitee.walletClient() as AriesClient
-//        responderClient.didExchangeAcceptInvitation(responderConnectionId, acceptInvitationFilter).get()
+        val acceptInvitationFilter = DidExchangeAcceptInvitationFilter()
+        acceptInvitationFilter.myEndpoint = requester.endpointUrl
+        acceptInvitationFilter.myLabel = "Accept Invitation"
+
+        val requesterClient = requester.walletClient() as AriesClient
+//        responderClient.didExchangeAcceptInvitation(requesterConnectionId, acceptInvitationFilter).get()
 //
 //        // Expect invitee connection in state 'active'
 //        messageExchange.awaitConnectionState(invitee, setOf(ConnectionState.ACTIVE))
+
+        return EndpointMessage("")
     }
 
     private fun sendDidExchangeRequestNessus(requester: Wallet, invitation: Invitation): EndpointMessage {
@@ -254,54 +244,54 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange):
         // Create the Invitee Did & Document
         val requesterDid = requester.createDid(DidMethod.SOV)
         val requesterDidDoc = """
+        {
+            "@context": "https://w3id.org/did/v1",
+            "id": "${requesterDid.qualified}",
+            "publicKey": [
                 {
-                    "@context": "https://w3id.org/did/v1",
-                    "id": "${requesterDid.qualified}",
-                    "publicKey": [
-                        {
-                            "id": "${requesterDid.qualified}#1",
-                            "type": "Ed25519VerificationKey2018",
-                            "controller": "${requesterDid.qualified}",
-                            "publicKeyBase58": "${requesterDid.verkey}"
-                        }
+                    "id": "${requesterDid.qualified}#1",
+                    "type": "Ed25519VerificationKey2018",
+                    "controller": "${requesterDid.qualified}",
+                    "publicKeyBase58": "${requesterDid.verkey}"
+                }
+            ],
+            "authentication": [
+                {
+                    "type": "Ed25519SignatureAuthentication2018",
+                    "publicKey": "${requesterDid.qualified}#1"
+                }
+            ],
+            "service": [
+                {
+                    "id": "${requesterDid.qualified};memory",
+                    "type": "NessusAgent",
+                    "priority": 0,
+                    "recipientKeys": [
+                        "${requesterDid.verkey}"
                     ],
-                    "authentication": [
-                        {
-                            "type": "Ed25519SignatureAuthentication2018",
-                            "publicKey": "${requesterDid.qualified}#1"
-                        }
-                    ],
-                    "service": [
-                        {
-                            "id": "${requesterDid.qualified};memory",
-                            "type": "NessusAgent",
-                            "priority": 0,
-                            "recipientKeys": [
-                                "${requesterDid.verkey}"
-                            ],
-                            "serviceEndpoint": "${requester.endpointUrl}"
-                        }
-                    ]
-                }                    
-                """.trimJson()
+                    "serviceEndpoint": "${requester.endpointUrl}"
+                }
+            ]
+        }                    
+        """.trimJson()
         log.info { "Invitee's Did Document: ${requesterDidDoc.prettyPrint()}" }
 
         val requesterDidDocAttach = diddocService.createAttachment(requesterDidDoc, requesterDid)
 
         val didexRequestId = "${UUID.randomUUID()}"
         val didexRequest = """
-                {
-                    "@type": "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST",
-                    "@id": "$didexRequestId",
-                    "~thread": {
-                        "thid": "$didexRequestId",
-                        "pthid": "${invitation.id}"
-                    },
-                    "label": "Accept Faber/Alice",
-                    "did": "${requesterDid.id}",
-                    "did_doc~attach": $requesterDidDocAttach
-                }
-                """.trimJson()
+        {
+            "@type": "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST",
+            "@id": "$didexRequestId",
+            "~thread": {
+                "thid": "$didexRequestId",
+                "pthid": "${invitation.id}"
+            },
+            "label": "Accept Faber/Alice",
+            "did": "${requesterDid.id}",
+            "did_doc~attach": $requesterDidDocAttach
+        }
+        """.trimJson()
 
         val con = Connection(didexRequestId, requesterDid, responderDid, inviterServiceEndpoint, REQUEST)
         requester.toWalletModel().addConnection(con)

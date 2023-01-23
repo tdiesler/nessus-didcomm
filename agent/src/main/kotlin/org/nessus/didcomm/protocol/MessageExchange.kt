@@ -2,8 +2,8 @@ package org.nessus.didcomm.protocol
 
 import mu.KotlinLogging
 import org.nessus.didcomm.model.Connection
-import org.nessus.didcomm.service.ProtocolService
 import org.nessus.didcomm.service.ProtocolKey
+import org.nessus.didcomm.service.ProtocolService
 import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.AttachmentSupport
 
@@ -46,7 +46,7 @@ class MessageExchange(): AttachmentSupport() {
     fun addMessage(msg: EndpointMessage): MessageExchange {
         checkNotNull(msg.thid) { "No thread id in: $msg" }
         if (threadIds.isEmpty()) {
-            check(findMessageExchange(msg) == null) { "Other message exchange exists for this thread: $msg" }
+            check(findMessageExchange(msg) == null) { "Other message exchange exists for: $msg" }
             exchangeRegistry.add(this)
         } else {
             check(threadIds.contains(msg.thid) || threadIds.contains(msg.pthid)) { "Invalid thread association: $msg" }

@@ -38,7 +38,9 @@ class EndpointMessage(
         const val MESSAGE_AUTO_ACCEPT = "MessageAutoAccept"
         const val MESSAGE_ID = "MessageId"
         const val MESSAGE_PROTOCOL_URI = "MessageProtocolUri"
-        const val MESSAGE_PTHID = "MessagePthid"
+        const val MESSAGE_PTHID = "MessageParentThid"
+        const val MESSAGE_RECIPIENT_VERKEY = "MessageRecipientVerkey"
+        const val MESSAGE_SENDER_VERKEY = "MessageSenderVerkey"
         const val MESSAGE_THID = "MessageThid"
         const val MESSAGE_TYPE = "MessageType"
     }
@@ -48,6 +50,8 @@ class EndpointMessage(
     val messageType get() = headers[MESSAGE_TYPE] as? String ?: { "No MESSAGE_TYPE" }
     val protocolUri get() = headers[MESSAGE_PROTOCOL_URI] as? String ?: { "No MESSAGE_PROTOCOL_URI" }
     val pthid get() = headers[MESSAGE_PTHID] as? String
+    val recipientVerkey get() = headers[MESSAGE_RECIPIENT_VERKEY] as? String
+    val senderVerkey get() = headers[MESSAGE_SENDER_VERKEY] as? String
     val thid get() = headers[MESSAGE_THID] as? String
 
     val bodyAsJson: String get() = run {

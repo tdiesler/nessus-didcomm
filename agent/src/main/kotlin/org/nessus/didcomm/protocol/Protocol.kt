@@ -10,6 +10,8 @@ import org.nessus.didcomm.service.ProtocolKey
 import org.nessus.didcomm.service.ProtocolService
 import org.nessus.didcomm.util.toUnionMap
 import org.nessus.didcomm.wallet.Wallet
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 abstract class Protocol<T: Protocol<T>>(
     protected val mex: MessageExchange
@@ -23,6 +25,8 @@ abstract class Protocol<T: Protocol<T>>(
     val dispatchService get() = MessageDispatchService.getService()
     val modelService get() = DataModelService.getService()
     val protocolService get() = ProtocolService.getService()
+
+    val nowIso8601: OffsetDateTime get() = OffsetDateTime.now(ZoneOffset.UTC)
 
     open fun invokeMethod(to: Wallet, messageType: String): Boolean {
         throw IllegalStateException("Dispatch not supported in protocol wrapper: $protocolUri")

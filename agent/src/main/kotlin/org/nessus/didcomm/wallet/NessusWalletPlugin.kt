@@ -3,6 +3,7 @@ package org.nessus.didcomm.wallet
 import id.walt.crypto.KeyAlgorithm
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.WalletPlugin
@@ -51,8 +52,14 @@ class NessusWalletPlugin: WalletServicePlugin, WalletPlugin {
         return wallet.toWalletModel().listDids()
     }
 
+    override fun getConnection(wallet: Wallet, myDid: Did, theirDid: Did): Connection? {
+        return wallet.toWalletModel().connections.firstOrNull {
+            it.theirDid == theirDid
+        }
+    }
+
     override fun removeConnections(wallet: Wallet) {
-        // nothing to do
+        wallet.toWalletModel().removeConnections()
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
