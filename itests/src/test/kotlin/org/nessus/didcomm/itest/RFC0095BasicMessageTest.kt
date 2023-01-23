@@ -19,12 +19,22 @@
  */
 package org.nessus.didcomm.itest
 
+import org.hyperledger.acy_py.generated.model.SendMessage
 import org.junit.jupiter.api.Test
+import org.nessus.didcomm.agent.AriesClient
+import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.MessageExchange
+import org.nessus.didcomm.protocol.MessageListener
+import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol.Companion.RFC0095_BASIC_MESSAGE_TYPE
+import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_WRAPPER
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_WRAPPER
+import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.StorageType
 import org.nessus.didcomm.wallet.Wallet
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
+import kotlin.test.assertEquals
 import kotlin.test.fail
 
 /**
@@ -36,46 +46,57 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
     @Test
     fun test_FaberAcapy_AliceAcapy() {
 
-        /** Create the wallets */
+        /**
+         * Create the Wallets
+         */
 
-        val faber = getWalletByAlias(Faber.name) ?: fail("No Faber")
+        val faber = getWalletByAlias(Faber.name) ?: fail("No Inviter")
 
         val alice = Wallet.Builder(Alice.name)
-            .agentType(AgentType.ACAPY)
-            .storageType(StorageType.IN_MEMORY)
+            .options(NESSUS_OPTIONS_01)
+            .agentType(AgentType.NESSUS)
             .build()
 
+        val basicMessageFuture = CompletableFuture<EndpointMessage>()
+        val listener: MessageListener = { epm ->
+            val mex = dispatchService.invoke(epm) as MessageExchange
+            if (mex.last.messageType == RFC0095_BASIC_MESSAGE_TYPE) {
+                basicMessageFuture.complete(mex.last)
+            }
+            mex
+        }
+
         try {
+            endpointService.startEndpoint(alice, listener).use {
 
-            /** Establish a peer connection */
+                val mex = MessageExchange()
+                    .withProtocol(RFC0434_OUT_OF_BAND_WRAPPER)
+                    .createOutOfBandInvitation(faber, "Faber invites Alice")
+                    .acceptConnectionFrom(alice)
 
-            val mex = MessageExchange()
-                .withProtocol(RFC0434_OUT_OF_BAND_WRAPPER)
-                .createOutOfBandInvitation(faber)
-                .receiveOutOfBandInvitation(alice)
-                .peekMessageExchange()
+                val pcon = mex.getConnection()
+                assertEquals(ConnectionState.ACTIVE, pcon?.state)
 
-//            val peerConnection = mex.awaitPeerConnection(alice)
-//
-//            /** Verify connection state */
-//
-//            assertNotNull(peerConnection, "No peer connection")
-//            assertEquals(ConnectionState.ACTIVE, peerConnection.state)
-//
-//            /** Send a basic message */
-//
-//            val userMessage = "Your hovercraft is full of eels."
-//
-//            mex.withProtocol(RFC0095_BASIC_MESSAGE_WRAPPER)
-//                .sendMessage(alice, peerConnection.id, userMessage)
-//
-//            /** Verify message exchange state */
-//
-//            val epm: EndpointMessage = mex.last
-//            assertEquals("https://didcomm.org/basicmessage/1.0/message", epm.contentUri)
-//            assertEquals(userMessage, epm.body)
+                mex.withProtocol(RFC0095_BASIC_MESSAGE_WRAPPER)
+                    .sendMessage("Ich habe Sauerkraut in meinen Lederhosen")
 
+                val myDid = pcon?.myDid
+                log.info { "My Did: $myDid" }
+
+                val faberClient = faber.walletClient() as AriesClient
+                val faberConId = faberClient.connections().get()
+                    .filter { it.state.toString() == "ACTIVE" }
+                    .firstOrNull { it.theirDid == myDid?.id }?.connectionId
+                checkNotNull(faberConId) { "No Faber connection" }
+
+                val msg = "I have an Elk under my Fedora"
+                faberClient.connectionsSendMessage(faberConId, SendMessage.builder().content(msg).build())
+
+                val epm = basicMessageFuture.get(5, TimeUnit.SECONDS)
+                assertEquals(msg, epm.bodyAsJson.selectJson("content"))
+            }
         } finally {
+            faber.removeConnections()
             removeWallet(Alice.name)
         }
     }

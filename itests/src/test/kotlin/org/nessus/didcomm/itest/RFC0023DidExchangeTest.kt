@@ -105,6 +105,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                 rfc0048.awaitTrustPingResponse(5, TimeUnit.SECONDS)
             }
         } finally {
+            faber.removeConnections()
             removeWallet(Alice.name)
         }
     }

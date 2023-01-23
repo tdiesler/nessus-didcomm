@@ -73,6 +73,7 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
             rfc0434.receiveOutOfBandInvitation(alice)
 
         } finally {
+            faber.removeConnections()
             removeWallet(Alice.name)
         }
     }

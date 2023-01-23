@@ -14,7 +14,10 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_UR
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THID
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_TYPE
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
+import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_WRAPPER
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_WRAPPER
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_WRAPPER
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.prettyGson
 import org.nessus.didcomm.wallet.AgentType
@@ -22,6 +25,7 @@ import org.nessus.didcomm.wallet.DidMethod
 import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.toWalletModel
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 /**
  * Aries RFC 0434: Out-of-Band Protocol 1.1
@@ -198,6 +202,10 @@ class RFC0434OutOfBandProtocol: Protocol() {
 class RFC0434OutOfBandProtocolWrapper(mex: MessageExchange):
     ProtocolWrapper<RFC0434OutOfBandProtocolWrapper, RFC0434OutOfBandProtocol>(RFC0434OutOfBandProtocol(), mex) {
 
+    fun createOutOfBandInvitation(inviter: Wallet, goalCode: String): RFC0434OutOfBandProtocolWrapper {
+        return createOutOfBandInvitation(inviter, mapOf("goalCode" to goalCode))
+    }
+
     fun createOutOfBandInvitation(inviter: Wallet, options: Map<String, Any> = mapOf()): RFC0434OutOfBandProtocolWrapper {
         val invitation = protocol.createOutOfBandInvitation(inviter, options)
         mex.addMessage(EndpointMessage(
@@ -214,5 +222,21 @@ class RFC0434OutOfBandProtocolWrapper(mex: MessageExchange):
         val createdInv = mex.last.body as Invitation
         protocol.receiveOutOfBandInvitation(invitee, createdInv, options)
         return this
+    }
+
+    fun acceptConnectionFrom(invitee: Wallet): MessageExchange {
+
+        mex.withProtocol(RFC0434_OUT_OF_BAND_WRAPPER)
+            .receiveOutOfBandInvitation(invitee)
+            .withProtocol(RFC0023_DIDEXCHANGE_WRAPPER)
+            .acceptOutOfBandInvitation(invitee)
+            .sendDidExchangeRequest(invitee)
+            .awaitDidExchangeResponse(5, TimeUnit.SECONDS)
+            .sendDidExchangeComplete(invitee)
+            .withProtocol(RFC0048_TRUST_PING_WRAPPER)
+            .sendTrustPing(invitee)
+            .awaitTrustPingResponse(5, TimeUnit.SECONDS)
+
+        return mex
     }
 }

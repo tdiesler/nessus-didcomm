@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Test
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_WRAPPER
 import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.StorageType
 import org.nessus.didcomm.wallet.Wallet
 import kotlin.test.fail
 
@@ -41,33 +40,24 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
         val faber = getWalletByAlias(Faber.name) ?: fail("No Faber")
 
         val alice = Wallet.Builder(Alice.name)
-            .agentType(AgentType.ACAPY)
-            .storageType(StorageType.IN_MEMORY)
+            .options(NESSUS_OPTIONS_01)
+            .agentType(AgentType.NESSUS)
             .build()
 
         try {
+            endpointService.startEndpoint(alice).use {
 
-            /** Establish a peer connection */
+                /** Establish a peer connection */
 
-            val mex = MessageExchange()
-                .withProtocol(RFC0434_OUT_OF_BAND_WRAPPER)
-                .createOutOfBandInvitation(faber)
-                .receiveOutOfBandInvitation(alice)
-                .peekMessageExchange()
-
-//            val peerConnection = mex.awaitPeerConnection(alice)
-//
-//            assertNotNull(peerConnection, "No peer connection")
-//            assertEquals(ConnectionState.ACTIVE, peerConnection.state)
-//
-//            mex.withProtocol(RFC0048_TRUST_PING_WRAPPER)
-//                .sendPing(alice, peerConnection.id)
-//
-//            val epm: EndpointMessage = mex.last
-//            assertEquals("https://didcomm.org/trust_ping/1.0/ping_response", epm.contentUri)
-//            assertEquals(mapOf("threadId" to epm.threadId), epm.bodyAsMap)
+                MessageExchange()
+                    .withProtocol(RFC0434_OUT_OF_BAND_WRAPPER)
+                    .createOutOfBandInvitation(faber, "Faber invites Alice")
+                    .acceptConnectionFrom(alice)
+                    .getConnection()
+            }
 
         } finally {
+            faber.removeConnections()
             removeWallet(Alice.name)
         }
     }

@@ -21,8 +21,9 @@ package org.nessus.didcomm.service
 
 import id.walt.servicematrix.ServiceProvider
 import org.nessus.didcomm.model.AgentModel
-import org.nessus.didcomm.model.InvitationState
+import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.WalletModel
+import org.nessus.didcomm.util.Holder
 
 class DataModelService : NessusBaseService() {
     override val implementation get() = serviceImplementation<DataModelService>()
@@ -68,11 +69,10 @@ class DataModelService : NessusBaseService() {
         }
     }
 
-    fun findWalletByInvitation(id: String, state: InvitationState): WalletModel? {
-        return model.wallets.firstOrNull {
-            val invi = it.getInvitation(id)
-            invi?.state == state
-        }
+    fun getConnection(conId: String): Connection? {
+        return model.wallets.fold(Holder<Connection>(null)) { h, w ->
+            h.obj = h.obj ?: w.connections.firstOrNull { it.id == conId }
+            h
+        }.obj
     }
-
 }

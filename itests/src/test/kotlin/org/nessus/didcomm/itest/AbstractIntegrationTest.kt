@@ -31,6 +31,7 @@ import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.service.DidDocumentService
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.HttpService
+import org.nessus.didcomm.service.MessageDispatchService
 import org.nessus.didcomm.service.ProtocolKey
 import org.nessus.didcomm.service.ProtocolService
 import org.nessus.didcomm.service.WalletService
@@ -98,6 +99,7 @@ abstract class AbstractIntegrationTest {
     val cryptoService get() = CryptoService.getService().implementation as NessusCryptoService
     val didService get() = DidService.getService()
     val diddocService = DidDocumentService.getService()
+    val dispatchService = MessageDispatchService.getService()
     val endpointService get() = CamelEndpointService.getService()
     val httpService get() = HttpService.getService()
     val keyStore get() = KeyStoreService.getService()

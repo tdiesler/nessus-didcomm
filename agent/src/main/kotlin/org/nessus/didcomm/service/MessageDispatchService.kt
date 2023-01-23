@@ -31,8 +31,8 @@ import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE
 import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE
+import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol.Companion.RFC0095_BASIC_MESSAGE_TYPE
 import org.nessus.didcomm.util.matches
-import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.wallet.Wallet
 
 /**
@@ -51,13 +51,12 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
     /**
      * Entry point for all external messages sent to a wallet endpoint
      */
-    fun dispatchInbound(epm: EndpointMessage) {
+    fun dispatchInbound(epm: EndpointMessage): MessageExchange? {
         val contentType = epm.headers["Content-Type"] as? String
         checkNotNull(contentType) { "No 'Content-Type' header"}
-        if (RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE.matches(contentType)) {
-            dispatchEncryptedEnvelope(epm)
-        } else {
-            log.warn { "Unknown content type: $contentType" }
+        return when {
+            RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE.matches(contentType) -> dispatchEncryptedEnvelope(epm)
+            else -> throw IllegalStateException("Unknown content type: $contentType")
         }
     }
 
@@ -91,13 +90,13 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
     /**
      * MessageListener invocation
      */
-    override fun invoke(msg: EndpointMessage) {
+    override fun invoke(msg: EndpointMessage): MessageExchange? {
         return dispatchInbound(msg)
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun dispatchEncryptedEnvelope(msg: EndpointMessage) {
+    private fun dispatchEncryptedEnvelope(msg: EndpointMessage): MessageExchange {
         val rfc0019 = RFC0019EncryptionEnvelope()
         val unpacked = rfc0019.unpackEncryptedEnvelope(msg.body as String)
         checkNotNull(unpacked) { "Unknown recipients" }
@@ -113,10 +112,6 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
          * that this message can be attached to
          */
 
-        val id = message.selectJson("@id") as String
-        val thid = message.selectJson("~thread.thid") ?: id
-
-        val mex = (findMessageExchange(thid) ?: MessageExchange())
         val aux = EndpointMessage(message)
 
         val walletService = WalletService.getService()
@@ -128,21 +123,32 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
          * identified by the recipient key(s)
          */
 
-        when (aux.messageType) {
+        val mex = when (aux.messageType) {
             RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE -> {
+                val mex = findMessageExchange(aux)
+                checkNotNull(mex) { "No message exchange for: $aux"}
                 mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
                     .header(MESSAGE_PROTOCOL_URI, RFC0023_DIDEXCHANGE.uri)
                     .build())
+                mex
             }
             RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE -> {
+                val mex = findMessageExchange(aux)
+                checkNotNull(mex) { "No message exchange for: $aux"}
                 mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
                     .header(MESSAGE_PROTOCOL_URI, RFC0048_TRUST_PING.uri)
                     .build())
+                mex
             }
-            else -> {
-                log.warn { "Unknown message type: ${aux.messageType}" }
+            RFC0095_BASIC_MESSAGE_TYPE -> {
+                val mex = MessageExchange(EndpointMessage.Builder(aux.body, aux.headers)
+                    .header(MESSAGE_PROTOCOL_URI, RFC0095_BASIC_MESSAGE.uri)
+                    .build())
+                mex
             }
+            else -> throw IllegalStateException("Unknown message type: ${aux.messageType}")
         }
         dispatchToWallet(recipientWallet, mex)
+        return mex
     }
 }

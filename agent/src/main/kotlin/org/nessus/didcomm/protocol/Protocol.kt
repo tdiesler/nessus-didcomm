@@ -25,10 +25,6 @@ abstract class Protocol {
     fun <P: Protocol> getProtocol(key: ProtocolKey<P>): P {
         return protocolService.getProtocol(key)
     }
-
-    open fun invokeMethod(to: Wallet, messageType: String, epm: EndpointMessage): Boolean {
-        throw IllegalStateException("Dispatch not supported in protocol: $protocolUri")
-    }
 }
 
 abstract class ProtocolWrapper<W: ProtocolWrapper<W, P>, P: Protocol>(
@@ -48,7 +44,7 @@ abstract class ProtocolWrapper<W: ProtocolWrapper<W, P>, P: Protocol>(
         return mex.withProtocol(key)
     }
 
-    fun peekMessageExchange(): MessageExchange {
+    fun getMessageExchange(): MessageExchange {
         return mex
     }
 

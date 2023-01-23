@@ -1,6 +1,5 @@
 package org.nessus.didcomm.protocol
 
-import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.isJson
 import org.nessus.didcomm.util.selectJson
@@ -15,6 +14,7 @@ class EndpointMessage(
 
     val headers: Map<String, Any?>
     init {
+        check(body !is EndpointMessage) { "Nested endpoint message"}
         if (body is String && body.isJson()) {
             val id = body.selectJson("@id")
             val type = body.selectJson("@type")
@@ -38,8 +38,8 @@ class EndpointMessage(
         const val MESSAGE_AUTO_ACCEPT = "MessageAutoAccept"
         const val MESSAGE_ID = "MessageId"
         const val MESSAGE_PROTOCOL_URI = "MessageProtocolUri"
-        const val MESSAGE_PTHID = "MessageParentThreadId"
-        const val MESSAGE_THID = "MessageThreadId"
+        const val MESSAGE_PTHID = "MessagePthid"
+        const val MESSAGE_THID = "MessageThid"
         const val MESSAGE_TYPE = "MessageType"
     }
 
@@ -55,16 +55,6 @@ class EndpointMessage(
         else return gson.toJson(body)
     }
 
-    @Suppress("UNCHECKED_CAST")
-    val bodyAsMap: Map<String, Any?> get() = run {
-        if (body is Map<*, *>)
-            return body as Map<String, Any?>
-        if (body is String)
-            return body.decodeJson()
-        val bodyJson = gson.toJson(body)
-        return bodyJson.decodeJson()
-    }
-
     class Builder(var body: Any) {
         private var headers: MutableMap<String, Any?> = mutableMapOf()
 
@@ -77,11 +67,10 @@ class EndpointMessage(
         fun headers(headers: Map<String, Any>) = apply {this.headers.putAll(headers) }
         fun build() = EndpointMessage(body, headers)
     }
+
+    override fun toString(): String {
+        return "EndpointMessage(headers=$headers, body=$body)"
+    }
 }
 
-enum class MessageDirection {
-    INBOUND,
-    OUTBOUND
-}
-
-typealias MessageListener = (msg: EndpointMessage) -> Unit
+typealias MessageListener = (msg: EndpointMessage) -> MessageExchange?

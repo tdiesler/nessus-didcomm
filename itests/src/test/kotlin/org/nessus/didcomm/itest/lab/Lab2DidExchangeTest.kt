@@ -29,6 +29,8 @@ import org.nessus.didcomm.itest.AbstractIntegrationTest
 import org.nessus.didcomm.itest.Alice
 import org.nessus.didcomm.itest.Faber
 import org.nessus.didcomm.itest.NESSUS_OPTIONS_01
+import org.nessus.didcomm.protocol.EndpointMessage
+import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE
@@ -101,11 +103,14 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                     } else {
                         log.warn { "Unknown message type: $atType" }
                     }
+                    MessageExchange(EndpointMessage(message))
                 } else {
                     log.warn { "Message recipient unknown" }
+                    null
                 }
             } else {
                 log.warn { "Unknown content type: $contentType" }
+                null
             }
         }
 

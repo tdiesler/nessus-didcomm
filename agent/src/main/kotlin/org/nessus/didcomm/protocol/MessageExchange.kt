@@ -1,19 +1,19 @@
 package org.nessus.didcomm.protocol
 
 import mu.KotlinLogging
+import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.service.ProtocolService
 import org.nessus.didcomm.service.ProtocolWrapperKey
+import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.AttachmentSupport
-import org.nessus.didcomm.util.Holder
 
 
 /**
- * Records a sequence of endpoint messages
+ * A message exchange maintains a sequence of endpoint messages
+ * that are associated with each other through their respective thread ids
  *
- * - A message exchange may have a threadId
- * - Message exchanges without a threadId are not maintained in the registry
- * - It is guaranteed that all associated messages have the same threadId as the message exchange
- * - No two message exchanges can have the same threadId
+ * Incoming messages are automatically associated with an exchange based on
+ * their (parent) thread id
  */
 class MessageExchange(): AttachmentSupport() {
     val log = KotlinLogging.logger {}
@@ -23,41 +23,40 @@ class MessageExchange(): AttachmentSupport() {
     }
 
     companion object {
-        /**
-         * Attachment keys
-         */
-        // val MESSAGE_EXCHANGE_INVITEE_CONNECTION_ID_KEY = AttachmentKey("inviteeConnectionId", String::class.java)
-        // val MESSAGE_EXCHANGE_INVITEE_PEER_CONNECTION_KEY = AttachmentKey("inviteePeerConnection", PeerConnection::class.java)
 
-        // Maps thread Ids to their respective exchanges
-        private val exchangeRegistry: MutableMap<String, MessageExchange> = mutableMapOf()
+        // [TODO] MEMORY LEAK - eviction of outdated messages exchanges
+        private val exchangeRegistry: MutableList<MessageExchange> = mutableListOf()
 
         /**
          * Find a MessageExchange by treadId
+         * If no direct match is found, it retries with the parent treadId
          */
-        fun findMessageExchange(threadId: String?): MessageExchange? {
-            return threadId?.run { exchangeRegistry[threadId] }
+        fun findMessageExchange(msg: EndpointMessage): MessageExchange? {
+            return exchangeRegistry.firstOrNull { it.threadIds.contains(msg.thid) }
+                ?: exchangeRegistry.firstOrNull { it.threadIds.contains(msg.pthid) }
         }
     }
 
     private val messageStore: MutableList<EndpointMessage> = mutableListOf()
-    private val threadIdHolder = Holder<String>(null)
 
-    val threadId get() = threadIdHolder.obj
-    val messages get() = messageStore.toList()
     val last get() = messages.last()
+    val messages get() = messageStore.toList()
+    val threadIds get() = messageStore.map { it.thid }
 
     fun addMessage(msg: EndpointMessage): MessageExchange {
-        if (threadId == null)
-            threadIdHolder.obj = msg.thid
-        check(threadId == msg.thid) { "Unexpected message thread" }
-        if (threadId != null) {
-            val other = exchangeRegistry[threadId]
-            check(other == null || this == other) { "Duplicate message exchange for: $threadId" }
-            exchangeRegistry[threadId!!] = this
+        checkNotNull(msg.thid) { "No thread id in: $msg" }
+        if (threadIds.isEmpty()) {
+            check(findMessageExchange(msg) == null) { "Other message exchange exists for this thread: $msg" }
+            exchangeRegistry.add(this)
+        } else {
+            check(threadIds.contains(msg.thid) || threadIds.contains(msg.pthid)) { "Invalid thread association: $msg" }
         }
         messageStore.add(msg)
         return this
+    }
+
+    fun getConnection(): Connection? {
+        return getAttachment(AttachmentKey(Connection::class.java))
     }
 
     fun <W: ProtocolWrapper<W, *>> withProtocol(key: ProtocolWrapperKey<W>): W {

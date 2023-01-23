@@ -2,6 +2,7 @@ package org.nessus.didcomm.protocol
 
 import org.hyperledger.aries.api.trustping.PingRequest
 import org.nessus.didcomm.agent.AriesClient
+import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE
 import org.nessus.didcomm.service.RFC0048_TRUST_PING
@@ -85,30 +86,34 @@ class RFC0048TrustPingProtocolWrapper(mex: MessageExchange):
 
     fun sendTrustPing(sender: Wallet): RFC0048TrustPingProtocolWrapper {
 
-        val conId = mex.last.thid as String
-        val connection = sender.toWalletModel().getConnection(conId)
-        checkNotNull(connection) { "No connection with id: $conId" }
-        check(connection.state == ConnectionState.COMPLETED) { "Unexpected connection state: $connection" }
+        // Assert attached connection
+        val pcon = mex.getConnection()
+        checkNotNull(pcon) { "No peer connection attached" }
+        check(pcon.state.ordinal >= ConnectionState.COMPLETED.ordinal) { "Unexpected connection state: $pcon" }
 
-        val pingRequest = protocol.sendTrustPing(sender, conId)
+        val pingRequest = protocol.sendTrustPing(sender, pcon.id)
+
+        // Start a new message exchange
+        val pingMex = MessageExchange(pingRequest)
+
+        // Attach the Connection
+        val pconKey = AttachmentKey(Connection::class.java)
+        pingMex.putAttachment(pconKey, pcon)
+
+        // Register the response future with the message exchange
+        val futureId = "${RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE}?thid=${pingRequest.thid}"
+        val futureKey = AttachmentKey(futureId, CompletableFuture::class.java)
+        pingMex.putAttachment(futureKey, CompletableFuture<EndpointMessage>())
 
         val packedPingRequest = RFC0019EncryptionEnvelope()
-            .packEncryptedEnvelope(pingRequest.bodyAsJson, connection.myDid, connection.theirDid)
+            .packEncryptedEnvelope(pingRequest.bodyAsJson, pcon.myDid, pcon.theirDid)
 
         val packedEpm = EndpointMessage(packedPingRequest, mapOf(
             "Content-Type" to RFC0019EncryptionEnvelope.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
         ))
 
-        // Start a new thread
-        val childMex = MessageExchange(pingRequest)
-
-        // Register the response future with the message exchange
-        val futureId = "${RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE}?thid=${pingRequest.thid}"
-        val futureKey = AttachmentKey(futureId, CompletableFuture::class.java)
-        childMex.putAttachment(futureKey, CompletableFuture<EndpointMessage>())
-
-        return childMex.withProtocol(RFC0048_TRUST_PING_WRAPPER)
-            .dispatchToEndpoint(connection.theirEndpointUrl, packedEpm)
+        return pingMex.withProtocol(RFC0048_TRUST_PING_WRAPPER)
+            .dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
     }
 
     fun awaitTrustPingResponse(timeout: Int, unit: TimeUnit): RFC0048TrustPingProtocolWrapper {
@@ -133,6 +138,12 @@ class RFC0048TrustPingProtocolWrapper(mex: MessageExchange):
             log.info {"Complete future: $futureKey"}
             future.complete(mex.last)
         }
+
+        // Set the connection state to ACTIVE
+        val pcon = mex.getConnection()
+        checkNotNull(pcon) { "No peer connection" }
+        pcon.state = ConnectionState.ACTIVE
+
         return this
     }
 }
