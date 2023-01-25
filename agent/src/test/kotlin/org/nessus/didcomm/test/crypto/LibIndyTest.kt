@@ -21,6 +21,7 @@ package org.nessus.didcomm.test.crypto
 
 import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
+import mu.KotlinLogging
 import org.hyperledger.indy.sdk.crypto.Crypto
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.crypto.LibIndyService.closeAndDeleteWallet
@@ -49,6 +50,7 @@ import kotlin.test.assertEquals
  * rm -rf ~/.indy_client
  */
 class LibIndyTest: AbstractDidCommTest() {
+    val log = KotlinLogging.logger {}
 
     @Test
     fun auth_crypt() {

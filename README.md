@@ -104,7 +104,6 @@ The above should have created the respective siera environment.
     assertEquals(userMessage, epm.body)
 ```
 
-```
-docker compose logs -f acapy01 2> /dev/null | grep Expanded
-docker compose logs -f acapy02 2> /dev/null | grep Expanded
-```
+### Install LibIndy
+
+https://github.com/hyperledger/indy-sdk/blob/main/docs/build-guides/mac-build.md

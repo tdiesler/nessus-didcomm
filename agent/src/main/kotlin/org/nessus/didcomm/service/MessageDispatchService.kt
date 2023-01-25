@@ -19,8 +19,8 @@
  */
 package org.nessus.didcomm.service
 
-import id.walt.common.prettyPrint
 import id.walt.servicematrix.ServiceProvider
+import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_URI
@@ -31,6 +31,8 @@ import org.nessus.didcomm.protocol.MessageExchange.Companion.findMessageExchange
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE
+import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE
 import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING
 import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE
@@ -43,6 +45,7 @@ import org.nessus.didcomm.wallet.Wallet
  */
 class MessageDispatchService: NessusBaseService(), MessageListener {
     override val implementation get() = serviceImplementation<MessageDispatchService>()
+    override val log = KotlinLogging.logger {}
 
     companion object: ServiceProvider {
         private val implementation = MessageDispatchService()
@@ -106,7 +109,6 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
 
         val message = unpacked.message
         val recipientVerkey = unpacked.recipientVerkey
-        log.info { "Unpacked Envelope: ${message.prettyPrint()}" }
 
         /**
          * Ok, we successfully unpacked the encrypted message.
@@ -129,38 +131,33 @@ class MessageDispatchService: NessusBaseService(), MessageListener {
          * identified by the recipient key(s)
          */
 
+        fun prepareMessageExchange(protocolUri: String, defaultExchange: MessageExchange?): MessageExchange {
+            val mex = findMessageExchange(aux) ?: defaultExchange
+            checkNotNull(mex) { "No message exchange for: $aux"}
+            return mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
+                .header(MESSAGE_PROTOCOL_URI, protocolUri)
+                .build())
+        }
+
         val mex = when (aux.messageType) {
-            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE -> {
-                val mex = findMessageExchange(aux)
-                checkNotNull(mex) { "No message exchange for: $aux"}
-                mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
-                    .header(MESSAGE_PROTOCOL_URI, RFC0023_DIDEXCHANGE.uri)
-                    .build())
-                mex
-            }
-            RFC0048_TRUST_PING_MESSAGE_TYPE_PING -> {
-                val mex = findMessageExchange(aux) ?: MessageExchange()
-                mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
-                    .header(MESSAGE_PROTOCOL_URI, RFC0048_TRUST_PING.uri)
-                    .build())
-                mex
-            }
-            RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE -> {
-                val mex = findMessageExchange(aux)
-                checkNotNull(mex) { "No message exchange for: $aux"}
-                mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
-                    .header(MESSAGE_PROTOCOL_URI, RFC0048_TRUST_PING.uri)
-                    .build())
-                mex
-            }
-            RFC0095_BASIC_MESSAGE_TYPE -> {
-                val mex = MessageExchange(EndpointMessage.Builder(aux.body, aux.headers)
-                    .header(MESSAGE_PROTOCOL_URI, RFC0095_BASIC_MESSAGE.uri)
-                    .build())
-                mex
-            }
+
+            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST,
+            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE,
+            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE ->
+                prepareMessageExchange(RFC0023_DIDEXCHANGE.uri, null)
+
+            RFC0048_TRUST_PING_MESSAGE_TYPE_PING ->
+                prepareMessageExchange(RFC0048_TRUST_PING.uri, MessageExchange())
+
+            RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE ->
+                prepareMessageExchange(RFC0048_TRUST_PING.uri, null)
+
+            RFC0095_BASIC_MESSAGE_TYPE ->
+                prepareMessageExchange(RFC0095_BASIC_MESSAGE.uri, MessageExchange())
+
             else -> throw IllegalStateException("Unknown message type: ${aux.messageType}")
         }
+
         dispatchToWallet(recipientWallet, mex)
         return mex
     }

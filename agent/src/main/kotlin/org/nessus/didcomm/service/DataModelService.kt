@@ -20,13 +20,13 @@
 package org.nessus.didcomm.service
 
 import id.walt.servicematrix.ServiceProvider
+import mu.KotlinLogging
 import org.nessus.didcomm.model.AgentModel
-import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.WalletModel
-import org.nessus.didcomm.util.Holder
 
 class DataModelService : NessusBaseService() {
     override val implementation get() = serviceImplementation<DataModelService>()
+    override val log = KotlinLogging.logger {}
 
     companion object: ServiceProvider {
         private val implementation = DataModelService()
@@ -35,6 +35,7 @@ class DataModelService : NessusBaseService() {
 
     val model = AgentModel()
     val modelAsJson: String get() = model.asJson
+    val wallets get() = model.wallets
 
     fun addWallet(wallet: WalletModel) {
         check(findWalletByName(wallet.name) == null) { "Wallet already exists: ${wallet.name}" }
@@ -46,33 +47,27 @@ class DataModelService : NessusBaseService() {
         return model.walletsMap[id]
     }
 
-    fun listWallets(): List<WalletModel> {
-        return model.wallets.sortedBy { it.name }
+    fun findWallet(predicate: (w: WalletModel) -> Boolean): WalletModel? {
+        return wallets.firstOrNull(predicate)
     }
 
-    fun removeWallet(id: String): WalletModel? {
-        val wallet = getWallet(id)
-        if (wallet != null) {
-            log.info {"Remove: $wallet" }
-            model.removeWallet(id)
-        }
-        return wallet
+    fun findWallets(predicate: (w: WalletModel) -> Boolean): List<WalletModel> {
+        return wallets.filter(predicate)
     }
 
     fun findWalletByName(name: String): WalletModel? {
-        return model.wallets.firstOrNull { it.name == name }
+        return findWallet { it.name == name }
     }
 
     fun findWalletByVerkey(verkey: String): WalletModel? {
-        return model.wallets.firstOrNull {
-            it.dids.firstOrNull { did -> did.verkey == verkey } != null
-        }
+        return findWallet { it.findDid { d -> d.verkey == verkey } != null }
     }
 
-    fun getConnection(conId: String): Connection? {
-        return model.wallets.fold(Holder<Connection>(null)) { h, w ->
-            h.obj = h.obj ?: w.connections.firstOrNull { it.id == conId }
-            h
-        }.obj
+    fun removeWallet(id: String): WalletModel? {
+        model.removeWallet(id)?.run {
+            log.info {"Removed: $this" }
+            return this
+        }
+        return null
     }
 }

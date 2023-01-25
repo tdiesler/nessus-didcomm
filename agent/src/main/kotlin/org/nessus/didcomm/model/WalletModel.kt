@@ -1,6 +1,7 @@
 package org.nessus.didcomm.model
 
 import com.google.gson.annotations.SerializedName
+import id.walt.services.ecosystems.essif.LegalEntityClient.ti
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
@@ -10,6 +11,8 @@ import org.nessus.didcomm.model.InvitationState.DONE
 import org.nessus.didcomm.model.InvitationState.INITIAL
 import org.nessus.didcomm.model.InvitationState.RECEIVED
 import org.nessus.didcomm.service.WalletService
+import org.nessus.didcomm.util.gson
+import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
 
 fun WalletModel.toWallet(): Wallet {
@@ -20,6 +23,8 @@ fun WalletModel.toWallet(): Wallet {
 data class WalletModel(
     val id: String,
     val name: String,
+    val agent: AgentType,
+    val endpointUrl: String,
     @SerializedName("dids")
     private val didsInternal: MutableList<Did> = mutableListOf(),
     @SerializedName("invitations")
@@ -29,7 +34,7 @@ data class WalletModel(
 ) {
     companion object {
         fun fromWallet(wallet: Wallet): WalletModel {
-            return WalletModel(wallet.id, wallet.name)
+            return WalletModel(wallet.id, wallet.name, wallet.agentType, wallet.endpointUrl)
         }
     }
 
@@ -40,11 +45,13 @@ data class WalletModel(
     val invitations get() = invitationsInternal.toList()
     val connections get() = connectionsInternal.toList()
 
+    // Note, we currently don't support multiple
+    // representations for the same verification key
+
     fun addDid(did: Did) {
-        if (!hasDid(did.verkey)) {
-            log.info { "New DID for ${name}: $did" }
-            didsInternal.add(did)
-        }
+        check(getDid(did.verkey) == null) { "Did already added" }
+        log.info { "Add Did for ${name}: $did" }
+        didsInternal.add(did)
     }
 
     fun getDid(verkey: String): Did? {
@@ -55,12 +62,16 @@ data class WalletModel(
         return getDid(verkey) != null
     }
 
-    fun listDids(): List<Did> {
-        return dids
+    fun findDid(predicate: (d: Did) -> Boolean): Did? {
+        return dids.firstOrNull(predicate)
+    }
+
+    fun removeDid(verkey: String) {
+        getDid(verkey)?.run { didsInternal.remove(this) }
     }
 
     fun addConnection(con: Connection) {
-        check(!hasConnection(con.id)) { "Connection already added" }
+        check(getConnection(con.id) == null) { "Connection already added" }
         connectionsInternal.add(con)
     }
 
@@ -68,12 +79,12 @@ data class WalletModel(
         return connectionsInternal.firstOrNull { it.id == id }
     }
 
-    fun hasConnection(id: String): Boolean {
-        return getConnection(id) != null
+    fun findConnection(predicate: (c: Connection) -> Boolean): Connection? {
+        return connectionsInternal.firstOrNull(predicate)
     }
 
-    fun findConnectionByVerkey(verkey: String): Connection? {
-        return connectionsInternal.firstOrNull { it.myDid.verkey == verkey }
+    fun removeConnection(id: String) {
+        getConnection(id)?.run { connectionsInternal.remove(this) }
     }
 
     fun removeConnections() {
@@ -81,23 +92,33 @@ data class WalletModel(
     }
 
     fun addInvitation(invitation: Invitation) {
-        check(!hasInvitation(invitation.id)) { "Invitation already added" }
+        check(getInvitation(invitation.id) == null) { "Invitation already added" }
         invitationsInternal.add(invitation)
     }
 
     fun getInvitation(id: String): Invitation? {
-        return invitationsInternal.firstOrNull { it.id == id }
+        return findInvitation { it.id == id }
     }
 
-    fun hasInvitation(id: String): Boolean {
-        return getInvitation(id) != null
+    fun findInvitation(predicate: (i: Invitation) -> Boolean): Invitation? {
+        return invitationsInternal.firstOrNull(predicate)
+    }
+
+    fun removeInvitation(id: String) {
+        getInvitation(id)?.run { invitationsInternal.remove(this) }
     }
 }
 
-enum class InvitationState {
-    INITIAL,
-    RECEIVED,
-    DONE
+enum class InvitationState(val value: String) {
+    @SerializedName("initial")
+    INITIAL("initial"),
+    @SerializedName("receive")
+    RECEIVED("receive"),
+    @SerializedName("done")
+    DONE("done");
+    companion object {
+        fun fromValue(value: String) = InvitationState.valueOf(value.uppercase())
+    }
 }
 
 class Invitation(
@@ -105,25 +126,26 @@ class Invitation(
     val id: String,
     @SerializedName("@type")
     val type: String,
+    val accept: List<String>,
     @SerializedName("handshake_protocols")
     val handshakeProtocols: List<String>,
-    @SerializedName("accept")
-    val accept: List<String>,
     @SerializedName("goal_code")
     val goalCode: String,
-    @SerializedName("services")
     val services: List<Service>,
-    // Transient
-    state: InvitationState,
 ) {
 
-    @SerializedName("state")
-    var state: InvitationState = state
+    companion object {
+        fun fromJson(json: String): Invitation {
+            return gson.fromJson(json, Invitation::class.java).validate()
+        }
+    }
+
+    var state: InvitationState? = null
         set(next) {
             val transitions = mapOf(
                 INITIAL to RECEIVED,
                 RECEIVED to DONE)
-            require(field == next || transitions[field] == next) { "Invalid state transition: $field => $next" }
+            require(field == null || field == next || transitions[field] == next) { "Invalid state transition: $field => $next" }
             field = next
         }
 
@@ -134,36 +156,73 @@ class Invitation(
         val serviceEndpoint: String,
     )
 
-    fun getRecipientDid(): Did {
-        check(services.isNotEmpty()) { "No services" }
-        check(services[0].recipientKeys.isNotEmpty()) { "No recipient keys" }
-        return Did.fromSpec(services[0].recipientKeys[0])
+    fun validate():Invitation {
+        state = state ?: INITIAL
+        val service = (services).firstOrNull { it.type == "did-communication" }
+        checkNotNull(service) { "Cannot find service of type 'did-communication' in: $this"}
+        check(service.recipientKeys.size == 1) { "Unexpected number of recipientKeys: $this" }
+        checkNotNull(state) { "No state" }
+        return this
     }
 
-    fun getRecipientServiceEndpoint(): String {
-        return services[0].serviceEndpoint
+    fun invitationKey(idx: Int = 0): String {
+        return recipientDidKey(idx).verkey
+    }
+
+    fun recipientDidKey(idx: Int = 0): Did {
+        check(services.size > idx) { "No services[$idx].recipientKeys" }
+        check(services[idx].recipientKeys.isNotEmpty()) { "No recipient keys" }
+        check(services[idx].recipientKeys.size == 1) { "Multiple recipient keys" }
+        return Did.fromSpec(services[idx].recipientKeys[0])
+    }
+
+    fun recipientServiceEndpoint(idx: Int = 0): String {
+        check(services.size > idx) { "No services[$idx].serviceEndpoint" }
+        return services[idx].serviceEndpoint
+    }
+
+    override fun toString(): String {
+        return gson.toJson(this)
     }
 }
 
-enum class ConnectionState() {
-    REQUEST,
-    COMPLETED,
-    ACTIVE,
+enum class ConnectionRole(val value: String) {
+    @SerializedName("inviter")
+    INVITER("inviter"),
+    @SerializedName("invitee")
+    INVITEE("invitee"),
+    @SerializedName("responder")
+    RESPONDER("responder"),
+    @SerializedName("requester")
+    REQUESTER("requester");
+    companion object {
+        fun fromValue(value: String) = ConnectionRole.valueOf(value.uppercase())
+    }
+}
+
+enum class ConnectionState(val value: String) {
+    @SerializedName("request")
+    REQUEST("request"),
+    @SerializedName("completed")
+    COMPLETED("completed"),
+    @SerializedName("active")
+    ACTIVE("active");
+    companion object {
+        fun fromValue(value: String) = ConnectionState.valueOf(value.uppercase())
+    }
 }
 
 class Connection(
-    @SerializedName("id")
     val id: String,
-    @SerializedName("my_did")
+    val agent: AgentType,
     val myDid: Did,
-    @SerializedName("their_did")
     val theirDid: Did,
-    @SerializedName("their_endpoint_url")
+    val theirLabel: String,
+    val theirRole: ConnectionRole,
     val theirEndpointUrl: String,
-    // Transient
+    val invitationKey: String,
     state: ConnectionState,
 ) {
-    @SerializedName("state")
     var state: ConnectionState = state
         set(next) {
             val transitions = mapOf(
@@ -173,5 +232,8 @@ class Connection(
             require(field == next || transitions[field] == next) { "Invalid state transition: $field => $next" }
             field = next
         }
-    
+
+    override fun toString(): String {
+        return gson.toJson(this)
+    }
 }

@@ -1,6 +1,7 @@
 package org.nessus.didcomm.service
 
 import id.walt.servicematrix.ServiceProvider
+import mu.KotlinLogging
 import org.apache.camel.CamelContext
 import org.apache.camel.builder.RouteBuilder
 import org.apache.camel.impl.DefaultCamelContext
@@ -10,6 +11,8 @@ import org.nessus.didcomm.wallet.Wallet
 
 
 class CamelEndpointService: EndpointService<CamelContext>() {
+
+    override val log = KotlinLogging.logger {}
 
     companion object: ServiceProvider {
         private val implementation = CamelEndpointService()

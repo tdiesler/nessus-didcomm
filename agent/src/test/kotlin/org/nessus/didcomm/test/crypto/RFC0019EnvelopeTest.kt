@@ -21,6 +21,7 @@ package org.nessus.didcomm.test.crypto
 
 import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyType
+import mu.KotlinLogging
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
@@ -33,6 +34,7 @@ import org.nessus.didcomm.wallet.DidMethod
 import kotlin.test.assertEquals
 
 class RFC0019EnvelopeTest: AbstractDidCommTest() {
+    val log = KotlinLogging.logger {}
 
     @Test
     fun pack_unpack_envelope() {
@@ -76,7 +78,7 @@ class RFC0019EnvelopeTest: AbstractDidCommTest() {
         assertEquals(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST, message.selectJson("@type"))
         assertEquals(aliceDidSov.verkey, recipientVerkey)
 
-        val didDocument = didDocumentService.extractFromAttachment(message.selectJson("did_doc~attach") as String)
+        val (didDocument, signatoryDid) = didDocumentService.extractFromAttachment(message.selectJson("did_doc~attach") as String)
         val diddocAttach = didDocumentService.createAttachment(didDocument, aliceDidSov) // This should be Faber's Did, but we don't have the secret
 
         val didRequest = """

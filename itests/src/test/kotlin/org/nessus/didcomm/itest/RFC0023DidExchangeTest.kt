@@ -20,6 +20,7 @@
 package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
+import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
@@ -71,7 +72,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                  * Responder (Faber) sends a Trust Ping Response
                  */
 
-                val pcon = MessageExchange()
+                val aliceFaber = MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
                     .receiveOutOfBandInvitation(alice)
@@ -86,9 +87,13 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                     .awaitTrustPingResponse(5, TimeUnit.SECONDS)
 
                     .getMessageExchange()
-                    .getConnection()
+                    .getConnection() as Connection
 
-                assertEquals(ConnectionState.ACTIVE, pcon?.state)
+                assertEquals(ConnectionState.ACTIVE, aliceFaber.state)
+
+                // Reverse Connection
+                val faberAlice = faber.findConnection(aliceFaber.invitationKey)
+                assertEquals(ConnectionState.ACTIVE, faberAlice?.state)
             }
         } finally {
             faber.removeConnections()
@@ -96,7 +101,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
         }
     }
 
-    //@Test
+    @Test
     fun test_AliceNessus_invites_FaberAcapy() {
 
         /**
@@ -123,24 +128,27 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                  * Responder (Alice) sends a Trust Ping Response
                  */
 
-                val pcon = MessageExchange()
+                val aliceFaber = MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND)
-                    .createOutOfBandInvitation(alice, "Faber invites Alice")
+                    .createOutOfBandInvitation(alice, "Alice invites Faber")
                     .receiveOutOfBandInvitation(faber)
 
                     .withProtocol(RFC0023_DIDEXCHANGE)
-                    .sendDidExchangeRequest()
-                    .awaitDidExchangeResponse(5, TimeUnit.SECONDS)
-                    .sendDidExchangeComplete()
+                    .awaitDidExchangeRequest(5, TimeUnit.SECONDS)
+                    .sendDidExchangeResponse()
+                    .awaitDidExchangeComplete(5, TimeUnit.SECONDS)
 
                     .withProtocol(RFC0048_TRUST_PING)
-                    .sendTrustPing()
-                    .awaitTrustPingResponse(5, TimeUnit.SECONDS)
+                    .awaitTrustPing(alice, 5, TimeUnit.SECONDS)
 
                     .getMessageExchange()
-                    .getConnection()
+                    .getConnection() as Connection
 
-                assertEquals(ConnectionState.ACTIVE, pcon?.state)
+                assertEquals(ConnectionState.ACTIVE, aliceFaber.state)
+
+                // Reverse Connection
+                val faberAlice = faber.findConnection(aliceFaber.invitationKey)
+                assertEquals(ConnectionState.ACTIVE, faberAlice?.state)
             }
         } finally {
             faber.removeConnections()

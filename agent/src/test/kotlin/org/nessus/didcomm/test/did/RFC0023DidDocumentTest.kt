@@ -21,6 +21,7 @@ package org.nessus.didcomm.test.did
 
 import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
+import mu.KotlinLogging
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.service.RFC0023DidDocument
@@ -36,6 +37,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class RFC0023DidDocumentTest: AbstractDidCommTest() {
+    val log = KotlinLogging.logger {}
 
     @Test
     fun diddoc_attach_parse_verify() {
@@ -139,7 +141,7 @@ class RFC0023DidDocumentTest: AbstractDidCommTest() {
         // -------------------------------------------------------------------------------------------
         // Do all of the above in one API call
 
-        val extractedDocument = didDocumentService.extractFromAttachment(attachment)
+        val (extractedDocument, signatoryDid) = didDocumentService.extractFromAttachment(attachment)
         assertEquals(expDidDocument, gson.toJson(extractedDocument))
     }
 
@@ -159,7 +161,7 @@ class RFC0023DidDocumentTest: AbstractDidCommTest() {
 
         log.info { "Attachment: ${attachment.prettyPrint()}" }
 
-        val extractedDocument = didDocumentService.extractFromAttachment(attachment)
+        val (extractedDocument, signatoryDid) = didDocumentService.extractFromAttachment(attachment)
         assertEquals(didDocumentJson, gson.toJson(extractedDocument))
     }
 }

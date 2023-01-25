@@ -21,6 +21,7 @@ package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageListener
@@ -33,6 +34,7 @@ import org.nessus.didcomm.wallet.Wallet
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.fail
 
 /**
@@ -42,7 +44,7 @@ import kotlin.test.fail
 class RFC0095BasicMessageTest : AbstractIntegrationTest() {
 
     @Test
-    fun test_FaberAcapy_AliceAcapy() {
+    fun test_FaberAcapy_AliceNessus() {
 
         /**
          * Create the Wallets
@@ -71,22 +73,25 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
                     .withProtocol(RFC0434_OUT_OF_BAND)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
                     .acceptConnectionFrom(alice)
-                    .withProtocol(RFC0095_BASIC_MESSAGE)
-                    .sendMessage("Ich habe Sauerkraut in meinen Lederhosen")
-                    .getMessageExchange()
                     .getConnection() as Connection
 
+                assertNotNull(aliceFaber)
+                assertEquals(ConnectionState.ACTIVE, aliceFaber.state)
+
+                val aliceMessage = "Ich habe Sauerkraut in meinen Lederhosen"
+                MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE)
+                    .sendMessage(aliceMessage, aliceFaber)
+
                 // Find the reverse connection
-                val faberAlice = faber.getConnection(aliceFaber.theirDid, aliceFaber.myDid)
+                val faberAlice = faber.findConnection(aliceFaber.invitationKey)
                 checkNotNull(faberAlice) { "No Faber/Alice connection" }
 
-                // Send a message in the reverse direction
-                val msg = "I have an Elk under my Sombrero"
+                val faberMessage = "I have an Elk under my Sombrero"
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE)
-                    .sendMessage(msg, faberAlice)
+                    .sendMessage(faberMessage, faberAlice)
 
                 val receivedMessage = basicMessageFuture.get(5, TimeUnit.SECONDS)
-                assertEquals(msg, receivedMessage.bodyAsJson.selectJson("content"))
+                assertEquals(faberMessage, receivedMessage.bodyAsJson.selectJson("content"))
             }
         } finally {
             faber.removeConnections()

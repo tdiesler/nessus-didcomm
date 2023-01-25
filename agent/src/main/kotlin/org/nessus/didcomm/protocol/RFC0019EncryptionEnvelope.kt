@@ -8,6 +8,7 @@ import com.goterl.lazysodium.utils.KeyPair
 import id.walt.common.prettyPrint
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
+import mu.KotlinLogging
 import okhttp3.MediaType.Companion.toMediaType
 import org.nessus.didcomm.crypto.LazySodiumService
 import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toCurve25519
@@ -32,13 +33,15 @@ import org.nessus.didcomm.util.trimJson
 class RFC0019EncryptionEnvelope: Protocol<RFC0019EncryptionEnvelope>(MessageExchange()) {
 
     override val protocolUri = RFC0019_ENCRYPTED_ENVELOPE.uri
+    override val log = KotlinLogging.logger {}
 
     companion object {
         val RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE = "application/didcomm-envelope-enc; charset=utf-8".toMediaType()
     }
 
-    val keyStore get() = KeyStoreService.getService()
-
+    /**
+     * Pack a message into an encrypted envelope
+     */
     fun packEncryptedEnvelope(message: String, sender: Did, recipient: Did): String {
 
         val senderKeys = keyStore.load(sender.verkey, KeyType.PRIVATE).keyPair!!
@@ -87,7 +90,7 @@ class RFC0019EncryptionEnvelope: Protocol<RFC0019EncryptionEnvelope>(MessageExch
             ]
         }            
         """.trimJson()
-        log.info { "Protected: ${protected.prettyPrint()}"}
+        log.debug { "Protected: $protected"}
 
         // 4. encrypt the message using libsodium.crypto_aead_chacha20poly1305_ietf_encrypt_detached(
         //    message, protected_value_encoded, iv, cek) this is the ciphertext.
@@ -120,7 +123,7 @@ class RFC0019EncryptionEnvelope: Protocol<RFC0019EncryptionEnvelope>(MessageExch
         val protected64 = envelopeMap["protected"] as? String
         checkNotNull(protected64) { "No 'protected' in: $envelope"}
         val protectedJson = protected64.decodeBase64UrlStr()
-        log.info { "Unpacked protected: ${protectedJson.prettyPrint()}"}
+        log.debug { "Unpacked protected: $protectedJson"}
 
         val protectedMap = protectedJson.decodeJson()
         val recipients = protectedMap["recipients"] as? List<Map<String, Any>>

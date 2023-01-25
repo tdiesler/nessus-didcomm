@@ -1,11 +1,13 @@
 package org.nessus.didcomm.protocol
 
 import id.walt.common.prettyPrint
+import mu.KotlinLogging
 import org.hyperledger.acy_py.generated.model.SendMessage
 import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.toWallet
+import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE
 import org.nessus.didcomm.util.trimJson
@@ -20,6 +22,7 @@ import java.util.*
 class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMessageProtocol>(mex) {
 
     override val protocolUri = RFC0095_BASIC_MESSAGE.uri
+    override val log = KotlinLogging.logger {}
 
     companion object {
         val RFC0095_BASIC_MESSAGE_TYPE = "${RFC0095_BASIC_MESSAGE.uri}/message"
@@ -35,7 +38,7 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
 
     fun sendMessage(message: String, con: Connection? = null): RFC0095BasicMessageProtocol {
 
-        val pcon = con ?: mex.getConnection()
+        val pcon = con ?: mex.getAttachment(CONNECTION_ATTACHMENT_KEY)
         checkNotNull(pcon) { "No peer connection" }
         check(pcon.state == ConnectionState.ACTIVE) { "Connection not active: $pcon" }
 

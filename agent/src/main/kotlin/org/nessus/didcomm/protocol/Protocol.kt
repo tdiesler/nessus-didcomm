@@ -1,6 +1,7 @@
 package org.nessus.didcomm.protocol
 
-import mu.KotlinLogging
+import id.walt.services.keystore.KeyStoreService
+import mu.KLogger
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.service.DidDocumentService
@@ -13,22 +14,21 @@ import org.nessus.didcomm.wallet.Wallet
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
-abstract class Protocol<T: Protocol<T>>(
-    protected val mex: MessageExchange
-) {
-    val log = KotlinLogging.logger {}
+abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
 
+    abstract val log: KLogger
     abstract val protocolUri: String
 
     val didService get() = DidService.getService()
     val diddocService get() = DidDocumentService.getService()
     val dispatchService get() = MessageDispatchService.getService()
+    val keyStore get() = KeyStoreService.getService()
     val modelService get() = DataModelService.getService()
     val protocolService get() = ProtocolService.getService()
 
     val nowIso8601: OffsetDateTime get() = OffsetDateTime.now(ZoneOffset.UTC)
 
-    open fun invokeMethod(to: Wallet, messageType: String): Boolean {
+    internal open fun invokeMethod(to: Wallet, messageType: String): Boolean {
         throw IllegalStateException("Dispatch not supported in protocol wrapper: $protocolUri")
     }
 

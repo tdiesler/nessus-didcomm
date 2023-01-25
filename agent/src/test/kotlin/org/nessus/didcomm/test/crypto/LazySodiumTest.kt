@@ -25,6 +25,7 @@ import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
 import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyType
+import mu.KotlinLogging
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toCurve25519
 import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxEasyBytes
@@ -38,6 +39,7 @@ import org.nessus.didcomm.util.encodeHex
 import kotlin.test.assertEquals
 
 class LazySodiumTest: AbstractDidCommTest() {
+    val log = KotlinLogging.logger {}
 
     @Test
     fun lazyBoxEasy() {

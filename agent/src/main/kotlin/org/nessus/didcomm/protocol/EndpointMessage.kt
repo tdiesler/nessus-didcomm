@@ -9,7 +9,7 @@ import org.nessus.didcomm.util.selectJson
  */
 class EndpointMessage(
     val body: Any,
-    headers: Map<String, Any?> = mapOf()
+    extraHeaders: Map<String, Any?> = mapOf()
 ) {
 
     val headers: Map<String, Any?>
@@ -20,14 +20,14 @@ class EndpointMessage(
             val type = body.selectJson("@type")
             val thid = body.selectJson("~thread.thid") ?: id
             val pthid = body.selectJson("~thread.pthid")
-            val effHeaders = headers.toMutableMap()
+            val effHeaders = extraHeaders.toMutableMap()
             id?.run { effHeaders[MESSAGE_ID] = id }
             type?.run { effHeaders[MESSAGE_TYPE] = type }
             thid?.run { effHeaders[MESSAGE_THID] = thid }
             pthid?.run { effHeaders[MESSAGE_PTHID] = pthid }
             this.headers = effHeaders.toSortedMap()
         } else {
-            this.headers = headers.toSortedMap()
+            this.headers = extraHeaders.toSortedMap()
         }
     }
 
@@ -35,7 +35,6 @@ class EndpointMessage(
         /**
          * Header constants
          */
-        const val MESSAGE_AUTO_ACCEPT = "MessageAutoAccept"
         const val MESSAGE_ID = "MessageId"
         const val MESSAGE_PROTOCOL_URI = "MessageProtocolUri"
         const val MESSAGE_PTHID = "MessageParentThid"
@@ -45,14 +44,14 @@ class EndpointMessage(
         const val MESSAGE_TYPE = "MessageType"
     }
 
-    val autoAccept get() = headers[MESSAGE_AUTO_ACCEPT] as? Boolean ?: true
-    val messageId get() = headers[MESSAGE_ID] as? String ?: { "No MESSAGE_ID" }
-    val messageType get() = headers[MESSAGE_TYPE] as? String ?: { "No MESSAGE_TYPE" }
-    val protocolUri get() = headers[MESSAGE_PROTOCOL_URI] as? String ?: { "No MESSAGE_PROTOCOL_URI" }
-    val pthid get() = headers[MESSAGE_PTHID] as? String
+    val messageId = headers[MESSAGE_ID] as? String ?: { "No MESSAGE_ID" }
+    val messageType = headers[MESSAGE_TYPE] as? String ?: { "No MESSAGE_TYPE" }
+    val protocolUri = headers[MESSAGE_PROTOCOL_URI] as? String ?: { "No MESSAGE_PROTOCOL_URI" }
+    val thid = headers[MESSAGE_THID] as? String
+    val pthid = headers[MESSAGE_PTHID] as? String
+
     val recipientVerkey get() = headers[MESSAGE_RECIPIENT_VERKEY] as? String
     val senderVerkey get() = headers[MESSAGE_SENDER_VERKEY] as? String
-    val thid get() = headers[MESSAGE_THID] as? String
 
     val bodyAsJson: String get() = run {
         if (body is String) return body

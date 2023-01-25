@@ -30,6 +30,7 @@ import com.nimbusds.jose.crypto.Ed25519Verifier
 import com.nimbusds.jose.jwk.Curve
 import com.nimbusds.jose.jwk.OctetKeyPair
 import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator
+import mu.KotlinLogging
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.util.encodeJsonPretty
@@ -41,6 +42,7 @@ import kotlin.test.assertTrue
  * https://connect2id.com/products/nimbus-jose-jwt
  */
 class NimbusJwsTest: AbstractDidCommTest() {
+    val log = KotlinLogging.logger {}
 
     /**
      * JSON Web Signature (JWS) with Edwards-Curve Digital Signature Algorithm / Ed25519

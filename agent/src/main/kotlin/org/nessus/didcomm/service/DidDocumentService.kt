@@ -8,6 +8,7 @@ import id.walt.servicematrix.ServiceProvider
 import id.walt.services.crypto.CryptoService
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
+import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.util.decodeBase64Url
 import org.nessus.didcomm.util.decodeBase64UrlStr
@@ -20,6 +21,7 @@ import java.util.*
 
 class DidDocumentService: NessusBaseService() {
     override val implementation get() = serviceImplementation<DidService>()
+    override val log = KotlinLogging.logger {}
 
     companion object: ServiceProvider {
         private val implementation = DidDocumentService()
@@ -118,30 +120,31 @@ class DidDocumentService: NessusBaseService() {
         return gson.fromJson(template, JsonObject::class.java)!!
     }
 
-    fun extractFromAttachment(attachment: String, altDid: Did? = null): RFC0023DidDocument {
+    fun extractFromAttachment(attachment: String): RFC0023DidDocumentAttachment {
 
-        val didDocument64 = attachment.selectJson("data.base64") as? String
-        val protected64 = attachment.selectJson("data.jws.protected") as? String
-        val signature64 = attachment.selectJson("data.jws.signature") as? String
+        val didDocument64 = attachment.selectJson("data.base64")
+        val jwsProtected64 = attachment.selectJson("data.jws.protected")
+        val jwsSignature64 = attachment.selectJson("data.jws.signature")
+        val jwsHeaderKid = attachment.selectJson("data.jws.header.kid")
         checkNotNull(didDocument64) { "No 'data.base64'" }
-        checkNotNull(protected64) { "No 'data.jws.protected'" }
-        checkNotNull(signature64) { "No 'data.jws.signature'" }
+        checkNotNull(jwsProtected64) { "No 'data.jws.protected'" }
+        checkNotNull(jwsSignature64) { "No 'data.jws.signature'" }
+        checkNotNull(jwsHeaderKid) { "No 'data.jws.header.kid'" }
 
         val diddocJson = didDocument64.decodeBase64UrlStr() // Contains json whitespace
         val didDocument = gson.fromJson(diddocJson, RFC0023DidDocument::class.java)
+        val signatoryDid = Did.fromSpec(jwsHeaderKid)
 
-        // Load/Register the public key
-        val didSpec = diddocJson.selectJson("publicKey[0].controller") as? String
-        val didVerkey = diddocJson.selectJson("publicKey[0].publicKeyBase58") as? String
-        checkNotNull(didSpec) { "No 'publicKey[0].controller'" }
-        checkNotNull(didVerkey) { "No 'publicKey[0].publicKeyBase58'" }
-
-        val signature = signature64.decodeBase64Url()
-        val data = "$protected64.$didDocument64".toByteArray()
+        val signature = jwsSignature64.decodeBase64Url()
+        val data = "$jwsProtected64.$didDocument64".toByteArray()
         log.info { "Extracted Did Document: ${diddocJson.prettyPrint()}" }
 
-        // [TODO] verification may fail in DidEx Response
-        // https://github.com/tdiesler/nessus-didcomm/issues/32
+        // Verify that all verkeys in the publicKey section
+        // are also listed in service.recipientKeys
+        val recipientKeys = didDocument.service[0].recipientKeys
+        didDocument.publicKey.forEach {
+            check(recipientKeys.contains(it.publicKeyBase58))
+        }
 
         fun verifyWith(did: Did): Boolean {
             val keyId = if (keyStore.getKeyId(did.verkey) != null) {
@@ -152,20 +155,16 @@ class DidDocumentService: NessusBaseService() {
             return cryptoService.verify(keyId, signature, data)
         }
 
-        // First try the Did from this Doc
-        val thisDid = Did.fromSpec(didSpec, didVerkey)
-        if (!verifyWith(thisDid)) {
-            log.error { "Did document verification failed with: ${thisDid.qualified}" }
+        check(verifyWith(signatoryDid)) { "Did Document signature verification failed with: $signatoryDid" }
 
-            // Then try an alternative Did
-            if (altDid != null && verifyWith(altDid)) {
-                log.error { "Did document verification ok with: ${altDid.qualified}" }
-            }
-        }
-
-        return didDocument
+        return RFC0023DidDocumentAttachment(didDocument, signatoryDid)
     }
 }
+
+data class RFC0023DidDocumentAttachment(
+    val didDocument: RFC0023DidDocument,
+    val signatoryDid: Did
+)
 
 data class RFC0023DidDocument(
     @SerializedName("@context")
@@ -175,6 +174,21 @@ data class RFC0023DidDocument(
     val authentication: List<Authentication>,
     val service: List<Service>,
 ) {
+
+    fun publicKeyDid(idx: Int = 0): Did {
+        check(publicKey.size > idx) { "No publicKey[$idx]" }
+        val didSpec = publicKey[idx].controller as? String
+        val didVerkey = publicKey[idx].publicKeyBase58 as? String
+        checkNotNull(didSpec) { "No 'publicKey[$idx].controller'" }
+        checkNotNull(didVerkey) { "No 'publicKey[$idx].publicKeyBase58'" }
+        return Did.fromSpec(didSpec, didVerkey)
+    }
+
+    fun serviceEndpoint(idx: Int = 0): String {
+        check(service.size > idx) { "No service[$idx]" }
+        return service[idx].serviceEndpoint
+    }
+
     data class PublicKey(
         val id: String,
         val type: String,

@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.test
 
+import mu.KotlinLogging
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
@@ -29,6 +30,7 @@ import org.nessus.didcomm.util.toDeeplySortedMap
 import kotlin.test.assertEquals
 
 class UtilsTest: AbstractDidCommTest() {
+    val log = KotlinLogging.logger {}
 
     @Test
     fun deeplySortedMap() {

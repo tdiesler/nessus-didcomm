@@ -68,11 +68,11 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
                     .awaitTrustPingResponse(5, TimeUnit.SECONDS)
 
                 // Send a reverse trust ping
-                val faberAlice = faber.getConnection(aliceFaber.theirDid, aliceFaber.myDid)
+                val faberAlice = faber.findConnection(aliceFaber.invitationKey)
                 MessageExchange()
                     .withProtocol(RFC0048_TRUST_PING)
                     .sendTrustPing(faberAlice)
-                    .awaitTrustPingResponse(5, TimeUnit.SECONDS)
+                    .awaitTrustPing(alice,5, TimeUnit.SECONDS)
             }
 
         } finally {

@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit
 
 class HttpService: NessusBaseService() {
     override val implementation get() = serviceImplementation<HttpService>()
+    override val log = KotlinLogging.logger {}
 
     companion object: ServiceProvider {
         val DEFAULT_HTTP_LOGGING_LEVEL = Level.INFO

@@ -27,8 +27,11 @@ import id.walt.crypto.encBase64
 import id.walt.crypto.getMulticodecKeyCode
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
+import mu.KotlinLogging
 import org.junit.jupiter.api.Test
+import org.nessus.didcomm.service.toDidSov
 import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.wallet.DidMethod
@@ -45,6 +48,7 @@ import kotlin.test.assertTrue
  * https://github.com/w3c-ccg/did-method-key/tree/main/test-vectors
  */
 class DidServiceTest: AbstractDidCommTest() {
+    val log = KotlinLogging.logger {}
 
     @Test
     fun test_RawPubKey_to_DidKey() {
@@ -80,29 +84,42 @@ class DidServiceTest: AbstractDidCommTest() {
     }
 
     @Test
-    fun test_DidKey_Trustee1() {
+    fun test_Did_Fixture() {
 
-        val seed = Faber.seed
-        val seedBytes = seed.toByteArray(Charsets.UTF_8)
-
-        val did = didService.createDid(DidMethod.KEY, seed=seedBytes)
         val keyStore = KeyStoreService.getService()
-        val key = keyStore.load(did.qualified, KeyType.PRIVATE)
+
+        val faberKey = didService.createDid(DidMethod.KEY, seed=Faber.seed.toByteArray())
+        val key = keyStore.load(faberKey.qualified, KeyType.PRIVATE)
 
         val pubKey = key.keyPair?.public
         val prvKey = key.keyPair?.private
         val pubkeyBytes = pubKey?.encoded
         val prvkeyBytes = prvKey?.encoded
-        val verkey58 = did.verkey as String
+        val verkey58 = faberKey.verkey as String
         val verkeyBytes = verkey58.decodeBase58()
-        log.info { did.qualified }
-        log.info { "seed:      $seed" }
-        log.info { "verkey58:  ${did.verkey}" }
+        log.info { faberKey.qualified }
+        log.info { "seed:      ${Faber.seed}" }
+        log.info { "verkey58:  ${faberKey.verkey}" }
         log.info { "verkeyHex: ${verkeyBytes.encodeHex()}" }
-        log.info { "seedHex:   ${seedBytes.encodeHex()}" }
+        log.info { "seedHex:   ${Faber.seed.toByteArray().encodeHex()}" }
         log.info { "pubkeyHex: ${pubKey?.format} ${pubkeyBytes?.encodeHex()}" }
         log.info { "prvkeyHex: ${prvKey?.format} ${prvkeyBytes?.encodeHex()}" }
-        assertEquals(Faber.didkey, did.qualified)
-        assertEquals(Faber.verkey, did.verkey)
+        assertEquals(Faber.verkey, faberKey.verkey)
+        assertEquals(Faber.didkey, faberKey.qualified)
+
+        val faberSov = didService.createDid(DidMethod.SOV, seed=Faber.seed.toByteArray())
+        assertEquals(Faber.verkey, faberSov.verkey)
+        assertEquals(Faber.didsov, faberSov.qualified)
+
+        // Alice -------------------------------------------------------------------------------------------------------
+
+        val aliceKey = didService.createDid(DidMethod.KEY, seed=Alice.seed.toByteArray())
+        assertEquals(Alice.verkey, aliceKey.verkey)
+        assertEquals(Alice.didkey, aliceKey.qualified)
+
+        val aliceSov = didService.createDid(DidMethod.SOV, seed=Alice.seed.toByteArray())
+        assertEquals(Alice.verkey, aliceSov.verkey)
+        assertEquals(Alice.didsov, aliceSov.qualified)
+        assertEquals(aliceSov, aliceKey.toDidSov())
     }
 }

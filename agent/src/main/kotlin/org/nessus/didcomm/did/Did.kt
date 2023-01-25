@@ -26,19 +26,15 @@ import org.nessus.didcomm.util.decodeBase58
 import org.nessus.didcomm.util.encodeBase58
 import org.nessus.didcomm.wallet.DidMethod
 
-class Did {
+class Did(id: String, val method: DidMethod, val algorithm: KeyAlgorithm, val verkey: String) {
 
     val id: String
-    val method: DidMethod
-    val algorithm: KeyAlgorithm
-    val verkey: String
 
-    constructor(id: String, method: DidMethod, algorithm: KeyAlgorithm, verkey: String) {
+    init {
         this.id = id.substring(id.lastIndexOf(':') + 1)
-        this.method = method
-        this.algorithm = algorithm
-        this.verkey = verkey
     }
+
+    val qualified get() = "did:${method.value}:${id}"
 
     companion object {
         fun fromSpec(spec: String, verkey: String? = null): Did {
@@ -68,19 +64,18 @@ class Did {
         }
     }
 
-    val qualified: String
-        get() = "did:${this.method.value}:${this.id}"
-
     override fun equals(other: Any?): Boolean {
         if (other !is Did) return false
-        return qualified == other.qualified
+        return fingerprint == other.fingerprint
     }
 
     override fun hashCode(): Int {
-        return qualified.hashCode()
+        return fingerprint.hashCode()
     }
 
     override fun toString(): String {
         return "Did(id=$id, method=$method, algorithm=$algorithm, verkey=$verkey)"
     }
+
+    private val fingerprint = "$qualified.${algorithm.name}.$verkey"
 }

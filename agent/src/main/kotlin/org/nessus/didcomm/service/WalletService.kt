@@ -118,7 +118,7 @@ class WalletService : BaseService() {
     }
 
     fun listWallets(): List<Wallet> {
-        return modelService.listWallets().map { it.toWallet() }
+        return modelService.wallets.map { it.toWallet() }
     }
 
     fun getWallet(id: String): Wallet? {
@@ -149,7 +149,7 @@ class WalletService : BaseService() {
      * Note, the internal model may differ from external agent model
      */
     fun listDids(wallet: Wallet): List<Did> {
-        return wallet.walletPlugin.listDids(wallet)
+        return wallet.walletPlugin.findDids(wallet)
     }
 
     /**
@@ -159,8 +159,8 @@ class WalletService : BaseService() {
         return wallet.walletPlugin.publicDid(wallet)
     }
 
-    fun getConnection(wallet: Wallet, myDid: Did, theirDid: Did): Connection? {
-        return wallet.walletPlugin.getConnection(wallet, myDid, theirDid)
+    fun findConnection(wallet: Wallet, invitationKey: String): Connection? {
+        return wallet.walletPlugin.findConnection(wallet, invitationKey)
     }
 
     fun removeConnections(wallet: Wallet) {
@@ -212,9 +212,9 @@ interface WalletPlugin {
 
     fun publicDid(wallet: Wallet): Did?
 
-    fun listDids(wallet: Wallet): List<Did>
+    fun findDids(wallet: Wallet): List<Did>
 
-    fun getConnection(wallet: Wallet, myDid: Did, theirDid: Did): Connection?
+    fun findConnection(wallet: Wallet, invitationKey: String): Connection?
 
     fun removeConnections(wallet: Wallet)
 }

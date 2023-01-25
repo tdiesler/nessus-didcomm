@@ -6,10 +6,10 @@ class AgentModel {
 
     internal val walletsMap: MutableMap<String, WalletModel> = mutableMapOf()
 
-    val wallets get() = walletsMap.values.sortedBy { it.name }
+    val wallets get() = walletsMap.values
 
     val asJson get() = gson.toJson(mapOf(
-        "wallets" to walletsMap.values.sortedBy { it.name }))
+        "wallets" to wallets.sortedBy { it.name }))
 
     fun addWallet(wallet: WalletModel) {
         check(!walletsMap.containsKey(wallet.id)) { "Wallet already exists: ${wallet.id}" }

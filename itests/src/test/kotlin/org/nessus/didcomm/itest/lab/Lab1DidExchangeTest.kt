@@ -20,6 +20,7 @@
 package org.nessus.didcomm.itest.lab
 
 import id.walt.common.prettyPrint
+import mu.KotlinLogging
 import org.hyperledger.acy_py.generated.model.InvitationRecord
 import org.hyperledger.aries.api.did_exchange.DidExchangeAcceptInvitationFilter
 import org.hyperledger.aries.api.out_of_band.CreateInvitationFilter
@@ -29,7 +30,6 @@ import org.hyperledger.aries.api.out_of_band.ReceiveInvitationFilter
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.agent.AriesAgent.Companion.awaitConnectionRecord
 import org.nessus.didcomm.agent.AriesClient
-import org.nessus.didcomm.itest.ACAPY_OPTIONS_02
 import org.nessus.didcomm.itest.AbstractIntegrationTest
 import org.nessus.didcomm.itest.Alice
 import org.nessus.didcomm.itest.Faber
@@ -60,6 +60,7 @@ import kotlin.test.fail
  * 4. The requester sends the responder a complete message that confirms the response message was received.
  */
 class Lab1DidExchangeTest : AbstractIntegrationTest() {
+    val log = KotlinLogging.logger {}
 
     @Test
     fun test_FaberAcapy_invites_AliceAcapy() {
@@ -67,7 +68,7 @@ class Lab1DidExchangeTest : AbstractIntegrationTest() {
         val faber = getWalletByAlias(Faber.name) ?: fail("No Faber")
 
         val alice = Wallet.Builder(Alice.name)
-            .options(ACAPY_OPTIONS_02)
+            //.options(ACAPY_OPTIONS_02)
             .agentType(AgentType.ACAPY)
             .storageType(StorageType.IN_MEMORY)
             .build()

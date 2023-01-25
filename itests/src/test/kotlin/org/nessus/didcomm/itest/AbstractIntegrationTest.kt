@@ -22,7 +22,6 @@ package org.nessus.didcomm.itest
 import id.walt.servicematrix.ServiceMatrix
 import id.walt.services.crypto.CryptoService
 import id.walt.services.keystore.KeyStoreService
-import mu.KotlinLogging
 import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.crypto.NessusCryptoService
 import org.nessus.didcomm.service.CamelEndpointService
@@ -83,8 +82,6 @@ object Alice {
 const val RESOURCES_PATH: String = "src/test/resources"
 
 abstract class AbstractIntegrationTest {
-
-    val log = KotlinLogging.logger {}
 
     companion object {
         @BeforeAll

@@ -22,7 +22,6 @@ package org.nessus.didcomm.test
 import id.walt.servicematrix.ServiceMatrix
 import id.walt.services.crypto.CryptoService
 import id.walt.services.keystore.KeyStoreService
-import mu.KotlinLogging
 import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.crypto.NessusCryptoService
 import org.nessus.didcomm.service.DidDocumentService
@@ -59,6 +58,7 @@ object Government {
     val seedHex = seed.toByteArray().encodeHex()
     val verkey = "GJ1SzoWzavQYfNL9XkaJdrQejfztN4XqdsiV4ct3LXKL"
     val didkey = "did:key:z6MkukGVb3mRvTu1msArDKY9UwxeZFGjmwnCKtdQttr4Fk6i"
+    val didsov = "did:sov:V4SGRU86Z58d6TV7PBUe6f"
 }
 object Faber {
     val name = "Faber"
@@ -66,6 +66,7 @@ object Faber {
     val seedHex = seed.toByteArray().encodeHex()
     val verkey = "CcokUqV7WkojBLxYm7gxRzsWk3q4SE8eVMmEXoYjyvKw"
     val didkey = "did:key:z6Mkr54o55jYrJJCHqoFSgeoH6RWZd6ur7P1BNgAN5Wku97K"
+    val didsov = "did:sov:NKGKtcNwssToP5f7uhsEs4"
 }
 object Alice {
     val name = "Alice"
@@ -73,13 +74,12 @@ object Alice {
     val seedHex = seed.toByteArray().encodeHex()
     val verkey = "ESqH2YuYRRXMMfg5qQh1A23nzBaUvAMCEXLtBr2uDHbY"
     val didkey = "did:key:z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv"
+    val didsov = "did:sov:RfoA7oboFMiFuJPEtPdvKP"
 }
 
 const val RESOURCES_PATH: String = "src/test/resources"
 
 abstract class AbstractDidCommTest {
-
-    val log = KotlinLogging.logger {}
 
     companion object {
         @BeforeAll

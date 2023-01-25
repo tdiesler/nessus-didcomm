@@ -21,6 +21,7 @@ package org.nessus.didcomm.test.crypto
 
 import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
+import mu.KotlinLogging
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.service.toOctetKeyPair
 import org.nessus.didcomm.test.AbstractDidCommTest
@@ -36,6 +37,7 @@ import kotlin.test.assertEquals
  * https://github.com/w3c-ccg/did-method-key/tree/main/test-vectors
  */
 class DidCommCryptoTest: AbstractDidCommTest() {
+    val log = KotlinLogging.logger {}
 
     @Test
     fun extract_key_from_Ed25519VerificationKey2018() {

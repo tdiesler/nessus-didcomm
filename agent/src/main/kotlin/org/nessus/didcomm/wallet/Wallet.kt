@@ -20,6 +20,7 @@
 
 package org.nessus.didcomm.wallet
 
+import com.google.gson.annotations.SerializedName
 import id.walt.crypto.KeyAlgorithm
 import org.nessus.didcomm.agent.AgentConfiguration.Companion.agentConfiguration
 import org.nessus.didcomm.agent.AriesClient
@@ -50,7 +51,9 @@ enum class DidMethod(val value: String) {
 }
 
 enum class AgentType(val value: String) {
+    @SerializedName("AcaPy")
     ACAPY("AcaPy"),
+    @SerializedName("Nessus")
     NESSUS("Nessus");
     companion object {
         fun fromValue(value: String) = DidMethod.valueOf(value.uppercase())
@@ -147,8 +150,8 @@ class Wallet(
         return toWalletModel().getConnection(conId)
     }
 
-    fun getConnection(myDid: Did, theirDid: Did): Connection? {
-        return walletService.getConnection(this, myDid, theirDid)
+    fun findConnection(invitationKey: String): Connection? {
+        return walletService.findConnection(this, invitationKey)
     }
 
     fun getInvitation(invId: String): Invitation? {

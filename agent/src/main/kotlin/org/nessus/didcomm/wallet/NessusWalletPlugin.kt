@@ -48,14 +48,12 @@ class NessusWalletPlugin: WalletServicePlugin, WalletPlugin {
         return null
     }
 
-    override fun listDids(wallet: Wallet): List<Did> {
-        return wallet.toWalletModel().listDids()
+    override fun findDids(wallet: Wallet): List<Did> {
+        return wallet.toWalletModel().dids
     }
 
-    override fun getConnection(wallet: Wallet, myDid: Did, theirDid: Did): Connection? {
-        return wallet.toWalletModel().connections.firstOrNull {
-            it.theirDid == theirDid
-        }
+    override fun findConnection(wallet: Wallet, invitationKey: String): Connection? {
+        return wallet.toWalletModel().findConnection { it.invitationKey == invitationKey }
     }
 
     override fun removeConnections(wallet: Wallet) {

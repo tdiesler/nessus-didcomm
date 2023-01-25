@@ -8,6 +8,7 @@ import org.hyperledger.acy_py.generated.model.DID.KeyTypeEnum
 import org.hyperledger.acy_py.generated.model.DIDCreate
 import org.hyperledger.acy_py.generated.model.DIDCreateOptions
 import org.hyperledger.aries.AriesClient
+import org.hyperledger.aries.api.connection.ConnectionTheirRole
 import org.hyperledger.aries.api.ledger.IndyLedgerRoles
 import org.hyperledger.aries.api.ledger.RegisterNymFilter
 import org.hyperledger.aries.api.multitenancy.CreateWalletRequest
@@ -18,13 +19,21 @@ import org.nessus.didcomm.agent.AgentConfiguration
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
-import org.nessus.didcomm.model.toWallet
 import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.WalletPlugin
 import org.nessus.didcomm.service.WalletServicePlugin
+
+fun ConnectionTheirRole.toConnectionRole(): ConnectionRole {
+    return ConnectionRole.valueOf(this.name.uppercase())
+}
+
+fun org.hyperledger.aries.api.connection.ConnectionState.toConnectionState(): ConnectionState {
+    return ConnectionState.valueOf(this.name.uppercase())
+}
 
 class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
     val log = KotlinLogging.logger {}
@@ -141,23 +150,30 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
         return publicDid
     }
 
-    override fun listDids(wallet: Wallet): List<Did> {
+    override fun findDids(wallet: Wallet): List<Did> {
         val walletClient = wallet.walletClient() as AriesClient
         val dids = walletClient.walletDid().get().map { it.toNessusDid() }
         dids.forEach { wallet.toWalletModel().addDid(it) }
         return dids
     }
 
-    override fun getConnection(wallet: Wallet, myDid: Did, theirDid: Did): Connection? {
+    override fun findConnection(wallet: Wallet, invitationKey: String): Connection? {
         val walletClient = wallet.walletClient() as AriesClient
-        val cr = walletClient.connections().get().firstOrNull { it.theirDid == theirDid.id } ?: return null
-        val theirWallet = modelService.findWalletByVerkey(theirDid.verkey)?.toWallet() ?: return null
+        val cr = walletClient.connections().get().firstOrNull { it.invitationKey == invitationKey } ?: return null
+        val theirWallet = modelService.findWallets { it.id != wallet.id }
+            .firstOrNull { it.findConnection { c -> c.invitationKey == invitationKey } != null }
+        val theirConnection = theirWallet?.findConnection { it.invitationKey == invitationKey } as Connection
         return Connection(
             id = cr.connectionId,
-            myDid = myDid,
-            theirDid = theirDid,
+            agent = AgentType.ACAPY,
+            myDid = theirConnection.theirDid,
+            theirDid = theirConnection.myDid,
+            theirLabel = cr.theirLabel ?: "${theirWallet.name}/${wallet.name}",
+            theirRole = cr.theirRole.toConnectionRole(),
             theirEndpointUrl = theirWallet.endpointUrl,
-            state = ConnectionState.valueOf(cr.state.name.uppercase()))
+            invitationKey = invitationKey,
+            state = cr.state.toConnectionState()
+        )
     }
 
     override fun removeConnections(wallet: Wallet) {

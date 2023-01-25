@@ -20,6 +20,7 @@
 package org.nessus.didcomm.itest.lab
 
 import id.walt.common.prettyPrint
+import mu.KotlinLogging
 import org.hyperledger.aries.api.out_of_band.CreateInvitationFilter
 import org.hyperledger.aries.api.out_of_band.InvitationCreateRequest
 import org.junit.jupiter.api.Test
@@ -29,6 +30,7 @@ import org.nessus.didcomm.itest.AbstractIntegrationTest
 import org.nessus.didcomm.itest.Alice
 import org.nessus.didcomm.itest.Faber
 import org.nessus.didcomm.itest.NESSUS_OPTIONS_01
+import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageListener
@@ -70,6 +72,7 @@ import kotlin.test.fail
  * 4. The requester sends the responder a complete message that confirms the response message was received.
  */
 class Lab2DidExchangeTest : AbstractIntegrationTest() {
+    val log = KotlinLogging.logger {}
 
     @Test
     fun test_FaberAcapy_invites_AliceNessus() {
@@ -135,15 +138,17 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                     .build()
 
                 val faberInvRecord = faberClient.outOfBandCreateInvitation(createInvRequest, createInvFilter).get()
-                val invitation = gson.toJson(faberInvRecord.invitation)
+                val invitationJson = gson.toJson(faberInvRecord.invitation)
+                log.info { "Inviter Invitation ${invitationJson.prettyPrint()}" }
+                log.info { "Inviter Invitation ${Invitation.fromJson(invitationJson).prettyPrint()}" }
 
                 /**
                  * Invitee (Alice) receives the Invitation (somehow)
                  */
 
-                val invitationId = invitation.selectJson("@id") as String
-                val faberDid = Did.fromSpec(invitation.selectJson("services[0].recipientKeys[0]") as String)
-                val faberServiceEndpoint = invitation.selectJson("services[0].serviceEndpoint") as String
+                val invitationId = invitationJson.selectJson("@id") as String
+                val faberDid = Did.fromSpec(invitationJson.selectJson("services[0].recipientKeys[0]") as String)
+                val faberServiceEndpoint = invitationJson.selectJson("services[0].serviceEndpoint") as String
 
                 /**
                  * Invitee (Alice) manually accepts the Invitation and sends a DidEx Request
@@ -182,7 +187,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                     ]
                 }                    
                 """.trimJson()
-                log.info { "Alice's Did Document: ${aliceDidDoc.prettyPrint()}" }
+                log.info { "Requester Did Document: ${aliceDidDoc.prettyPrint()}" }
 
                 val aliceDidDocAttach = diddocService.createAttachment(aliceDidDoc, aliceDid)
 
@@ -200,6 +205,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                     "did_doc~attach": $aliceDidDocAttach
                 }
                 """.trimJson()
+                log.info { "DidExchange Request: ${didexRequest.prettyPrint()}" }
 
                 val packedDidExRequest = RFC0019EncryptionEnvelope()
                     .packEncryptedEnvelope(didexRequest, aliceDid, faberDid)
@@ -221,7 +227,7 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                 val faberDidDocAttach = didexResponse.selectJson("did_doc~attach") as? String
                 checkNotNull(faberDidDocAttach) { "No attached Did Document in DidEx Response" }
 
-                diddocService.extractFromAttachment(faberDidDocAttach, faberDid)
+                val (faberDidDoc, signatoryDid) = diddocService.extractFromAttachment(faberDidDocAttach)
 
                 /**
                  * Requester (Alice) sends the DidEx Complete message
