@@ -20,12 +20,12 @@
 package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.model.Connection
-import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.model.ConnectionState.ACTIVE
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol.Companion.RFC0095_BASIC_MESSAGE_TYPE
+import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
 import org.nessus.didcomm.util.selectJson
@@ -34,7 +34,6 @@ import org.nessus.didcomm.wallet.Wallet
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.fail
 
 /**
@@ -59,36 +58,36 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
 
         val basicMessageFuture = CompletableFuture<EndpointMessage>()
         val listener: MessageListener = { epm ->
-            val mex = dispatchService.invoke(epm) as MessageExchange
-            if (mex.last.messageType == RFC0095_BASIC_MESSAGE_TYPE) {
+            val mex = dispatchService.invoke(epm)
+            if (mex.last.type == RFC0095_BASIC_MESSAGE_TYPE) {
                 basicMessageFuture.complete(mex.last)
             }
-            mex
         }
 
         try {
-            endpointService.startEndpoint(alice, listener).use {
+            endpointService.startEndpoint(alice.endpointUrl, listener).use {
 
                 val aliceFaber = MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
-                    .acceptConnectionFrom(alice)
-                    .getConnection() as Connection
+                    .receiveOutOfBandInvitation(alice)
 
-                assertNotNull(aliceFaber)
-                assertEquals(ConnectionState.ACTIVE, aliceFaber.state)
+                    .withProtocol(RFC0023_DIDEXCHANGE)
+                    .connect(alice)
+
+                assertEquals(ACTIVE, aliceFaber.state)
 
                 val aliceMessage = "Ich habe Sauerkraut in meinen Lederhosen"
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE)
-                    .sendMessage(aliceMessage, aliceFaber)
+                    .sendMessage(aliceFaber, aliceMessage)
 
                 // Find the reverse connection
-                val faberAlice = faber.findConnection(aliceFaber.invitationKey)
+                val faberAlice = faber.findConnection(aliceFaber.theirVerkey)
                 checkNotNull(faberAlice) { "No Faber/Alice connection" }
 
                 val faberMessage = "I have an Elk under my Sombrero"
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE)
-                    .sendMessage(faberMessage, faberAlice)
+                    .sendMessage(faberAlice, faberMessage)
 
                 val receivedMessage = basicMessageFuture.get(5, TimeUnit.SECONDS)
                 assertEquals(faberMessage, receivedMessage.bodyAsJson.selectJson("content"))

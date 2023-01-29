@@ -22,12 +22,8 @@ package org.nessus.didcomm.wallet
 
 import com.google.gson.annotations.SerializedName
 import id.walt.crypto.KeyAlgorithm
+import org.nessus.didcomm.agent.*
 import org.nessus.didcomm.agent.AgentConfiguration.Companion.agentConfiguration
-import org.nessus.didcomm.agent.AriesClient
-import org.nessus.didcomm.agent.AriesClientFactory
-import org.nessus.didcomm.agent.WebSocketClient
-import org.nessus.didcomm.agent.WebSocketEvent
-import org.nessus.didcomm.agent.WebSocketListener
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation
@@ -150,8 +146,8 @@ class Wallet(
         return toWalletModel().getConnection(conId)
     }
 
-    fun findConnection(invitationKey: String): Connection? {
-        return walletService.findConnection(this, invitationKey)
+    fun findConnection(verkey: String): Connection? {
+        return toWalletModel().findConnection { it.myVerkey == verkey }
     }
 
     fun getInvitation(invId: String): Invitation? {

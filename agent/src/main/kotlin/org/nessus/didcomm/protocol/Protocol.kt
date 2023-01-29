@@ -3,12 +3,7 @@ package org.nessus.didcomm.protocol
 import id.walt.services.keystore.KeyStoreService
 import mu.KLogger
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.service.DataModelService
-import org.nessus.didcomm.service.DidDocumentService
-import org.nessus.didcomm.service.DidService
-import org.nessus.didcomm.service.MessageDispatchService
-import org.nessus.didcomm.service.ProtocolKey
-import org.nessus.didcomm.service.ProtocolService
+import org.nessus.didcomm.service.*
 import org.nessus.didcomm.util.toUnionMap
 import org.nessus.didcomm.wallet.Wallet
 import java.time.OffsetDateTime
@@ -58,7 +53,8 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun dispatchToEndpoint(url: String, epm: EndpointMessage): T {
+    fun dispatchToEndpoint(url: String?, epm: EndpointMessage): T {
+        requireNotNull(url) { "No endpoint url" }
         dispatchService.dispatchToEndpoint(url, epm)
         return this as T
     }

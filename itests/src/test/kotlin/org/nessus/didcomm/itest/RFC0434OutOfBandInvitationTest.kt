@@ -69,7 +69,7 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
                 .receiveOutOfBandInvitation(alice)
                 .getMessageExchange()
 
-            assertEquals(2, mex.messages.size)
+            assertEquals(1, mex.messages.size)
 
             val invitation = mex.last.body as? Invitation
             assertEquals(InvitationState.DONE, invitation?.state)
@@ -107,7 +107,7 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
                 .receiveOutOfBandInvitation(faber)
                 .getMessageExchange()
 
-            assertEquals(2, mex.messages.size)
+            assertEquals(1, mex.messages.size)
 
             val invitation = mex.last.body as? Invitation
             assertEquals(InvitationState.DONE, invitation?.state)

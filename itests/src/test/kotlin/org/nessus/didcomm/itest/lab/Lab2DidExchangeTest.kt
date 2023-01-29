@@ -31,8 +31,6 @@ import org.nessus.didcomm.itest.Alice
 import org.nessus.didcomm.itest.Faber
 import org.nessus.didcomm.itest.NESSUS_OPTIONS_01
 import org.nessus.didcomm.model.Invitation
-import org.nessus.didcomm.protocol.EndpointMessage
-import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
@@ -106,20 +104,17 @@ class Lab2DidExchangeTest : AbstractIntegrationTest() {
                     } else {
                         log.warn { "Unknown message type: $atType" }
                     }
-                    MessageExchange(EndpointMessage(message))
                 } else {
                     log.warn { "Message recipient unknown" }
-                    null
                 }
             } else {
                 log.warn { "Unknown content type: $contentType" }
-                null
             }
         }
 
         try {
 
-            endpointService.startEndpoint(alice, listener).use {
+            endpointService.startEndpoint(alice.endpointUrl, listener).use {
 
                 /**
                  * Inviter (Faber) creates an Out-of-Band Invitation

@@ -19,16 +19,17 @@
  */
 package org.nessus.didcomm.itest
 
+import id.walt.common.prettyPrint
+import mu.KotlinLogging
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.model.Connection
-import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.model.ConnectionState.ACTIVE
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
-import org.nessus.didcomm.service.RFC0048_TRUST_PING
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
-import java.util.concurrent.TimeUnit
+import org.nessus.didcomm.wallet.toWalletModel
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
@@ -44,6 +45,7 @@ import kotlin.test.fail
  * https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
  */
 class RFC0023DidExchangeTest : AbstractIntegrationTest() {
+    private val log = KotlinLogging.logger {}
 
     @Test
     fun test_FaberAcapy_invites_AliceNessus() {
@@ -60,7 +62,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
             .build()
 
         try {
-            endpointService.startEndpoint(alice).use {
+            endpointService.startEndpoint(alice.endpointUrl).use {
 
                 /**
                  * Inviter (Faber) creates an Out-of-Band Invitation
@@ -78,22 +80,13 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                     .receiveOutOfBandInvitation(alice)
 
                     .withProtocol(RFC0023_DIDEXCHANGE)
-                    .sendDidExchangeRequest()
-                    .awaitDidExchangeResponse(5, TimeUnit.SECONDS)
-                    .sendDidExchangeComplete()
+                    .connect(alice)
 
-                    .withProtocol(RFC0048_TRUST_PING)
-                    .sendTrustPing()
-                    .awaitTrustPingResponse(5, TimeUnit.SECONDS)
+                val faberAlice = faber.findConnection(aliceFaber.theirVerkey)
 
-                    .getMessageExchange()
-                    .getConnection() as Connection
+                verifyConnection(alice, aliceFaber)
 
-                assertEquals(ConnectionState.ACTIVE, aliceFaber.state)
-
-                // Reverse Connection
-                val faberAlice = faber.findConnection(aliceFaber.invitationKey)
-                assertEquals(ConnectionState.ACTIVE, faberAlice?.state)
+                verifyConnection(faber, faberAlice)
             }
         } finally {
             faber.removeConnections()
@@ -116,7 +109,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
             .build()
 
         try {
-            endpointService.startEndpoint(alice).use {
+            endpointService.startEndpoint(alice.endpointUrl).use {
 
                 /**
                  * Inviter (Alice) creates an Out-of-Band Invitation
@@ -134,25 +127,87 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                     .receiveOutOfBandInvitation(faber)
 
                     .withProtocol(RFC0023_DIDEXCHANGE)
-                    .awaitDidExchangeRequest(5, TimeUnit.SECONDS)
-                    .sendDidExchangeResponse()
-                    .awaitDidExchangeComplete(5, TimeUnit.SECONDS)
+                    .connect(faber)
 
-                    .withProtocol(RFC0048_TRUST_PING)
-                    .awaitTrustPing(alice, 5, TimeUnit.SECONDS)
+                val faberAlice = faber.findConnection(aliceFaber.theirVerkey)
 
-                    .getMessageExchange()
-                    .getConnection() as Connection
+                verifyConnection(alice, aliceFaber)
 
-                assertEquals(ConnectionState.ACTIVE, aliceFaber.state)
-
-                // Reverse Connection
-                val faberAlice = faber.findConnection(aliceFaber.invitationKey)
-                assertEquals(ConnectionState.ACTIVE, faberAlice?.state)
+                verifyConnection(faber, faberAlice)
             }
         } finally {
             faber.removeConnections()
             removeWallet(Alice.name)
         }
+    }
+
+    @Test
+    fun test_BobNessus_invites_AliceNessus() {
+
+        /**
+         * Create the Wallets
+         */
+
+        val bob = Wallet.Builder("Bob")
+            .options(NESSUS_OPTIONS_01)
+            .agentType(AgentType.NESSUS)
+            .build()
+
+        val alice = Wallet.Builder(Alice.name)
+            .options(NESSUS_OPTIONS_01)
+            .agentType(AgentType.NESSUS)
+            .build()
+
+        try {
+            endpointService.startEndpoint(alice.endpointUrl).use {
+
+                /**
+                 * Inviter (Bob) creates an Out-of-Band Invitation
+                 * Invitee (Alice) receives and accepts the Invitation
+                 * Requester (Alice) send the DidEx Request
+                 * Responder (Bob) accepts the DidEx Request and sends a Response
+                 * Requester (Alice) sends the DidEx Complete message
+                 * Requester (Alice) sends a Trust Ping
+                 * Responder (Bob) sends a Trust Ping Response
+                 */
+
+                val aliceBob = MessageExchange()
+                    .withProtocol(RFC0434_OUT_OF_BAND)
+                    .createOutOfBandInvitation(bob, "Bob invites Alice")
+                    .receiveOutOfBandInvitation(alice)
+
+                    .withProtocol(RFC0023_DIDEXCHANGE)
+                    .connect(alice)
+
+                val bobAlice = bob.findConnection(aliceBob.theirVerkey)
+
+                verifyConnection(alice, aliceBob)
+
+                verifyConnection(bob, bobAlice)
+            }
+        } finally {
+            removeWallet(Alice.name)
+            removeWallet("Bob")
+        }
+    }
+
+    private fun verifyConnection(wallet: Wallet, pcon: Connection?) {
+        requireNotNull(pcon) { "No connection" }
+
+        val aliceMex = MessageExchange.findByVerkey(pcon.myVerkey)
+        aliceMex.showMessages(wallet.name)
+
+        log.info { "${wallet.name}'s Connection: ${pcon.prettyPrint()}" }
+        assertEquals(ACTIVE, pcon.state)
+
+        val walletModel = wallet.toWalletModel()
+        val myModelInvi = walletModel.findInvitation { i -> i.invitationKey() == pcon.invitationKey }
+        assertEquals(pcon.invitationKey, myModelInvi?.invitationKey())
+
+        val myModelCon = walletModel.findConnection { c -> c.id == pcon.id }
+        assertEquals(pcon, myModelCon)
+
+        val myModelDid = walletModel.findDid { d -> d.verkey == pcon.myVerkey }
+        assertEquals(pcon.myDid, myModelDid)
     }
 }

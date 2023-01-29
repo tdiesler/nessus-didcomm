@@ -31,14 +31,7 @@ import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.toWallet
-import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.AriesWalletPlugin
-import org.nessus.didcomm.wallet.DidMethod
-import org.nessus.didcomm.wallet.NessusWalletPlugin
-import org.nessus.didcomm.wallet.StorageType
-import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.WalletConfig
-import org.nessus.didcomm.wallet.toWalletModel
+import org.nessus.didcomm.wallet.*
 import java.nio.file.Files
 import java.nio.file.Paths
 import kotlin.io.path.isReadable
@@ -159,10 +152,6 @@ class WalletService : BaseService() {
         return wallet.walletPlugin.publicDid(wallet)
     }
 
-    fun findConnection(wallet: Wallet, invitationKey: String): Connection? {
-        return wallet.walletPlugin.findConnection(wallet, invitationKey)
-    }
-
     fun removeConnections(wallet: Wallet) {
         wallet.walletPlugin.removeConnections(wallet)
         return wallet.toWalletModel().removeConnections()
@@ -213,8 +202,6 @@ interface WalletPlugin {
     fun publicDid(wallet: Wallet): Did?
 
     fun findDids(wallet: Wallet): List<Did>
-
-    fun findConnection(wallet: Wallet, invitationKey: String): Connection?
 
     fun removeConnections(wallet: Wallet)
 }

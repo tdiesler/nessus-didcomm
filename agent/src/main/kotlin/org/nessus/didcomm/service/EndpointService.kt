@@ -20,7 +20,7 @@ abstract class EndpointService<T: Any>: NessusBaseService() {
      *
      * @return A handle specific to the endpoint implementation
      */
-    open fun startEndpoint(wallet: Wallet, listener: MessageListener? = null): T? {
+    open fun startEndpoint(endpointUrl: String, listener: MessageListener? = null): T? {
         return null
     }
 

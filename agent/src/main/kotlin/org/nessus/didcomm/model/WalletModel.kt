@@ -1,16 +1,12 @@
 package org.nessus.didcomm.model
 
 import com.google.gson.annotations.SerializedName
-import id.walt.services.ecosystems.essif.LegalEntityClient.ti
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.model.ConnectionState.ACTIVE
-import org.nessus.didcomm.model.ConnectionState.COMPLETED
-import org.nessus.didcomm.model.ConnectionState.REQUEST
-import org.nessus.didcomm.model.InvitationState.DONE
-import org.nessus.didcomm.model.InvitationState.INITIAL
-import org.nessus.didcomm.model.InvitationState.RECEIVED
+import org.nessus.didcomm.model.ConnectionState.*
+import org.nessus.didcomm.model.InvitationState.*
 import org.nessus.didcomm.service.WalletService
+import org.nessus.didcomm.util.encodeBase58
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
@@ -126,11 +122,10 @@ class Invitation(
     val id: String,
     @SerializedName("@type")
     val type: String,
+    val label: String,
     val accept: List<String>,
     @SerializedName("handshake_protocols")
     val handshakeProtocols: List<String>,
-    @SerializedName("goal_code")
-    val goalCode: String,
     val services: List<Service>,
 ) {
 
@@ -142,10 +137,14 @@ class Invitation(
 
     var state: InvitationState? = null
         set(next) {
-            val transitions = mapOf(
-                INITIAL to RECEIVED,
-                RECEIVED to DONE)
-            require(field == null || field == next || transitions[field] == next) { "Invalid state transition: $field => $next" }
+            if (field == null) {
+                require(next == INITIAL) { "Invalid state transition: $field => $next" }
+            } else {
+                val transitions = mapOf(
+                    INITIAL to RECEIVED,
+                    RECEIVED to DONE)
+                require(field == next || transitions[field] == next) { "Invalid state transition: $field => $next" }
+            }
             field = next
         }
 
@@ -186,52 +185,59 @@ class Invitation(
     }
 }
 
-enum class ConnectionRole(val value: String) {
-    @SerializedName("inviter")
-    INVITER("inviter"),
-    @SerializedName("invitee")
-    INVITEE("invitee"),
-    @SerializedName("responder")
-    RESPONDER("responder"),
-    @SerializedName("requester")
-    REQUESTER("requester");
-    companion object {
-        fun fromValue(value: String) = ConnectionRole.valueOf(value.uppercase())
-    }
+enum class ConnectionRole {
+    INVITER,
+    INVITEE,
+    RESPONDER,
+    REQUESTER;
 }
 
-enum class ConnectionState(val value: String) {
-    @SerializedName("request")
-    REQUEST("request"),
-    @SerializedName("completed")
-    COMPLETED("completed"),
-    @SerializedName("active")
-    ACTIVE("active");
-    companion object {
-        fun fromValue(value: String) = ConnectionState.valueOf(value.uppercase())
-    }
+enum class ConnectionState {
+    INVITATION,
+    REQUEST,
+    RESPONSE,
+    COMPLETED,
+    ACTIVE,
 }
+
+private val dummyBase58 = ByteArray(32).encodeBase58()
+private val dummyDid = Did.fromSpec("did:sov:${dummyBase58.drop(16)}", dummyBase58)
 
 class Connection(
     val id: String,
     val agent: AgentType,
-    val myDid: Did,
-    val theirDid: Did,
-    val theirLabel: String,
-    val theirRole: ConnectionRole,
-    val theirEndpointUrl: String,
     val invitationKey: String,
-    state: ConnectionState,
+    myDid: Did?,
+    var myRole: ConnectionRole,
+    var myLabel: String,
+    var myEndpointUrl: String,
+    theirDid: Did?,
+    var theirRole: ConnectionRole,
+    var theirLabel: String?,
+    var theirEndpointUrl: String?,
+    var state: ConnectionState,
 ) {
-    var state: ConnectionState = state
-        set(next) {
-            val transitions = mapOf(
-                REQUEST to COMPLETED,
-                COMPLETED to ACTIVE,
-                )
-            require(field == next || transitions[field] == next) { "Invalid state transition: $field => $next" }
-            field = next
+    @Transient
+    private val log = KotlinLogging.logger {}
+
+    var myDid: Did = myDid ?: dummyDid
+        set(did) {
+            if (field != dummyDid) {
+                log.info { "Rotate myDid: ${field.qualified} => ${did.qualified}" }
+            }
+            field = did
         }
+
+    var theirDid: Did = theirDid ?: dummyDid
+        set(did) {
+            if (field != dummyDid) {
+                log.info { "Rotate theirDid: ${field.qualified} => ${did.qualified}" }
+            }
+            field = did
+        }
+
+    val myVerkey get() = myDid.verkey
+    val theirVerkey get() = theirDid.verkey
 
     override fun toString(): String {
         return gson.toJson(this)

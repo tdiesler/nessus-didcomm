@@ -20,13 +20,13 @@
 package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.model.ConnectionState.ACTIVE
 import org.nessus.didcomm.protocol.MessageExchange
+import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.service.RFC0048_TRUST_PING
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
-import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.fail
@@ -50,29 +50,34 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
             .build()
 
         try {
-            endpointService.startEndpoint(alice).use {
+            endpointService.startEndpoint(alice.endpointUrl).use {
 
                 val aliceFaber = MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
-                    .acceptConnectionFrom(alice)
-                    .getConnection()
+                    .receiveOutOfBandInvitation(alice)
 
-                assertNotNull(aliceFaber)
-                assertEquals(ConnectionState.ACTIVE, aliceFaber.state)
+                    .withProtocol(RFC0023_DIDEXCHANGE)
+                    .connect(alice)
+
+                assertEquals(ACTIVE, aliceFaber.state)
+                assertEquals(AgentType.NESSUS, aliceFaber.agent)
 
                 // Send an explicit trust ping
                 MessageExchange()
                     .withProtocol(RFC0048_TRUST_PING)
                     .sendTrustPing(aliceFaber)
-                    .awaitTrustPingResponse(5, TimeUnit.SECONDS)
+                    .awaitTrustPingResponse()
 
                 // Send a reverse trust ping
-                val faberAlice = faber.findConnection(aliceFaber.invitationKey)
+                val faberAlice = faber.findConnection(aliceFaber.theirVerkey)
+                assertNotNull(faberAlice, "No Faber/Alice Connection")
+                assertEquals(AgentType.ACAPY, faberAlice.agent)
+
                 MessageExchange()
                     .withProtocol(RFC0048_TRUST_PING)
                     .sendTrustPing(faberAlice)
-                    .awaitTrustPing(alice,5, TimeUnit.SECONDS)
+                    .awaitTrustPingResponse()
             }
 
         } finally {

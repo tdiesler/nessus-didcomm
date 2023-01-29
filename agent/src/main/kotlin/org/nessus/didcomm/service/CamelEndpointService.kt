@@ -19,8 +19,7 @@ class CamelEndpointService: EndpointService<CamelContext>() {
         override fun getService() = implementation
     }
 
-    override fun startEndpoint(wallet: Wallet, listener: MessageListener?): CamelContext {
-        val endpointUrl = wallet.endpointUrl
+    override fun startEndpoint(endpointUrl: String, listener: MessageListener?): CamelContext {
         log.info("Starting Camel endpoint on: $endpointUrl")
         val camelctx: CamelContext = DefaultCamelContext()
         val dispatcher = listener ?: MessageDispatchService.getService()

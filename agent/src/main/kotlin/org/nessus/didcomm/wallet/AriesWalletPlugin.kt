@@ -18,14 +18,9 @@ import org.hyperledger.aries.api.wallet.WalletDIDCreate
 import org.nessus.didcomm.agent.AgentConfiguration
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
-import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
-import org.nessus.didcomm.service.DataModelService
-import org.nessus.didcomm.service.DidService
-import org.nessus.didcomm.service.WalletPlugin
-import org.nessus.didcomm.service.WalletServicePlugin
+import org.nessus.didcomm.service.*
 
 fun ConnectionTheirRole.toConnectionRole(): ConnectionRole {
     return ConnectionRole.valueOf(this.name.uppercase())
@@ -155,25 +150,6 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
         val dids = walletClient.walletDid().get().map { it.toNessusDid() }
         dids.forEach { wallet.toWalletModel().addDid(it) }
         return dids
-    }
-
-    override fun findConnection(wallet: Wallet, invitationKey: String): Connection? {
-        val walletClient = wallet.walletClient() as AriesClient
-        val cr = walletClient.connections().get().firstOrNull { it.invitationKey == invitationKey } ?: return null
-        val theirWallet = modelService.findWallets { it.id != wallet.id }
-            .firstOrNull { it.findConnection { c -> c.invitationKey == invitationKey } != null }
-        val theirConnection = theirWallet?.findConnection { it.invitationKey == invitationKey } as Connection
-        return Connection(
-            id = cr.connectionId,
-            agent = AgentType.ACAPY,
-            myDid = theirConnection.theirDid,
-            theirDid = theirConnection.myDid,
-            theirLabel = cr.theirLabel ?: "${theirWallet.name}/${wallet.name}",
-            theirRole = cr.theirRole.toConnectionRole(),
-            theirEndpointUrl = theirWallet.endpointUrl,
-            invitationKey = invitationKey,
-            state = cr.state.toConnectionState()
-        )
     }
 
     override fun removeConnections(wallet: Wallet) {

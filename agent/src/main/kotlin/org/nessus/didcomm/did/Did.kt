@@ -77,5 +77,6 @@ class Did(id: String, val method: DidMethod, val algorithm: KeyAlgorithm, val ve
         return "Did(id=$id, method=$method, algorithm=$algorithm, verkey=$verkey)"
     }
 
+    @Transient
     private val fingerprint = "$qualified.${algorithm.name}.$verkey"
 }

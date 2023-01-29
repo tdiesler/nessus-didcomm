@@ -3,6 +3,7 @@ package org.nessus.didcomm.protocol
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.isJson
 import org.nessus.didcomm.util.selectJson
+import java.util.*
 
 /**
  * Associates an endpoint message with additional metadata
@@ -12,25 +13,6 @@ class EndpointMessage(
     extraHeaders: Map<String, Any?> = mapOf()
 ) {
 
-    val headers: Map<String, Any?>
-    init {
-        check(body !is EndpointMessage) { "Nested endpoint message"}
-        if (body is String && body.isJson()) {
-            val id = body.selectJson("@id")
-            val type = body.selectJson("@type")
-            val thid = body.selectJson("~thread.thid") ?: id
-            val pthid = body.selectJson("~thread.pthid")
-            val effHeaders = extraHeaders.toMutableMap()
-            id?.run { effHeaders[MESSAGE_ID] = id }
-            type?.run { effHeaders[MESSAGE_TYPE] = type }
-            thid?.run { effHeaders[MESSAGE_THID] = thid }
-            pthid?.run { effHeaders[MESSAGE_PTHID] = pthid }
-            this.headers = effHeaders.toSortedMap()
-        } else {
-            this.headers = extraHeaders.toSortedMap()
-        }
-    }
-
     companion object {
         /**
          * Header constants
@@ -38,24 +20,44 @@ class EndpointMessage(
         const val MESSAGE_ID = "MessageId"
         const val MESSAGE_PROTOCOL_URI = "MessageProtocolUri"
         const val MESSAGE_PTHID = "MessageParentThid"
-        const val MESSAGE_RECIPIENT_VERKEY = "MessageRecipientVerkey"
-        const val MESSAGE_SENDER_VERKEY = "MessageSenderVerkey"
         const val MESSAGE_THID = "MessageThid"
         const val MESSAGE_TYPE = "MessageType"
     }
 
-    val messageId = headers[MESSAGE_ID] as? String ?: { "No MESSAGE_ID" }
-    val messageType = headers[MESSAGE_TYPE] as? String ?: { "No MESSAGE_TYPE" }
-    val protocolUri = headers[MESSAGE_PROTOCOL_URI] as? String ?: { "No MESSAGE_PROTOCOL_URI" }
-    val thid = headers[MESSAGE_THID] as? String
-    val pthid = headers[MESSAGE_PTHID] as? String
+    val headers: Map<String, Any?>
+    init {
+        check(body !is EndpointMessage) { "Nested endpoint message"}
+        val effHeaders = extraHeaders.toMutableMap()
+        if (body is String && body.isJson()) {
+            val id = body.selectJson("@id")
+            val type = body.selectJson("@type")
+            val thid = body.selectJson("~thread.thid")
+            val pthid = body.selectJson("~thread.pthid")
+            id?.run { effHeaders[MESSAGE_ID] = id }
+            type?.run { effHeaders[MESSAGE_TYPE] = type }
+            thid?.run { effHeaders[MESSAGE_THID] = thid }
+            pthid?.run { effHeaders[MESSAGE_PTHID] = pthid }
+        }
+        if (effHeaders[MESSAGE_ID] == null) {
+            val auxId = "${UUID.randomUUID()}"
+            val idx = auxId.indexOf('-') + 1
+            effHeaders[MESSAGE_ID] = "00000000-${auxId.substring(idx)}"
+        }
+        this.headers = effHeaders.toSortedMap()
+    }
 
-    val recipientVerkey get() = headers[MESSAGE_RECIPIENT_VERKEY] as? String
-    val senderVerkey get() = headers[MESSAGE_SENDER_VERKEY] as? String
+    val id = headers[MESSAGE_ID] as String
+    val type = headers[MESSAGE_TYPE] as? String
+    val thid = headers[MESSAGE_THID] as? String ?: id
+    val pthid = headers[MESSAGE_PTHID] as? String
+    val protocolUri = headers[MESSAGE_PROTOCOL_URI] as? String
 
     val bodyAsJson: String get() = run {
-        if (body is String) return body
-        else return gson.toJson(body)
+        return if (body is String) body else gson.toJson(body)
+    }
+
+    fun checkMessageType(expectedType: String) {
+        check(type == expectedType) { "Unexpected message type: $type" }
     }
 
     class Builder(var body: Any) {
@@ -76,4 +78,4 @@ class EndpointMessage(
     }
 }
 
-typealias MessageListener = (msg: EndpointMessage) -> MessageExchange?
+typealias MessageListener = (msg: EndpointMessage) -> Unit

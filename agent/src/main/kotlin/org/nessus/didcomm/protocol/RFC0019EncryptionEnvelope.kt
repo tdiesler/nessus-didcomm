@@ -6,7 +6,6 @@ import com.goterl.lazysodium.utils.DetachedEncrypt
 import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
 import id.walt.common.prettyPrint
-import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import mu.KotlinLogging
 import okhttp3.MediaType.Companion.toMediaType
@@ -16,15 +15,7 @@ import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxEasyBytes
 import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxOpenEasyBytes
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.service.RFC0019_ENCRYPTED_ENVELOPE
-import org.nessus.didcomm.util.decodeBase58
-import org.nessus.didcomm.util.decodeBase64Url
-import org.nessus.didcomm.util.decodeBase64UrlStr
-import org.nessus.didcomm.util.decodeHex
-import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.util.encodeBase64Url
-import org.nessus.didcomm.util.encodeHex
-import org.nessus.didcomm.util.selectJson
-import org.nessus.didcomm.util.trimJson
+import org.nessus.didcomm.util.*
 
 /**
  * Aries RFC 0019: Encryption Envelope
@@ -123,7 +114,7 @@ class RFC0019EncryptionEnvelope: Protocol<RFC0019EncryptionEnvelope>(MessageExch
         val protected64 = envelopeMap["protected"] as? String
         checkNotNull(protected64) { "No 'protected' in: $envelope"}
         val protectedJson = protected64.decodeBase64UrlStr()
-        log.debug { "Unpacked protected: $protectedJson"}
+        log.info { "Decoded protected: ${protectedJson.prettyPrint()}"}
 
         val protectedMap = protectedJson.decodeJson()
         val recipients = protectedMap["recipients"] as? List<Map<String, Any>>
@@ -132,7 +123,10 @@ class RFC0019EncryptionEnvelope: Protocol<RFC0019EncryptionEnvelope>(MessageExch
         val recipient = recipients.firstOrNull {
             val kid = it.selectJson("header.kid") as? String
             checkNotNull(kid) { "No 'kid' in: $it"}
-            keyStore.getKeyId(kid) != null
+            val keyId = keyStore.getKeyId(kid)
+            if (keyId == null)
+                log.warn { "No key for alias: $kid" }
+            keyId != null
         } ?: return null
 
         val recipientVerkey = recipient.selectJson("header.kid") as String

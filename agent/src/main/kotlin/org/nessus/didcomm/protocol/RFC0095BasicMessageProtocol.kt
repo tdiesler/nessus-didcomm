@@ -7,7 +7,6 @@ import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.toWallet
-import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE
 import org.nessus.didcomm.util.trimJson
@@ -36,26 +35,28 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
         return true
     }
 
-    fun sendMessage(message: String, con: Connection? = null): RFC0095BasicMessageProtocol {
+    fun sendMessage(pcon: Connection, message: String): RFC0095BasicMessageProtocol {
 
-        val pcon = con ?: mex.getAttachment(CONNECTION_ATTACHMENT_KEY)
-        checkNotNull(pcon) { "No peer connection" }
         check(pcon.state == ConnectionState.ACTIVE) { "Connection not active: $pcon" }
 
         val sender = modelService.findWalletByVerkey(pcon.myDid.verkey)?.toWallet()
         checkNotNull(sender) { "No sender wallet" }
 
-        when(sender.agentType) {
+        val rfc0095 = when(sender.agentType) {
             AgentType.ACAPY -> sendMessageAcapy(sender, pcon, message)
             AgentType.NESSUS -> sendMessageNessus(sender, pcon, message)
         }
 
-        return this
+        return rfc0095
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun sendMessageAcapy(sender: Wallet, pcon: Connection, message: String) {
+    private fun sendMessageAcapy(sender: Wallet, pcon: Connection, message: String): RFC0095BasicMessageProtocol {
+
+        // Use my previous MessageExchange
+        val myMex = MessageExchange.findByVerkey(pcon.myVerkey)
+        val rfc0095 = myMex.withProtocol(RFC0095_BASIC_MESSAGE)
 
         val fromClient = sender.walletClient() as AriesClient
         val basicMessage = SendMessage.builder().content(message).build()
@@ -70,10 +71,16 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
         }
         """.trimJson()
 
-        MessageExchange(EndpointMessage(basicMsg))
+        myMex.addMessage(EndpointMessage(basicMsg))
+
+        return rfc0095
     }
 
-    private fun sendMessageNessus(sender: Wallet, pcon: Connection, message: String) {
+    private fun sendMessageNessus(sender: Wallet, pcon: Connection, message: String): RFC0095BasicMessageProtocol {
+
+        // Use my previous MessageExchange
+        val myMex = MessageExchange.findByVerkey(pcon.myVerkey)
+        val rfc0095 = myMex.withProtocol(RFC0095_BASIC_MESSAGE)
 
         val basicMsg = """
         {
@@ -84,7 +91,7 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
         }
         """.trimJson()
 
-        MessageExchange(EndpointMessage(basicMsg))
+        myMex.addMessage(EndpointMessage(basicMsg))
 
         val packedBasicMsg = RFC0019EncryptionEnvelope()
             .packEncryptedEnvelope(basicMsg, pcon.myDid, pcon.theirDid)
@@ -94,6 +101,8 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
         ))
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
+
+        return rfc0095
     }
 
     private fun receiveMessage(receiver: Wallet): RFC0095BasicMessageProtocol {

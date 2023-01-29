@@ -155,7 +155,8 @@ class DidDocumentService: NessusBaseService() {
             return cryptoService.verify(keyId, signature, data)
         }
 
-        check(verifyWith(signatoryDid)) { "Did Document signature verification failed with: $signatoryDid" }
+        check(verifyWith(signatoryDid))
+            { "Did Document signature verification failed with: ${signatoryDid.qualified}, verkey=${signatoryDid.verkey}" }
 
         return RFC0023DidDocumentAttachment(didDocument, signatoryDid)
     }
