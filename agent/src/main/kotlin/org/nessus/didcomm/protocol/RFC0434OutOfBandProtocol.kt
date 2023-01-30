@@ -44,8 +44,8 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
         val RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION = "${RFC0434_OUT_OF_BAND.uri}/invitation"
     }
 
-    fun createOutOfBandInvitation(inviter: Wallet, goalCode: String): RFC0434OutOfBandProtocol {
-        return createOutOfBandInvitation(inviter, mapOf("goalCode" to goalCode))
+    fun createOutOfBandInvitation(inviter: Wallet, label: String): RFC0434OutOfBandProtocol {
+        return createOutOfBandInvitation(inviter, mapOf("label" to label))
     }
 
     /**
@@ -71,10 +71,6 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
         // Associate this invitation & recipient Did with the inviter wallet
         val walletModel = inviter.toWalletModel()
         walletModel.addInvitation(invitation)
-
-        val invitationDid = invitation.recipientDidKey()
-        if (!walletModel.hasDid(invitationDid.verkey))
-            walletModel.addDid(invitationDid)
 
         mex.putAttachment(WALLET_ATTACHMENT_KEY, inviter)
 
@@ -133,21 +129,30 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
         val invitationRecord = inviterClient.outOfBandCreateInvitation(createInvRequest, createInvFilter).get()
         val invitationJson = gson.toJson(invitationRecord.invitation)
         val invitation = Invitation.fromJson(invitationJson)
+        val invitationDid = invitation.recipientDidKey()
         val invitationKey = invitation.invitationKey()
 
+        // Register the Invitation did:key with the KeyStore
+        val walletModel = inviter.toWalletModel()
+        didService.registerWithKeyStore(invitationDid)
+        walletModel.addDid(invitationDid)
+
+        // Fetch the AcaPy ConnectionRecord
         val filter = ConnectionFilter.builder().invitationKey(invitationKey).build()
         val conRecord = inviterClient.connections(filter).get().firstOrNull()
         checkNotNull(conRecord) { "No connection record" }
+
+        val myEndpointUrl = inviter.endpointUrl
 
         // Create and attach the Connection
         val pcon = Connection(
             id = conRecord.connectionId,
             agent = inviter.agentType,
-            invitationKey = invitation.invitationKey(),
-            myDid = null,
+            invitationKey = invitationKey,
+            myDid = invitationDid,
             myRole = ConnectionRole.INVITER,
-            myLabel = invitation.label,
-            myEndpointUrl = inviter.endpointUrl,
+            myLabel = label,
+            myEndpointUrl = myEndpointUrl,
             theirDid = null,
             theirRole = ConnectionRole.INVITEE,
             theirLabel = null,
@@ -163,7 +168,7 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
 
     private fun createOutOfBandInvitationNessus(inviter: Wallet, label: String, options: Map<String, Any>): Invitation {
 
-        val inviterDid = inviter.createDid(DidMethod.KEY)
+        val invitationDid = inviter.createDid(DidMethod.KEY)
 
         val invitation = Invitation(
             id = "${UUID.randomUUID()}",
@@ -175,21 +180,24 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
                 Invitation.Service(
                     id = "#inline",
                     type = "did-communication",
-                    recipientKeys = listOf(inviterDid.qualified),
+                    recipientKeys = listOf(invitationDid.qualified),
                     serviceEndpoint = inviter.endpointUrl
                 )
             )
         )
 
+        val myEndpointUrl = inviter.endpointUrl
+        val invitationKey = invitation.invitationKey()
+
         // Create and attach the Connection
         val pcon = Connection(
             id = "${UUID.randomUUID()}",
             agent = inviter.agentType,
-            invitationKey = invitation.invitationKey(),
-            myDid = inviterDid,
+            invitationKey = invitationKey,
+            myDid = invitationDid,
             myRole = ConnectionRole.INVITER,
             myLabel = label,
-            myEndpointUrl = inviter.endpointUrl,
+            myEndpointUrl = myEndpointUrl,
             theirDid = null,
             theirRole = ConnectionRole.INVITEE,
             theirLabel = null,
@@ -246,15 +254,19 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
         val inviteeClient = invitee.walletClient() as AriesClient
         val conRecord = inviteeClient.outOfBandReceiveInvitation(invitationMessage, receiveInvFilter).get()
 
+        val myLabel = "Invitee ${invitee.name} on ${invitee.agentType}"
+        val myEndpointUrl = invitee.endpointUrl
+        val invitationKey = invitation.invitationKey()
+
         // Create and attach the Connection
         val pcon = Connection(
             id = conRecord.connectionId,
             agent = invitee.agentType,
-            invitationKey = invitation.invitationKey(),
+            invitationKey = invitationKey,
             myDid = null,
             myRole = ConnectionRole.INVITEE,
-            myLabel = invitation.label,
-            myEndpointUrl = invitee.endpointUrl,
+            myLabel = myLabel,
+            myEndpointUrl = myEndpointUrl,
             theirDid = null,
             theirRole = ConnectionRole.INVITER,
             theirLabel = null,
@@ -283,18 +295,23 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
             MESSAGE_TYPE to invitation.type,
         )))
 
+        val myDid = invitee.createDid(DidMethod.SOV)
+        val myLabel = "Invitee ${invitee.name} on ${invitee.agentType}"
+        val myEndpointUrl = invitee.endpointUrl
+        val invitationKey = invitation.invitationKey()
+
         // Create and attach the Connection
         val pcon = Connection(
             id = "${UUID.randomUUID()}",
             agent = invitee.agentType,
-            invitationKey = invitation.invitationKey(),
-            myDid = invitee.createDid(DidMethod.SOV),
+            invitationKey = invitationKey,
+            myDid = myDid,
             myRole = ConnectionRole.INVITEE,
-            myLabel = invitation.label,
-            myEndpointUrl = invitee.endpointUrl,
+            myLabel = myLabel,
+            myEndpointUrl = myEndpointUrl,
             theirDid = null,
             theirRole = ConnectionRole.INVITER,
-            theirLabel = null,
+            theirLabel = invitation.label,
             theirEndpointUrl = null,
             state = ConnectionState.INVITATION
         )

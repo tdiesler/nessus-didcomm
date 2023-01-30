@@ -206,6 +206,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val invitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY)
         checkNotNull(invitation) { "Cannot find invitation for: $invitationId" }
         check(invitationId == invitation.id) { "Unexpected invitation id" }
+        val invitationKey = invitation.invitationKey()
 
         /**
          * Request processing
@@ -221,7 +222,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val didDocAttachment = body.selectJson("did_doc~attach")
         checkNotNull(didDocAttachment) {"Cannot find attached did document"}
 
-        val (requesterDidDoc, signatoryDid) = diddocService.extractFromAttachment(didDocAttachment)
+        val (requesterDidDoc, signatoryDid) = diddocService.extractFromAttachment(didDocAttachment, null)
         mex.putAttachment(REQUESTER_DIDDOC_ATTACHMENT_KEY, requesterDidDoc)
 
         val theirDid = requesterDidDoc.publicKeyDid(0)
@@ -307,15 +308,17 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val didexResponse = mex.last.bodyAsJson
         log.info { "Requester (${requester.name}) received DidEx Response" }
 
+        val invitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY)
+        checkNotNull(invitation) { "No invitation attached" }
+        val invitationDid = invitation?.recipientDidKey()
+        val invitationKey = invitation.invitationKey()
+
         // Extract the Responder DIDDocument
         val didDocAttachment = didexResponse.selectJson("did_doc~attach")
         checkNotNull(didDocAttachment) { "No Did Document attachment" }
-        val (responderDidDoc, signatoryDid) = diddocService.extractFromAttachment(didDocAttachment)
+        val (responderDidDoc, signatoryDid) = diddocService.extractFromAttachment(didDocAttachment, invitationKey)
         mex.putAttachment(RESPONDER_DIDDOC_ATTACHMENT_KEY, responderDidDoc)
 
-        val invitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY)
-        val invitationDid = invitation?.recipientDidKey()
-        checkNotNull(invitation) { "No invitation attached" }
         check(invitationId == invitation.id) { "Unexpected invitation id" }
         check(signatoryDid == invitationDid) { "Signatory Did does not match Invitation Did" }
 

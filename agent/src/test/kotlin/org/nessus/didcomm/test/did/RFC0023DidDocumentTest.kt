@@ -26,12 +26,7 @@ import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.service.RFC0023DidDocument
 import org.nessus.didcomm.test.AbstractDidCommTest
-import org.nessus.didcomm.util.decodeBase64Url
-import org.nessus.didcomm.util.decodeBase64UrlStr
-import org.nessus.didcomm.util.decodeHex
-import org.nessus.didcomm.util.gson
-import org.nessus.didcomm.util.selectJson
-import org.nessus.didcomm.util.trimJson
+import org.nessus.didcomm.util.*
 import org.nessus.didcomm.wallet.DidMethod
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -43,7 +38,7 @@ class RFC0023DidDocumentTest: AbstractDidCommTest() {
     fun diddoc_attach_parse_verify() {
 
         // did_doc~attach
-        val attachment = """
+        val didDocAttachment = """
         {
             "@id": "9b88f208-6570-4374-b023-d0493ae96693",
             "data": {
@@ -60,7 +55,7 @@ class RFC0023DidDocumentTest: AbstractDidCommTest() {
           }
           """.trimJson()
 
-        val didDocument64 = attachment.selectJson("data.base64") as String
+        val didDocument64 = didDocAttachment.selectJson("data.base64") as String
         val didDocument = didDocument64.decodeBase64UrlStr() // Contains json whitespace
         log.info { "Did Document: ${didDocument.prettyPrint()}" }
 
@@ -110,7 +105,7 @@ class RFC0023DidDocumentTest: AbstractDidCommTest() {
         assertEquals("did:sov:DD3druQ4tFQHZjcwgn3KSc", didSov.qualified)
         assertEquals("7euiJpCar5AZMoXGspdSBhJBKzj8QZM5U3QSSSh8LAA5", didSov.verkey)
 
-        val protected64 = attachment.selectJson("data.jws.protected") as String
+        val protected64 = didDocAttachment.selectJson("data.jws.protected") as String
         val protected = protected64.decodeBase64UrlStr() // Contains json whitespace
         log.info { "Protected: ${protected.prettyPrint()}" }
 
@@ -133,7 +128,7 @@ class RFC0023DidDocumentTest: AbstractDidCommTest() {
         assertEquals(didSov.verkey, didKey.verkey)
 
         // Verify the Jws signature
-        val signature64 = attachment.selectJson("data.jws.signature") as String
+        val signature64 = didDocAttachment.selectJson("data.jws.signature") as String
         val signature = signature64.decodeBase64Url()
         val data = "$protected64.$didDocument64".toByteArray()
         assertTrue(cryptoService.verify(keyId, signature, data))
@@ -141,7 +136,7 @@ class RFC0023DidDocumentTest: AbstractDidCommTest() {
         // -------------------------------------------------------------------------------------------
         // Do all of the above in one API call
 
-        val (extractedDocument, signatoryDid) = didDocumentService.extractFromAttachment(attachment)
+        val (extractedDocument, _) = didDocumentService.extractFromAttachment(didDocAttachment, didSov.verkey)
         assertEquals(expDidDocument, gson.toJson(extractedDocument))
     }
 
@@ -157,11 +152,11 @@ class RFC0023DidDocumentTest: AbstractDidCommTest() {
         log.info { "Did Document: ${didDocumentJson.prettyPrint()}" }
 
         val attachmentJson = didDocumentService.createAttachment(didDocument, didSov)
-        val attachment = gson.toJson(attachmentJson)
+        val didDocAttachment = gson.toJson(attachmentJson)
 
-        log.info { "Attachment: ${attachment.prettyPrint()}" }
+        log.info { "Attachment: ${didDocAttachment.prettyPrint()}" }
 
-        val (extractedDocument, signatoryDid) = didDocumentService.extractFromAttachment(attachment)
+        val (extractedDocument, _) = didDocumentService.extractFromAttachment(didDocAttachment, didSov.verkey)
         assertEquals(didDocumentJson, gson.toJson(extractedDocument))
     }
 }

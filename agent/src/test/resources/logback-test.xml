@@ -5,6 +5,9 @@
         <encoder>
             <pattern>%date %level [%thread] %logger{10} [%file:%line] -%kvp- %msg%n</pattern>
         </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
         <append>FALSE</append>
     </appender>
 

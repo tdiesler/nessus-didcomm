@@ -78,7 +78,9 @@ class RFC0019EnvelopeTest: AbstractDidCommTest() {
         assertEquals(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST, message.selectJson("@type"))
         assertEquals(aliceDidSov.verkey, recipientVerkey)
 
-        val (didDocument, signatoryDid) = didDocumentService.extractFromAttachment(message.selectJson("did_doc~attach") as String)
+
+        val didDocAttachment = message.selectJson("did_doc~attach") as String
+        val (didDocument, _) = didDocumentService.extractFromAttachment(didDocAttachment, null)
         val diddocAttach = didDocumentService.createAttachment(didDocument, aliceDidSov) // This should be Faber's Did, but we don't have the secret
 
         val didRequest = """

@@ -3,19 +3,13 @@ package org.nessus.didcomm.service
 import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 import id.walt.common.prettyPrint
-import id.walt.crypto.KeyId
 import id.walt.servicematrix.ServiceProvider
 import id.walt.services.crypto.CryptoService
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.util.decodeBase64Url
-import org.nessus.didcomm.util.decodeBase64UrlStr
-import org.nessus.didcomm.util.encodeBase64Url
-import org.nessus.didcomm.util.gson
-import org.nessus.didcomm.util.selectJson
-import org.nessus.didcomm.util.trimJson
+import org.nessus.didcomm.util.*
 import java.util.*
 
 
@@ -120,7 +114,7 @@ class DidDocumentService: NessusBaseService() {
         return gson.fromJson(template, JsonObject::class.java)!!
     }
 
-    fun extractFromAttachment(attachment: String): RFC0023DidDocumentAttachment {
+    fun extractFromAttachment(attachment: String, verkey: String?): RFC0023DidDocumentAttachment {
 
         val didDocument64 = attachment.selectJson("data.base64")
         val jwsProtected64 = attachment.selectJson("data.jws.protected")
@@ -133,7 +127,6 @@ class DidDocumentService: NessusBaseService() {
 
         val diddocJson = didDocument64.decodeBase64UrlStr() // Contains json whitespace
         val didDocument = gson.fromJson(diddocJson, RFC0023DidDocument::class.java)
-        val signatoryDid = Did.fromSpec(jwsHeaderKid)
 
         val signature = jwsSignature64.decodeBase64Url()
         val data = "$jwsProtected64.$didDocument64".toByteArray()
@@ -146,17 +139,28 @@ class DidDocumentService: NessusBaseService() {
             check(recipientKeys.contains(it.publicKeyBase58))
         }
 
-        fun verifyWith(did: Did): Boolean {
-            val keyId = if (keyStore.getKeyId(did.verkey) != null) {
-                KeyId(keyStore.getKeyId(did.verkey)!!)
-            } else {
-                didService.registerWithKeyStore(did)
-            }
-            return cryptoService.verify(keyId, signature, data)
-        }
+        val jwsHeaderDid = Did.fromSpec(jwsHeaderKid)
+        val publicKeyDid = didDocument.publicKeyDid()
 
-        check(verifyWith(signatoryDid))
-            { "Did Document signature verification failed with: ${signatoryDid.qualified}, verkey=${signatoryDid.verkey}" }
+        val signatoryDid = if (verkey != null) {
+            val key = keyStore.load(verkey, KeyType.PUBLIC)
+            check(cryptoService.verify(key.keyId, signature, data)) { "Did Document signature verification failed with: $verkey" }
+            key.toDidKey()
+        } else {
+            // The JWS header.kid is expected to be the did:key
+            // representation of the DidDocument's public key
+            check(jwsHeaderDid.verkey == publicKeyDid.verkey) { "Verkey mismatch" }
+
+            // The signatoryDid is already registered when the DidEx Request
+            // received here was also created by this agent instance
+            if (keyStore.getKeyId(jwsHeaderDid.verkey) == null) {
+                didService.registerWithKeyStore(jwsHeaderDid)
+            }
+
+            val keyId = keyStore.load(jwsHeaderDid.verkey, KeyType.PUBLIC).keyId
+            check(cryptoService.verify(keyId, signature, data)) { "Did Document signature verification failed with: ${jwsHeaderDid.qualified}" }
+            jwsHeaderDid
+        }
 
         return RFC0023DidDocumentAttachment(didDocument, signatoryDid)
     }
