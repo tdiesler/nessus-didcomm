@@ -52,7 +52,7 @@ enum class AgentType(val value: String) {
     @SerializedName("Nessus")
     NESSUS("Nessus");
     companion object {
-        fun fromValue(value: String) = DidMethod.valueOf(value.uppercase())
+        fun fromValue(value: String) = AgentType.valueOf(value.uppercase())
     }
 }
 
@@ -60,7 +60,7 @@ enum class StorageType(val value: String) {
     IN_MEMORY("in_memory"),
     INDY("indy");
     companion object {
-        fun fromValue(value: String) = DidMethod.valueOf(value.uppercase())
+        fun fromValue(value: String) = StorageType.valueOf(value.uppercase())
     }
 }
 
