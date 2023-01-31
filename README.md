@@ -1,6 +1,6 @@
 ## Nessus DIDComm
 
-Nessus DIDComm is about digital identity and VCs based on [DIDComm](https://identity.foundation/didcomm-messaging/spec/v2.0).
+Nessus DIDComm is about Digital Identity and Verifiable Credentials based on [DIDComm V2](https://identity.foundation/didcomm-messaging/spec/v2.0).
 
 [<img src="docs/img/ssi-book.png" height="200" alt="self sovereign identity">](https://www.manning.com/books/self-sovereign-identity)
 

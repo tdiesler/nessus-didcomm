@@ -20,9 +20,13 @@
 package org.nessus.didcomm.test.cli
 
 import id.walt.servicematrix.ServiceMatrix
+import mu.KotlinLogging
 import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.cli.CLIService
+import org.nessus.didcomm.cli.NessusCli
 import org.nessus.didcomm.service.DataModelService
+import picocli.CommandLine
+import picocli.CommandLine.IExecutionExceptionHandler
 
 
 abstract class AbstractCmdTest {
@@ -38,4 +42,14 @@ abstract class AbstractCmdTest {
 
     val cliService get() = CLIService.getService()
     val modelService get() = DataModelService.getService()
+
+    fun safeExecutionCommandLine(): CommandLine {
+        val cmdln = NessusCli.defaultCommandLine
+        cmdln.executionExceptionHandler = IExecutionExceptionHandler { ex, _, _ ->
+            val log = KotlinLogging.logger { }
+            log.debug { ex.message }
+            1
+        }
+        return cmdln
+    }
 }

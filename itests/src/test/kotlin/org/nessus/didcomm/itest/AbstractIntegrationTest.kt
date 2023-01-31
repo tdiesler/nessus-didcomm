@@ -29,24 +29,24 @@ import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.wallet.Wallet
 
 val ACAPY_OPTIONS_01 = mapOf(
-    "ACAPY_HOSTNAME" to System.getenv("EXTERNAL_IP"),
+    "ACAPY_HOSTNAME" to System.getenv("ACAPY_HOSTNAME"),
     "ACAPY_ADMIN_PORT" to "8031",
     "ACAPY_USER_PORT" to "8030",
 )
 
 val ACAPY_OPTIONS_02 = mapOf(
-    "ACAPY_HOSTNAME" to System.getenv("EXTERNAL_IP"),
+    "ACAPY_HOSTNAME" to System.getenv("ACAPY_HOSTNAME"),
     "ACAPY_ADMIN_PORT" to "8041",
     "ACAPY_USER_PORT" to "8040",
 )
 
 val NESSUS_OPTIONS_01 = mapOf(
-    "NESSUS_HOSTNAME" to System.getenv("EXTERNAL_IP"),
+    "NESSUS_HOSTNAME" to System.getenv("NESSUS_HOSTNAME"),
     "NESSUS_USER_PORT" to "8130",
 )
 
 val NESSUS_OPTIONS_02 = mapOf(
-    "NESSUS_HOSTNAME" to System.getenv("EXTERNAL_IP"),
+    "NESSUS_HOSTNAME" to System.getenv("NESSUS_HOSTNAME"),
     "NESSUS_USER_PORT" to "8140",
 )
 

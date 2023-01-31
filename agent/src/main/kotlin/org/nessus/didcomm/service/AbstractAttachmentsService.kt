@@ -9,7 +9,7 @@ import org.nessus.didcomm.util.Attachments
 abstract class AbstractAttachmentsService: BaseService(), Attachments {
     abstract val log: KLogger
 
-    val attachments: Attachments = AttachmentSupport()
+    private val attachments: Attachments = AttachmentSupport()
 
     override val attachmentKeys get() = attachments.attachmentKeys
 

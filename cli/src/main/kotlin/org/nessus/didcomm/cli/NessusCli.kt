@@ -1,12 +1,8 @@
 package org.nessus.didcomm.cli
 
-import org.nessus.didcomm.cli.cmd.AbstractBaseCommand
-import org.nessus.didcomm.cli.cmd.AgentCommands
-import org.nessus.didcomm.cli.cmd.RFC0434Commands
-import org.nessus.didcomm.cli.cmd.WalletCommands
+import org.nessus.didcomm.cli.cmd.*
 import picocli.CommandLine
-import picocli.CommandLine.Command
-import picocli.CommandLine.ParameterException
+import picocli.CommandLine.*
 import kotlin.system.exitProcess
 
 @Command(
@@ -14,6 +10,7 @@ import kotlin.system.exitProcess
     mixinStandardHelpOptions = true,
     subcommands = [
         AgentCommands::class,
+        RFC0023Commands::class,
         RFC0434Commands::class,
         WalletCommands::class,
         QuitCommand::class,
@@ -28,10 +25,8 @@ class NessusCli {
             NessusCli().execute("--help")
             exitProcess(NessusCli().repl())
         }
+        val defaultCommandLine get() = CommandLine(NessusCli())
     }
-
-    val cmdln
-        get() = CommandLine(NessusCli())
 
     fun repl(): Int {
         while (true) {
@@ -39,24 +34,42 @@ class NessusCli {
             val line = readln()
             if (line in listOf("q", "quit"))
                 break
-            execute(line)
+            execute(line, replCommandLine())
         }
         return 0
     }
 
     fun execute(args: String): Result<Any> {
+        return execute(args, defaultCommandLine)
+    }
+
+    fun execute(args: String, cmdln: CommandLine): Result<Any> {
         val toks = args.split(' ').toTypedArray()
-        val result = runCatching {
-            val parseResult = cmdln.parseArgs(*toks)
-            cmdln.executionStrategy.execute(parseResult)
+        val parseResult = runCatching { cmdln.parseArgs(*toks) }
+        parseResult.onFailure {
+            val ex = parseResult.exceptionOrNull() as ParameterException
+            cmdln.parameterExceptionHandler.handleParseException(ex, toks)
+            return parseResult
         }
-        result.onFailure {
-            when(val ex = result.exceptionOrNull()) {
-                is ParameterException -> { cmdln.parameterExceptionHandler.handleParseException(ex, toks)}
-                else -> ex?.run { ex.printStackTrace() }
-            }
+        val execResult = runCatching {
+            cmdln.executionStrategy.execute(parseResult.getOrNull())
         }
-        return result
+        execResult.onFailure {
+            val ex = execResult.exceptionOrNull() as ExecutionException
+            cmdln.executionExceptionHandler.handleExecutionException(ex, cmdln, parseResult.getOrNull())
+        }
+        return execResult
+    }
+
+    // A CommandLine that doesn't throw ExecutionException
+    private fun replCommandLine(): CommandLine {
+        val cmdln = defaultCommandLine
+        cmdln.executionExceptionHandler = IExecutionExceptionHandler { ex, _, _ ->
+            val exitCode = 1
+            ex.printStackTrace()
+            exitCode
+        }
+        return cmdln
     }
 }
 

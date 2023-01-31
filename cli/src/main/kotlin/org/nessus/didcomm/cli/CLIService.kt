@@ -3,6 +3,7 @@ package org.nessus.didcomm.cli
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
 import org.nessus.didcomm.service.AbstractAttachmentsService
+import picocli.CommandLine
 
 
 class CLIService: AbstractAttachmentsService() {
@@ -16,6 +17,10 @@ class CLIService: AbstractAttachmentsService() {
 
     fun execute(args: String): Result<Any> {
         return NessusCli().execute(args)
+    }
+
+    fun execute(args: String, cmdln: CommandLine): Result<Any> {
+        return NessusCli().execute(args, cmdln)
     }
 
     // Private ---------------------------------------------------------------------------------------------------------

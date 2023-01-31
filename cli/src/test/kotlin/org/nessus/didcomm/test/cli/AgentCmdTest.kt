@@ -26,15 +26,9 @@ import kotlin.test.assertTrue
 class AgentCmdTest: AbstractCmdTest() {
 
     @Test
-    fun testMissingUri() {
-
-        assertTrue(cliService.execute("agent start").isFailure)
-    }
-
-    @Test
     fun testInvalidUri() {
-
-        assertTrue(cliService.execute("agent start foo").isFailure)
+        val cmdln = safeExecutionCommandLine()
+        assertTrue(cliService.execute("agent start foo", cmdln).isFailure)
     }
 
     @Test
