@@ -77,15 +77,14 @@ object Alice {
     val didsov = "did:sov:RfoA7oboFMiFuJPEtPdvKP"
 }
 
-const val RESOURCES_PATH: String = "src/test/resources"
-
 abstract class AbstractDidCommTest {
 
     companion object {
         @BeforeAll
         @JvmStatic
         internal fun beforeAll() {
-            ServiceMatrix("$RESOURCES_PATH/service-matrix.properties")
+            val resourcesPath: String = "src/test/resources"
+            ServiceMatrix("$resourcesPath/service-matrix.properties")
         }
     }
 

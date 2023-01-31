@@ -10,7 +10,7 @@ import picocli.CommandLine.ScopeType.INHERIT
     name = "agent",
     description = ["Agent related commands"],
 )
-class AgentCommand: AbstractBaseCommand() {
+class AgentCommands: AbstractBaseCommand() {
 
     @Parameters(paramLabel = "URI", scope = INHERIT, description = ["The URI of the form [type:][host:]port"])
     var uri: String? = null

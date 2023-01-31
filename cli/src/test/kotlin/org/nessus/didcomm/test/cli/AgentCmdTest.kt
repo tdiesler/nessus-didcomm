@@ -20,22 +20,30 @@
 package org.nessus.didcomm.test.cli
 
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 
-class WalletCLITest: AbstractCLITest() {
+class AgentCmdTest: AbstractCmdTest() {
 
     @Test
-    fun testWalletCommands() {
+    fun testMissingUri() {
 
-        assertTrue(cliService.execute("wallet list").isSuccess)
-        assertEquals(2, modelService.wallets.size)
+        assertTrue(cliService.execute("agent start").isFailure)
+    }
 
-        assertTrue(cliService.execute("wallet create --name Alice --agent Nessus").isSuccess)
-        assertEquals(3, modelService.wallets.size)
+    @Test
+    fun testInvalidUri() {
 
-        assertTrue(cliService.execute("wallet remove --name Alice").isSuccess)
-        assertEquals(2, modelService.wallets.size)
+        assertTrue(cliService.execute("agent start foo").isFailure)
+    }
+
+    @Test
+    fun testValidUri() {
+
+        assertTrue(cliService.execute("agent start 0.0.0.0:8130").isSuccess)
+
+        Thread.sleep(500)
+
+        assertTrue(cliService.execute("agent stop 0.0.0.0:8130").isSuccess)
     }
 }

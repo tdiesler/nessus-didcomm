@@ -36,8 +36,6 @@ class MessageExchange(): AttachmentSupport() {
     companion object {
         val INVITATION_ATTACHMENT_KEY = AttachmentKey(Invitation::class.java)
         val CONNECTION_ATTACHMENT_KEY = AttachmentKey(Connection::class.java)
-        val DEPRECATED_RESPONDER_CONNECTION_ATTACHMENT_KEY = AttachmentKey("ResponderConnection", Connection::class.java)
-        val DEPRECATED_REQUESTER_WALLET_ATTACHMENT_KEY = AttachmentKey("RequesterWallet", Wallet::class.java)
         val REQUESTER_DIDDOC_ATTACHMENT_KEY = AttachmentKey("RequesterDidDoc", RFC0023DidDocument::class.java)
         val RESPONDER_DIDDOC_ATTACHMENT_KEY = AttachmentKey("ResponderDidDoc", RFC0023DidDocument::class.java)
         val WALLET_ATTACHMENT_KEY = AttachmentKey(Wallet::class.java)
@@ -143,6 +141,11 @@ class MessageExchange(): AttachmentSupport() {
     fun <T: Protocol<T>> withProtocol(key: ProtocolKey<T>): T {
         val protocolService = ProtocolService.getService()
         return protocolService.getProtocol(key, this)
+    }
+
+    fun <T: Any> withAttachment(key: AttachmentKey<T>, value: T): MessageExchange {
+        putAttachment(key, value)
+        return this
     }
 
     fun showMessages(name: String) {

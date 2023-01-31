@@ -10,14 +10,13 @@ import java.util.concurrent.Callable
 @Command(
     name = "wallet",
     description = ["Wallet related commands"],
-    mixinStandardHelpOptions = true,
     subcommands = [
         WalletCreate::class,
         WalletList::class,
         WalletRemove::class,
     ]
 )
-class WalletCommand: AbstractBaseCommand()
+class WalletCommands: AbstractBaseCommand()
 
 @Command(name = "create")
 class WalletCreate: AbstractBaseCommand(), Callable<Int> {
@@ -32,7 +31,7 @@ class WalletCreate: AbstractBaseCommand(), Callable<Int> {
         val wallet = Wallet.Builder(name!!)
             .agentType(AgentType.fromValue(agent!!))
             .build().toWalletModel()
-        println("Created: ${wallet.asString()}")
+        println("Wallet created: ${wallet.asString()}")
         return 0
     }
 }
@@ -57,7 +56,7 @@ class WalletRemove: AbstractBaseCommand(), Callable<Int> {
     override fun call(): Int {
         modelService.findWalletByName(name!!)?.run {
             walletService.removeWallet(id)
-            println("Removed: ${asString()}")
+            println("Wallet removed: ${asString()}")
         }
         return 0
     }

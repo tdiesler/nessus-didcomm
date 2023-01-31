@@ -23,27 +23,20 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
 
 
-class AgentCLITest: AbstractCLITest() {
+class RFC0434CmdTest: AbstractCmdTest() {
 
     @Test
-    fun testMissingUri() {
+    fun testRFC0434Commands() {
 
-        assertTrue(cliService.execute("agent start").isFailure)
-    }
+        assertTrue(cliService.execute("wallet create --name Alice").isSuccess)
 
-    @Test
-    fun testInvalidUri() {
+        try {
 
-        assertTrue(cliService.execute("agent start foo").isFailure)
-    }
+            assertTrue(cliService.execute("rfc0434 create-invitation --inviter alice").isSuccess)
+            assertTrue(cliService.execute("rfc0434 receive-invitation --invitee faber").isSuccess)
 
-    @Test
-    fun testValidUri() {
-
-        assertTrue(cliService.execute("agent start 0.0.0.0:8130").isSuccess)
-
-        Thread.sleep(500)
-
-        assertTrue(cliService.execute("agent stop 0.0.0.0:8130").isSuccess)
+        } finally {
+            assertTrue(cliService.execute("wallet remove --name alice").isSuccess)
+        }
     }
 }

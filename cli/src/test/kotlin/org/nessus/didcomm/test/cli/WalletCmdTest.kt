@@ -19,23 +19,23 @@
  */
 package org.nessus.didcomm.test.cli
 
-import org.junit.jupiter.api.BeforeAll
-import org.nessus.didcomm.cli.CLIService
-import org.nessus.didcomm.service.DataModelService
+import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 
-const val RESOURCES_PATH: String = "src/test/resources"
+class WalletCmdTest: AbstractCmdTest() {
 
-abstract class AbstractCLITest {
+    @Test
+    fun walletCommands() {
 
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        internal fun beforeAll() {
-            // ServiceMatrix("$RESOURCES_PATH/service-matrix.properties")
-        }
+        assertTrue(cliService.execute("wallet list").isSuccess)
+        assertEquals(2, modelService.wallets.size)
+
+        assertTrue(cliService.execute("wallet create --name Alice --agent Nessus").isSuccess)
+        assertEquals(3, modelService.wallets.size)
+
+        assertTrue(cliService.execute("wallet remove --name Alice").isSuccess)
+        assertEquals(2, modelService.wallets.size)
     }
-
-    val cliService get() = CLIService.getService()
-    val modelService get() = DataModelService.getService()
 }

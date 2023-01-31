@@ -1,8 +1,9 @@
 package org.nessus.didcomm.cli
 
 import org.nessus.didcomm.cli.cmd.AbstractBaseCommand
-import org.nessus.didcomm.cli.cmd.AgentCommand
-import org.nessus.didcomm.cli.cmd.WalletCommand
+import org.nessus.didcomm.cli.cmd.AgentCommands
+import org.nessus.didcomm.cli.cmd.RFC0434Commands
+import org.nessus.didcomm.cli.cmd.WalletCommands
 import picocli.CommandLine
 import picocli.CommandLine.Command
 import picocli.CommandLine.ParameterException
@@ -12,8 +13,9 @@ import kotlin.system.exitProcess
     name = "nessus-cli", description = ["Nessus DidComm CLI"], version = ["1.0"],
     mixinStandardHelpOptions = true,
     subcommands = [
-        AgentCommand::class,
-        WalletCommand::class,
+        AgentCommands::class,
+        RFC0434Commands::class,
+        WalletCommands::class,
         QuitCommand::class,
     ],
 )
@@ -51,7 +53,7 @@ class NessusCli {
         result.onFailure {
             when(val ex = result.exceptionOrNull()) {
                 is ParameterException -> { cmdln.parameterExceptionHandler.handleParseException(ex, toks)}
-                else -> ex?.run { System.err.println(ex.message) }
+                else -> ex?.run { ex.printStackTrace() }
             }
         }
         return result

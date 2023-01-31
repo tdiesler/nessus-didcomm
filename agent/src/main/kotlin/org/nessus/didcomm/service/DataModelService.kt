@@ -56,7 +56,7 @@ class DataModelService : NessusBaseService() {
     }
 
     fun findWalletByName(name: String): WalletModel? {
-        return findWallet { it.name == name }
+        return findWallet { it.name.lowercase() == name.lowercase() }
     }
 
     fun findWalletByVerkey(verkey: String): WalletModel? {

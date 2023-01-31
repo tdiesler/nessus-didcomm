@@ -13,6 +13,7 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_ID
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_URI
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THID
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_TYPE
+import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
@@ -72,6 +73,7 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
         val walletModel = inviter.toWalletModel()
         walletModel.addInvitation(invitation)
 
+        mex.putAttachment(INVITATION_ATTACHMENT_KEY, invitation)
         mex.putAttachment(WALLET_ATTACHMENT_KEY, inviter)
 
         mex.addMessage(EndpointMessage(
@@ -87,7 +89,7 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
 
     fun receiveOutOfBandInvitation(invitee: Wallet, options: Map<String, Any> = mapOf()): RFC0434OutOfBandProtocol {
 
-        val invitation = mex.last.body as Invitation
+        val invitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY) as Invitation
         log.info { "Invitee (${invitee.name}) received Invitation: ${invitation.prettyPrint()}"}
         check(invitation.state == InvitationState.INITIAL) { "Unexpected invitation state: $invitation" }
 
