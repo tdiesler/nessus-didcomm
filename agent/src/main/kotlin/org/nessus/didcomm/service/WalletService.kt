@@ -29,7 +29,6 @@ import mu.KotlinLogging
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.toWallet
 import org.nessus.didcomm.wallet.*
 import java.nio.file.Files
@@ -83,6 +82,8 @@ class WalletService : BaseService() {
         log.info { "Done Wallet Init ".padEnd(180, '=') }
     }
 
+    val wallets get() = walletStore.wallets
+
     fun createWallet(config: WalletConfig): Wallet {
         val maybeWallet = findByName(config.name)
         val agentType = config.agentType ?: AgentType.NESSUS
@@ -108,10 +109,6 @@ class WalletService : BaseService() {
             walletStore.removeWallet(id)
         }
         return wallet
-    }
-
-    fun listWallets(): List<Wallet> {
-        return modelService.wallets.map { it.toWallet() }
     }
 
     fun getWallet(id: String): Wallet? {

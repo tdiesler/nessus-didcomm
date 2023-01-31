@@ -36,6 +36,8 @@ class WalletStoreService: NessusBaseService() {
     private val modelService get() = DataModelService.getService()
     private val walletStorage: MutableMap<String, Wallet> = mutableMapOf()
 
+    val wallets get() = walletStorage.values.toList()
+
     fun addWallet(wallet: Wallet) {
         check(getWallet(wallet.id) == null) { "Wallet already exists: ${wallet.name}" }
         walletStorage[wallet.id] = wallet

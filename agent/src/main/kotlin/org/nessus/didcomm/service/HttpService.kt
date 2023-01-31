@@ -105,7 +105,5 @@ class HttpService: NessusBaseService() {
             log.debug { "code=${res.code} message=${res.message}" }
             return res
         }
-
-        // Private -----------------------------------------------------------------------------------------------------
     }
 }

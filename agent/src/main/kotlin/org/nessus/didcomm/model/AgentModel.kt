@@ -6,7 +6,7 @@ class AgentModel {
 
     internal val walletsMap: MutableMap<String, WalletModel> = mutableMapOf()
 
-    val wallets get() = walletsMap.values
+    val wallets get() = walletsMap.values.toList()
 
     val asJson get() = gson.toJson(mapOf(
         "wallets" to wallets.sortedBy { it.name }))

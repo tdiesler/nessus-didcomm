@@ -103,6 +103,10 @@ data class WalletModel(
     fun removeInvitation(id: String) {
         getInvitation(id)?.run { invitationsInternal.remove(this) }
     }
+
+    fun asString(): String {
+        return "$name [agent=${agent.value}, url=$endpointUrl]"
+    }
 }
 
 enum class InvitationState(val value: String) {
