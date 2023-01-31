@@ -19,12 +19,12 @@
  */
 package org.nessus.didcomm.test.cli
 
-import id.walt.servicematrix.ServiceMatrix
 import mu.KotlinLogging
 import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.cli.CLIService
 import org.nessus.didcomm.cli.NessusCli
 import org.nessus.didcomm.service.DataModelService
+import org.nessus.didcomm.service.ServiceMatrixLoader
 import picocli.CommandLine
 import picocli.CommandLine.IExecutionExceptionHandler
 
@@ -35,8 +35,8 @@ abstract class AbstractCmdTest {
         @BeforeAll
         @JvmStatic
         internal fun beforeAll() {
-            val resourcesPath: String = "src/test/resources"
-            ServiceMatrix("$resourcesPath/service-matrix.properties")
+            val filePath = "etc/config/service-matrix.properties"
+            ServiceMatrixLoader.loadServiceDefinitions(filePath)
         }
     }
 

@@ -35,6 +35,7 @@
             mvn versions:display-plugin-updates
         -->
         <version-maven-assembly-plugin>3.4.2</version-maven-assembly-plugin>
+        <version-maven-exec-plugin>3.1.0</version-maven-exec-plugin>
         <version-maven-jar-plugin>3.3.0</version-maven-jar-plugin>
         <version-maven-surefire-plugin>2.22.2</version-maven-surefire-plugin>
         <version-license-maven-plugin>2.0.0</version-license-maven-plugin>
@@ -196,8 +197,38 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <source>8</source>
+                        <target>8</target>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>${version-maven-jar-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${version-maven-surefire-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>${version-maven-exec-plugin}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>${version-license-maven-plugin}</version>
+                    <configuration>
+                        <organizationName>Nessus</organizationName>
+                        <inceptionYear>2022</inceptionYear>
+                        <licenseName>apache_v2</licenseName>
+                        <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
+                        <excludes>**/org/didcommx/**</excludes>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.jetbrains.kotlin</groupId>
@@ -219,31 +250,6 @@
                             </goals>
                         </execution>
                     </executions>
-                </plugin>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>license-maven-plugin</artifactId>
-                    <version>${version-license-maven-plugin}</version>
-                    <configuration>
-                        <organizationName>Nessus</organizationName>
-                        <inceptionYear>2022</inceptionYear>
-                        <licenseName>apache_v2</licenseName>
-                        <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
-                        <excludes>**/org/didcommx/**</excludes>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <configuration>
-                        <source>8</source>
-                        <target>8</target>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>${version-maven-surefire-plugin}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

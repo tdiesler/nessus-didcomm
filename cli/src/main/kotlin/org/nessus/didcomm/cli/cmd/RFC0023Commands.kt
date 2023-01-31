@@ -43,7 +43,7 @@ class RFC0023ConnectCommand: AbstractBaseCommand(), Callable<Int> {
             .withProtocol(RFC0023_DIDEXCHANGE)
             .connect(requester)
         checkNotNull(requester.toWalletModel().getConnection(connection.id))
-        println("${requester.name} has a connection with ${responder.name} in state ${connection.state}")
+        println("${requester.name} now has a connection with ${responder.name} in state ${connection.state}")
         return 0
     }
 

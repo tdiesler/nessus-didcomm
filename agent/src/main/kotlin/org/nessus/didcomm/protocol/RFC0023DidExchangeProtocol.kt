@@ -30,9 +30,9 @@ import java.util.concurrent.TimeUnit
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange
  */
 class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExchangeProtocol>(mex) {
+    override val log = KotlinLogging.logger {}
 
     override val protocolUri = RFC0023_DIDEXCHANGE.uri
-    override val log = KotlinLogging.logger {}
 
     companion object {
         val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST = "${RFC0023_DIDEXCHANGE.uri}/request"

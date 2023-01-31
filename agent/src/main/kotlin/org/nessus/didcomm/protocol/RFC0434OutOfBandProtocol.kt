@@ -37,9 +37,9 @@ import java.util.*
  * https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
  */
 class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandProtocol>(mex) {
+    override val log = KotlinLogging.logger {}
 
     override val protocolUri = RFC0434_OUT_OF_BAND.uri
-    override val log = KotlinLogging.logger {}
 
     companion object {
         val RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION = "${RFC0434_OUT_OF_BAND.uri}/invitation"

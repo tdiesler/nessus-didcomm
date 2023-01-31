@@ -58,9 +58,10 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
 
         val basicMessageFuture = CompletableFuture<EndpointMessage>()
         val listener: MessageListener = { epm ->
-            val mex = dispatchService.invoke(epm)
-            if (mex.last.type == RFC0095_BASIC_MESSAGE_TYPE) {
-                basicMessageFuture.complete(mex.last)
+            dispatchService.invoke(epm)?.also {
+                if (it.last.type == RFC0095_BASIC_MESSAGE_TYPE) {
+                    basicMessageFuture.complete(it.last)
+                }
             }
         }
 

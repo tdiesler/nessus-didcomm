@@ -26,16 +26,10 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_UR
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
-import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE
-import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST
-import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE
-import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING
-import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE
-import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol.Companion.RFC0095_BASIC_MESSAGE_TYPE
 import org.nessus.didcomm.util.matches
 import org.nessus.didcomm.wallet.Wallet
 
-typealias MessageDispatcher = (msg: EndpointMessage) -> MessageExchange
+typealias MessageDispatcher = (msg: EndpointMessage) -> MessageExchange?
 
 /**
  * The MessageDispatchService is the entry point for all messages
@@ -50,11 +44,13 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
     }
 
     private val httpService get() = HttpService.getService()
+    private val protocolService get() = ProtocolService.getService()
+    private val walletService get() = WalletService.getService()
 
     /**
      * Entry point for all external messages sent to a wallet endpoint
      */
-    fun dispatchInbound(epm: EndpointMessage): MessageExchange {
+    fun dispatchInbound(epm: EndpointMessage): MessageExchange? {
         val contentType = epm.headers["Content-Type"] as? String
         checkNotNull(contentType) { "No 'Content-Type' header"}
         return when {
@@ -89,61 +85,43 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
     /**
      * MessageDispatcher invocation
      */
-    override fun invoke(msg: EndpointMessage): MessageExchange {
+    override fun invoke(msg: EndpointMessage): MessageExchange? {
         return dispatchInbound(msg)
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun dispatchEncryptedEnvelope(encrypted: EndpointMessage): MessageExchange {
-        val rfc0019 = RFC0019EncryptionEnvelope()
-        val unpacked = rfc0019.unpackEncryptedEnvelope(encrypted.body as String)
-        checkNotNull(unpacked) { "Unknown recipients" }
+    private fun dispatchEncryptedEnvelope(encrypted: EndpointMessage): MessageExchange? {
 
-        val (message, senderVerkey, recipientVerkey) = unpacked
+        val rfc0019 = RFC0019EncryptionEnvelope()
+        val (message, _, recipientVerkey) = rfc0019.unpackEncryptedEnvelope(encrypted.body as String) ?: run {
+                // This service may receive encrypted envelopes with key ids in `recipients.header.kid` that we have never seen.
+                // Here, we silently ignore these messages and rely on the unpack function to provide appropriate logging.
+                return null
+            }
 
         /**
          * Ok, we successfully unpacked the encrypted message.
          *
-         * We now need tho find the target Wallet and MessageExchange
+         * We now need to find the target Wallet and MessageExchange
          */
 
         val aux = EndpointMessage(message)
 
-        val walletService = WalletService.getService()
         val recipientWallet = walletService.findByVerkey(recipientVerkey)
         checkNotNull(recipientWallet) { "Cannot find recipient wallet for: $recipientVerkey" }
 
         /**
-         * Now, we dispatch mex associated with the thread to the wallet
-         * identified by the recipient key(s)
+         * Now, we dispatch to the MessageExchange associated with the recipientVerkey
          */
 
-        fun prepareMessageExchange(protocolUri: String): MessageExchange {
-            val mex = MessageExchange.findByVerkey(recipientVerkey)
-            return mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
-                .header(MESSAGE_PROTOCOL_URI, protocolUri)
-                .build())
-        }
+        val protocolKey = protocolService.getProtocolKey(aux.type as String)
+        checkNotNull(protocolKey) { "Unknown message type: ${aux.type}" }
 
-        val mex = when (aux.type) {
-
-            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST,
-            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE,
-            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE ->
-                prepareMessageExchange(RFC0023_DIDEXCHANGE.uri)
-
-            RFC0048_TRUST_PING_MESSAGE_TYPE_PING ->
-                prepareMessageExchange(RFC0048_TRUST_PING.uri)
-
-            RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE ->
-                prepareMessageExchange(RFC0048_TRUST_PING.uri)
-
-            RFC0095_BASIC_MESSAGE_TYPE ->
-                prepareMessageExchange(RFC0095_BASIC_MESSAGE.uri)
-
-            else -> throw IllegalStateException("Unknown message type: ${aux.type}")
-        }
+        val mex = MessageExchange.findByVerkey(recipientVerkey)
+        mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
+            .header(MESSAGE_PROTOCOL_URI, protocolKey.name)
+            .build())
 
         dispatchToWallet(recipientWallet, mex)
         return mex

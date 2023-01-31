@@ -15,11 +15,7 @@ class CLIService: AbstractAttachmentsService() {
         override fun getService() = implementation
     }
 
-    fun execute(args: String): Result<Any> {
-        return NessusCli().execute(args)
-    }
-
-    fun execute(args: String, cmdln: CommandLine): Result<Any> {
+    fun execute(args: String, cmdln: CommandLine? = null): Result<Any> {
         return NessusCli().execute(args, cmdln)
     }
 

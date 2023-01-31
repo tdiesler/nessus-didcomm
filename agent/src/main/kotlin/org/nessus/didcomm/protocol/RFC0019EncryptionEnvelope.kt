@@ -22,9 +22,9 @@ import org.nessus.didcomm.util.*
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0019-encryption-envelope
  */
 class RFC0019EncryptionEnvelope: Protocol<RFC0019EncryptionEnvelope>(MessageExchange()) {
+    override val log = KotlinLogging.logger {}
 
     override val protocolUri = RFC0019_ENCRYPTED_ENVELOPE.uri
-    override val log = KotlinLogging.logger {}
 
     companion object {
         val RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE = "application/didcomm-envelope-enc; charset=utf-8".toMediaType()
@@ -122,12 +122,15 @@ class RFC0019EncryptionEnvelope: Protocol<RFC0019EncryptionEnvelope>(MessageExch
 
         val recipient = recipients.firstOrNull {
             val kid = it.selectJson("header.kid") as? String
-            checkNotNull(kid) { "No 'kid' in: $it"}
-            val keyId = keyStore.getKeyId(kid)
-            if (keyId == null)
-                log.warn { "No key for alias: $kid" }
-            keyId != null
-        } ?: return null
+            checkNotNull(kid) { "No recipients.header.kid" }
+            keyStore.getKeyId(kid) != null
+        }
+
+        if (recipient == null) {
+            val kids = recipients.map { it.selectJson("header.kid") as String }
+            log.error { "None of the recipients are known: $kids" }
+            return null
+        }
 
         val recipientVerkey = recipient.selectJson("header.kid") as String
         val recipientKeyPair = keyStore.load(recipientVerkey, KeyType.PRIVATE).keyPair!!

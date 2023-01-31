@@ -21,13 +21,7 @@ package org.nessus.didcomm.service
 
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
-import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.protocol.Protocol
-import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
-import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol
-import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol
-import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol
-import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol
+import org.nessus.didcomm.protocol.*
 import org.nessus.didcomm.util.AttachmentKey
 
 val RFC0019_ENCRYPTED_ENVELOPE = ProtocolKey("https://rfc0019/application/didcomm-enc-env", RFC0019EncryptionEnvelope::class.java)
@@ -73,5 +67,9 @@ class ProtocolService : NessusBaseService() {
             RFC0434_OUT_OF_BAND -> RFC0434OutOfBandProtocol(mex)
             else -> throw IllegalStateException("Unknown protocol: $key")
         } as T
+    }
+
+    fun getProtocolKey(messageType: String): ProtocolKey<*>? {
+        return supportedProtocols.firstOrNull { messageType.startsWith(it.name) }
     }
 }

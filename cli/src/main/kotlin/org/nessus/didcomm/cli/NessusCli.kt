@@ -1,6 +1,7 @@
 package org.nessus.didcomm.cli
 
 import org.nessus.didcomm.cli.cmd.*
+import org.nessus.didcomm.service.ServiceMatrixLoader
 import picocli.CommandLine
 import picocli.CommandLine.*
 import kotlin.system.exitProcess
@@ -22,6 +23,7 @@ class NessusCli {
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
+            ServiceMatrixLoader.loadServiceDefinitions()
             NessusCli().execute("--help")
             exitProcess(NessusCli().repl())
         }
@@ -39,11 +41,8 @@ class NessusCli {
         return 0
     }
 
-    fun execute(args: String): Result<Any> {
-        return execute(args, defaultCommandLine)
-    }
-
-    fun execute(args: String, cmdln: CommandLine): Result<Any> {
+    fun execute(args: String, cmdLine: CommandLine? = null): Result<Any> {
+        val cmdln = cmdLine ?: defaultCommandLine
         val toks = args.split(' ').toTypedArray()
         val parseResult = runCatching { cmdln.parseArgs(*toks) }
         parseResult.onFailure {

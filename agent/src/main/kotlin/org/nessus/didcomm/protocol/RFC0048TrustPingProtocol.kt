@@ -20,9 +20,9 @@ import java.util.*
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0048-trust-ping
  */
 class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingProtocol>(mex) {
+    override val log = KotlinLogging.logger {}
 
     override val protocolUri = RFC0048_TRUST_PING.uri
-    override val log = KotlinLogging.logger {}
 
     companion object {
         val RFC0048_TRUST_PING_MESSAGE_TYPE_PING = "${RFC0048_TRUST_PING.uri}/ping"

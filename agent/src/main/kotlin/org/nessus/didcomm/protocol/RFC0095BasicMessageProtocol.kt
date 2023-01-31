@@ -19,9 +19,9 @@ import java.util.*
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0095-basic-message
  */
 class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMessageProtocol>(mex) {
+    override val log = KotlinLogging.logger {}
 
     override val protocolUri = RFC0095_BASIC_MESSAGE.uri
-    override val log = KotlinLogging.logger {}
 
     companion object {
         val RFC0095_BASIC_MESSAGE_TYPE = "${RFC0095_BASIC_MESSAGE.uri}/message"
