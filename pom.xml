@@ -227,7 +227,7 @@
                         <inceptionYear>2022</inceptionYear>
                         <licenseName>apache_v2</licenseName>
                         <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
-                        <excludes>**/org/didcommx/**</excludes>
+                        <excludes>**/org/didcommx/**,**/ed25519-x25519.json,**/logback-test.xml</excludes>
                     </configuration>
                 </plugin>
                 <plugin>
