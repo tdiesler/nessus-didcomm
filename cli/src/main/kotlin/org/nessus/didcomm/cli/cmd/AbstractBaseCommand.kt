@@ -23,6 +23,9 @@ import org.nessus.didcomm.cli.CLIService
 import org.nessus.didcomm.service.CamelEndpointService
 import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.service.WalletService
+import org.nessus.didcomm.wallet.AgentType
+import org.nessus.didcomm.wallet.Wallet
+import java.net.URL
 
 abstract class AbstractBaseCommand {
 
@@ -30,4 +33,26 @@ abstract class AbstractBaseCommand {
     val endpointService get() = CamelEndpointService.getService()
     val modelService get() = DataModelService.getService()
     val walletService get() = WalletService.getService()
+
+
+    fun checkWalletEndpoint(vararg wallets: Wallet) {
+        wallets.forEach {
+            when (it.agentType) {
+                AgentType.ACAPY -> {
+                    // Assume that AcaPy is running
+                }
+                AgentType.NESSUS -> {
+                    val url = URL(it.endpointUrl)
+                    val eps = AgentCommands.EndpointSpec("", url.host, url.port)
+                    check(cliService.attachmentKeys.any {
+                        val result = runCatching { AgentCommands.EndpointSpec.valueOf(it.name) }
+                        val keyHost = result.getOrNull()?.host
+                        val keyPort = result.getOrNull()?.port
+                        // [TODO] verify endpoint type/host
+                        result.isSuccess && eps.port == keyPort
+                    }) { "No running endpoint for: ${it.endpointUrl}"}
+                }
+            }
+        }
+    }
 }

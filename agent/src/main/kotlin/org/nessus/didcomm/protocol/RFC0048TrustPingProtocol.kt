@@ -26,6 +26,7 @@ import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.toWallet
+import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.service.RFC0048_TRUST_PING
 import org.nessus.didcomm.util.gson
@@ -51,18 +52,21 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
     override fun invokeMethod(to: Wallet, messageType: String): Boolean {
         when (messageType) {
             RFC0048_TRUST_PING_MESSAGE_TYPE_PING -> receiveTrustPing(to)
-            RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE -> receiveTrustPingResponse(to)
+            RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE -> receiveTrustPingResponse()
             else -> throw IllegalStateException("Unsupported message type: $messageType")
         }
         return true
     }
 
-    fun sendTrustPing(pcon: Connection): RFC0048TrustPingProtocol {
+    fun sendTrustPing(connection: Connection? = null): RFC0048TrustPingProtocol {
+
+        val pcon = connection ?: mex.getAttachment(CONNECTION_ATTACHMENT_KEY)
+        checkNotNull(pcon) { "No connection" }
 
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)?.toWallet()
         checkNotNull(sender) { "No sender wallet" }
 
-        // Use my previous MessageExchange
+        // Use the Connection's MessageExchange
         val myMex = MessageExchange.findByVerkey(pcon.myVerkey)
         val rfc0048 = myMex.withProtocol(RFC0048_TRUST_PING)
 
@@ -117,9 +121,10 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
         return rfc0048
     }
 
-    fun awaitTrustPingResponse(): EndpointMessage {
+    fun awaitTrustPingResponse(): RFC0048TrustPingProtocol {
         val pcon = mex.connection
-        return mex.awaitEndpointMessage(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE, pcon.id)
+        mex.awaitEndpointMessage(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE, pcon.id)
+        return this
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
@@ -164,7 +169,7 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
         return this
     }
 
-    private fun receiveTrustPingResponse(receiver: Wallet): RFC0048TrustPingProtocol {
+    private fun receiveTrustPingResponse(): RFC0048TrustPingProtocol {
 
         val pcon = mex.connection
         pcon.state = ConnectionState.ACTIVE

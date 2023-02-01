@@ -84,7 +84,7 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
         val invitation = if (inviter.agentType == AgentType.ACAPY) {
             createOutOfBandInvitationAcapy(inviter, label, options)
         } else {
-            createOutOfBandInvitationNessus(inviter, label, options)
+            createOutOfBandInvitationNessus(inviter, label)
         }.validate()
         log.info { "Inviter (${inviter.name}) created Invitation: ${prettyGson.toJson(invitation)}" }
 
@@ -114,7 +114,7 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
 
         val rfc0434 = when(invitee.agentType) {
             AgentType.ACAPY -> receiveOutOfBandInvitationAcapy(invitee, invitation, options)
-            AgentType.NESSUS -> receiveOutOfBandInvitationNessus(invitee, invitation, options)
+            AgentType.NESSUS -> receiveOutOfBandInvitationNessus(invitee, invitation)
         }
 
         rfc0434.mex.putAttachment(WALLET_ATTACHMENT_KEY, invitee)
@@ -187,7 +187,7 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
         return invitation
     }
 
-    private fun createOutOfBandInvitationNessus(inviter: Wallet, label: String, options: Map<String, Any>): Invitation {
+    private fun createOutOfBandInvitationNessus(inviter: Wallet, label: String): Invitation {
 
         val invitationDid = inviter.createDid(DidMethod.KEY)
 
@@ -301,7 +301,7 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
         return this
     }
 
-    private fun receiveOutOfBandInvitationNessus(invitee: Wallet, invitation: Invitation, options: Map<String, Any>): RFC0434OutOfBandProtocol {
+    private fun receiveOutOfBandInvitationNessus(invitee: Wallet, invitation: Invitation): RFC0434OutOfBandProtocol {
 
         // Start a new MessageExchange
         val theirMex = MessageExchange()

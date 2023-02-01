@@ -74,14 +74,15 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                  * Responder (Faber) sends a Trust Ping Response
                  */
 
-                val aliceFaber = MessageExchange()
+                val mex = MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
                     .receiveOutOfBandInvitation(alice)
 
                     .withProtocol(RFC0023_DIDEXCHANGE)
-                    .connect(alice)
+                    .connect(alice).getMessageExchange()
 
+                val aliceFaber = mex.connection
                 val faberAlice = faber.findConnection(aliceFaber.theirVerkey)
 
                 verifyConnection(alice, aliceFaber)
@@ -121,14 +122,15 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                  * Responder (Alice) sends a Trust Ping Response
                  */
 
-                val aliceFaber = MessageExchange()
+                val mex = MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND)
                     .createOutOfBandInvitation(alice, "Alice invites Faber")
                     .receiveOutOfBandInvitation(faber)
 
                     .withProtocol(RFC0023_DIDEXCHANGE)
-                    .connect(faber)
+                    .connect(faber).getMessageExchange()
 
+                val aliceFaber = mex.connection
                 val faberAlice = faber.findConnection(aliceFaber.theirVerkey)
 
                 verifyConnection(alice, aliceFaber)
@@ -171,14 +173,15 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                  * Responder (Bob) sends a Trust Ping Response
                  */
 
-                val aliceBob = MessageExchange()
+                val mex = MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND)
                     .createOutOfBandInvitation(bob, "Bob invites Alice")
                     .receiveOutOfBandInvitation(alice)
 
                     .withProtocol(RFC0023_DIDEXCHANGE)
-                    .connect(alice)
+                    .connect(alice).getMessageExchange()
 
+                val aliceBob = mex.connection
                 val bobAlice = bob.findConnection(aliceBob.theirVerkey)
 
                 verifyConnection(alice, aliceBob)

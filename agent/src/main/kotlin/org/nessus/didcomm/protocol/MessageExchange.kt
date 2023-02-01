@@ -55,8 +55,7 @@ class MessageExchange(): AttachmentSupport() {
     companion object {
         val INVITATION_ATTACHMENT_KEY = AttachmentKey(Invitation::class.java)
         val CONNECTION_ATTACHMENT_KEY = AttachmentKey(Connection::class.java)
-        val REQUESTER_DIDDOC_ATTACHMENT_KEY = AttachmentKey("RequesterDidDoc", RFC0023DidDocument::class.java)
-        val RESPONDER_DIDDOC_ATTACHMENT_KEY = AttachmentKey("ResponderDidDoc", RFC0023DidDocument::class.java)
+        val DID_DOCUMENT_ATTACHMENT_KEY = AttachmentKey(RFC0023DidDocument::class.java)
         val WALLET_ATTACHMENT_KEY = AttachmentKey(Wallet::class.java)
 
         // [TODO] MEMORY LEAK - evict outdated messages exchanges

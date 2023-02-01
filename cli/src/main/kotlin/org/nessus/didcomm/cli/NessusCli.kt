@@ -31,6 +31,7 @@ import kotlin.system.exitProcess
     subcommands = [
         AgentCommands::class,
         RFC0023Commands::class,
+        RFC0048TrustPingCommand::class,
         RFC0434Commands::class,
         WalletCommands::class,
         QuitCommand::class,

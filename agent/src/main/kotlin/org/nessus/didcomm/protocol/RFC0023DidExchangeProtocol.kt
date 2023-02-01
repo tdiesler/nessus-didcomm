@@ -29,9 +29,8 @@ import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.protocol.MessageExchange.Companion.DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.MessageExchange.Companion.REQUESTER_DIDDOC_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.MessageExchange.Companion.RESPONDER_DIDDOC_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING
@@ -42,6 +41,7 @@ import org.nessus.didcomm.util.trimJson
 import org.nessus.didcomm.wallet.*
 import java.util.*
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 /**
@@ -71,18 +71,18 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         return true
     }
 
-    fun connect(requester: Wallet, timeout: Long = 10, unit: TimeUnit = TimeUnit.SECONDS): Connection {
+    fun connect(requester: Wallet, timeout: Long = 10, unit: TimeUnit = TimeUnit.SECONDS): RFC0023DidExchangeProtocol {
 
         val invitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY)
         checkNotNull(invitation) { "No invitation" }
 
-        val connectionFuture = CompletableFuture<Connection>()
-        connectAsync(requester, invitation, connectionFuture)
+        connectAsync(requester, invitation, CompletableFuture<Connection>())
+            .get(timeout, unit)
 
-        return connectionFuture.get(timeout, unit)
+        return this
     }
 
-    private fun connectAsync(requester: Wallet, invitation: Invitation, connectionFuture: CompletableFuture<Connection>) {
+    private fun connectAsync(requester: Wallet, invitation: Invitation, future: CompletableFuture<Connection>): Future<Connection> {
         threadFactory.newThread {
 
             when(requester.agentType) {
@@ -138,9 +138,10 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
 
             fixupTheirConnection(invitation)
 
-            connectionFuture.complete(pcon)
+            future.complete(pcon)
 
         }.start()
+        return future
     }
 
     private fun sendDidExchangeRequest(requester: Wallet, invitation: Invitation) {
@@ -170,7 +171,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
                 val myDidDoc = diddocService.createDidDocument(pcon.myDid, myEndpointUrl)
                 log.info { "Requester (${requester.name}) created: ${myDidDoc.prettyPrint()}" }
 
-                mex.putAttachment(REQUESTER_DIDDOC_ATTACHMENT_KEY, myDidDoc)
+                mex.putAttachment(DID_DOCUMENT_ATTACHMENT_KEY, myDidDoc)
 
                 val didexReqId = "${UUID.randomUUID()}"
                 val requesterDidDocAttach = diddocService.createAttachment(myDidDoc, pcon.myDid)
@@ -248,7 +249,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val (requesterDidDoc, _) = diddocService.extractFromAttachment(didDocAttachment, null)
         val docdidVerkey = requesterDidDoc.publicKeyDid().verkey
         check(senderVerkey == docdidVerkey) { "Did in Document does not match with senderVerkey: $senderVerkey != $docdidVerkey" }
-        mex.putAttachment(REQUESTER_DIDDOC_ATTACHMENT_KEY, requesterDidDoc)
+        mex.putAttachment(DID_DOCUMENT_ATTACHMENT_KEY, requesterDidDoc)
 
         val theirDid = requesterDidDoc.publicKeyDid(0)
         val theirEndpointUrl = requesterDidDoc.serviceEndpoint(0)
@@ -282,7 +283,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val invitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY)
         checkNotNull(invitation) { "No invitation" }
 
-        val requesterDidDoc = mex.getAttachment(REQUESTER_DIDDOC_ATTACHMENT_KEY)
+        val requesterDidDoc = mex.getAttachment(DID_DOCUMENT_ATTACHMENT_KEY)
         checkNotNull(requesterDidDoc) { "No requester Did Document" }
 
         val theirEndpointUrl = requesterDidDoc.serviceEndpoint()
@@ -353,7 +354,6 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         check(invitationId == invitation.id) { "Unexpected invitation id" }
         check(signatoryDid == invitationDid) { "Signatory Did does not match Invitation Did" }
         check(senderVerkey == docdidVerkey) { "Did in Document does not match with senderVerkey: $senderVerkey != $docdidVerkey" }
-        mex.putAttachment(RESPONDER_DIDDOC_ATTACHMENT_KEY, responderDidDoc)
 
         // Update the Connection with their information
         val theirDid = responderDidDoc.publicKeyDid()

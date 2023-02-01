@@ -122,7 +122,7 @@ class LibIndyTest: AbstractDidCommTest() {
             log.info { "Faber Did: ${faberDid.qualified}" }
 
             log.info("Create wallet - Alice")
-            val alice = org.nessus.didcomm.wallet.Wallet.Builder(Alice.name)
+            org.nessus.didcomm.wallet.Wallet.Builder(Alice.name)
                 .options(NESSUS_OPTIONS_01)
                 .agentType(AgentType.NESSUS)
                 .storageType(StorageType.IN_MEMORY)
@@ -155,7 +155,7 @@ class LibIndyTest: AbstractDidCommTest() {
             log.info { "Faber Did: ${faberDid.qualified}" }
 
             log.info("Create wallet - Alice")
-            val alice = org.nessus.didcomm.wallet.Wallet.Builder(Alice.name)
+            org.nessus.didcomm.wallet.Wallet.Builder(Alice.name)
                 .options(NESSUS_OPTIONS_01)
                 .agentType(AgentType.NESSUS)
                 .storageType(StorageType.IN_MEMORY)

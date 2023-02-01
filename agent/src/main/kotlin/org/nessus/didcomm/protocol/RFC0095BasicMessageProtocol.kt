@@ -48,7 +48,7 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
 
     override fun invokeMethod(to: Wallet, messageType: String): Boolean {
         when (messageType) {
-            RFC0095_BASIC_MESSAGE_TYPE -> receiveMessage(to)
+            RFC0095_BASIC_MESSAGE_TYPE -> receiveMessage()
             else -> throw IllegalStateException("Unsupported message type: $messageType")
         }
         return true
@@ -63,7 +63,7 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
 
         val rfc0095 = when(sender.agentType) {
             AgentType.ACAPY -> sendMessageAcapy(sender, pcon, message)
-            AgentType.NESSUS -> sendMessageNessus(sender, pcon, message)
+            AgentType.NESSUS -> sendMessageNessus(pcon, message)
         }
 
         return rfc0095
@@ -95,7 +95,7 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
         return rfc0095
     }
 
-    private fun sendMessageNessus(sender: Wallet, pcon: Connection, message: String): RFC0095BasicMessageProtocol {
+    private fun sendMessageNessus(pcon: Connection, message: String): RFC0095BasicMessageProtocol {
 
         // Use my previous MessageExchange
         val myMex = MessageExchange.findByVerkey(pcon.myVerkey)
@@ -124,7 +124,7 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
         return rfc0095
     }
 
-    private fun receiveMessage(receiver: Wallet): RFC0095BasicMessageProtocol {
+    private fun receiveMessage(): RFC0095BasicMessageProtocol {
 
         val bodyJson = mex.last.bodyAsJson
         log.info { "Received basic message: ${bodyJson.prettyPrint()}" }

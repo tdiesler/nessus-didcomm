@@ -19,12 +19,7 @@
  */
 package org.nessus.didcomm.test.did
 
-import id.walt.crypto.KeyAlgorithm
-import id.walt.crypto.buildEd25519PubKey
-import id.walt.crypto.convertRawKeyToMultiBase58Btc
-import id.walt.crypto.decodeBase58
-import id.walt.crypto.encBase64
-import id.walt.crypto.getMulticodecKeyCode
+import id.walt.crypto.*
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import mu.KotlinLogging
@@ -95,7 +90,7 @@ class DidServiceTest: AbstractDidCommTest() {
         val prvKey = key.keyPair?.private
         val pubkeyBytes = pubKey?.encoded
         val prvkeyBytes = prvKey?.encoded
-        val verkey58 = faberKey.verkey as String
+        val verkey58 = faberKey.verkey
         val verkeyBytes = verkey58.decodeBase58()
         log.info { faberKey.qualified }
         log.info { "seed:      ${Faber.seed}" }

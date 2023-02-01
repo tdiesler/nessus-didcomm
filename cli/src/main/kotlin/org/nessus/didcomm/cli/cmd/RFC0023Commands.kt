@@ -19,16 +19,15 @@
  */
 package org.nessus.didcomm.cli.cmd
 
-import org.nessus.didcomm.cli.cmd.AgentCommands.EndpointSpec
+import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.protocol.MessageExchange
+import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
+import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
-import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.toWalletModel
 import picocli.CommandLine.Command
 import picocli.CommandLine.Parameters
-import java.net.URL
 import java.util.concurrent.Callable
 
 @Command(
@@ -55,33 +54,20 @@ class RFC0023ConnectCommand: AbstractBaseCommand(), Callable<Int> {
         checkNotNull(requester) { "No wallet for name: $requesterName" }
         checkNotNull(responder) { "No wallet for name: $responderName" }
         checkWalletEndpoint(requester)
-        val connection = MessageExchange()
+        val mex = MessageExchange()
             .withProtocol(RFC0434_OUT_OF_BAND)
             .createOutOfBandInvitation(responder)
             .receiveOutOfBandInvitation(requester)
             .withProtocol(RFC0023_DIDEXCHANGE)
             .connect(requester)
-        checkNotNull(requester.toWalletModel().getConnection(connection.id))
-        println("${requester.name} now has a connection with ${responder.name} in state ${connection.state}")
+            .getMessageExchange()
+        val invitation = mex.invitation as Invitation
+        val pcon = mex.connection
+        checkNotNull(requester.toWalletModel().getInvitation(invitation.id))
+        checkNotNull(requester.toWalletModel().getConnection(pcon.id))
+        cliService.putAttachment(INVITATION_ATTACHMENT_KEY, invitation)
+        cliService.putAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
+        println("${requester.name} now has a connection with ${responder.name} in state ${pcon.state}")
         return 0
-    }
-
-    private fun checkWalletEndpoint(wallet: Wallet) {
-        when (wallet.agentType) {
-            AgentType.ACAPY -> {
-                // Assume that AcaPy is running
-            }
-            AgentType.NESSUS -> {
-                val url = URL(wallet.endpointUrl)
-                val eps = EndpointSpec("", url.host, url.port)
-                check(cliService.attachmentKeys.any {
-                    val result = runCatching { EndpointSpec.valueOf(it.name) }
-                    val keyHost = result.getOrNull()?.host
-                    val keyPort = result.getOrNull()?.port
-                    // [TODO] verify endpoint type/host
-                    result.isSuccess && eps.port == keyPort
-                }) { "No running endpoint for: ${wallet.endpointUrl}"}
-            }
-        }
     }
 }

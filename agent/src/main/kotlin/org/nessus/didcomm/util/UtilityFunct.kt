@@ -21,7 +21,7 @@ package org.nessus.didcomm.util
 
 
 // A mutable holder of a nullable type
-data class Holder<T>(var obj: T?)
+// data class Holder<T>(var obj: T?)
 
 /***********************************************************************************************************************
  * Map
@@ -54,10 +54,11 @@ fun Map<String, Any?>.toDeeplySortedMap(): Map<String, Any?> {
     }
     // sort '@' -> '~' ...
     val comparator: Comparator<String> = Comparator { o1, o2 -> run {
-            if (o1 == o2) 0
-            if (o1.startsWith('~')) "@$o1".compareTo(o2)
-            else if (o2.startsWith('~')) o1.compareTo("@$o2")
-            else o1.compareTo(o2)
+            if (o1 != o2) {
+                if (o1.startsWith('~')) "@$o1".compareTo(o2)
+                else if (o2.startsWith('~')) o1.compareTo("@$o2")
+                else o1.compareTo(o2)
+            } else 0
         }
     }
 

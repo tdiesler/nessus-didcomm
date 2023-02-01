@@ -35,11 +35,11 @@ import java.util.concurrent.locks.ReentrantLock
  * An abstract WebSocketListener that gives access to the current state of the connection
  * as well as the stream of events seen by this listener.
  *
- * By default, incomming events are simply logged and there is no event recording. An extension
+ * By default, incoming events are simply logged and there is no event recording. An extension
  * of this WebSocketListener would implement the various `handleFoo` methods and process events
  * as needed by the application.
  *
- * This class can also start/stop recording of incomming events by event type.
+ * This class can also start/stop recording of incoming events by event type.
  * These recorded events can later be retrieved by the application.
  *
  * Note, there is currently no resource limit on the volume of recorded events. This must
@@ -52,9 +52,7 @@ class WebSocketListener(val wallet: Wallet, private val eventListener: (wse: Web
         NEW, OPEN, CLOSING, CLOSED
     }
 
-    var webSocketState = WebSocketState.NEW
-        private set
-
+    private var webSocketState = WebSocketState.NEW
     private val accessLock: Lock = ReentrantLock()
 
     override fun onOpen(webSocket: WebSocket, response: Response) {
@@ -77,10 +75,10 @@ class WebSocketListener(val wallet: Wallet, private val eventListener: (wse: Web
         }
     }
 
-    override fun onFailure(webSocket: WebSocket, th: Throwable, response: Response?) {
-        val message = response?.message ?: th.message!!
+    override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+        val message = response?.message ?: t.message!!
         if ("Socket closed" != message)
-            log.error("[${wallet.name}] Failure: $message", th)
+            log.error("[${wallet.name}] Failure: $message", t)
     }
 
     override fun onMessage(webSocket: WebSocket, text: String) {
@@ -90,9 +88,9 @@ class WebSocketListener(val wallet: Wallet, private val eventListener: (wse: Web
             val payload = if (json.has("payload")) json["payload"].toString() else BaseClient.EMPTY_JSON
             val topic = json["topic"].asString
 
-            // drop ws ping messages, not to be confused with aca-py ping message
+            // Drop ws ping messages, not to be confused with aca-py ping message
             // https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.2
-            if (notWsPing(topic, payload) && isForWalletId(walletId)) {
+            if (notWsPing(topic, payload)) {
                 val event = WebSocketEvent(walletId, topic, payload)
                 if (walletId == null) {
                     log.info { "${wallet.name} Untargeted Event: $text" }
@@ -107,10 +105,6 @@ class WebSocketListener(val wallet: Wallet, private val eventListener: (wse: Web
 
     private fun notWsPing(topic: String, payload: String): Boolean {
         return !(EventType.PING.topicEquals(topic) && BaseClient.EMPTY_JSON == payload)
-    }
-
-    private fun isForWalletId(walletId: String?): Boolean {
-        return true
     }
 }
 

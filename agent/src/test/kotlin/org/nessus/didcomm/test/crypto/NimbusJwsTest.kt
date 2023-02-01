@@ -19,12 +19,7 @@
  */
 package org.nessus.didcomm.test.crypto
 
-import com.nimbusds.jose.JWSAlgorithm
-import com.nimbusds.jose.JWSHeader
-import com.nimbusds.jose.JWSObject
-import com.nimbusds.jose.JWSSigner
-import com.nimbusds.jose.JWSVerifier
-import com.nimbusds.jose.Payload
+import com.nimbusds.jose.*
 import com.nimbusds.jose.crypto.Ed25519Signer
 import com.nimbusds.jose.crypto.Ed25519Verifier
 import com.nimbusds.jose.jwk.Curve
@@ -70,7 +65,7 @@ class NimbusJwsTest: AbstractDidCommTest() {
         jwsObject.sign(signer)
 
         // Serialize the JWS to compact form
-        val s: String = jwsObject.serialize()
+        // val s: String = jwsObject.serialize()
 
         // The recipient creates a verifier with the public EdDSA key
         val verifier: JWSVerifier = Ed25519Verifier(jwk.toPublicJWK())

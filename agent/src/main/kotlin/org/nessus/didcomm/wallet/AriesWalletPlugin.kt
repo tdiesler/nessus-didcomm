@@ -106,7 +106,7 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
             val nymResponse = trusteeClient.ledgerRegisterNym(
                 RegisterNymFilter.builder()
                     .did(publicDid.id)
-                    .verkey(publicDid.verkey!!)
+                    .verkey(publicDid.verkey)
                     .role(indyLedgerRole)
                     .build()
             ).get()

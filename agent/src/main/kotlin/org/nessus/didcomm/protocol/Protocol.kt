@@ -21,7 +21,6 @@ package org.nessus.didcomm.protocol
 
 import id.walt.services.keystore.KeyStoreService
 import mu.KLogger
-import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.service.*
 import org.nessus.didcomm.util.toUnionMap
 import org.nessus.didcomm.wallet.Wallet
@@ -65,10 +64,6 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
 
         dispatchService.dispatchToWallet(target, mex)
         return this as T
-    }
-
-    fun dispatchToDid(did: Did): T {
-        TODO("dispatchToDid")
     }
 
     @Suppress("UNCHECKED_CAST")

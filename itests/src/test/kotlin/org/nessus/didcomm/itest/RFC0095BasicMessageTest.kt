@@ -68,14 +68,15 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
         try {
             endpointService.startEndpoint(alice.endpointUrl, listener).use {
 
-                val aliceFaber = MessageExchange()
+                val mex = MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
                     .receiveOutOfBandInvitation(alice)
 
                     .withProtocol(RFC0023_DIDEXCHANGE)
-                    .connect(alice)
+                    .connect(alice).getMessageExchange()
 
+                val aliceFaber = mex.connection
                 assertEquals(ACTIVE, aliceFaber.state)
 
                 val aliceMessage = "Ich habe Sauerkraut in meinen Lederhosen"

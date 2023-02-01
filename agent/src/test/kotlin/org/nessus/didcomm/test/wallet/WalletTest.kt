@@ -24,9 +24,9 @@ import id.walt.services.keystore.KeyType
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Faber
-import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.StorageType
+import org.nessus.didcomm.wallet.Wallet
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -49,7 +49,7 @@ class WalletTest: AbstractDidCommTest() {
 
         val keyStore = KeyStoreService.getService()
         assertNotNull(keyStore.load(faberDid.qualified, KeyType.PUBLIC))
-        assertNotNull(keyStore.load(faberDid.verkey!!, KeyType.PUBLIC))
+        assertNotNull(keyStore.load(faberDid.verkey, KeyType.PUBLIC))
 
         walletService.removeWallet(faber.id)
     }

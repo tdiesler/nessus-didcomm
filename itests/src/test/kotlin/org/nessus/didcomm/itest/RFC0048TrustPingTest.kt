@@ -52,14 +52,15 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
         try {
             endpointService.startEndpoint(alice.endpointUrl).use {
 
-                val aliceFaber = MessageExchange()
+                val mex = MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
                     .receiveOutOfBandInvitation(alice)
 
                     .withProtocol(RFC0023_DIDEXCHANGE)
-                    .connect(alice)
+                    .connect(alice).getMessageExchange()
 
+                val aliceFaber = mex.connection
                 assertEquals(ACTIVE, aliceFaber.state)
                 assertEquals(AgentType.NESSUS, aliceFaber.agent)
 
