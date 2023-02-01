@@ -28,10 +28,10 @@ import org.hyperledger.aries.api.out_of_band.InvitationMessage
 import org.hyperledger.aries.api.out_of_band.ReceiveInvitationFilter
 import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.model.*
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_ID
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_URI
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_THID
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_TYPE
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_ID
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_PROTOCOL_URI
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_THID
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST
@@ -97,10 +97,10 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
 
         mex.addMessage(EndpointMessage(
             invitation, mapOf(
-                MESSAGE_PROTOCOL_URI to protocolUri,
-                MESSAGE_ID to invitation.id,
-                MESSAGE_THID to invitation.id,
-                MESSAGE_TYPE to invitation.type,
+                MESSAGE_HEADER_PROTOCOL_URI to protocolUri,
+                MESSAGE_HEADER_ID to invitation.id,
+                MESSAGE_HEADER_THID to invitation.id,
+                MESSAGE_HEADER_TYPE to invitation.type,
             )
         ))
         return this
@@ -257,10 +257,10 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
         // Do this before the admin command call to avoid a race with the incoming didex request message
         theirMex.addMessage(EndpointMessage(
             invitation, mapOf(
-                MESSAGE_PROTOCOL_URI to protocolUri,
-                MESSAGE_ID to invitation.id,
-                MESSAGE_THID to invitation.id,
-                MESSAGE_TYPE to invitation.type,
+                MESSAGE_HEADER_PROTOCOL_URI to protocolUri,
+                MESSAGE_HEADER_ID to invitation.id,
+                MESSAGE_HEADER_THID to invitation.id,
+                MESSAGE_HEADER_TYPE to invitation.type,
             )
         ))
 
@@ -310,10 +310,10 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
         theirMex.putAttachment(WALLET_ATTACHMENT_KEY, invitee)
 
         theirMex.addMessage(EndpointMessage(invitation, mapOf(
-            MESSAGE_PROTOCOL_URI to protocolUri,
-            MESSAGE_ID to invitation.id,
-            MESSAGE_THID to invitation.id,
-            MESSAGE_TYPE to invitation.type,
+            MESSAGE_HEADER_PROTOCOL_URI to protocolUri,
+            MESSAGE_HEADER_ID to invitation.id,
+            MESSAGE_HEADER_THID to invitation.id,
+            MESSAGE_HEADER_TYPE to invitation.type,
         )))
 
         val myDid = invitee.createDid(DidMethod.SOV)

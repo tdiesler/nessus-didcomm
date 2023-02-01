@@ -22,7 +22,9 @@ package org.nessus.didcomm.service
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
 import org.nessus.didcomm.protocol.EndpointMessage
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_PROTOCOL_URI
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_PROTOCOL_URI
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_RECIPIENT_VERKEY
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_SENDER_VERKEY
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
@@ -94,7 +96,7 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
     private fun dispatchEncryptedEnvelope(encrypted: EndpointMessage): MessageExchange? {
 
         val rfc0019 = RFC0019EncryptionEnvelope()
-        val (message, _, recipientVerkey) = rfc0019.unpackEncryptedEnvelope(encrypted.body as String) ?: run {
+        val (message, senderVerkey, recipientVerkey) = rfc0019.unpackEncryptedEnvelope(encrypted.body as String) ?: run {
                 // This service may receive encrypted envelopes with key ids in `recipients.header.kid` that we have never seen.
                 // Here, we silently ignore these messages and rely on the unpack function to provide appropriate logging.
                 return null
@@ -106,7 +108,9 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
          * We now need to find the target Wallet and MessageExchange
          */
 
-        val aux = EndpointMessage(message)
+        val aux = EndpointMessage(message, mapOf(
+            MESSAGE_HEADER_SENDER_VERKEY to senderVerkey,
+            MESSAGE_HEADER_RECIPIENT_VERKEY to recipientVerkey))
 
         val recipientWallet = walletService.findByVerkey(recipientVerkey)
         checkNotNull(recipientWallet) { "Cannot find recipient wallet for: $recipientVerkey" }
@@ -120,7 +124,7 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
 
         val mex = MessageExchange.findByVerkey(recipientVerkey)
         mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
-            .header(MESSAGE_PROTOCOL_URI, protocolKey.name)
+            .header(MESSAGE_HEADER_PROTOCOL_URI, protocolKey.name)
             .build())
 
         dispatchToWallet(recipientWallet, mex)

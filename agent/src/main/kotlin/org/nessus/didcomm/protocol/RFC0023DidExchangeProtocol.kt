@@ -211,7 +211,12 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
 
         log.info { "Responder (${responder.name}) received DidEx Request" }
 
+        val didexRequest = mex.last
+        didexRequest.checkMessageType(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST)
+
         val invitationId = mex.last.pthid
+        val senderVerkey = didexRequest.senderVerkey
+        checkNotNull(senderVerkey) { "No sender verification key" }
         checkNotNull(invitationId) { "Must include the ID of the parent thread" }
 
         /**
@@ -225,7 +230,6 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val invitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY)
         checkNotNull(invitation) { "Cannot find invitation for: $invitationId" }
         check(invitationId == invitation.id) { "Unexpected invitation id" }
-        val invitationKey = invitation.invitationKey()
 
         /**
          * Request processing
@@ -241,7 +245,9 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val didDocAttachment = body.selectJson("did_doc~attach")
         checkNotNull(didDocAttachment) {"Cannot find attached did document"}
 
-        val (requesterDidDoc, signatoryDid) = diddocService.extractFromAttachment(didDocAttachment, null)
+        val (requesterDidDoc, _) = diddocService.extractFromAttachment(didDocAttachment, null)
+        val docdidVerkey = requesterDidDoc.publicKeyDid().verkey
+        check(senderVerkey == docdidVerkey) { "Did in Document does not match with senderVerkey: $senderVerkey != $docdidVerkey" }
         mex.putAttachment(REQUESTER_DIDDOC_ATTACHMENT_KEY, requesterDidDoc)
 
         val theirDid = requesterDidDoc.publicKeyDid(0)
@@ -323,23 +329,31 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
 
     private fun receiveDidExchangeResponse(requester: Wallet): Wallet {
 
-        val invitationId = mex.last.pthid as String
-        val didexResponse = mex.last.bodyAsJson
         log.info { "Requester (${requester.name}) received DidEx Response" }
+
+        val didexResponse = mex.last
+        didexResponse.checkMessageType(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE)
+
+        val invitationId = mex.last.pthid
+        val senderVerkey = didexResponse.senderVerkey
+        checkNotNull(senderVerkey) { "No sender verification key" }
+        checkNotNull(invitationId) { "Must include the ID of the parent thread" }
 
         val invitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY)
         checkNotNull(invitation) { "No invitation attached" }
-        val invitationDid = invitation?.recipientDidKey()
+        val invitationDid = invitation.recipientDidKey()
         val invitationKey = invitation.invitationKey()
 
         // Extract the Responder DIDDocument
-        val didDocAttachment = didexResponse.selectJson("did_doc~attach")
+        val body = mex.last.bodyAsJson
+        val didDocAttachment = body.selectJson("did_doc~attach")
         checkNotNull(didDocAttachment) { "No Did Document attachment" }
         val (responderDidDoc, signatoryDid) = diddocService.extractFromAttachment(didDocAttachment, invitationKey)
-        mex.putAttachment(RESPONDER_DIDDOC_ATTACHMENT_KEY, responderDidDoc)
-
+        val docdidVerkey = responderDidDoc.publicKeyDid().verkey
         check(invitationId == invitation.id) { "Unexpected invitation id" }
         check(signatoryDid == invitationDid) { "Signatory Did does not match Invitation Did" }
+        check(senderVerkey == docdidVerkey) { "Did in Document does not match with senderVerkey: $senderVerkey != $docdidVerkey" }
+        mex.putAttachment(RESPONDER_DIDDOC_ATTACHMENT_KEY, responderDidDoc)
 
         // Update the Connection with their information
         val theirDid = responderDidDoc.publicKeyDid()

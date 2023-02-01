@@ -36,11 +36,13 @@ class EndpointMessage(
         /**
          * Header constants
          */
-        const val MESSAGE_ID = "MessageId"
-        const val MESSAGE_PROTOCOL_URI = "MessageProtocolUri"
-        const val MESSAGE_PTHID = "MessageParentThid"
-        const val MESSAGE_THID = "MessageThid"
-        const val MESSAGE_TYPE = "MessageType"
+        const val MESSAGE_HEADER_ID = "MessageId"
+        const val MESSAGE_HEADER_PROTOCOL_URI = "MessageProtocolUri"
+        const val MESSAGE_HEADER_SENDER_VERKEY = "MessageSenderVerkey"
+        const val MESSAGE_HEADER_RECIPIENT_VERKEY = "MessageRecipientVerkey"
+        const val MESSAGE_HEADER_PTHID = "MessageParentThid"
+        const val MESSAGE_HEADER_THID = "MessageThid"
+        const val MESSAGE_HEADER_TYPE = "MessageType"
     }
 
     val headers: Map<String, Any?>
@@ -52,24 +54,26 @@ class EndpointMessage(
             val type = body.selectJson("@type")
             val thid = body.selectJson("~thread.thid")
             val pthid = body.selectJson("~thread.pthid")
-            id?.run { effHeaders[MESSAGE_ID] = id }
-            type?.run { effHeaders[MESSAGE_TYPE] = type }
-            thid?.run { effHeaders[MESSAGE_THID] = thid }
-            pthid?.run { effHeaders[MESSAGE_PTHID] = pthid }
+            id?.run { effHeaders[MESSAGE_HEADER_ID] = id }
+            type?.run { effHeaders[MESSAGE_HEADER_TYPE] = type }
+            thid?.run { effHeaders[MESSAGE_HEADER_THID] = thid }
+            pthid?.run { effHeaders[MESSAGE_HEADER_PTHID] = pthid }
         }
-        if (effHeaders[MESSAGE_ID] == null) {
+        if (effHeaders[MESSAGE_HEADER_ID] == null) {
             val auxId = "${UUID.randomUUID()}"
             val idx = auxId.indexOf('-') + 1
-            effHeaders[MESSAGE_ID] = "00000000-${auxId.substring(idx)}"
+            effHeaders[MESSAGE_HEADER_ID] = "00000000-${auxId.substring(idx)}"
         }
         this.headers = effHeaders.toSortedMap()
     }
 
-    val id = headers[MESSAGE_ID] as String
-    val type = headers[MESSAGE_TYPE] as? String
-    val thid = headers[MESSAGE_THID] as? String ?: id
-    val pthid = headers[MESSAGE_PTHID] as? String
-    val protocolUri = headers[MESSAGE_PROTOCOL_URI] as? String
+    val id = headers[MESSAGE_HEADER_ID] as String
+    val type = headers[MESSAGE_HEADER_TYPE] as? String
+    val thid = headers[MESSAGE_HEADER_THID] as? String ?: id
+    val pthid = headers[MESSAGE_HEADER_PTHID] as? String
+    val protocolUri = headers[MESSAGE_HEADER_PROTOCOL_URI] as? String
+    val senderVerkey = headers[MESSAGE_HEADER_SENDER_VERKEY] as? String
+    val recipientVerkey = headers[MESSAGE_HEADER_RECIPIENT_VERKEY] as? String
 
     val bodyAsJson: String get() = run {
         return if (body is String) body else gson.toJson(body)
