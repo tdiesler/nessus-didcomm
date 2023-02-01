@@ -54,7 +54,10 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
         return true
     }
 
-    fun sendMessage(pcon: Connection, message: String): RFC0095BasicMessageProtocol {
+    fun sendMessage(message: String, connection: Connection? = null): RFC0095BasicMessageProtocol {
+
+        val pcon = connection ?: mex.getAttachment(MessageExchange.CONNECTION_ATTACHMENT_KEY)
+        checkNotNull(pcon) { "No connection" }
 
         check(pcon.state == ConnectionState.ACTIVE) { "Connection not active: $pcon" }
 
@@ -63,7 +66,7 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
 
         val rfc0095 = when(sender.agentType) {
             AgentType.ACAPY -> sendMessageAcapy(sender, pcon, message)
-            AgentType.NESSUS -> sendMessageNessus(pcon, message)
+            AgentType.NESSUS -> sendMessageNessus(sender, pcon, message)
         }
 
         return rfc0095
@@ -95,7 +98,8 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
         return rfc0095
     }
 
-    private fun sendMessageNessus(pcon: Connection, message: String): RFC0095BasicMessageProtocol {
+    @Suppress("UNUSED_PARAMETER")
+    private fun sendMessageNessus(sender: Wallet, pcon: Connection, message: String): RFC0095BasicMessageProtocol {
 
         // Use my previous MessageExchange
         val myMex = MessageExchange.findByVerkey(pcon.myVerkey)

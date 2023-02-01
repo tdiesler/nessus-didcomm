@@ -81,7 +81,7 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
 
                 val aliceMessage = "Ich habe Sauerkraut in meinen Lederhosen"
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE)
-                    .sendMessage(aliceFaber, aliceMessage)
+                    .sendMessage(aliceMessage, aliceFaber)
 
                 // Find the reverse connection
                 val faberAlice = faber.findConnection(aliceFaber.theirVerkey)
@@ -89,7 +89,7 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
 
                 val faberMessage = "I have an Elk under my Sombrero"
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE)
-                    .sendMessage(faberAlice, faberMessage)
+                    .sendMessage(faberMessage, faberAlice)
 
                 val receivedMessage = basicMessageFuture.get(5, TimeUnit.SECONDS)
                 assertEquals(faberMessage, receivedMessage.bodyAsJson.selectJson("content"))

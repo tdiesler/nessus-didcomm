@@ -32,6 +32,7 @@ import kotlin.system.exitProcess
         AgentCommands::class,
         RFC0023Commands::class,
         RFC0048TrustPingCommand::class,
+        RFC0095BasicMessageCommand::class,
         RFC0434Commands::class,
         WalletCommands::class,
         QuitCommand::class,
@@ -63,7 +64,7 @@ class NessusCli {
 
     fun execute(args: String, cmdLine: CommandLine? = null): Result<Any> {
         val cmdln = cmdLine ?: defaultCommandLine
-        val toks = args.split(' ').toTypedArray()
+        val toks = smartSplit(args).toTypedArray()
         val parseResult = runCatching { cmdln.parseArgs(*toks) }
         parseResult.onFailure {
             val ex = parseResult.exceptionOrNull() as ParameterException
@@ -78,6 +79,31 @@ class NessusCli {
             cmdln.executionExceptionHandler.handleExecutionException(ex, cmdln, parseResult.getOrNull())
         }
         return execResult
+    }
+
+    private fun smartSplit(args: String): List<String> {
+        var auxstr: String? = null
+        val result = mutableListOf<String>()
+        val startQuote = { t: String -> t.startsWith("'") || t.startsWith('"') }
+        val endQuote = { t: String -> t.endsWith("'") || t.endsWith('"') }
+        args.split(' ').forEach {
+            when {
+                startQuote(it) -> {
+                    auxstr = it.drop(1)
+                }
+                endQuote(it) -> {
+                    result.add("$auxstr $it".dropLast(1))
+                    auxstr = null
+                }
+                else -> {
+                    when {
+                        auxstr != null -> { auxstr += " $it" }
+                        else -> { result.add(it) }
+                    }
+                }
+            }
+        }
+        return result.toList()
     }
 
     // A CommandLine that doesn't throw ExecutionException
