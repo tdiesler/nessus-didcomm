@@ -20,11 +20,17 @@
 package org.nessus.didcomm.cli.cmd
 
 import org.nessus.didcomm.cli.CLIService
+import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.model.WalletModel
+import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
+import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
+import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.service.CamelEndpointService
 import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.Wallet
+import org.nessus.didcomm.wallet.toWalletModel
 import java.net.URL
 
 abstract class AbstractBaseCommand {
@@ -34,8 +40,7 @@ abstract class AbstractBaseCommand {
     val modelService get() = DataModelService.getService()
     val walletService get() = WalletService.getService()
 
-
-    fun checkWalletEndpoint(vararg wallets: Wallet) {
+    fun checkWalletEndpoint(vararg wallets: WalletModel) {
         wallets.forEach {
             when (it.agentType) {
                 AgentType.ACAPY -> {
@@ -43,9 +48,9 @@ abstract class AbstractBaseCommand {
                 }
                 AgentType.NESSUS -> {
                     val url = URL(it.endpointUrl)
-                    val eps = AgentCommands.EndpointSpec("", url.host, url.port)
+                    val eps = EndpointSpec("", url.host, url.port)
                     check(cliService.attachmentKeys.any {
-                        val result = runCatching { AgentCommands.EndpointSpec.valueOf(it.name) }
+                        val result = runCatching { EndpointSpec.valueOf(it.name) }
                         val keyHost = result.getOrNull()?.host
                         val keyPort = result.getOrNull()?.port
                         // [TODO] verify endpoint type/host
@@ -54,5 +59,43 @@ abstract class AbstractBaseCommand {
                 }
             }
         }
+    }
+
+    fun getContextConnection(): Connection {
+        val pcon = cliService.getAttachment(CONNECTION_ATTACHMENT_KEY)
+        checkNotNull(pcon) { "No connection" }
+        return pcon
+    }
+
+    fun getContextInvitation(): Invitation {
+        val invitation = cliService.getAttachment(INVITATION_ATTACHMENT_KEY)
+        checkNotNull(invitation) { "No invitation" }
+        return invitation
+    }
+
+    fun getContextWallet(alias: String? = null): WalletModel {
+        val walletModel = findContextWallet(alias)
+        checkNotNull(walletModel) { "Cannot find wallet: $alias" }
+        return walletModel
+    }
+
+    fun findContextWallet(alias: String? = null): WalletModel? {
+        return if (alias != null) {
+            val test = { t: String -> t.lowercase().startsWith(alias) }
+            modelService.findWallet { test(it.id) || test(it.name) }
+        } else {
+            cliService.getAttachment(WALLET_ATTACHMENT_KEY)?.toWalletModel()
+        }
+    }
+
+    fun getWalletModel(alias: String): WalletModel {
+        val walletModel = findWalletModel(alias)
+        checkNotNull(walletModel) { "Cannot find wallet: $alias" }
+        return walletModel
+    }
+
+    fun findWalletModel(alias: String): WalletModel? {
+        val test = { t: String -> t.lowercase().startsWith(alias) }
+        return modelService.findWallet { test(it.id) || test(it.name) }
     }
 }

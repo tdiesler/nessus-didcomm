@@ -20,22 +20,25 @@
 package org.nessus.didcomm.test.cli
 
 import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 
-class WalletCmdTest: AbstractCmdTest() {
+class ShowCmdTest: AbstractCmdTest() {
 
     @Test
-    fun walletCommands() {
+    fun showCommands() {
 
-        assertTrue(cliService.execute("wallet list").isSuccess)
-        assertEquals(2, modelService.wallets.size)
+        assertTrue(cliService.execute("wallet create --name Alice").isSuccess)
+        assertTrue(cliService.execute("agent start").isSuccess)
 
-        assertTrue(cliService.execute("wallet create --name Alice --agent Nessus").isSuccess)
-        assertEquals(3, modelService.wallets.size)
+        try {
+            assertTrue(cliService.execute("rfc0434 invite-connect --inviter faber --invitee alice").isSuccess)
 
-        assertTrue(cliService.execute("wallet remove").isSuccess)
-        assertEquals(2, modelService.wallets.size)
+            assertTrue(cliService.execute("show wallets").isSuccess)
+
+        } finally {
+            assertTrue(cliService.execute("agent stop").isSuccess)
+            assertTrue(cliService.execute("wallet remove").isSuccess)
+        }
     }
 }

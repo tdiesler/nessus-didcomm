@@ -35,10 +35,16 @@ fun WalletModel.toWallet(): Wallet {
     return walletService.getWallet(this.id) as Wallet
 }
 
+/**
+ * Holds the mutable state ot a wallet
+ *
+ * All state mutations must be properly synchronized
+ */
 data class WalletModel(
     val id: String,
     val name: String,
-    val agent: AgentType,
+    @SerializedName("agent")
+    val agentType: AgentType,
     val endpointUrl: String,
     @SerializedName("dids")
     private val didsInternal: MutableList<Did> = mutableListOf(),
@@ -63,68 +69,82 @@ data class WalletModel(
     // Note, we currently don't support multiple
     // representations for the same verification key
 
+    @Synchronized
     fun addDid(did: Did) {
         check(getDid(did.verkey) == null) { "Did already added" }
         log.info { "Add Did for ${name}: $did" }
         didsInternal.add(did)
     }
 
+    @Synchronized
     fun getDid(verkey: String): Did? {
         return dids.firstOrNull{ it.verkey == verkey }
     }
 
+    @Synchronized
     fun hasDid(verkey: String): Boolean {
         return getDid(verkey) != null
     }
 
+    @Synchronized
     fun findDid(predicate: (d: Did) -> Boolean): Did? {
         return dids.firstOrNull(predicate)
     }
 
+    @Synchronized
     fun removeDid(verkey: String) {
         getDid(verkey)?.run { didsInternal.remove(this) }
     }
 
+    @Synchronized
     fun addConnection(con: Connection) {
         check(getConnection(con.id) == null) { "Connection already added" }
         connectionsInternal.add(con)
     }
 
+    @Synchronized
     fun getConnection(id: String): Connection? {
         return connectionsInternal.firstOrNull { it.id == id }
     }
 
+    @Synchronized
     fun findConnection(predicate: (c: Connection) -> Boolean): Connection? {
         return connectionsInternal.firstOrNull(predicate)
     }
 
+    @Synchronized
     fun removeConnection(id: String) {
         getConnection(id)?.run { connectionsInternal.remove(this) }
     }
 
+    @Synchronized
     fun removeConnections() {
         connectionsInternal.clear()
     }
 
+    @Synchronized
     fun addInvitation(invitation: Invitation) {
         check(getInvitation(invitation.id) == null) { "Invitation already added" }
         invitationsInternal.add(invitation)
     }
 
+    @Synchronized
     fun getInvitation(id: String): Invitation? {
         return findInvitation { it.id == id }
     }
 
+    @Synchronized
     fun findInvitation(predicate: (i: Invitation) -> Boolean): Invitation? {
         return invitationsInternal.firstOrNull(predicate)
     }
 
+    @Synchronized
     fun removeInvitation(id: String) {
         getInvitation(id)?.run { invitationsInternal.remove(this) }
     }
 
     fun asString(): String {
-        return "$name [agent=${agent.value}, url=$endpointUrl]"
+        return "$name [agent=${agentType.value}, url=$endpointUrl]"
     }
 }
 
@@ -230,27 +250,52 @@ class Connection(
     val id: String,
     val agent: AgentType,
     val invitationKey: String,
-    myDid: Did?,
+
+    myDid: Did,
+
+    @get:Synchronized
+    @set:Synchronized
     var myRole: ConnectionRole,
+
+    @get:Synchronized
+    @set:Synchronized
     var myLabel: String,
+
+    @get:Synchronized
+    @set:Synchronized
     var myEndpointUrl: String,
+
     theirDid: Did?,
+
+    @get:Synchronized
+    @set:Synchronized
     var theirRole: ConnectionRole,
+
+    @get:Synchronized
+    @set:Synchronized
     var theirLabel: String?,
+
+    @get:Synchronized
+    @set:Synchronized
     var theirEndpointUrl: String?,
+
+    @get:Synchronized
+    @set:Synchronized
     var state: ConnectionState,
 ) {
     @Transient
     private val log = KotlinLogging.logger {}
 
-    var myDid: Did = myDid ?: dummyDid
+    @get:Synchronized
+    @set:Synchronized
+    var myDid: Did = myDid
         set(did) {
-            if (field != dummyDid) {
-                log.info { "Rotate myDid: ${field.qualified} => ${did.qualified}" }
-            }
+            log.info { "Rotate myDid: ${field.qualified} => ${did.qualified}" }
             field = did
         }
 
+    @get:Synchronized
+    @set:Synchronized
     var theirDid: Did = theirDid ?: dummyDid
         set(did) {
             if (field != dummyDid) {

@@ -28,17 +28,18 @@ class RFC0095CmdTest: AbstractCmdTest() {
     @Test
     fun testRFC0095Commands() {
 
-        assertTrue(cliService.execute("agent start 0.0.0.0:8130").isSuccess)
         assertTrue(cliService.execute("wallet create --name Alice").isSuccess)
+        assertTrue(cliService.execute("agent start").isSuccess)
 
         try {
 
-            assertTrue(cliService.execute("rfc0023 connect alice faber").isSuccess)
+            assertTrue(cliService.execute("rfc0434 invite-connect --inviter faber --invitee alice").isSuccess)
+
             assertTrue(cliService.execute("rfc0095 send 'Ich habe Sauerkraut in meinen Lederhosen'").isSuccess)
 
         } finally {
-            assertTrue(cliService.execute("wallet remove --name alice").isSuccess)
-            assertTrue(cliService.execute("agent stop 0.0.0.0:8130").isSuccess)
+            assertTrue(cliService.execute("agent stop").isSuccess)
+            assertTrue(cliService.execute("wallet remove --alias alice").isSuccess)
         }
     }
 }

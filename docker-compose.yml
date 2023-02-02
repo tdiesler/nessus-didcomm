@@ -182,6 +182,7 @@ services:
         --emit-new-didcomm-mime-type
         --emit-new-didcomm-prefix
         --recreate-wallet 
+        --max-outbound-retry 1
         --log-level ${ACAPY_LOG_LEVEL:-INFO}
     depends_on:
       - node1
@@ -217,7 +218,8 @@ services:
         --auto-ping-connection
         --emit-new-didcomm-mime-type
         --emit-new-didcomm-prefix
-        --recreate-wallet 
+        --recreate-wallet
+        --max-outbound-retry 1
         --log-level ${ACAPY_LOG_LEVEL:-INFO}
     depends_on:
       - node1

@@ -29,7 +29,6 @@ import mu.KotlinLogging
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.model.toWallet
 import org.nessus.didcomm.wallet.*
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -49,37 +48,7 @@ class WalletService : BaseService() {
     }
 
     init {
-        val adminClient = AriesAgent.adminClient()
-
-        // Initialize wallets from Siera config
-        readSieraConfig()?.filterKeys { k -> k != "default" }?.forEach {
-            @Suppress("UNCHECKED_CAST")
-            val values = it.value as Map<String, String>
-            val agent = values["agent"] ?: "aca-py"
-            check(agent == "aca-py") { "Unsupported agent: $agent" }
-            val alias = it.key
-            val authToken = values["auth_token"]
-            val walletRecord = adminClient.multitenancyWallets(alias).get().firstOrNull()
-            walletRecord?.run {
-                val walletId = walletRecord.walletId
-                val wallet = Wallet(walletId, alias, AgentType.ACAPY, StorageType.INDY, authToken=authToken)
-                addWallet(wallet)
-            }
-        }
-
-        // Initialize wallets from AcaPy
-        adminClient.multitenancyWallets(null).get()
-            .filter { modelService.getWallet(it.walletId) == null }
-            .forEach {
-                val walletId = it.walletId
-                val alias = it.settings.walletName
-                val storageType = StorageType.valueOf(it.settings.walletType.name)
-                val tokReq = CreateWalletTokenRequest.builder().build()
-                val tokRes = adminClient.multitenancyWalletToken(walletId, tokReq).get()
-                val wallet = Wallet(walletId, alias, AgentType.ACAPY, storageType, authToken=tokRes.token)
-                addWallet(wallet)
-            }
-        log.info { "Done Wallet Init ".padEnd(180, '=') }
+        initAcaPyWallets()
     }
 
     val wallets get() = walletStore.wallets
@@ -116,11 +85,7 @@ class WalletService : BaseService() {
     }
 
     fun findByName(name: String): Wallet? {
-        return modelService.findWalletByName(name)?.toWallet()
-    }
-
-    fun findByVerkey(verkey: String): Wallet? {
-        return modelService.findWalletByVerkey(verkey)?.toWallet()
+        return walletStore.findWallet { it.name.lowercase() == name.lowercase() }
     }
 
     /**
@@ -155,6 +120,40 @@ class WalletService : BaseService() {
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
+
+    private fun initAcaPyWallets() {
+        val adminClient = AriesAgent.adminClient()
+
+        // Initialize wallets from Siera config
+        readSieraConfig()?.filterKeys { k -> k != "default" }?.forEach {
+            @Suppress("UNCHECKED_CAST")
+            val values = it.value as Map<String, String>
+            val agent = values["agent"] ?: "aca-py"
+            check(agent == "aca-py") { "Unsupported agent: $agent" }
+            val alias = it.key
+            val authToken = values["auth_token"]
+            val walletRecord = adminClient.multitenancyWallets(alias).get().firstOrNull()
+            walletRecord?.run {
+                val walletId = walletRecord.walletId
+                val wallet = Wallet(walletId, alias, AgentType.ACAPY, StorageType.INDY, authToken=authToken)
+                addWallet(wallet)
+            }
+        }
+
+        // Initialize wallets from AcaPy
+        adminClient.multitenancyWallets(null).get()
+            .filter { modelService.getWallet(it.walletId) == null }
+            .forEach {
+                val walletId = it.walletId
+                val alias = it.settings.walletName
+                val storageType = StorageType.valueOf(it.settings.walletType.name)
+                val tokReq = CreateWalletTokenRequest.builder().build()
+                val tokRes = adminClient.multitenancyWalletToken(walletId, tokReq).get()
+                val wallet = Wallet(walletId, alias, AgentType.ACAPY, storageType, authToken=tokRes.token)
+                addWallet(wallet)
+            }
+        log.info { "Done Wallet Init ".padEnd(180, '=') }
+    }
 
     private fun walletServicePlugin(agentType: AgentType): WalletServicePlugin {
         return when(agentType) {

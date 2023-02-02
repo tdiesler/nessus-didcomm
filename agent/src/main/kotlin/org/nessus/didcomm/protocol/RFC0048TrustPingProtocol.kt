@@ -75,7 +75,7 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
             AgentType.ACAPY -> {
 
                 // Register the TrustPing Response future
-                myMex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE, pcon.id)
+                myMex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE)
 
                 val senderClient = sender.walletClient() as AriesClient
                 val pingRequest = PingRequest.builder().comment("ping").build()
@@ -88,13 +88,13 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
                 val responseEpm = EndpointMessage(pingResponseJson)
                 myMex.addMessage(responseEpm)
 
-                myMex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE, pcon.id, responseEpm)
+                myMex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE, responseEpm)
             }
 
             AgentType.NESSUS -> {
 
                 // Register the TrustPing Response future
-                myMex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE, pcon.id)
+                myMex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE)
 
                 val trustPing = """
                     {
@@ -122,8 +122,7 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
     }
 
     fun awaitTrustPingResponse(): RFC0048TrustPingProtocol {
-        val pcon = mex.connection
-        mex.awaitEndpointMessage(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE, pcon.id)
+        mex.awaitEndpointMessage(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE)
         return this
     }
 
@@ -137,7 +136,7 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
         val pingId = mex.last.id
         val trustPingEpm = mex.last
 
-        val pcon = mex.connection
+        val pcon = mex.getConnection()
 
         val pingResponse = """
         {
@@ -163,17 +162,17 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
 
         pcon.state = ConnectionState.ACTIVE
 
-        if (mex.hasEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING, pcon.id))
-            mex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING, pcon.id, trustPingEpm)
+        if (mex.hasEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING))
+            mex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING, trustPingEpm)
 
         return this
     }
 
     private fun receiveTrustPingResponse(): RFC0048TrustPingProtocol {
 
-        val pcon = mex.connection
+        val pcon = mex.getConnection()
         pcon.state = ConnectionState.ACTIVE
-        mex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE, pcon.id, mex.last)
+        mex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE, mex.last)
 
         return this
     }

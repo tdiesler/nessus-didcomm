@@ -28,17 +28,17 @@ class RFC0434CmdTest: AbstractCmdTest() {
     @Test
     fun testRFC0434Commands() {
 
-        assertTrue(cliService.execute("agent start 0.0.0.0:8130").isSuccess)
         assertTrue(cliService.execute("wallet create --name Alice").isSuccess)
+        assertTrue(cliService.execute("agent start").isSuccess)
 
         try {
 
-            assertTrue(cliService.execute("rfc0434 create-invitation faber").isSuccess)
-            assertTrue(cliService.execute("rfc0434 receive-invitation alice").isSuccess)
+            assertTrue(cliService.execute("rfc0434 create-invitation --inviter faber").isSuccess)
+            assertTrue(cliService.execute("rfc0434 receive-invitation --invitee alice").isSuccess)
 
         } finally {
-            assertTrue(cliService.execute("wallet remove --name alice").isSuccess)
-            assertTrue(cliService.execute("agent stop 0.0.0.0:8130").isSuccess)
+            assertTrue(cliService.execute("agent stop").isSuccess)
+            assertTrue(cliService.execute("wallet remove --alias alice").isSuccess)
         }
     }
 }

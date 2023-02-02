@@ -20,14 +20,14 @@
 package org.nessus.didcomm.cli.cmd
 
 import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.model.toWallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
-import org.nessus.didcomm.wallet.toWalletModel
 import picocli.CommandLine.Command
-import picocli.CommandLine.Parameters
+import picocli.CommandLine.Option
 import java.util.concurrent.Callable
 
 @Command(
@@ -36,6 +36,7 @@ import java.util.concurrent.Callable
     subcommands = [
         RFC0434CreateInvitation::class,
         RFC0434ReceiveInvitation::class,
+        RFC0434InviteAndConnect::class,
     ]
 )
 class RFC0434Commands: AbstractBaseCommand() {
@@ -44,19 +45,19 @@ class RFC0434Commands: AbstractBaseCommand() {
 @Command(name = "create-invitation")
 class RFC0434CreateInvitation: AbstractBaseCommand(), Callable<Int> {
 
-    @Parameters(index = "0", description = ["The inviter name"])
-    var inviterName: String? = null
+    @Option(names = ["--inviter" ], description = ["The inviter alias"])
+    var inviterAlias: String? = null
 
     override fun call(): Int {
-        val inviter = walletService.findByName(inviterName!!)
-        checkNotNull(inviter) { "No wallet for name: $inviterName" }
-        checkWalletEndpoint(inviter)
-        val invitation = MessageExchange().withProtocol(RFC0434_OUT_OF_BAND)
-            .createOutOfBandInvitation(inviter)
-            .getMessageExchange().last.body as Invitation
-        checkNotNull(inviter.toWalletModel().getInvitation(invitation.id))
-        cliService.putAttachment(INVITATION_ATTACHMENT_KEY, invitation)
-        println("${inviter.name} created an RFC0434 Invitation")
+        getContextWallet(inviterAlias).also {
+            checkWalletEndpoint(it)
+            val invitation = MessageExchange().withProtocol(RFC0434_OUT_OF_BAND)
+                .createOutOfBandInvitation(it.toWallet())
+                .getMessageExchange().last.body as Invitation
+            checkNotNull(it.getInvitation(invitation.id))
+            cliService.putAttachment(INVITATION_ATTACHMENT_KEY, invitation)
+            println("${it.name} created an RFC0434 Invitation")
+        }
         return 0
     }
 }
@@ -64,28 +65,57 @@ class RFC0434CreateInvitation: AbstractBaseCommand(), Callable<Int> {
 @Command(name = "receive-invitation")
 class RFC0434ReceiveInvitation: AbstractBaseCommand(), Callable<Int> {
 
-    @Parameters(index = "0", description = ["The invitee name"])
-    var inviteeName: String? = null
+    @Option(names = ["--invitee" ], description = ["The invitee alias"])
+    var inviteeAlias: String? = null
 
     override fun call(): Int {
-        val invitee = walletService.findByName(inviteeName!!)
-        checkNotNull(invitee) { "No wallet for name: $inviteeName" }
-        val invitation = cliService.getAttachment(INVITATION_ATTACHMENT_KEY)
-        checkNotNull(invitation) { "No invitation" }
-        checkWalletEndpoint(invitee)
-        val mex = MessageExchange()
-            .withAttachment(INVITATION_ATTACHMENT_KEY, invitation)
-            .withProtocol(RFC0434_OUT_OF_BAND)
-            .receiveOutOfBandInvitation(invitee)
-            .withProtocol(RFC0023_DIDEXCHANGE)
-            .connect(invitee)
-            .getMessageExchange()
-        val pcon = mex.connection
-        checkNotNull(invitee.toWalletModel().getInvitation(invitation.id))
-        checkNotNull(invitee.toWalletModel().getConnection(pcon.id))
-        cliService.putAttachment(INVITATION_ATTACHMENT_KEY, invitation)
-        cliService.putAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
-        println("${invitee.name} received an RFC0434 Invitation")
+        getContextWallet(inviteeAlias).also {
+            val invitee = it.toWallet()
+            val mex = MessageExchange()
+                .withAttachment(INVITATION_ATTACHMENT_KEY, getContextInvitation())
+                .withProtocol(RFC0434_OUT_OF_BAND)
+                .receiveOutOfBandInvitation(invitee)
+                .getMessageExchange()
+            val connection = mex.getConnection()
+            val invitation = mex.getInvitation() as Invitation
+            checkNotNull(it.getConnection(connection.id))
+            checkNotNull(it.getInvitation(invitation.id))
+            cliService.putAttachment(CONNECTION_ATTACHMENT_KEY, connection)
+            cliService.putAttachment(INVITATION_ATTACHMENT_KEY, invitation)
+            println("${invitee.name} received an RFC0434 Invitation")
+        }
         return 0
     }
 }
+
+@Command(name = "invite-connect")
+class RFC0434InviteAndConnect: AbstractBaseCommand(), Callable<Int> {
+
+    @Option(names = ["--inviter" ], description = ["The inviter alias"])
+    var inviterAlias: String? = null
+
+    @Option(names = ["--invitee" ], required = true, description = ["The invitee alias"])
+    var inviteeAlias: String? = null
+
+    override fun call(): Int {
+        val inviter = getContextWallet(inviterAlias)
+        val invitee = getContextWallet(inviteeAlias)
+        checkWalletEndpoint(inviter, invitee)
+
+        val mex = MessageExchange()
+            .withProtocol(RFC0434_OUT_OF_BAND)
+            .createOutOfBandInvitation(inviter.toWallet())
+            .also { println("${inviter.name} created an RFC0434 Invitation") }
+            .receiveOutOfBandInvitation(invitee.toWallet())
+            .also { println("${invitee.name} received an RFC0434 Invitation") }
+            .withProtocol(RFC0023_DIDEXCHANGE)
+            .connect(invitee.toWallet())
+            .getMessageExchange()
+
+        cliService.putAttachment(CONNECTION_ATTACHMENT_KEY, mex.getConnection())
+        println("${invitee.name} now has a connection with ${inviter.name} in state ${mex.getConnection().state}")
+
+        return 0
+    }
+}
+

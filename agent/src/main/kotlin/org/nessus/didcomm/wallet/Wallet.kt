@@ -26,7 +26,6 @@ import org.nessus.didcomm.agent.*
 import org.nessus.didcomm.agent.AgentConfiguration.Companion.agentConfiguration
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.Connection
-import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.WalletModel
 import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.service.WalletPlugin
@@ -142,16 +141,8 @@ class Wallet(
         return walletService.getPublicDid(this)
     }
 
-    fun getConnection(conId: String): Connection? {
-        return toWalletModel().getConnection(conId)
-    }
-
     fun findConnection(verkey: String): Connection? {
         return toWalletModel().findConnection { it.myVerkey == verkey }
-    }
-
-    fun getInvitation(invId: String): Invitation? {
-        return toWalletModel().getInvitation(invId)
     }
 
     fun removeConnections() {

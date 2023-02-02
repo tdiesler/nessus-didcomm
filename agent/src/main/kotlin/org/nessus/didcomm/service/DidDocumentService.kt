@@ -81,11 +81,6 @@ class DidDocumentService: NessusBaseService() {
         return gson.fromJson(template, RFC0023DidDocument::class.java)
     }
 
-    fun createAttachment(diddocJson: String, sigDid: Did): JsonObject {
-        val didDoc = gson.fromJson(diddocJson, RFC0023DidDocument::class.java)
-        return createAttachment(didDoc, sigDid)
-    }
-
     fun createAttachment(didDocument: RFC0023DidDocument, sigDid: Did): JsonObject {
 
         val didDocumentJson = gson.toJson(didDocument)

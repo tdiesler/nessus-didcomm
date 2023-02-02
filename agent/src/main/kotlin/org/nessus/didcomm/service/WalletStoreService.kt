@@ -48,6 +48,10 @@ class WalletStoreService: NessusBaseService() {
         return walletStorage[walletId]
     }
 
+    fun findWallet(predicate: (w: Wallet) -> Boolean): Wallet? {
+        return walletStorage.values.firstOrNull(predicate)
+    }
+
     fun removeWallet(walletId: String): Wallet? {
         val wallet = walletStorage.remove(walletId)
         modelService.removeWallet(walletId)

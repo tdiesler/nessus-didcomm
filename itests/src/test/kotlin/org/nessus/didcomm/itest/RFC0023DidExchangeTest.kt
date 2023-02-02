@@ -80,9 +80,10 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                     .receiveOutOfBandInvitation(alice)
 
                     .withProtocol(RFC0023_DIDEXCHANGE)
-                    .connect(alice).getMessageExchange()
+                    .connect(alice)
+                    .getMessageExchange()
 
-                val aliceFaber = mex.connection
+                val aliceFaber = mex.getConnection()
                 val faberAlice = faber.findConnection(aliceFaber.theirVerkey)
 
                 verifyConnection(alice, aliceFaber)
@@ -128,9 +129,10 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                     .receiveOutOfBandInvitation(faber)
 
                     .withProtocol(RFC0023_DIDEXCHANGE)
-                    .connect(faber).getMessageExchange()
+                    .connect(faber)
+                    .getMessageExchange()
 
-                val aliceFaber = mex.connection
+                val aliceFaber = mex.getConnection()
                 val faberAlice = faber.findConnection(aliceFaber.theirVerkey)
 
                 verifyConnection(alice, aliceFaber)
@@ -179,9 +181,10 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                     .receiveOutOfBandInvitation(alice)
 
                     .withProtocol(RFC0023_DIDEXCHANGE)
-                    .connect(alice).getMessageExchange()
+                    .connect(alice)
+                    .getMessageExchange()
 
-                val aliceBob = mex.connection
+                val aliceBob = mex.getConnection()
                 val bobAlice = bob.findConnection(aliceBob.theirVerkey)
 
                 verifyConnection(alice, aliceBob)

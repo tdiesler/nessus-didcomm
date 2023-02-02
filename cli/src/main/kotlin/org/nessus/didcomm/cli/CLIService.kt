@@ -22,6 +22,7 @@ package org.nessus.didcomm.cli
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
 import org.nessus.didcomm.service.AbstractAttachmentsService
+import org.nessus.didcomm.service.WalletService
 import picocli.CommandLine
 
 
@@ -32,6 +33,11 @@ class CLIService: AbstractAttachmentsService() {
     companion object: ServiceProvider {
         private val implementation = CLIService()
         override fun getService() = implementation
+    }
+
+    init {
+        // Fetch the wallet state from external agents
+        WalletService.getService()
     }
 
     fun execute(args: String, cmdln: CommandLine? = null): Result<Any> {

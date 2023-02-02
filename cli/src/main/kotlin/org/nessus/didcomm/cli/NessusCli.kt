@@ -20,13 +20,14 @@
 package org.nessus.didcomm.cli
 
 import org.nessus.didcomm.cli.cmd.*
+import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import picocli.CommandLine
 import picocli.CommandLine.*
 import kotlin.system.exitProcess
 
 @Command(
-    name = "nessus-cli", description = ["Nessus DidComm CLI"], version = ["1.0"],
+    name = "didcomm", description = ["Nessus DIDComm-V2 CLI"], version = ["1.0"],
     mixinStandardHelpOptions = true,
     subcommands = [
         AgentCommands::class,
@@ -34,6 +35,7 @@ import kotlin.system.exitProcess
         RFC0048TrustPingCommand::class,
         RFC0095BasicMessageCommand::class,
         RFC0434Commands::class,
+        ShowCommands::class,
         WalletCommands::class,
         QuitCommand::class,
     ],
@@ -45,15 +47,16 @@ class NessusCli {
         @JvmStatic
         fun main(args: Array<String>) {
             ServiceMatrixLoader.loadServiceDefinitions()
-            NessusCli().execute("--help")
             exitProcess(NessusCli().repl())
         }
         val defaultCommandLine get() = CommandLine(NessusCli())
     }
 
+    val cliService get() = CLIService.getService()
+
     fun repl(): Int {
         while (true) {
-            print("\n>> ")
+            showPrompt()
             val line = readln()
             if (line in listOf("q", "quit"))
                 break
@@ -79,6 +82,14 @@ class NessusCli {
             cmdln.executionExceptionHandler.handleExecutionException(ex, cmdln, parseResult.getOrNull())
         }
         return execResult
+    }
+
+    // Private ---------------------------------------------------------------------------------------------------------
+
+    private fun showPrompt() {
+        val wallet = cliService.getAttachment(WALLET_ATTACHMENT_KEY)
+        val prompt = wallet?.run { "${name}>>" } ?: ">>"
+        print("\n$prompt ")
     }
 
     private fun smartSplit(args: String): List<String> {

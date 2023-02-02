@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.protocol
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
 import org.hyperledger.aries.api.connection.ConnectionFilter
@@ -29,6 +28,7 @@ import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
@@ -40,8 +40,6 @@ import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.trimJson
 import org.nessus.didcomm.wallet.*
 import java.util.*
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 
 /**
@@ -57,8 +55,6 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST = "${RFC0023_DIDEXCHANGE.uri}/request"
         val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE = "${RFC0023_DIDEXCHANGE.uri}/response"
         val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE = "${RFC0023_DIDEXCHANGE.uri}/complete"
-
-        private val threadFactory = ThreadFactoryBuilder().setNameFormat("DidEx-%d").build()
     }
 
     override fun invokeMethod(to: Wallet, messageType: String): Boolean {
@@ -71,83 +67,71 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         return true
     }
 
-    fun connect(requester: Wallet, timeout: Long = 10, unit: TimeUnit = TimeUnit.SECONDS): RFC0023DidExchangeProtocol {
+    fun connect(maybeRequester: Wallet? = null, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): RFC0023DidExchangeProtocol {
 
-        val invitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY)
-        checkNotNull(invitation) { "No invitation" }
+        val requester = maybeRequester ?: mex.getAttachment(WALLET_ATTACHMENT_KEY)
+        checkNotNull(requester) { "No requester wallet" }
 
-        connectAsync(requester, invitation, CompletableFuture<Connection>())
-            .get(timeout, unit)
+        val attachedInvitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY)
+        val invitationKey = attachedInvitation?.invitationKey()
+        checkNotNull(invitationKey) { "No invitation" }
 
-        return this
-    }
+        val invitation = requester.toWalletModel().findInvitation { it.invitationKey() == invitationKey }
+        checkNotNull(invitation) { "Requester has no such invitation" }
 
-    private fun connectAsync(requester: Wallet, invitation: Invitation, future: CompletableFuture<Connection>): Future<Connection> {
-        threadFactory.newThread {
+        when(requester.agentType) {
 
-            when(requester.agentType) {
+            /**
+             * AcaPy becomes the Requester when it receives an Invitation
+             * It then automatically sends the DidEx Request
+             */
+            AgentType.ACAPY -> {
 
-                /**
-                 * AcaPy becomes the Requester when it receives an Invitation
-                 * It then automatically sends the DidEx Request
-                 */
-                AgentType.ACAPY -> {
+                // awaitDidExchangeRequest
+                // +- sendDidExchangeResponse
+                // awaitDidExchangeComplete
+                // awaitTrustPing
+                // +- sendTrustPingResponse
 
-                    // awaitDidExchangeRequest
-                    // +- sendDidExchangeResponse
-                    // awaitDidExchangeComplete
-                    // awaitTrustPing
-                    // +- sendTrustPingResponse
+                awaitDidExchangeRequest()
 
-                    awaitDidExchangeRequest(invitation.id)
+                awaitDidExchangeComplete()
 
-                    awaitDidExchangeComplete(invitation.id)
-
-                    val pcon = mex.connection
-
-                    awaitTrustPing(pcon.id)
-                }
-
-                /**
-                 * Nessus becomes the Requester when it receives an Invitation
-                 */
-                AgentType.NESSUS -> {
-
-                    // sendDidExchangeRequest
-                    // awaitDidExchangeResponse
-                    // sendDidExchangeComplete
-                    // sendTrustPing
-                    // awaitTrustPingResponse
-
-                    sendDidExchangeRequest(requester, invitation)
-
-                    awaitDidExchangeResponse(invitation.id)
-
-                    sendDidExchangeComplete(requester)
-
-                    val pcon = mex.connection
-
-                    mex.withProtocol(RFC0048_TRUST_PING)
-                        .sendTrustPing(pcon)
-                        .awaitTrustPingResponse()
-
-                }
+                awaitTrustPing(timeout, unit)
             }
 
-            val pcon = mex.connection
+            /**
+             * Nessus becomes the Requester when it receives an Invitation
+             */
+            AgentType.NESSUS -> {
 
-            fixupTheirConnection(invitation)
+                // sendDidExchangeRequest
+                // awaitDidExchangeResponse
+                // sendDidExchangeComplete
+                // sendTrustPing
+                // awaitTrustPingResponse
 
-            future.complete(pcon)
+                sendDidExchangeRequest(requester, invitation)
 
-        }.start()
-        return future
+                awaitDidExchangeResponse()
+
+                sendDidExchangeComplete(requester)
+
+                mex.withProtocol(RFC0048_TRUST_PING)
+                    .sendTrustPing()
+                    .awaitTrustPingResponse()
+            }
+        }
+
+        fixupTheirConnection(invitation)
+
+        return this
     }
 
     private fun sendDidExchangeRequest(requester: Wallet, invitation: Invitation) {
 
         // Register the response future with the message exchange
-        mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE, invitation.id)
+        mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE)
 
         when(requester.agentType) {
 
@@ -162,7 +146,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
 
             AgentType.NESSUS -> {
 
-                val pcon = mex.connection
+                val pcon = mex.getConnection()
                 val recipientDidKey = invitation.recipientDidKey()
                 val recipientServiceEndpoint = invitation.recipientServiceEndpoint()
 
@@ -256,7 +240,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val theirLabel = body.selectJson("label")
 
         // Update the connection with their info
-        val pcon = mex.connection
+        val pcon = mex.getConnection()
         pcon.myRole = ConnectionRole.RESPONDER
         pcon.theirDid = theirDid
         pcon.theirRole = ConnectionRole.REQUESTER
@@ -265,10 +249,12 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         pcon.state = ConnectionState.REQUEST
 
         // Register the complete future with the message exchange
-        mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE, invitation.id)
+        mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE)
 
-        if (mex.hasEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST, invitationId))
-            mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST, invitationId, mex.last)
+        fixupTheirConnection(invitation)
+
+        if (mex.hasEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST))
+            mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST, mex.last)
 
         sendDidExchangeResponse(responder)
 
@@ -312,7 +298,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         mex.addMessage(EndpointMessage(didexResponse))
         log.info { "Responder (${responder.name}) sends DidEx Response: ${didexResponse.prettyPrint()}" }
 
-        val pcon = mex.connection
+        val pcon = mex.getConnection()
         pcon.myDid = myDid
         pcon.state = ConnectionState.RESPONSE
 
@@ -360,7 +346,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val theirEndpointUrl = responderDidDoc.serviceEndpoint()
         val theirLabel = "${responderDidDoc.service[0].type} for ${requester.name}"
 
-        val pcon = mex.connection
+        val pcon = mex.getConnection()
         pcon.theirDid = theirDid
         pcon.theirLabel = theirLabel
         pcon.theirRole = ConnectionRole.RESPONDER
@@ -369,7 +355,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
 
         log.info { "Requester (${requester.name}) Connection: ${pcon.prettyPrint()}" }
 
-        mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE, invitationId, mex.last)
+        mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE, mex.last)
 
         return requester
     }
@@ -389,8 +375,8 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
             }
 
             AgentType.NESSUS -> {
-                val pcon = mex.connection
-                val invitation = mex.invitation
+                val pcon = mex.getConnection()
+                val invitation = mex.getInvitation()
                 checkNotNull(invitation) { "No invitation" }
 
                 val didexThid = didexResponse.thid
@@ -429,50 +415,74 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         checkNotNull(invitation) { "No invitation" }
         check(invitationId == invitation.id) { "Unexpected invitation id" }
 
-        val pcon = mex.connection
+        val pcon = mex.getConnection()
         check(pcon.invitationKey == invitation.invitationKey()) { "Unexpected invitation key" }
 
         pcon.state = ConnectionState.COMPLETED
 
-        mex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING, pcon.id)
-        mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE, invitationId, mex.last)
+        mex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING)
+        mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE, mex.last)
 
         return responder
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun awaitDidExchangeRequest(invitationId: String): EndpointMessage {
-        return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST, invitationId)
+    private fun awaitDidExchangeRequest(): EndpointMessage {
+        return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST)
     }
 
-    private fun awaitDidExchangeResponse(invitationId: String): EndpointMessage {
-        return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE, invitationId)
+    private fun awaitDidExchangeResponse(): EndpointMessage {
+        return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE)
     }
 
-    private fun awaitDidExchangeComplete(invitationId: String): EndpointMessage {
-        return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE, invitationId)
+    private fun awaitDidExchangeComplete(): EndpointMessage {
+        return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE)
     }
 
-    private fun awaitTrustPing(conId: String): EndpointMessage {
-        return mex.awaitEndpointMessage(RFC0048_TRUST_PING_MESSAGE_TYPE_PING, conId)
+    private fun awaitTrustPing(timeout: Int, unit: TimeUnit): EndpointMessage {
+        return mex.awaitEndpointMessage(RFC0048_TRUST_PING_MESSAGE_TYPE_PING, timeout, unit)
     }
 
     private fun fixupTheirConnection(invitation: Invitation) {
 
         val invitationKey = invitation.invitationKey()
         val theirMex = MessageExchange.findByInvitationKey(invitationKey).firstOrNull { it != mex }
-        val theirWallet = theirMex?.getAttachment(WALLET_ATTACHMENT_KEY) ?: return
+        val theirWallet = theirMex?.getAttachment(WALLET_ATTACHMENT_KEY)
 
-        if (theirWallet.agentType == AgentType.ACAPY) {
+        if (theirWallet?.agentType == AgentType.ACAPY) {
             val walletClient = theirWallet.walletClient() as AriesClient
             val filter = ConnectionFilter.builder().invitationKey(invitationKey).build()
             val conRecord = walletClient.connections(filter).get().firstOrNull()
             checkNotNull(conRecord) { "No connection for invitationKey: $invitationKey" }
 
-            val myCon = mex.connection
+            val myCon = mex.getConnection()
+
             val theirDid = myCon.theirDid
-            val theirCon = theirMex.connection
+            val theirCon = theirMex.getAttachment(CONNECTION_ATTACHMENT_KEY) ?: run {
+
+                // Create and attach the Connection
+                val pcon = Connection(
+                    id = conRecord.connectionId,
+                    agent = theirWallet.agentType,
+                    invitationKey = invitationKey,
+                    myDid = theirDid,
+                    myRole = myCon.theirRole,
+                    myLabel = myCon.theirLabel as String,
+                    myEndpointUrl = myCon.theirEndpointUrl as String,
+                    theirDid = myCon.myDid,
+                    theirRole = conRecord.theirRole.toConnectionRole(),
+                    theirLabel = myCon.myLabel,
+                    theirEndpointUrl = myCon.myEndpointUrl,
+                    state = conRecord.state.toConnectionState()
+                )
+
+                theirWallet.toWalletModel().addConnection(pcon)
+                theirMex.setConnection(pcon)
+                pcon
+            }
+
+            check(theirCon.agent == AgentType.ACAPY) { "Unexpected connection agent" }
             check(theirCon.id == conRecord.connectionId) { "Unexpected connection id" }
             check(theirDid.id == conRecord.myDid) { "Unexpected connection did" }
 

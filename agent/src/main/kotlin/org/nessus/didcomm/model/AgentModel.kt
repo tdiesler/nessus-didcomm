@@ -25,16 +25,20 @@ class AgentModel {
 
     internal val walletsMap: MutableMap<String, WalletModel> = mutableMapOf()
 
-    val wallets get() = walletsMap.values.toList()
+    @get:Synchronized
+    val wallets
+        get() = walletsMap.values.toList()
 
-    val asJson get() = gson.toJson(mapOf(
-        "wallets" to wallets.sortedBy { it.name }))
+    val asJson
+        get() = gson.toJson(mapOf("wallets" to wallets.sortedBy { it.name }))
 
+    @Synchronized
     fun addWallet(wallet: WalletModel) {
         check(!walletsMap.containsKey(wallet.id)) { "Wallet already exists: ${wallet.id}" }
         walletsMap[wallet.id] = wallet
     }
 
+    @Synchronized
     fun removeWallet(id: String): WalletModel? {
         return walletsMap.remove(id)
     }

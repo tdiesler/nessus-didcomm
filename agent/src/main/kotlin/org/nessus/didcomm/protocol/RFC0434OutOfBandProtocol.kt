@@ -117,8 +117,6 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
             AgentType.NESSUS -> receiveOutOfBandInvitationNessus(invitee, invitation)
         }
 
-        rfc0434.mex.putAttachment(WALLET_ATTACHMENT_KEY, invitee)
-
         // Associate this invitation with the invitee wallet
         invitation.state = InvitationState.RECEIVED
         invitation.state = InvitationState.DONE
@@ -181,7 +179,7 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
             state = ConnectionState.INVITATION
         )
 
-        mex.connection = pcon
+        mex.setConnection(pcon)
         inviter.toWalletModel().addConnection(pcon)
 
         return invitation
@@ -226,7 +224,7 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
             state = ConnectionState.INVITATION
         )
 
-        mex.connection = pcon
+        mex.setConnection(pcon)
         inviter.toWalletModel().addConnection(pcon)
 
         return invitation
@@ -251,11 +249,11 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
             .build()
 
         // Start a new MessageExchange
-        val theirMex = MessageExchange()
-        theirMex.putAttachment(WALLET_ATTACHMENT_KEY, invitee)
+        val inviteeMex = MessageExchange()
+        inviteeMex.putAttachment(WALLET_ATTACHMENT_KEY, invitee)
 
         // Do this before the admin command call to avoid a race with the incoming didex request message
-        theirMex.addMessage(EndpointMessage(
+        inviteeMex.addMessage(EndpointMessage(
             invitation, mapOf(
                 MESSAGE_HEADER_PROTOCOL_URI to protocolUri,
                 MESSAGE_HEADER_ID to invitation.id,
@@ -270,46 +268,22 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
          *
          * We place the future before the receive-invitation admin command
          */
-        mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST, invitation.id)
+        mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST)
 
         val inviteeClient = invitee.walletClient() as AriesClient
-        val conRecord = inviteeClient.outOfBandReceiveInvitation(invitationMessage, receiveInvFilter).get()
+        inviteeClient.outOfBandReceiveInvitation(invitationMessage, receiveInvFilter).get()
 
-        val myLabel = "Invitee ${invitee.name} on ${invitee.agentType}"
-        val myEndpointUrl = invitee.endpointUrl
-        val invitationKey = invitation.invitationKey()
-
-        // Create and attach the Connection
-        val pcon = Connection(
-            id = conRecord.connectionId,
-            agent = invitee.agentType,
-            invitationKey = invitationKey,
-            myDid = null,
-            myRole = ConnectionRole.INVITEE,
-            myLabel = myLabel,
-            myEndpointUrl = myEndpointUrl,
-            theirDid = null,
-            theirRole = ConnectionRole.INVITER,
-            theirLabel = null,
-            theirEndpointUrl = null,
-            state = ConnectionState.INVITATION
-        )
-
-        theirMex.connection = pcon
-        invitee.toWalletModel().addConnection(pcon)
-
+        // We stay with the inviter protocol/mex
         return this
     }
 
     private fun receiveOutOfBandInvitationNessus(invitee: Wallet, invitation: Invitation): RFC0434OutOfBandProtocol {
 
         // Start a new MessageExchange
-        val theirMex = MessageExchange()
-        val rfc0434 = theirMex.withProtocol(RFC0434_OUT_OF_BAND)
+        val inviteeMex = MessageExchange()
+        inviteeMex.putAttachment(WALLET_ATTACHMENT_KEY, invitee)
 
-        theirMex.putAttachment(WALLET_ATTACHMENT_KEY, invitee)
-
-        theirMex.addMessage(EndpointMessage(invitation, mapOf(
+        inviteeMex.addMessage(EndpointMessage(invitation, mapOf(
             MESSAGE_HEADER_PROTOCOL_URI to protocolUri,
             MESSAGE_HEADER_ID to invitation.id,
             MESSAGE_HEADER_THID to invitation.id,
@@ -337,9 +311,9 @@ class RFC0434OutOfBandProtocol(mex: MessageExchange): Protocol<RFC0434OutOfBandP
             state = ConnectionState.INVITATION
         )
 
-        theirMex.connection = pcon
+        inviteeMex.setConnection(pcon)
         invitee.toWalletModel().addConnection(pcon)
 
-        return rfc0434
+        return inviteeMex.withProtocol(RFC0434_OUT_OF_BAND)
     }
 }

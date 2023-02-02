@@ -19,15 +19,12 @@
  */
 package org.nessus.didcomm.cli.cmd
 
-import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.model.toWallet
 import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
-import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
-import org.nessus.didcomm.wallet.toWalletModel
 import picocli.CommandLine.Command
-import picocli.CommandLine.Parameters
+import picocli.CommandLine.Option
 import java.util.concurrent.Callable
 
 @Command(
@@ -42,32 +39,27 @@ class RFC0023Commands
 @Command(name = "connect")
 class RFC0023ConnectCommand: AbstractBaseCommand(), Callable<Int> {
 
-    @Parameters(index = "0", description = ["The requester wallet name"])
-    var requesterName: String? = null
-
-    @Parameters(index = "1", description = ["The responder wallet name"])
-    var responderName: String? = null
+    @Option(names = ["--requester" ], description = ["The requester alias"])
+    var requesterAlias: String? = null
 
     override fun call(): Int {
-        val requester = walletService.findByName(requesterName!!)
-        val responder = walletService.findByName(responderName!!)
-        checkNotNull(requester) { "No wallet for name: $requesterName" }
-        checkNotNull(responder) { "No wallet for name: $responderName" }
-        checkWalletEndpoint(requester)
-        val mex = MessageExchange()
-            .withProtocol(RFC0434_OUT_OF_BAND)
-            .createOutOfBandInvitation(responder)
-            .receiveOutOfBandInvitation(requester)
+
+        val invitation = getContextInvitation()
+        val connection = getContextConnection()
+        val requester = getContextWallet(requesterAlias)
+
+        val responder = modelService.findWalletByVerkey(invitation.invitationKey())
+        checkNotNull(responder) { "No responder wallet" }
+
+        checkWalletEndpoint(requester, responder)
+
+        MessageExchange.findByVerkey(connection.myVerkey)
+            .withAttachment(INVITATION_ATTACHMENT_KEY, invitation)
             .withProtocol(RFC0023_DIDEXCHANGE)
-            .connect(requester)
+            .connect(requester.toWallet())
             .getMessageExchange()
-        val invitation = mex.invitation as Invitation
-        val pcon = mex.connection
-        checkNotNull(requester.toWalletModel().getInvitation(invitation.id))
-        checkNotNull(requester.toWalletModel().getConnection(pcon.id))
-        cliService.putAttachment(INVITATION_ATTACHMENT_KEY, invitation)
-        cliService.putAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
-        println("${requester.name} now has a connection with ${responder.name} in state ${pcon.state}")
+
+        println("${requester.name} now has a connection with ${responder.name} in state ${connection.state}")
         return 0
     }
 }

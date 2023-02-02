@@ -42,17 +42,18 @@ import java.util.concurrent.TimeUnit
  *
  * In case of an external agent (e.g. AcaPy) we can only maintain a stub to the
  * actual connection maintained by the agent. In this case the message exchange
- * may not be able to see/record outgoing messages. In a best effort, we record
+ * may not be able to see/record outgoing messages. In the best effort, we record
  * the command messages sent to the agent.
  */
 class MessageExchange(): AttachmentSupport() {
-    val log = KotlinLogging.logger {}
 
     constructor(msg: EndpointMessage): this() {
         addMessage(msg)
     }
 
     companion object {
+        val log = KotlinLogging.logger {}
+
         val INVITATION_ATTACHMENT_KEY = AttachmentKey(Invitation::class.java)
         val CONNECTION_ATTACHMENT_KEY = AttachmentKey(Connection::class.java)
         val DID_DOCUMENT_ATTACHMENT_KEY = AttachmentKey(RFC0023DidDocument::class.java)
@@ -62,97 +63,110 @@ class MessageExchange(): AttachmentSupport() {
         private val exchangeRegistry: MutableList<MessageExchange> = mutableListOf()
 
         fun findByVerkey(recipientVerkey: String): MessageExchange {
-            val mex = exchangeRegistry.firstOrNull { it.connection.myVerkey == recipientVerkey }
-            checkNotNull(mex) { "Cannot find message exchange for recipient verkey: $recipientVerkey" }
-            return mex
+            synchronized(exchangeRegistry) {
+                val mex = exchangeRegistry.firstOrNull {
+                    val pcon = it.getAttachment(CONNECTION_ATTACHMENT_KEY)
+                    pcon?.myVerkey == recipientVerkey
+                }
+                if (mex == null) {
+                    exchangeRegistry.forEach { log.error { "Candidate $it" } }
+                }
+                checkNotNull(mex) { "Cannot find message exchange for recipient verkey: $recipientVerkey" }
+                return mex
+            }
         }
 
         fun findByInvitationKey(invitationKey: String): List<MessageExchange> {
-            return exchangeRegistry.filter {
-                // It is legal for the exchange ot have an invitation and not (yet) a connection
-                val pcon = it.getAttachment(CONNECTION_ATTACHMENT_KEY)
-                val invi = it.getAttachment(INVITATION_ATTACHMENT_KEY)
-                pcon?.invitationKey == invitationKey || invi?.invitationKey() == invitationKey
+            return synchronized(exchangeRegistry) {
+                exchangeRegistry.filter {
+                    // It is legal for the exchange ot have an invitation and not (yet) a connection
+                    val pcon = it.getAttachment(CONNECTION_ATTACHMENT_KEY)
+                    val invi = it.getAttachment(INVITATION_ATTACHMENT_KEY)
+                    pcon?.invitationKey == invitationKey || invi?.invitationKey() == invitationKey
+                }
             }
         }
     }
 
     private val messageStore: MutableList<EndpointMessage> = mutableListOf()
 
-    val mexId = "${UUID.randomUUID()}"
+    val id = "${UUID.randomUUID()}"
     val last get() = messages.last()
-    val messages get() = messageStore.toList()
-    val threadIds get() = messageStore.map { it.thid }
 
-    var connection: Connection
-        get() = run {
+    @get:Synchronized
+    val messages
+        get() = messageStore.toList()
+
+    fun getConnection(): Connection {
+        synchronized(exchangeRegistry) {
             checkNotNull(getAttachment(CONNECTION_ATTACHMENT_KEY)) { "No connection" }
-            getAttachment(CONNECTION_ATTACHMENT_KEY) as Connection
+            return getAttachment(CONNECTION_ATTACHMENT_KEY) as Connection
         }
-        set(pcon) = run {
-            check(getAttachment(CONNECTION_ATTACHMENT_KEY) == null) { "Connection already set" }
+    }
+
+    fun setConnection(pcon: Connection) {
+        synchronized(exchangeRegistry) {
+            log.error { "Set connection (mex=$id, verkey=${pcon.myVerkey})" }
+            check((getAttachment(CONNECTION_ATTACHMENT_KEY) == null)) { "Connection already set" }
             putAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
         }
+    }
 
-    val invitation: Invitation?
-        get() = getAttachment(INVITATION_ATTACHMENT_KEY)
+    fun getInvitation(): Invitation? {
+        return getAttachment(INVITATION_ATTACHMENT_KEY)
+    }
 
     fun addMessage(msg: EndpointMessage): MessageExchange {
-        val logMsg = "Add message [id=${msg.id}, type=${msg.type}] to mex=$mexId"
-        if (messageStore.isEmpty()) {
-            msg.checkMessageType(RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION)
-            putAttachment(INVITATION_ATTACHMENT_KEY, msg.body as Invitation)
-            exchangeRegistry.add(this)
+        synchronized(exchangeRegistry) {
+            val logMsg = "Add message [id=${msg.id}, type=${msg.type}] to mex=$id"
+            if (messageStore.isEmpty()) {
+                msg.checkMessageType(RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION)
+                putAttachment(INVITATION_ATTACHMENT_KEY, msg.body as Invitation)
+                exchangeRegistry.add(this)
+                messageStore.add(msg)
+                log.info { logMsg }
+                return this
+            }
+            check(msg.type != RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION) { "Invitation already added" }
             messageStore.add(msg)
             log.info { logMsg }
             return this
         }
-        check(msg.type != RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION) { "Invitation already added" }
-        messageStore.add(msg)
-        log.info { logMsg }
-        return this
     }
 
     fun checkLastMessageType(expectedType: String) {
         last.checkMessageType(expectedType)
     }
 
-    fun hasEndpointMessageFuture(messageType: String, cid: String): Boolean {
-        val futureKey = AttachmentKey("$messageType?cid=$cid", CompletableFuture::class.java)
-        return hasAttachment(futureKey)
+    fun hasEndpointMessageFuture(messageType: String): Boolean {
+        return hasAttachment(getFutureKey(messageType))
     }
 
-    fun placeEndpointMessageFuture(messageType: String, cid: String) {
-        val futureId = "$messageType?cid=$cid"
-        val futureKey = AttachmentKey(futureId, CompletableFuture::class.java)
+    fun placeEndpointMessageFuture(messageType: String) {
+        val futureKey = getFutureKey(messageType)
         putAttachment(futureKey, CompletableFuture<EndpointMessage>())
-        log.info("Placed future ${futureKey.name} on mex=$mexId")
+        log.info("Placed future ${futureKey.name} on mex=$id")
     }
 
-    // There is a potential race condition here, for example ...
-    // - Invitee receives and Invitation and places DidEx Request future
-    // - Responder
-    fun awaitEndpointMessage(messageType: String, cid: String): EndpointMessage {
-        val futureId = "$messageType?cid=$cid"
-        val futureKey = AttachmentKey(futureId, CompletableFuture::class.java)
+    fun awaitEndpointMessage(messageType: String, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): EndpointMessage {
+        val futureKey = getFutureKey(messageType)
         val future = getAttachment(futureKey)
-        checkNotNull(future) { "No Future ${futureKey.name} on mex=$mexId" }
+        checkNotNull(future) { "No Future ${futureKey.name} on mex=$id" }
         try {
-            log.info {"Wait for future ${futureKey.name} on mex=$mexId"}
-            return future.get(10, TimeUnit.SECONDS) as EndpointMessage
+            log.info {"Wait for future ${futureKey.name} on mex=$id"}
+            return future.get(timeout.toLong(), unit) as EndpointMessage
         } finally {
-            log.info {"Remove future ${futureKey.name} from mex=$mexId"}
+            log.info {"Remove future ${futureKey.name} from mex=$id"}
             removeAttachment(futureKey)
         }
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun completeEndpointMessageFuture(messageType: String, cid: String, epm: EndpointMessage) {
-        val futureId = "$messageType?cid=$cid"
-        val futureKey = AttachmentKey(futureId, CompletableFuture::class.java)
+    fun completeEndpointMessageFuture(messageType: String, epm: EndpointMessage) {
+        val futureKey = getFutureKey(messageType)
         val future = getAttachment(futureKey) as? CompletableFuture<EndpointMessage>
-        checkNotNull(future) { "No Future ${futureKey.name} on mex=$mexId" }
-        log.info {"Complete future ${futureKey.name} on mex=$mexId"}
+        checkNotNull(future) { "No Future ${futureKey.name} on mex=$id" }
+        log.info {"Complete future ${futureKey.name} on mex=$id"}
         future.complete(epm)
     }
 
@@ -167,13 +181,20 @@ class MessageExchange(): AttachmentSupport() {
     }
 
     fun showMessages(name: String) {
-        log.info { "MessageExchange ($name) - $mexId" }
+        log.info { "MessageExchange ($name) - $id" }
         messages.forEach {
             log.info { "+ (id=${it.id}, thid=${it.thid}) - ${it.type}" }
         }
     }
 
     override fun toString(): String {
-        return "MessageExchange(id=${mexId}, size=${messageStore.size}, thids=${threadIds})"
+        val pcon = getAttachment(CONNECTION_ATTACHMENT_KEY)
+        return "MessageExchange(id=${id}, size=${messageStore.size}, verkey=${pcon?.myVerkey})"
+    }
+
+    // Private ---------------------------------------------------------------------------------------------------------
+
+    private fun getFutureKey(messageType: String): AttachmentKey<CompletableFuture<*>> {
+        return AttachmentKey(messageType, CompletableFuture::class.java)
     }
 }

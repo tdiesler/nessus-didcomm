@@ -28,16 +28,34 @@ class AgentCmdTest: AbstractCmdTest() {
     @Test
     fun testInvalidUri() {
         val cmdln = safeExecutionCommandLine()
-        assertTrue(cliService.execute("agent start foo", cmdln).isFailure)
+        assertTrue(cliService.execute("agent start --uri foo", cmdln).isFailure)
     }
 
     @Test
     fun testValidUri() {
 
-        assertTrue(cliService.execute("agent start 0.0.0.0:8130").isSuccess)
+        assertTrue(cliService.execute("agent start --uri 0.0.0.0:8130").isSuccess)
 
         Thread.sleep(500)
 
-        assertTrue(cliService.execute("agent stop 0.0.0.0:8130").isSuccess)
+        assertTrue(cliService.execute("agent stop --uri 0.0.0.0:8130").isSuccess)
+    }
+
+    @Test
+    fun testWalletAgent() {
+
+        assertTrue(cliService.execute("wallet create --name Alice").isSuccess)
+
+        try {
+
+            assertTrue(cliService.execute("agent start").isSuccess)
+
+            Thread.sleep(500)
+
+            assertTrue(cliService.execute("agent stop").isSuccess)
+
+        } finally {
+            assertTrue(cliService.execute("wallet remove --alias alice").isSuccess)
+        }
     }
 }

@@ -37,8 +37,7 @@ class RFC0095BasicMessageCommand: AbstractBaseCommand() {
 
     @Command(name="send")
     fun sendMessage(): Int {
-        val pcon = cliService.getAttachment(CONNECTION_ATTACHMENT_KEY)
-        checkNotNull(pcon) { "No connection" }
+        val pcon = getContextConnection()
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)
         checkNotNull(sender) { "No sender wallet for: ${pcon.myVerkey}" }
         MessageExchange()

@@ -20,11 +20,11 @@
 package org.nessus.didcomm.cli.cmd
 
 import org.apache.camel.CamelContext
-import org.nessus.didcomm.cli.cmd.AgentCommands.EndpointSpec.Companion.valueOf
 import org.nessus.didcomm.util.AttachmentKey
 import picocli.CommandLine.Command
-import picocli.CommandLine.Parameters
+import picocli.CommandLine.Option
 import picocli.CommandLine.ScopeType.INHERIT
+import java.net.URL
 
 @Command(
     name = "agent",
@@ -32,32 +32,13 @@ import picocli.CommandLine.ScopeType.INHERIT
 )
 class AgentCommands: AbstractBaseCommand() {
 
-    @Parameters(paramLabel = "URI", scope = INHERIT, description = ["The URI of the form [type:][host:]port"])
+    @Option(names = ["--uri" ], scope = INHERIT, description = ["The URI of the form [type:][host:]port"])
     var uri: String? = null
-
-    data class EndpointSpec(
-        val type: String,
-        val host: String,
-        val port: Int,
-    ) {
-        companion object {
-            fun valueOf(uri: String): EndpointSpec {
-                val toks = uri.split(':')
-                return when (toks.size) {
-                    3 -> EndpointSpec(toks[0], toks[1], toks[2].toInt())
-                    2 -> EndpointSpec("Camel", toks[0], toks[1].toInt())
-                    1 -> EndpointSpec("Camel", "0.0.0.0", toks[0].toInt())
-                    else -> throw IllegalArgumentException("Invalid URI spec: $uri")
-                }
-            }
-        }
-        override fun toString() = "$type:$host:$port"
-    }
 
     @Command(name = "start")
     fun start(): Int {
-        val eps = valueOf(uri!!)
-        check(eps.type.lowercase() == "camel") { "Unsupported endpoint type: $eps" }
+        val eps = getEndpointSpec(uri)
+        check(eps.type?.lowercase() == "camel") { "Unsupported endpoint type: $eps" }
         val context = endpointService.startEndpoint("http://${eps.host}:${eps.port}")
         println("Started ${eps.type} endpoint on ${eps.host}:${eps.port}")
         val key = AttachmentKey("$eps", CamelContext::class.java)
@@ -67,7 +48,7 @@ class AgentCommands: AbstractBaseCommand() {
 
     @Command(name = "stop")
     fun stop(): Int {
-        val eps = valueOf(uri!!)
+        val eps = getEndpointSpec(uri)
         val key = AttachmentKey("$eps", CamelContext::class.java)
         val context = cliService.removeAttachment(key)
         checkNotNull(context) { "No endpoint context" }
@@ -75,5 +56,40 @@ class AgentCommands: AbstractBaseCommand() {
         println("Stopped ${eps.type} endpoint on ${eps.host}:${eps.port}")
         return 0
     }
+
+    private fun getEndpointSpec(uri: String?): EndpointSpec {
+        return if (uri != null) {
+            EndpointSpec.valueOf(uri)
+        } else {
+            getContextWallet().run {
+                EndpointSpec.valueOf(URL(endpointUrl))
+            }
+        }
+    }
 }
 
+data class EndpointSpec(
+    val type: String,
+    val host: String,
+    val port: Int,
+) {
+    companion object {
+        private const val DEFAULT_ENDPOINT_TYPE = "Camel"
+
+        fun valueOf(url: URL): EndpointSpec {
+            return EndpointSpec(DEFAULT_ENDPOINT_TYPE, url.host, url.port)
+        }
+
+        fun valueOf(uri: String): EndpointSpec {
+            val toks = uri.split(':')
+            return when (toks.size) {
+                3 -> EndpointSpec(toks[0], toks[1], toks[2].toInt())
+                2 -> EndpointSpec(DEFAULT_ENDPOINT_TYPE, toks[0], toks[1].toInt())
+                1 -> EndpointSpec(DEFAULT_ENDPOINT_TYPE,"0.0.0.0", toks[0].toInt())
+                else -> throw IllegalArgumentException("Invalid URI spec: $uri")
+            }
+        }
+    }
+
+    override fun toString() = "$type:$host:$port"
+}

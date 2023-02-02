@@ -60,7 +60,7 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
                     .withProtocol(RFC0023_DIDEXCHANGE)
                     .connect(alice).getMessageExchange()
 
-                val aliceFaber = mex.connection
+                val aliceFaber = mex.getConnection()
                 assertEquals(ACTIVE, aliceFaber.state)
                 assertEquals(AgentType.NESSUS, aliceFaber.agent)
 

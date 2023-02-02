@@ -33,8 +33,7 @@ class RFC0048TrustPingCommand: AbstractBaseCommand() {
 
     @Command(name="send-ping")
     fun sendPing(): Int {
-        val pcon = cliService.getAttachment(CONNECTION_ATTACHMENT_KEY)
-        checkNotNull(pcon) { "No connection" }
+        val pcon = getContextConnection()
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)
         checkNotNull(sender) { "No sender wallet for: ${pcon.myVerkey}" }
         val mex = MessageExchange()
@@ -47,4 +46,5 @@ class RFC0048TrustPingCommand: AbstractBaseCommand() {
         println("${sender.name} received a Trust Ping response")
         return 0
     }
+
 }

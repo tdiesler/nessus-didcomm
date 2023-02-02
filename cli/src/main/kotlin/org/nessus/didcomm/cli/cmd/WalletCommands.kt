@@ -19,46 +19,27 @@
  */
 package org.nessus.didcomm.cli.cmd
 
+import org.nessus.didcomm.model.toWallet
+import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.toWalletModel
-import picocli.CommandLine.Command
-import picocli.CommandLine.Option
+import picocli.CommandLine.*
 import java.util.concurrent.Callable
 
 @Command(
     name = "wallet",
     description = ["Wallet related commands"],
     subcommands = [
-        WalletCreate::class,
-        WalletList::class,
-        WalletRemove::class,
+        WalletCreateCommand::class,
+        WalletSwitchCommand::class,
+        WalletRemoveCommand::class,
     ]
 )
-class WalletCommands: AbstractBaseCommand()
+class WalletCommands: AbstractBaseCommand() {
 
-@Command(name = "create")
-class WalletCreate: AbstractBaseCommand(), Callable<Int> {
-
-    @Option(names = ["-n", "--name" ], required = true, description = ["The wallet name"])
-    var name: String? = null
-
-    @Option(names = ["-a", "--agent" ], description = ["The agent type (default=Nessus)"], defaultValue = "Nessus")
-    var agent: String? = null
-
-    override fun call(): Int {
-        val wallet = Wallet.Builder(name!!)
-            .agentType(AgentType.fromValue(agent!!))
-            .build().toWalletModel()
-        println("Wallet created: ${wallet.asString()}")
-        return 0
-    }
-}
-
-@Command(name = "list")
-class WalletList: AbstractBaseCommand(), Callable<Int> {
-
-    override fun call(): Int {
+    @Command(name = "list")
+    fun listWallets(): Int {
         walletService.wallets.forEach {
             println( it.toWalletModel().asString() )
         }
@@ -66,16 +47,50 @@ class WalletList: AbstractBaseCommand(), Callable<Int> {
     }
 }
 
-@Command(name = "remove")
-class WalletRemove: AbstractBaseCommand(), Callable<Int> {
+@Command(name = "create")
+class WalletCreateCommand: AbstractBaseCommand(), Callable<Int> {
 
-    @Option(names = ["-n", "--name" ], required = true, description = ["The wallet name"])
+    @Option(names = ["-n", "--name"], required = true, description = ["The wallet name"])
     var name: String? = null
 
+    @Option(names = ["-a", "--agent"], description = ["The agent type (default=Nessus)"], defaultValue = "Nessus")
+    var agent: String? = null
+
     override fun call(): Int {
-        modelService.findWalletByName(name!!)?.run {
-            walletService.removeWallet(id)
-            println("Wallet removed: ${asString()}")
+        val wallet = Wallet.Builder(name!!)
+            .agentType(AgentType.fromValue(agent!!))
+            .build()
+        cliService.putAttachment(WALLET_ATTACHMENT_KEY, wallet)
+        println("Wallet created: ${wallet.toWalletModel().asString()}")
+        return 0
+    }
+}
+
+@Command(name = "switch")
+class WalletSwitchCommand: AbstractBaseCommand(), Callable<Int> {
+
+    @Parameters(description = ["The target alias"])
+    var alias: String? = null
+
+    override fun call(): Int {
+        getWalletModel(alias!!).also {
+            cliService.putAttachment(WALLET_ATTACHMENT_KEY, it.toWallet())
+        }
+        return 0
+    }
+}
+
+@Command(name = "remove")
+class WalletRemoveCommand: AbstractBaseCommand(), Callable<Int> {
+
+    @Option(names = ["--alias"], description = ["The wallet alias"])
+    var alias: String? = null
+
+    override fun call(): Int {
+        getContextWallet(alias).also {
+            walletService.removeWallet(it.id)
+            cliService.removeAttachment(WALLET_ATTACHMENT_KEY)
+            println("Wallet removed: ${it.asString()}")
         }
         return 0
     }

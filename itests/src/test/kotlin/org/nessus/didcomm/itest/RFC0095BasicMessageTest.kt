@@ -76,7 +76,7 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
                     .withProtocol(RFC0023_DIDEXCHANGE)
                     .connect(alice).getMessageExchange()
 
-                val aliceFaber = mex.connection
+                val aliceFaber = mex.getConnection()
                 assertEquals(ACTIVE, aliceFaber.state)
 
                 val aliceMessage = "Ich habe Sauerkraut in meinen Lederhosen"

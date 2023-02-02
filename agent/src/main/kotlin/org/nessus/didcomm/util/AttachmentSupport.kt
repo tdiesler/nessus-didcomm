@@ -22,7 +22,7 @@ package org.nessus.didcomm.util
 @Suppress("UNCHECKED_CAST")
 open class AttachmentSupport : Attachments {
 
-    private val attachments: MutableMap<AttachmentKey<out Any>, Any> = mutableMapOf()
+    private val attachments = HashMap<AttachmentKey<out Any>, Any>()
 
     @get:Synchronized
     override val attachmentKeys: Set<AttachmentKey<out Any>>

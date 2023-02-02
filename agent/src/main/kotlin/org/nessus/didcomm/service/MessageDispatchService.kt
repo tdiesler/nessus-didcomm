@@ -21,6 +21,7 @@ package org.nessus.didcomm.service
 
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
+import org.nessus.didcomm.model.toWallet
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_PROTOCOL_URI
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_RECIPIENT_VERKEY
@@ -46,8 +47,8 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
     }
 
     private val httpService get() = HttpService.getService()
+    private val modelService get() = DataModelService.getService()
     private val protocolService get() = ProtocolService.getService()
-    private val walletService get() = WalletService.getService()
 
     /**
      * Entry point for all external messages sent to a wallet endpoint
@@ -112,7 +113,7 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
             MESSAGE_HEADER_SENDER_VERKEY to senderVerkey,
             MESSAGE_HEADER_RECIPIENT_VERKEY to recipientVerkey))
 
-        val recipientWallet = walletService.findByVerkey(recipientVerkey)
+        val recipientWallet = modelService.findWalletByVerkey(recipientVerkey)?.toWallet()
         checkNotNull(recipientWallet) { "Cannot find recipient wallet for: $recipientVerkey" }
 
         /**
