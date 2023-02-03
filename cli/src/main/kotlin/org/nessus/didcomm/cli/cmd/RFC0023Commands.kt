@@ -58,7 +58,7 @@ class RFC0023ConnectCommand: AbstractBaseCommand() {
             .connect(requester.toWallet())
             .getMessageExchange()
 
-        println("${requester.name} now has a connection with ${responder.name} in state ${connection.state}")
+        println("${requester.name} has a connection with ${responder.name} in state ${connection.state}")
         return 0
     }
 }

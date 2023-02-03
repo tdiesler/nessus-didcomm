@@ -112,7 +112,7 @@ class RFC0434InviteAndConnect: AbstractBaseCommand() {
             .getMessageExchange()
 
         cliService.putAttachment(CONNECTION_ATTACHMENT_KEY, mex.getConnection())
-        println("${invitee.name} now has a connection with ${inviter.name} in state ${mex.getConnection().state}")
+        println("${invitee.name} has a connection with ${inviter.name} in state ${mex.getConnection().state}")
 
         return 0
     }

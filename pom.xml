@@ -17,6 +17,7 @@
         <version.apache.camel>3.20.0</version.apache.camel>
         <version.didcommx.didcomm>0.3.3-SNAPSHOT</version.didcommx.didcomm>
         <version.fasterxml.jackson>2.14.1</version.fasterxml.jackson>
+        <version.fusesource.jansi>2.4.0</version.fusesource.jansi>
         <version.google.crypto.tink>1.7.0</version.google.crypto.tink>
         <version.hyperledger.indy>1.16.0</version.hyperledger.indy>
         <version.kotlin.logging>3.0.4</version.kotlin.logging>
@@ -117,6 +118,11 @@
                 <version>${version.picocli}</version>
             </dependency>
             <dependency>
+                <groupId>info.picocli</groupId>
+                <artifactId>picocli-shell-jline3</artifactId>
+                <version>${version.picocli}</version>
+            </dependency>
+            <dependency>
                 <groupId>io.github.microutils</groupId>
                 <artifactId>kotlin-logging-jvm</artifactId>
                 <version>${version.kotlin.logging}</version>
@@ -137,6 +143,11 @@
                 <groupId>org.didcommx</groupId>
                 <artifactId>didcomm</artifactId>
                 <version>${version.didcommx.didcomm}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.fusesource.jansi</groupId>
+                <artifactId>jansi</artifactId>
+                <version>${version.fusesource.jansi}</version>
             </dependency>
             <dependency>
                 <groupId>org.hyperledger</groupId>

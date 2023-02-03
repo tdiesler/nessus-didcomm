@@ -106,7 +106,6 @@ class MessageExchange(): AttachmentSupport() {
 
     fun setConnection(pcon: Connection) {
         synchronized(exchangeRegistry) {
-            log.error { "Set connection (mex=$id, verkey=${pcon.myVerkey})" }
             check((getAttachment(CONNECTION_ATTACHMENT_KEY) == null)) { "Connection already set" }
             putAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
         }

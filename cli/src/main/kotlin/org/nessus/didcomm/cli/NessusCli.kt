@@ -19,8 +19,23 @@
  */
 package org.nessus.didcomm.cli
 
+import org.fusesource.jansi.AnsiConsole
+import org.jline.console.CmdLine
+import org.jline.console.impl.SystemRegistryImpl
+import org.jline.console.impl.SystemRegistryImpl.UnknownCommandException
+import org.jline.keymap.KeyMap
+import org.jline.reader.Binding
+import org.jline.reader.EndOfFileException
+import org.jline.reader.LineReader
+import org.jline.reader.LineReaderBuilder
+import org.jline.reader.Reference
+import org.jline.reader.UserInterruptException
+import org.jline.reader.impl.DefaultParser
+import org.jline.terminal.Terminal
+import org.jline.terminal.TerminalBuilder
+import org.jline.widget.TailTipWidgets
 import org.nessus.didcomm.cli.cmd.AgentCommands
-import org.nessus.didcomm.cli.cmd.QuitCommand
+import org.nessus.didcomm.cli.cmd.ClearScreenCommand
 import org.nessus.didcomm.cli.cmd.RFC0023Commands
 import org.nessus.didcomm.cli.cmd.RFC0048TrustPingCommand
 import org.nessus.didcomm.cli.cmd.RFC0095BasicMessageCommand
@@ -32,31 +47,25 @@ import org.nessus.didcomm.service.ServiceMatrixLoader
 import picocli.CommandLine
 import picocli.CommandLine.Command
 import picocli.CommandLine.ExecutionException
-import picocli.CommandLine.Help.Column
-import picocli.CommandLine.Help.TextTable
-import picocli.CommandLine.IExecutionExceptionHandler
-import picocli.CommandLine.IHelpSectionRenderer
-import picocli.CommandLine.Model
-import picocli.CommandLine.Model.UsageMessageSpec.SECTION_KEY_COMMAND_LIST
 import picocli.CommandLine.ParameterException
+import picocli.shell.jline3.PicocliCommands
 import kotlin.system.exitProcess
 
 @Command(
-    name = "didcomm", description = ["Nessus DIDComm-V2 CLI"], version = ["1.0"],
-    mixinStandardHelpOptions = true,
+    name = "didcomm", description = ["Nessus DIDComm-V2"], version = ["1.0"],
+    mixinStandardHelpOptions = false,
     usageHelpWidth = 160,
     subcommands = [
         AgentCommands::class,
+        ClearScreenCommand::class,
         RFC0023Commands::class,
         RFC0048TrustPingCommand::class,
         RFC0095BasicMessageCommand::class,
         RFC0434Commands::class,
         ShowCommands::class,
         WalletCommands::class,
-        QuitCommand::class,
-    ],
+    ]
 )
-
 class NessusCli {
 
     companion object {
@@ -64,29 +73,14 @@ class NessusCli {
         @JvmStatic
         fun main(args: Array<String>) {
             ServiceMatrixLoader.loadServiceDefinitions()
-            exitProcess(NessusCli().repl())
+            exitProcess(NessusCli().runTerminal())
         }
 
-        val defaultCommandLine: CommandLine
-            get() = run {
-                val cmdln = CommandLine(NessusCli())
-                cmdln.helpSectionMap[SECTION_KEY_COMMAND_LIST] = CommandListRenderer();
-                cmdln
-            }
+        val defaultCommandLine
+            get() = CommandLine(NessusCli())
     }
 
     val cliService get() = CLIService.getService()
-
-    fun repl(): Int {
-        while (true) {
-            showPrompt()
-            val line = readln()
-            if (line in listOf("q", "quit"))
-                break
-            execute(line, replCommandLine())
-        }
-        return 0
-    }
 
     fun execute(args: String, cmdLine: CommandLine? = null): Result<Any> {
         val cmdln = cmdLine ?: defaultCommandLine
@@ -109,61 +103,74 @@ class NessusCli {
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    internal class CommandListRenderer : IHelpSectionRenderer {
+    internal class CommandsFactory(val terminal: Terminal) : CommandLine.IFactory {
 
-        // https://github.com/remkop/picocli/blob/main/picocli-examples/src/main/java/picocli/examples/customhelp
-
-        override fun render(help: CommandLine.Help): String {
-
-            val spec: Model.CommandSpec = help.commandSpec()
-
-            // prepare layout: two columns
-            // the left column overflows, the right column wraps if text is too long
-            val columnWidth = 25
-            val textTable: TextTable = TextTable.forColumns(
-                help.colorScheme(),
-                Column(25, 2, Column.Overflow.SPAN),
-                Column(80, 2, Column.Overflow.SPAN)
-            )
-            textTable.isAdjustLineBreaksForWideCJKCharacters = spec.usageMessage().adjustLineBreaksForWideCJKCharacters()
-            for (subcommand in spec.subcommands().values) {
-                addHierarchy(subcommand, textTable, "")
-                textTable.addRowValues("")
+        @Suppress("UNCHECKED_CAST")
+        override fun <K> create(clazz: Class<K>): K {
+            return when(clazz) {
+                ClearScreenCommand::class.java -> ClearScreenCommand(terminal) as K
+                else -> CommandLine.defaultFactory().create(clazz) as K
             }
-            return textTable.toString()
-        }
-
-        private fun addHierarchy(cmd: CommandLine, textTable: TextTable, indent: String) {
-            // create comma-separated list of command name and aliases
-            var names = cmd.commandSpec.names().toString()
-            names = names.substring(1, names.length - 1) // remove leading '[' and trailing ']'
-
-            // command description is taken from header or description
-            val description = description(cmd.commandSpec.usageMessage())
-
-            // add a line for this command to the layout
-            textTable.addRowValues(indent + names, description)
-
-            // add its subcommands (if any)
-            for (sub in cmd.subcommands.values) {
-                addHierarchy(sub, textTable, "$indent  ")
-            }
-        }
-
-        private fun description(usageMessage: Model.UsageMessageSpec): String {
-            if (usageMessage.header().isNotEmpty()) {
-                return usageMessage.header().get(0)
-            }
-            return if (usageMessage.description().isNotEmpty()) {
-                usageMessage.description().get(0)
-            } else ""
         }
     }
 
-    private fun showPrompt() {
-        val wallet = cliService.getAttachment(WALLET_ATTACHMENT_KEY)
-        val prompt = wallet?.run { "${name}>>" } ?: ">>"
-        print("\n$prompt ")
+    private fun runTerminal(): Int {
+        AnsiConsole.systemInstall()
+        try {
+            TerminalBuilder.builder().build().use { terminal ->
+
+                // Set up picocli commands
+                val factory = CommandsFactory(terminal)
+                val cmdln = CommandLine(NessusCli(), factory)
+                val commands = object : PicocliCommands(cmdln) {
+                    override fun name(): String {
+                        return "Commands"
+                    }
+                }
+
+                val topSpec = cmdln.commandSpec
+                println(topSpec.usageMessage().description()[0])
+                println("Version: ${topSpec.version()[0]}")
+
+                val parser = DefaultParser()
+                val systemRegistry = SystemRegistryImpl(parser, terminal, null, null)
+                systemRegistry.setCommandRegistries(commands)
+
+                val reader = LineReaderBuilder.builder()
+                    .variable(LineReader.LIST_MAX, 50) // max tab completion candidates
+                    .completer(systemRegistry.completer())
+                    .terminal(terminal)
+                    .parser(parser)
+                    .build()
+
+                val commandDescription = { cl: CmdLine -> systemRegistry.commandDescription(cl) }
+                TailTipWidgets(reader, commandDescription, 5, TailTipWidgets.TipType.COMPLETER).disable()
+                val keyMap = reader.keyMaps["main"] as KeyMap<Binding>
+                keyMap.bind(Reference("tailtip-toggle"), KeyMap.alt("s"))
+
+                fun prompt(): String {
+                    val wallet = cliService.getAttachment(WALLET_ATTACHMENT_KEY)
+                    return wallet?.run { "${name}>> " } ?: ">> "
+                }
+
+                // Start the shell and process input until the user quits with Ctrl-D
+                while (true) {
+                    try {
+                        systemRegistry.cleanUp()
+                        val line = reader.readLine("\n${prompt()}")
+                        systemRegistry.execute(line)
+                    } catch (e: Exception) {
+                        when(e) {
+                            is UnknownCommandException -> {}
+                            is UserInterruptException -> {}
+                            is EndOfFileException -> return 0
+                        }
+                    }
+                }
+            }
+        } finally {
+            AnsiConsole.systemUninstall()
+        }
     }
 
     private fun smartSplit(args: String): List<String> {
@@ -189,17 +196,6 @@ class NessusCli {
             }
         }
         return result.toList()
-    }
-
-    // A CommandLine that doesn't throw ExecutionException
-    private fun replCommandLine(): CommandLine {
-        val cmdln = defaultCommandLine
-        cmdln.executionExceptionHandler = IExecutionExceptionHandler { ex, _, _ ->
-            val exitCode = 1
-            ex.printStackTrace()
-            exitCode
-        }
-        return cmdln
     }
 }
 
