@@ -29,7 +29,7 @@ class WalletCmdTest: AbstractCmdTest() {
     @Test
     fun walletCommands() {
 
-        assertTrue(cliService.execute("wallet list").isSuccess)
+        assertTrue(cliService.execute("show wallets").isSuccess)
         assertEquals(2, modelService.wallets.size)
 
         assertTrue(cliService.execute("wallet create --name Alice --agent Nessus").isSuccess)

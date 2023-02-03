@@ -25,7 +25,6 @@ import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHME
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
-import java.util.concurrent.Callable
 
 @Command(
     name = "rfc0023",
@@ -36,8 +35,8 @@ import java.util.concurrent.Callable
 )
 class RFC0023Commands
 
-@Command(name = "connect")
-class RFC0023ConnectCommand: AbstractBaseCommand(), Callable<Int> {
+@Command(name = "connect", description = ["Connect a requester with a responder"])
+class RFC0023ConnectCommand: AbstractBaseCommand() {
 
     @Option(names = ["--requester" ], description = ["The requester alias"])
     var requesterAlias: String? = null

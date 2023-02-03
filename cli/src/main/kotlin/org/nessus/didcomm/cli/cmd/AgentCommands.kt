@@ -35,21 +35,21 @@ class AgentCommands: AbstractBaseCommand() {
     @Option(names = ["--uri" ], scope = INHERIT, description = ["The URI of the form [type:][host:]port"])
     var uri: String? = null
 
-    @Command(name = "start")
+    @Command(name = "start", description = ["Start the agent's endpoint"])
     fun start(): Int {
         val eps = getEndpointSpec(uri)
         check(eps.type?.lowercase() == "camel") { "Unsupported endpoint type: $eps" }
         val context = endpointService.startEndpoint("http://${eps.host}:${eps.port}")
         println("Started ${eps.type} endpoint on ${eps.host}:${eps.port}")
-        val key = AttachmentKey("$eps", CamelContext::class.java)
+        val key = AttachmentKey("$eps", CamelContext::class)
         cliService.putAttachment(key, context)
         return 0
     }
 
-    @Command(name = "stop")
+    @Command(name = "stop", description = ["Stop the agent's endpoint"])
     fun stop(): Int {
         val eps = getEndpointSpec(uri)
-        val key = AttachmentKey("$eps", CamelContext::class.java)
+        val key = AttachmentKey("$eps", CamelContext::class)
         val context = cliService.removeAttachment(key)
         checkNotNull(context) { "No endpoint context" }
         context.stop()

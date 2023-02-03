@@ -35,7 +35,7 @@ class RFC0095BasicMessageCommand: AbstractBaseCommand() {
     @Parameters(index = "0", scope = INHERIT, description = ["The message"])
     var message: String? = null
 
-    @Command(name="send")
+    @Command(name="send", description = ["Send a basic message"])
     fun sendMessage(): Int {
         val pcon = getContextConnection()
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)

@@ -28,7 +28,6 @@ import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
-import java.util.concurrent.Callable
 
 @Command(
     name = "rfc0434",
@@ -42,8 +41,8 @@ import java.util.concurrent.Callable
 class RFC0434Commands: AbstractBaseCommand() {
 }
 
-@Command(name = "create-invitation")
-class RFC0434CreateInvitation: AbstractBaseCommand(), Callable<Int> {
+@Command(name = "create-invitation", description = ["Create an RFC0434 Invitation"])
+class RFC0434CreateInvitation: AbstractBaseCommand() {
 
     @Option(names = ["--inviter" ], description = ["The inviter alias"])
     var inviterAlias: String? = null
@@ -62,8 +61,8 @@ class RFC0434CreateInvitation: AbstractBaseCommand(), Callable<Int> {
     }
 }
 
-@Command(name = "receive-invitation")
-class RFC0434ReceiveInvitation: AbstractBaseCommand(), Callable<Int> {
+@Command(name = "receive-invitation", description = ["receive an RFC0434 Invitation"])
+class RFC0434ReceiveInvitation: AbstractBaseCommand() {
 
     @Option(names = ["--invitee" ], description = ["The invitee alias"])
     var inviteeAlias: String? = null
@@ -88,8 +87,8 @@ class RFC0434ReceiveInvitation: AbstractBaseCommand(), Callable<Int> {
     }
 }
 
-@Command(name = "invite-connect")
-class RFC0434InviteAndConnect: AbstractBaseCommand(), Callable<Int> {
+@Command(name = "connect", description = ["Combine RFC0434 Invitation and RFC0023 Did Exchange"])
+class RFC0434InviteAndConnect: AbstractBaseCommand() {
 
     @Option(names = ["--inviter" ], description = ["The inviter alias"])
     var inviterAlias: String? = null

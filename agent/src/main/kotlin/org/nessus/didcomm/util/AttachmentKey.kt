@@ -20,10 +20,11 @@
 package org.nessus.didcomm.util
 
 import java.util.*
+import kotlin.reflect.KClass
 
-open class AttachmentKey<T>(val name: String, val type: Class<T>) {
+open class AttachmentKey<T: Any>(val name: String, val type: KClass<T>) {
 
-    constructor(type: Class<T>) : this(type.name, type)
+    constructor(type: KClass<T>) : this(type.qualifiedName as String, type)
 
     override fun hashCode(): Int {
         return Objects.hash(name, type)
@@ -36,7 +37,7 @@ open class AttachmentKey<T>(val name: String, val type: Class<T>) {
     }
 
     override fun toString(): String {
-        val cname = type.name
+        val cname = type.qualifiedName
         return "[name=$name, type=$cname]"
     }
 }

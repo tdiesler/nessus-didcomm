@@ -54,10 +54,10 @@ class MessageExchange(): AttachmentSupport() {
     companion object {
         val log = KotlinLogging.logger {}
 
-        val INVITATION_ATTACHMENT_KEY = AttachmentKey(Invitation::class.java)
-        val CONNECTION_ATTACHMENT_KEY = AttachmentKey(Connection::class.java)
-        val DID_DOCUMENT_ATTACHMENT_KEY = AttachmentKey(RFC0023DidDocument::class.java)
-        val WALLET_ATTACHMENT_KEY = AttachmentKey(Wallet::class.java)
+        val INVITATION_ATTACHMENT_KEY = AttachmentKey(Invitation::class)
+        val CONNECTION_ATTACHMENT_KEY = AttachmentKey(Connection::class)
+        val DID_DOCUMENT_ATTACHMENT_KEY = AttachmentKey(RFC0023DidDocument::class)
+        val WALLET_ATTACHMENT_KEY = AttachmentKey(Wallet::class)
 
         // [TODO] MEMORY LEAK - evict outdated messages exchanges
         private val exchangeRegistry: MutableList<MessageExchange> = mutableListOf()
@@ -195,6 +195,6 @@ class MessageExchange(): AttachmentSupport() {
     // Private ---------------------------------------------------------------------------------------------------------
 
     private fun getFutureKey(messageType: String): AttachmentKey<CompletableFuture<*>> {
-        return AttachmentKey(messageType, CompletableFuture::class.java)
+        return AttachmentKey(messageType, CompletableFuture::class)
     }
 }

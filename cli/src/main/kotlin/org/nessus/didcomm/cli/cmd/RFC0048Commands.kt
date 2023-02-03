@@ -31,7 +31,7 @@ import picocli.CommandLine.Command
 )
 class RFC0048TrustPingCommand: AbstractBaseCommand() {
 
-    @Command(name="send-ping")
+    @Command(name="send-ping", description = ["Send a trust ping message"])
     fun sendPing(): Int {
         val pcon = getContextConnection()
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)

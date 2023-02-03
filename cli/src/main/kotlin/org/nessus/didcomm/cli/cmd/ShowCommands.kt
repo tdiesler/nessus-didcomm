@@ -34,23 +34,27 @@ import java.util.concurrent.Callable
     name = "show",
     description = ["Show state related commands"],
     subcommands = [
+        ShowWalletsCommand::class,
         ShowWalletCommand::class,
     ]
 )
 class ShowCommands: AbstractBaseCommand() {
+}
 
-    @Command(name = "wallets")
-    fun showWallets(): Int {
+@Command(name = "wallets", description = ["Show a list of available wallets"])
+class ShowWalletsCommand: AbstractBaseCommand() {
+
+    // Show a single (reduced) wallet
+    override fun call(): Int {
         val reducedWallets = modelService.wallets.map { reducedWalletMap(it) }
         val model = gson.toJson(reducedWallets)
         println("Wallets: ${model.prettyPrint()}")
         return 0
     }
-
 }
 
 @Command(name = "wallet")
-class ShowWalletCommand: AbstractBaseCommand(), Callable<Int> {
+class ShowWalletCommand: AbstractBaseCommand() {
 
     @Option(names = ["--alias" ], scope = INHERIT, description = ["A wallet id or name"])
     var alias: String? = null
@@ -73,16 +77,7 @@ class ShowWalletCommand: AbstractBaseCommand(), Callable<Int> {
         return 0
     }
 
-    @Command(name = "connections")
-    fun showConnections(): Int {
-        getContextWallet(alias).also {
-            val model = gson.toJson(it.connections)
-            println("Connections: ${model.prettyPrint()}")
-        }
-        return 0
-    }
-
-    @Command(name = "dids")
+    @Command(name = "dids", description = ["Show a given wallet's dids"])
     fun showDids(): Int {
         getContextWallet(alias).also {
             val model = gson.toJson(it.dids)
@@ -91,7 +86,16 @@ class ShowWalletCommand: AbstractBaseCommand(), Callable<Int> {
         return 0
     }
 
-    @Command(name = "invitations")
+    @Command(name = "connections", description = ["Show a given wallet's connections"])
+    fun showConnections(): Int {
+        getContextWallet(alias).also {
+            val model = gson.toJson(it.connections)
+            println("Connections: ${model.prettyPrint()}")
+        }
+        return 0
+    }
+
+    @Command(name = "invitations", description = ["Show a given wallet's invitations"])
     fun showInvitations(): Int {
         getContextWallet(alias).also {
             val model = gson.toJson(it.invitations)

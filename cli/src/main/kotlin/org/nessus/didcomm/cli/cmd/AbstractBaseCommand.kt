@@ -31,14 +31,21 @@ import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.toWalletModel
+import picocli.CommandLine
 import java.net.URL
+import java.util.concurrent.Callable
 
-abstract class AbstractBaseCommand {
+abstract class AbstractBaseCommand: Callable<Int> {
 
     val cliService get() = CLIService.getService()
     val endpointService get() = CamelEndpointService.getService()
     val modelService get() = DataModelService.getService()
     val walletService get() = WalletService.getService()
+
+    override fun call(): Int {
+        CommandLine.usage(this, System.out)
+        return 0
+    }
 
     fun checkWalletEndpoint(vararg wallets: WalletModel) {
         wallets.forEach {

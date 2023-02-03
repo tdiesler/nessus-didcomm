@@ -32,7 +32,7 @@ class ShowCmdTest: AbstractCmdTest() {
         assertTrue(cliService.execute("agent start").isSuccess)
 
         try {
-            assertTrue(cliService.execute("rfc0434 invite-connect --inviter faber --invitee alice").isSuccess)
+            assertTrue(cliService.execute("rfc0434 connect --inviter faber --invitee alice").isSuccess)
 
             assertTrue(cliService.execute("show wallets").isSuccess)
 

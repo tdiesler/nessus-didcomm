@@ -24,7 +24,9 @@ import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_K
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
 import org.nessus.didcomm.wallet.toWalletModel
-import picocli.CommandLine.*
+import picocli.CommandLine.Command
+import picocli.CommandLine.Option
+import picocli.CommandLine.Parameters
 import java.util.concurrent.Callable
 
 @Command(
@@ -32,23 +34,15 @@ import java.util.concurrent.Callable
     description = ["Wallet related commands"],
     subcommands = [
         WalletCreateCommand::class,
-        WalletSwitchCommand::class,
         WalletRemoveCommand::class,
+        WalletSwitchCommand::class,
     ]
 )
 class WalletCommands: AbstractBaseCommand() {
-
-    @Command(name = "list")
-    fun listWallets(): Int {
-        walletService.wallets.forEach {
-            println( it.toWalletModel().asString() )
-        }
-        return 0
-    }
 }
 
-@Command(name = "create")
-class WalletCreateCommand: AbstractBaseCommand(), Callable<Int> {
+@Command(name = "create", description = ["Create a wallet for a given agent"])
+class WalletCreateCommand: AbstractBaseCommand() {
 
     @Option(names = ["-n", "--name"], required = true, description = ["The wallet name"])
     var name: String? = null
@@ -66,22 +60,8 @@ class WalletCreateCommand: AbstractBaseCommand(), Callable<Int> {
     }
 }
 
-@Command(name = "switch")
-class WalletSwitchCommand: AbstractBaseCommand(), Callable<Int> {
-
-    @Parameters(description = ["The target alias"])
-    var alias: String? = null
-
-    override fun call(): Int {
-        getWalletModel(alias!!).also {
-            cliService.putAttachment(WALLET_ATTACHMENT_KEY, it.toWallet())
-        }
-        return 0
-    }
-}
-
-@Command(name = "remove")
-class WalletRemoveCommand: AbstractBaseCommand(), Callable<Int> {
+@Command(name = "remove", description = ["Remove and delete a given wallet"])
+class WalletRemoveCommand: AbstractBaseCommand() {
 
     @Option(names = ["--alias"], description = ["The wallet alias"])
     var alias: String? = null
@@ -95,4 +75,19 @@ class WalletRemoveCommand: AbstractBaseCommand(), Callable<Int> {
         return 0
     }
 }
+
+@Command(name = "switch", description = ["Switch the current context wallet"])
+class WalletSwitchCommand: AbstractBaseCommand() {
+
+    @Parameters(description = ["The target alias"])
+    var alias: String? = null
+
+    override fun call(): Int {
+        getWalletModel(alias!!).also {
+            cliService.putAttachment(WALLET_ATTACHMENT_KEY, it.toWallet())
+        }
+        return 0
+    }
+}
+
 
