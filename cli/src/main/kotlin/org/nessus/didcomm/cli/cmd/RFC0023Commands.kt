@@ -38,27 +38,39 @@ class RFC0023Commands
 @Command(name = "connect", description = ["Connect a requester with a responder"])
 class RFC0023ConnectCommand: AbstractBaseCommand() {
 
-    @Option(names = ["--requester" ], description = ["The requester alias"])
+    @Option(names = ["--requester" ], description = ["The optional requester alias"])
     var requesterAlias: String? = null
 
     override fun call(): Int {
 
-        val invitation = getContextInvitation()
-        val connection = getContextConnection()
         val requester = getContextWallet(requesterAlias)
+        val invitation = getContextInvitation()
 
-        val responder = modelService.findWalletByVerkey(invitation.invitationKey())
+        val inviKey = invitation.invitationKey()
+        val responder = modelService.findWalletByVerkey(inviKey)
         checkNotNull(responder) { "No responder wallet" }
+
+        val responderInvi = responder.findInvitation { it.invitationKey() == inviKey }
+        val requesterInvi = responder.findInvitation { it.invitationKey() == inviKey }
+        checkNotNull(responderInvi) { "Responder has no such invitation" }
+        checkNotNull(requesterInvi) { "Requester has no such invitation" }
+
+        val requesterConn = requester.findConnection { it.invitationKey == inviKey }
+        checkNotNull(requesterConn) { "Requester has no such connection" }
 
         checkWalletEndpoint(requester, responder)
 
-        MessageExchange.findByVerkey(connection.myVerkey)
+        val pcon = MessageExchange.findByVerkey(requesterConn.myVerkey)
             .withAttachment(INVITATION_ATTACHMENT_KEY, invitation)
             .withProtocol(RFC0023_DIDEXCHANGE)
             .connect(requester.toWallet())
             .getMessageExchange()
+            .getConnection()
 
-        println("${requester.name} has a connection with ${responder.name} in state ${connection.state}")
+        if (verbose)
+            printResult("", listOf(pcon))
+        else
+            printResult("", listOf(pcon.shortString()))
         return 0
     }
 }

@@ -24,6 +24,7 @@ import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.ConnectionState.*
 import org.nessus.didcomm.model.InvitationState.*
+import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeBase58
 import org.nessus.didcomm.util.gson
@@ -143,7 +144,7 @@ data class WalletModel(
         getInvitation(id)?.run { invitationsInternal.remove(this) }
     }
 
-    fun asString(): String {
+    fun shortString(): String {
         return "$name [agent=${agentType.value}, url=$endpointUrl]"
     }
 }
@@ -221,6 +222,10 @@ class Invitation(
     fun recipientServiceEndpoint(idx: Int = 0): String {
         check(services.size > idx) { "No services[$idx].serviceEndpoint" }
         return services[idx].serviceEndpoint
+    }
+
+    fun shortString(): String {
+        return "[key=${invitationKey()}, url=${recipientServiceEndpoint()}]"
     }
 
     override fun toString(): String {
@@ -306,6 +311,17 @@ class Connection(
 
     val myVerkey get() = myDid.verkey
     val theirVerkey get() = theirDid.verkey
+
+    val alias get() = run {
+        val modelService = DataModelService.getService()
+        val myName = modelService.findWalletByVerkey(myVerkey)?.name
+        val theirName = modelService.findWalletByVerkey(theirVerkey)?.name
+        "$myName-$theirName"
+    }
+
+    fun shortString(): String {
+        return "$alias [id=$id, myDid=${myDid.qualified}, theirDid=${theirDid.qualified}, state=$state]"
+    }
 
     override fun toString(): String {
         return gson.toJson(this)

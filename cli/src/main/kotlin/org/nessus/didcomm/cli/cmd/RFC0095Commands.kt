@@ -19,8 +19,10 @@
  */
 package org.nessus.didcomm.cli.cmd
 
+import id.walt.common.prettyPrint
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
+import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol.Companion.RFC0095_BASIC_MESSAGE_TYPE
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE
 import picocli.CommandLine.Command
 import picocli.CommandLine.Parameters
@@ -29,23 +31,33 @@ import picocli.CommandLine.ScopeType.INHERIT
 @Command(
     name = "rfc0095",
     description = ["RFC0095 Basic Message"],
+    subcommands = [
+        RFC0095SendMessageCommand::class
+    ],
 )
-class RFC0095BasicMessageCommand: AbstractBaseCommand() {
+class RFC0095BasicMessageCommand
+
+@Command(name="send", description = ["Send a basic message"])
+class RFC0095SendMessageCommand: AbstractBaseCommand() {
 
     @Parameters(index = "0", scope = INHERIT, description = ["The message"])
     var message: String? = null
 
-    @Command(name="send", description = ["Send a basic message"])
-    fun sendMessage(): Int {
+    override fun call(): Int {
         val pcon = getContextConnection()
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)
         checkNotNull(sender) { "No sender wallet for: ${pcon.myVerkey}" }
-        MessageExchange()
+        val mex = MessageExchange()
             .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
             .withProtocol(RFC0095_BASIC_MESSAGE)
             .sendMessage(message!!)
             .getMessageExchange()
-        println("${sender.name} sent: $message")
+        mex.checkLastMessageType(RFC0095_BASIC_MESSAGE_TYPE)
+        val header = "${sender.name} sent: $message"
+        if (verbose)
+            printResult("${header}\n", listOf(mex.last.prettyPrint()))
+        else
+            printResult("${header}\n", listOf())
         return 0
     }
 }

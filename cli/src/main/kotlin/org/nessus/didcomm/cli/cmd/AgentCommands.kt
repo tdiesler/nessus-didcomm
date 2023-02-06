@@ -35,10 +35,13 @@ class AgentCommands: AbstractBaseCommand() {
     @Option(names = ["--uri" ], scope = INHERIT, description = ["The URI of the form [type:][host:]port"])
     var uri: String? = null
 
+    @Option(names = ["--wallet" ], scope = INHERIT, description = ["An optional wallet alias"])
+    var walletAlias: String? = null
+
     @Command(name = "start", description = ["Start the agent's endpoint"])
     fun start(): Int {
         val eps = getEndpointSpec(uri)
-        check(eps.type?.lowercase() == "camel") { "Unsupported endpoint type: $eps" }
+        check(eps.type.lowercase() == "camel") { "Unsupported endpoint type: $eps" }
         val context = endpointService.startEndpoint("http://${eps.host}:${eps.port}")
         println("Started ${eps.type} endpoint on ${eps.host}:${eps.port}")
         val key = AttachmentKey("$eps", CamelContext::class)
@@ -61,7 +64,7 @@ class AgentCommands: AbstractBaseCommand() {
         return if (uri != null) {
             EndpointSpec.valueOf(uri)
         } else {
-            getContextWallet().run {
+            getContextWallet(walletAlias).run {
                 EndpointSpec.valueOf(URL(endpointUrl))
             }
         }

@@ -29,12 +29,11 @@ import org.nessus.didcomm.wallet.DidMethod
 class Did(id: String, val method: DidMethod, val algorithm: KeyAlgorithm, val verkey: String) {
 
     val id: String
+    val qualified get() = "did:${method.value}:${id}"
 
     init {
         this.id = id.substring(id.lastIndexOf(':') + 1)
     }
-
-    val qualified get() = "did:${method.value}:${id}"
 
     companion object {
         fun fromSpec(spec: String, verkey: String? = null): Did {
@@ -64,6 +63,10 @@ class Did(id: String, val method: DidMethod, val algorithm: KeyAlgorithm, val ve
         }
     }
 
+
+    @Transient
+    private val fingerprint = "$qualified.${algorithm.name}.$verkey"
+
     override fun equals(other: Any?): Boolean {
         if (other !is Did) return false
         return fingerprint == other.fingerprint
@@ -73,10 +76,11 @@ class Did(id: String, val method: DidMethod, val algorithm: KeyAlgorithm, val ve
         return fingerprint.hashCode()
     }
 
+    fun shortString(): String {
+        return "[$qualified, verkey=$verkey]"
+    }
+
     override fun toString(): String {
         return "Did(id=$id, method=$method, algorithm=$algorithm, verkey=$verkey)"
     }
-
-    @Transient
-    private val fingerprint = "$qualified.${algorithm.name}.$verkey"
 }

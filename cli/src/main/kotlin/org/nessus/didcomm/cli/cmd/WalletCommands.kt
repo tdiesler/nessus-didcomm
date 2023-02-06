@@ -19,7 +19,9 @@
  */
 package org.nessus.didcomm.cli.cmd
 
-import org.nessus.didcomm.model.toWallet
+import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
@@ -27,19 +29,44 @@ import org.nessus.didcomm.wallet.toWalletModel
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
-import java.util.concurrent.Callable
 
 @Command(
     name = "wallet",
-    description = ["Wallet related commands"],
+    description = ["Show available wallets and details"],
     subcommands = [
         WalletCreateCommand::class,
         WalletRemoveCommand::class,
-        WalletSwitchCommand::class,
+        WalletConnectionCommand::class,
+        WalletDidCommand::class,
+        WalletInvitationCommand::class,
+        WalletUseCommand::class,
     ]
 )
 class WalletCommands: AbstractBaseCommand() {
+
+    @Option(names = ["--alias"], description = ["The wallet alias"])
+    var alias: String? = null
+
+    @Option(names = ["--all"], description = ["All wallets"])
+    var all: Boolean = false
+
+    /**
+     * Show wallet details
+     */
+    override fun call(): Int {
+        val ctxWallet = cliService.findContextWallet()
+        val walletModels = when {
+            all || ctxWallet == null -> modelService.wallets
+            else -> listOf(getContextWallet(alias))
+        }
+        if (verbose)
+            printResult("", walletModels)
+        else
+            printResult("", walletModels.map { it.shortString() })
+        return 0
+    }
 }
+
 
 @Command(name = "create", description = ["Create a wallet for a given agent"])
 class WalletCreateCommand: AbstractBaseCommand() {
@@ -54,8 +81,13 @@ class WalletCreateCommand: AbstractBaseCommand() {
         val wallet = Wallet.Builder(name!!)
             .agentType(AgentType.fromValue(agent!!))
             .build()
-        cliService.putAttachment(WALLET_ATTACHMENT_KEY, wallet)
-        println("Wallet created: ${wallet.toWalletModel().asString()}")
+        val walletModel = wallet.toWalletModel()
+        cliService.putContextWallet(walletModel)
+        val header = "Wallet created: "
+        if (verbose)
+            printResult(header, listOf(walletModel))
+        else
+            printResult(header, listOf(walletModel.shortString()))
         return 0
     }
 }
@@ -67,27 +99,119 @@ class WalletRemoveCommand: AbstractBaseCommand() {
     var alias: String? = null
 
     override fun call(): Int {
-        getContextWallet(alias).also {
-            walletService.removeWallet(it.id)
-            cliService.removeAttachment(WALLET_ATTACHMENT_KEY)
-            println("Wallet removed: ${it.asString()}")
+        val ctxWallet = cliService.findContextWallet()
+        getContextWallet(alias).also { wm ->
+            if (ctxWallet?.id == wm.id) {
+                cliService.putAttachment(WALLET_ATTACHMENT_KEY, null)
+            }
+            walletService.removeWallet(wm.id) as Wallet
+            val header = "Wallet removed: "
+            if (verbose)
+                printResult(header, listOf(wm))
+            else
+                printResult(header, listOf(wm.shortString()))
+            return 0
         }
+    }
+}
+
+@Command(name = "connection", description = ["Show available Connections and their details"])
+class WalletConnectionCommand: AbstractBaseCommand() {
+
+    @Option(names = ["--alias"], description = ["The Connection alias"])
+    var alias: String? = null
+
+    @Option(names = ["--wallet"], description = ["An optional wallet alias"])
+    var walletAlias: String? = null
+
+    override fun call(): Int {
+        val ctxWallet = getContextWallet(walletAlias)
+        val pcons: List<Connection> = if (alias != null) {
+            val found = ctxWallet.findConnection {
+                val candidates = listOf(it.id, it.alias).map { c -> c.lowercase() }
+                candidates.any { c -> c.startsWith(alias!!.lowercase()) }
+            }
+            found?.run { listOf(this) } ?: listOf()
+        } else {
+            ctxWallet.connections
+        }
+        val header = "Wallet connections: "
+        if (verbose)
+            printResult(header, pcons)
+        else
+            printResult(header, pcons.map { it.shortString() })
         return 0
     }
 }
 
-@Command(name = "switch", description = ["Switch the current context wallet"])
-class WalletSwitchCommand: AbstractBaseCommand() {
+@Command(name = "did", description = ["Show available Dids and their details"])
+class WalletDidCommand: AbstractBaseCommand() {
 
-    @Parameters(description = ["The target alias"])
+    @Option(names = ["--alias"], description = ["The Did alias"])
+    var alias: String? = null
+
+    @Option(names = ["--wallet"], description = ["An optional wallet alias"])
+    var walletAlias: String? = null
+
+    override fun call(): Int {
+        val ctxWallet = getContextWallet(walletAlias)
+        val dids: List<Did> = if (alias != null) {
+            val found = ctxWallet.findDid {
+                val candidates = listOf(it.id, it.qualified, it.verkey).map { c -> c.lowercase() }
+                candidates.any { c -> c.startsWith(alias!!.lowercase()) }
+            }
+            found?.run { listOf(this) } ?: listOf()
+        } else {
+            ctxWallet.dids
+        }
+        val header = "Wallet dids: "
+        if (verbose)
+            printResult(header, dids)
+        else
+            printResult(header, dids.map { it.shortString() })
+        return 0
+    }
+}
+
+@Command(name = "invitation", description = ["Show available Invitations and their details"])
+class WalletInvitationCommand: AbstractBaseCommand() {
+
+    @Option(names = ["--alias"], description = ["The Invitation alias"])
+    var alias: String? = null
+
+    @Option(names = ["--wallet"], description = ["An optional wallet alias"])
+    var walletAlias: String? = null
+
+    override fun call(): Int {
+        val ctxWallet = getContextWallet(walletAlias)
+        val invis: List<Invitation> = if (alias != null) {
+            val found = ctxWallet.findInvitation {
+                val candidates = listOf(it.id, it.invitationKey()).map { c -> c.lowercase() }
+                candidates.any { c -> c.startsWith(alias!!.lowercase()) }
+            }
+            found?.run { listOf(this) } ?: listOf()
+        } else {
+            ctxWallet.invitations
+        }
+        val header = "Wallet invitations: "
+        if (verbose)
+            printResult(header, invis)
+        else
+            printResult(header, invis.map { it.shortString() })
+        return 0
+    }
+}
+
+@Command(name = "use", description = ["Use the given wallet"])
+class WalletUseCommand: AbstractBaseCommand() {
+
+    @Parameters(description = ["The wallet alias"])
     var alias: String? = null
 
     override fun call(): Int {
-        getWalletModel(alias!!).also {
-            cliService.putAttachment(WALLET_ATTACHMENT_KEY, it.toWallet())
+        getContextWallet(alias as String).also {
+            cliService.putContextWallet(it)
+            return 0
         }
-        return 0
     }
 }
-
-

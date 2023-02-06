@@ -28,6 +28,7 @@ import org.jline.reader.Binding
 import org.jline.reader.EndOfFileException
 import org.jline.reader.LineReader
 import org.jline.reader.LineReaderBuilder
+import org.jline.reader.MaskingCallback
 import org.jline.reader.Reference
 import org.jline.reader.UserInterruptException
 import org.jline.reader.impl.DefaultParser
@@ -36,13 +37,13 @@ import org.jline.terminal.TerminalBuilder
 import org.jline.widget.TailTipWidgets
 import org.nessus.didcomm.cli.cmd.AgentCommands
 import org.nessus.didcomm.cli.cmd.ClearScreenCommand
+import org.nessus.didcomm.cli.cmd.CommandsCommand
 import org.nessus.didcomm.cli.cmd.RFC0023Commands
 import org.nessus.didcomm.cli.cmd.RFC0048TrustPingCommand
 import org.nessus.didcomm.cli.cmd.RFC0095BasicMessageCommand
 import org.nessus.didcomm.cli.cmd.RFC0434Commands
-import org.nessus.didcomm.cli.cmd.ShowCommands
 import org.nessus.didcomm.cli.cmd.WalletCommands
-import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
+import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import picocli.CommandLine
 import picocli.CommandLine.Command
@@ -62,7 +63,6 @@ import kotlin.system.exitProcess
         RFC0048TrustPingCommand::class,
         RFC0095BasicMessageCommand::class,
         RFC0434Commands::class,
-        ShowCommands::class,
         WalletCommands::class,
     ]
 )
@@ -92,7 +92,8 @@ class NessusCli {
             return parseResult
         }
         val execResult = runCatching {
-            cmdln.executionStrategy.execute(parseResult.getOrNull())
+            val pres = parseResult.getOrNull()
+            cmdln.executionStrategy.execute(pres)
         }
         execResult.onFailure {
             val ex = execResult.exceptionOrNull() as ExecutionException
@@ -103,7 +104,7 @@ class NessusCli {
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    internal class CommandsFactory(val terminal: Terminal) : CommandLine.IFactory {
+    internal class CommandsFactory(private val terminal: Terminal) : CommandLine.IFactory {
 
         @Suppress("UNCHECKED_CAST")
         override fun <K> create(clazz: Class<K>): K {
@@ -136,7 +137,7 @@ class NessusCli {
                 val systemRegistry = SystemRegistryImpl(parser, terminal, null, null)
                 systemRegistry.setCommandRegistries(commands)
 
-                val reader = LineReaderBuilder.builder()
+                val reader: LineReader = LineReaderBuilder.builder()
                     .variable(LineReader.LIST_MAX, 50) // max tab completion candidates
                     .completer(systemRegistry.completer())
                     .terminal(terminal)
@@ -149,15 +150,30 @@ class NessusCli {
                 keyMap.bind(Reference("tailtip-toggle"), KeyMap.alt("s"))
 
                 fun prompt(): String {
-                    val wallet = cliService.getAttachment(WALLET_ATTACHMENT_KEY)
-                    return wallet?.run { "${name}>> " } ?: ">> "
+                    val ctxWallet = cliService.findContextWallet()
+                    return ctxWallet?.run { "${name}>> " } ?: ">> "
+                }
+
+                fun rightPrompt(): String? {
+                    val ctxWallet = cliService.findContextWallet()
+                    if (ctxWallet != null) {
+                        val ctxConn = cliService.findContextConnection()
+                        val ctxInvi = cliService.findContextInvitation()
+                        if (ctxWallet.findConnection { it.id == ctxConn?.id }?.state == ConnectionState.ACTIVE) {
+                            return "Conn:${ctxConn?.id?.substring(0..6)}"
+                        }
+                        if (ctxWallet.findInvitation { it.id == ctxInvi?.id } != null) {
+                            return "Invi:${ctxInvi?.invitationKey()?.substring(0..6)}"
+                        }
+                    }
+                    return null
                 }
 
                 // Start the shell and process input until the user quits with Ctrl-D
                 while (true) {
                     try {
                         systemRegistry.cleanUp()
-                        val line = reader.readLine("\n${prompt()}")
+                        val line = reader.readLine("\n${prompt()}", rightPrompt(), null as MaskingCallback?, null)
                         systemRegistry.execute(line)
                     } catch (e: Exception) {
                         when(e) {

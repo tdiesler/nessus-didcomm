@@ -21,8 +21,17 @@ package org.nessus.didcomm.cli
 
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
+import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.model.WalletModel
+import org.nessus.didcomm.model.toWallet
+import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
+import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
+import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.service.AbstractAttachmentsService
+import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.service.WalletService
+import org.nessus.didcomm.wallet.toWalletModel
 import picocli.CommandLine
 
 
@@ -40,8 +49,39 @@ class CLIService: AbstractAttachmentsService() {
         WalletService.getService()
     }
 
+    private val modelService get() = DataModelService.getService()
+
     fun execute(args: String, cmdln: CommandLine? = null): Result<Any> {
         return NessusCli().execute(args, cmdln)
+    }
+
+    fun findContextConnection(): Connection? {
+        return getAttachment(CONNECTION_ATTACHMENT_KEY)
+    }
+
+    fun putContextConnection(pcon: Connection): Connection? {
+        return putAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
+    }
+
+    fun findContextInvitation(): Invitation? {
+        return getAttachment(INVITATION_ATTACHMENT_KEY)
+    }
+
+    fun putContextInvitation(invitation: Invitation): Invitation? {
+        return putAttachment(INVITATION_ATTACHMENT_KEY, invitation)
+    }
+
+    fun findContextWallet(alias: String? = null): WalletModel? {
+        return if (alias != null) {
+            val test = { t: String -> t.lowercase().startsWith(alias.lowercase()) }
+            modelService.findWallet { test(it.id) || test(it.name) }
+        } else {
+            getAttachment(WALLET_ATTACHMENT_KEY)?.toWalletModel()
+        }
+    }
+
+    fun putContextWallet(wallet: WalletModel): WalletModel? {
+        return putAttachment(WALLET_ATTACHMENT_KEY, wallet.toWallet())?.toWalletModel()
     }
 
     // Private ---------------------------------------------------------------------------------------------------------

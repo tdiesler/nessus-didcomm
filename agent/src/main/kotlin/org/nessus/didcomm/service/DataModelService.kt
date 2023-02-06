@@ -51,10 +51,6 @@ class DataModelService : NessusBaseService() {
         return wallets.firstOrNull(predicate)
     }
 
-    fun findWallets(predicate: (w: WalletModel) -> Boolean): List<WalletModel> {
-        return wallets.filter(predicate)
-    }
-
     fun findWalletByName(name: String): WalletModel? {
         return findWallet { it.name.lowercase() == name.lowercase() }
     }

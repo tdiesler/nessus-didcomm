@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.cli.cmd
 
+import id.walt.common.prettyPrint
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE
@@ -28,11 +29,16 @@ import picocli.CommandLine.Command
 @Command(
     name = "rfc0048",
     description = ["RFC0048 Trust Ping"],
+    subcommands = [
+        RFC0048SendPingCommand::class
+    ],
 )
-class RFC0048TrustPingCommand: AbstractBaseCommand() {
+class RFC0048TrustPingCommand
 
-    @Command(name="send-ping", description = ["Send a trust ping message"])
-    fun sendPing(): Int {
+@Command(name="send-ping", description = ["Send a trust ping message"])
+class RFC0048SendPingCommand: AbstractBaseCommand() {
+
+    override fun call(): Int {
         val pcon = getContextConnection()
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)
         checkNotNull(sender) { "No sender wallet for: ${pcon.myVerkey}" }
@@ -43,7 +49,11 @@ class RFC0048TrustPingCommand: AbstractBaseCommand() {
             .awaitTrustPingResponse()
             .getMessageExchange()
         mex.checkLastMessageType(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE)
-        println("${sender.name} received a Trust Ping response")
+        val header = "${sender.name} received a Trust Ping response"
+        if (verbose)
+            printResult("${header}\n", listOf(mex.last.prettyPrint()))
+        else
+            printResult("${header}\n", listOf())
         return 0
     }
 
