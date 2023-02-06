@@ -38,13 +38,13 @@ class RFC0023Commands
 @Command(name = "connect", description = ["Connect a requester with a responder"])
 class RFC0023ConnectCommand: AbstractBaseCommand() {
 
-    @Option(names = ["--requester" ], description = ["The optional requester alias"])
+    @Option(names = ["--requester" ], description = ["Optional requester alias"])
     var requesterAlias: String? = null
 
     override fun call(): Int {
 
         val requester = getContextWallet(requesterAlias)
-        val invitation = getContextInvitation()
+        val invitation = getContextInvitation(requesterAlias)
 
         val inviKey = invitation.invitationKey()
         val responder = modelService.findWalletByVerkey(inviKey)

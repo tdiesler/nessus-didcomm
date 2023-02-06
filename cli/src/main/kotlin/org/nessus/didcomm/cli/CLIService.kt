@@ -55,16 +55,26 @@ class CLIService: AbstractAttachmentsService() {
         return NessusCli().execute(args, cmdln)
     }
 
-    fun findContextConnection(): Connection? {
-        return getAttachment(CONNECTION_ATTACHMENT_KEY)
+    fun findContextConnection(walletAlias: String? = null, conAlias: String? = null): Connection? {
+        val ctxWallet = findContextWallet(walletAlias) ?: return null
+        val effAlias = conAlias ?: getAttachment(CONNECTION_ATTACHMENT_KEY)?.id ?: return null
+        return ctxWallet.findConnection {
+            val candidates = listOf(it.id, it.alias).map { c -> c.lowercase() }
+            candidates.any { c -> c.startsWith(effAlias.lowercase()) }
+        }
     }
 
     fun putContextConnection(pcon: Connection): Connection? {
         return putAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
     }
 
-    fun findContextInvitation(): Invitation? {
-        return getAttachment(INVITATION_ATTACHMENT_KEY)
+    fun findContextInvitation(walletAlias: String? = null, invAlias: String? = null): Invitation? {
+        val ctxWallet = findContextWallet(walletAlias) ?: return null
+        val effAlias = invAlias ?: getAttachment(INVITATION_ATTACHMENT_KEY)?.id ?: return null
+        return ctxWallet.findInvitation {
+            val candidates = listOf(it.id, it.invitationKey()).map { c -> c.lowercase() }
+            candidates.any { c -> c.startsWith(effAlias.lowercase()) }
+        }
     }
 
     fun putContextInvitation(invitation: Invitation): Invitation? {
@@ -72,11 +82,10 @@ class CLIService: AbstractAttachmentsService() {
     }
 
     fun findContextWallet(alias: String? = null): WalletModel? {
-        return if (alias != null) {
-            val test = { t: String -> t.lowercase().startsWith(alias.lowercase()) }
-            modelService.findWallet { test(it.id) || test(it.name) }
-        } else {
-            getAttachment(WALLET_ATTACHMENT_KEY)?.toWalletModel()
+        val effAlias = alias ?: getAttachment(WALLET_ATTACHMENT_KEY)?.id ?: return null
+        return modelService.findWallet {
+            val candidates = listOf(it.id, it.name).map { c -> c.lowercase() }
+            candidates.any { c -> c.startsWith(effAlias.lowercase()) }
         }
     }
 

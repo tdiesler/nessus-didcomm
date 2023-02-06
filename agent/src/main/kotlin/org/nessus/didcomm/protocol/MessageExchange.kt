@@ -94,7 +94,7 @@ class MessageExchange(): AttachmentSupport() {
     val last get() = messages.last()
 
     @get:Synchronized
-    val messages
+    val messages: List<EndpointMessage>
         get() = messageStore.toList()
 
     fun getConnection(): Connection {

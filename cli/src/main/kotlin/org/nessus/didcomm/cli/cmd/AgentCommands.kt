@@ -35,7 +35,7 @@ class AgentCommands: AbstractBaseCommand() {
     @Option(names = ["--uri" ], scope = INHERIT, description = ["The URI of the form [type:][host:]port"])
     var uri: String? = null
 
-    @Option(names = ["--wallet" ], scope = INHERIT, description = ["An optional wallet alias"])
+    @Option(names = ["--wallet" ], scope = INHERIT, description = ["An Wallet alias"])
     var walletAlias: String? = null
 
     @Command(name = "start", description = ["Start the agent's endpoint"])

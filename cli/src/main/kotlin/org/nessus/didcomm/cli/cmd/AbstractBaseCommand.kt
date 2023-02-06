@@ -24,11 +24,9 @@ import org.nessus.didcomm.cli.CLIService
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.WalletModel
-import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.CamelEndpointService
 import org.nessus.didcomm.service.DataModelService
 import org.nessus.didcomm.service.WalletService
-import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.wallet.AgentType
 import picocli.CommandLine
 import picocli.CommandLine.Option
@@ -58,7 +56,7 @@ abstract class AbstractBaseCommand: Callable<Int> {
             print(message)
             result.forEach {
                 when {
-                    verbose && it !is String -> println(gson.toJson(it).prettyPrint())
+                    verbose -> println(it.prettyPrint())
                     else -> println(it)
                 }
             }
@@ -86,14 +84,14 @@ abstract class AbstractBaseCommand: Callable<Int> {
         }
     }
 
-    fun getContextConnection(): Connection {
-        val pcon = cliService.getAttachment(CONNECTION_ATTACHMENT_KEY)
+    fun getContextConnection(walletAlias: String? = null, conAlias: String? = null): Connection {
+        val pcon = cliService.findContextConnection(walletAlias, conAlias)
         checkNotNull(pcon) { "No connection" }
         return pcon
     }
 
-    fun getContextInvitation(): Invitation {
-        val invitation = cliService.findContextInvitation()
+    fun getContextInvitation(walletAlias: String? = null, invAlias: String? = null): Invitation {
+        val invitation = cliService.findContextInvitation(walletAlias, invAlias)
         checkNotNull(invitation) { "No invitation" }
         return invitation
     }

@@ -29,14 +29,14 @@ class WalletCmdTest: AbstractCmdTest() {
     @Test
     fun walletCommands() {
 
-        assertTrue(cliService.execute("wallet show --all").isSuccess)
+        assertTrue(cliService.execute("wallet --all").isSuccess)
         assertEquals(2, modelService.wallets.size)
 
         assertTrue(cliService.execute("wallet create --name Alice --agent Nessus").isSuccess)
 
         assertEquals("Alice", cliService.findContextWallet()?.name)
 
-        assertTrue(cliService.execute("wallet use --alias Faber").isSuccess)
+        assertTrue(cliService.execute("wallet use faber").isSuccess)
         assertEquals("Faber", cliService.findContextWallet()?.name)
 
         assertTrue(cliService.execute("wallet remove --alias Alice").isSuccess)

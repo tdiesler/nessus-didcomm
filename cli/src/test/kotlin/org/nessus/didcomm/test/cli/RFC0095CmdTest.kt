@@ -33,7 +33,7 @@ class RFC0095CmdTest: AbstractCmdTest() {
 
         try {
 
-            assertTrue(cliService.execute("rfc0434 connect --inviter faber --invitee alice").isSuccess)
+            assertTrue(cliService.execute("rfc0434 connect faber alice").isSuccess)
 
             assertTrue(cliService.execute("rfc0095 send 'Ich habe Sauerkraut in meinen Lederhosen'").isSuccess)
 

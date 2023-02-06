@@ -25,7 +25,7 @@ All parties communicate via DIDComm alone and use common standards to exchange i
 
 1. [Out of Band Invitation](https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages) from Faber to Alice and vice versa
 2. [DID Exchange](https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange) between Faber & Alice
-3. Alice uses [did:key](https://w3c-ccg.github.io/did-method-key/) instead of [did:sov](https://sovrin-foundation.github.io/sovrin/spec/did-method-spec-template.html)
+3. Alice creates peer-to-peer [Dids](https://www.w3.org/TR/did-core) to communicate with Faber and Acme
 4. [Plaintext Message](https://identity.foundation/didcomm-messaging/spec/#didcomm-plaintext-messages) exchange
 5. [Signed Message](https://identity.foundation/didcomm-messaging/spec/#didcomm-signed-messages) exchange 
 6. [Encrypted Message](https://identity.foundation/didcomm-messaging/spec/#didcomm-encrypted-messages) exchange
@@ -49,4 +49,5 @@ All parties communicate via DIDComm alone and use common standards to exchange i
 
 PRs, Issues, Comments all welcome
 
-
+cheers
+-- thomas

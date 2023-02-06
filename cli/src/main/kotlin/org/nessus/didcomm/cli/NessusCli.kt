@@ -156,16 +156,13 @@ class NessusCli {
                 }
 
                 fun rightPrompt(): String? {
-                    val ctxWallet = cliService.findContextWallet()
-                    if (ctxWallet != null) {
-                        val ctxConn = cliService.findContextConnection()
-                        val ctxInvi = cliService.findContextInvitation()
-                        if (ctxWallet.findConnection { it.id == ctxConn?.id }?.state == ConnectionState.ACTIVE) {
-                            return "Conn:${ctxConn?.id?.substring(0..6)}"
-                        }
-                        if (ctxWallet.findInvitation { it.id == ctxInvi?.id } != null) {
-                            return "Invi:${ctxInvi?.invitationKey()?.substring(0..6)}"
-                        }
+                    val ctxConn = cliService.findContextConnection()
+                    if (ctxConn?.state == ConnectionState.ACTIVE) {
+                        return "Conn:${ctxConn.id.substring(0..6)}"
+                    }
+                    val ctxInvi = cliService.findContextInvitation()
+                    if (ctxInvi != null) {
+                        return "Invi:${ctxInvi.invitationKey().substring(0..6)}"
                     }
                     return null
                 }

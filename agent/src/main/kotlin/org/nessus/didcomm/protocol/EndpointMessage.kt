@@ -96,6 +96,10 @@ class EndpointMessage(
         fun build() = EndpointMessage(body, headers)
     }
 
+    fun shortString(): String {
+        return "[id=$id, thid=$thid, type=$type]"
+    }
+
     override fun toString(): String {
         return "EndpointMessage(headers=$headers, body=$body)"
     }

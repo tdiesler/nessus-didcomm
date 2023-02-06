@@ -22,6 +22,7 @@ package org.nessus.didcomm.cli.cmd
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.wallet.AgentType
 import org.nessus.didcomm.wallet.Wallet
@@ -29,6 +30,7 @@ import org.nessus.didcomm.wallet.toWalletModel
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
+import kotlin.math.max
 
 @Command(
     name = "wallet",
@@ -39,15 +41,16 @@ import picocli.CommandLine.Parameters
         WalletConnectionCommand::class,
         WalletDidCommand::class,
         WalletInvitationCommand::class,
+        WalletMessagesCommand::class,
         WalletUseCommand::class,
     ]
 )
 class WalletCommands: AbstractBaseCommand() {
 
-    @Option(names = ["--alias"], description = ["The wallet alias"])
+    @Option(names = ["--alias"], description = ["Optional wallet alias"])
     var alias: String? = null
 
-    @Option(names = ["--all"], description = ["All wallets"])
+    @Option(names = ["--all"], description = ["Flag to show all wallets"])
     var all: Boolean = false
 
     /**
@@ -95,7 +98,7 @@ class WalletCreateCommand: AbstractBaseCommand() {
 @Command(name = "remove", description = ["Remove and delete a given wallet"])
 class WalletRemoveCommand: AbstractBaseCommand() {
 
-    @Option(names = ["--alias"], description = ["The wallet alias"])
+    @Option(names = ["--alias"], description = ["Optional wallet alias"])
     var alias: String? = null
 
     override fun call(): Int {
@@ -115,13 +118,13 @@ class WalletRemoveCommand: AbstractBaseCommand() {
     }
 }
 
-@Command(name = "connection", description = ["Show available Connections and their details"])
+@Command(name = "connection", description = ["Show available connections and their details"])
 class WalletConnectionCommand: AbstractBaseCommand() {
 
-    @Option(names = ["--alias"], description = ["The Connection alias"])
+    @Option(names = ["--alias"], description = ["Optional connection alias"])
     var alias: String? = null
 
-    @Option(names = ["--wallet"], description = ["An optional wallet alias"])
+    @Option(names = ["--wallet"], description = ["Optional wallet alias"])
     var walletAlias: String? = null
 
     override fun call(): Int {
@@ -147,10 +150,10 @@ class WalletConnectionCommand: AbstractBaseCommand() {
 @Command(name = "did", description = ["Show available Dids and their details"])
 class WalletDidCommand: AbstractBaseCommand() {
 
-    @Option(names = ["--alias"], description = ["The Did alias"])
+    @Option(names = ["--alias"], description = ["Optional did alias"])
     var alias: String? = null
 
-    @Option(names = ["--wallet"], description = ["An optional wallet alias"])
+    @Option(names = ["--wallet"], description = ["Optional wallet alias"])
     var walletAlias: String? = null
 
     override fun call(): Int {
@@ -173,13 +176,13 @@ class WalletDidCommand: AbstractBaseCommand() {
     }
 }
 
-@Command(name = "invitation", description = ["Show available Invitations and their details"])
+@Command(name = "invitation", description = ["Show available invitations and their details"])
 class WalletInvitationCommand: AbstractBaseCommand() {
 
-    @Option(names = ["--alias"], description = ["The Invitation alias"])
+    @Option(names = ["--alias"], description = ["Optional invitation alias"])
     var alias: String? = null
 
-    @Option(names = ["--wallet"], description = ["An optional wallet alias"])
+    @Option(names = ["--wallet"], description = ["Optional wallet alias"])
     var walletAlias: String? = null
 
     override fun call(): Int {
@@ -198,6 +201,44 @@ class WalletInvitationCommand: AbstractBaseCommand() {
             printResult(header, invis)
         else
             printResult(header, invis.map { it.shortString() })
+        return 0
+    }
+}
+
+
+@Command(name = "messages", description = ["Show connection related messages"])
+class WalletMessagesCommand: AbstractBaseCommand() {
+
+    @Option(names = ["--pcon"], description = ["Optional connection alias"])
+    var conAlias: String? = null
+
+    @Option(names = ["--wallet"], description = ["Optional wallet alias"])
+    var walletAlias: String? = null
+
+    @Option(names = ["--msg"], description = ["Optional message alias"])
+    var msgAlias: String? = null
+
+    @Option(names = ["-n", "--tail"], description = ["Optional number of (tail) messages"])
+    var msgCount: Int = 12
+
+    override fun call(): Int {
+        val pcon = getContextConnection(walletAlias, conAlias)
+        val mex = MessageExchange.findByVerkey(pcon.myVerkey)
+        val size = mex.messages.size
+        val msgs = if (msgAlias != null) {
+            mex.messages.find {
+                val candidates = listOf(it.id).map { c -> c.lowercase() }
+                candidates.any { c -> c.startsWith(msgAlias!!.lowercase()) }
+            }?.run { listOf(this) } ?: listOf()
+        } else {
+            val start = max(0, size - msgCount)
+            mex.messages.subList(start, size)
+        }
+        val header = "Messages:\n"
+        if (verbose)
+            printResult(header, msgs)
+        else
+            printResult(header, msgs.map { it.shortString() })
         return 0
     }
 }

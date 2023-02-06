@@ -62,7 +62,7 @@ open class AbstractInvitationCommand: AbstractBaseCommand() {
 @Command(name = "create-invitation", description = ["Create an RFC0434 Invitation"])
 class RFC0434CreateInvitation: AbstractInvitationCommand() {
 
-    @Option(names = ["--inviter" ], description = ["The inviter alias"])
+    @Option(names = ["--inviter" ], description = ["Optional inviter alias"])
     var inviterAlias: String? = null
 
     override fun call(): Int {
@@ -79,17 +79,26 @@ class RFC0434CreateInvitation: AbstractInvitationCommand() {
     }
 }
 
-@Command(name = "receive-invitation", description = ["receive an RFC0434 Invitation"])
+@Command(name = "receive-invitation", description = ["Receive an RFC0434 Invitation"])
 class RFC0434ReceiveInvitation: AbstractInvitationCommand() {
 
-    @Option(names = ["--invitee" ], description = ["The invitee alias"])
+    @Option(names = ["--invitee" ], description = ["Optional invitee alias"])
     var inviteeAlias: String? = null
 
+    @Option(names = ["--alias" ], description = ["Optional invitation alias"])
+    var invitationAlias: String? = null
+
     override fun call(): Int {
+        val ctxInvitation = cliService.getAttachment(INVITATION_ATTACHMENT_KEY)
+        checkNotNull(ctxInvitation) { "No invitation" }
+        if (invitationAlias != null) {
+            val candidates = listOf(ctxInvitation.id, ctxInvitation.invitationKey()).map { c -> c.lowercase() }
+            check(candidates.any { c -> c.startsWith(invitationAlias!!.lowercase()) }) { "Invitation does not match" }
+        }
         getContextWallet(inviteeAlias).also {
             val invitee = it.toWallet()
             val mex = MessageExchange()
-                .withAttachment(INVITATION_ATTACHMENT_KEY, getContextInvitation())
+                .withAttachment(INVITATION_ATTACHMENT_KEY, ctxInvitation)
                 .withProtocol(RFC0434_OUT_OF_BAND)
                 .receiveOutOfBandInvitation(invitee)
                 .getMessageExchange()
