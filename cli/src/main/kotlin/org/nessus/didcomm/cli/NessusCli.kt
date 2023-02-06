@@ -59,6 +59,7 @@ import kotlin.system.exitProcess
     subcommands = [
         AgentCommands::class,
         ClearScreenCommand::class,
+        CommandsCommand::class,
         RFC0023Commands::class,
         RFC0048TrustPingCommand::class,
         RFC0095BasicMessageCommand::class,
