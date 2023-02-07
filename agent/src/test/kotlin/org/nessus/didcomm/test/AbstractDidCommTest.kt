@@ -25,7 +25,6 @@ import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.crypto.NessusCryptoService
 import org.nessus.didcomm.service.DidDocumentService
 import org.nessus.didcomm.service.DidService
-import org.nessus.didcomm.service.ProtocolService
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
@@ -76,6 +75,14 @@ object Alice {
     val didkey = "did:key:z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv"
     val didsov = "did:sov:RfoA7oboFMiFuJPEtPdvKP"
 }
+object Acme {
+    val name = "Acme"
+    val seed = "000000000000000000000000000Acme1"
+    val seedHex = seed.toByteArray().encodeHex()
+    val verkey = "4uGbbt1jJf69tjCfTiimoEtWsdCSuKndfEfFVYaw5ou4"
+    val didkey = "did:key:z6MkiMXeC8GAeCad1E3N9HgceLSWhCUJKD2zMFaBKpYx12gS"
+    val didsov = "did:sov:8A9VYDjAVEqWrsfjLA3VDc"
+}
 
 abstract class AbstractDidCommTest {
 
@@ -92,7 +99,6 @@ abstract class AbstractDidCommTest {
     val didDocumentService = DidDocumentService.getService()
     val didService get() = DidService.getService()
     val keyStore get() = KeyStoreService.getService()
-    val protocolService get() = ProtocolService.getService()
     val walletService get() = WalletService.getService()
 
     fun removeWallet(alias: String) {

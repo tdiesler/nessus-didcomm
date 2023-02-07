@@ -28,7 +28,7 @@ import org.nessus.didcomm.model.ConnectionState.ACTIVE
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
-import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
@@ -74,7 +74,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                  */
 
                 val mex = MessageExchange()
-                    .withProtocol(RFC0434_OUT_OF_BAND)
+                    .withProtocol(RFC0434_OUT_OF_BAND_V1)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
                     .receiveOutOfBandInvitation(alice)
 
@@ -123,7 +123,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                  */
 
                 val mex = MessageExchange()
-                    .withProtocol(RFC0434_OUT_OF_BAND)
+                    .withProtocol(RFC0434_OUT_OF_BAND_V1)
                     .createOutOfBandInvitation(alice, "Alice invites Faber")
                     .receiveOutOfBandInvitation(faber)
 
@@ -175,7 +175,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                  */
 
                 val mex = MessageExchange()
-                    .withProtocol(RFC0434_OUT_OF_BAND)
+                    .withProtocol(RFC0434_OUT_OF_BAND_V1)
                     .createOutOfBandInvitation(bob, "Bob invites Alice")
                     .receiveOutOfBandInvitation(alice)
 

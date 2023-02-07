@@ -19,6 +19,8 @@
  */
 package org.nessus.didcomm.util
 
+import org.didcommx.didcomm.message.Message
+
 
 // A mutable holder of a nullable type
 // data class Holder<T>(var obj: T?)
@@ -100,5 +102,13 @@ fun Map<String, Any?>.selectJson(path: String): Any? {
         return next.selectJson(tail)
     }
     return null
+}
+
+/***********************************************************************************************************************
+ * Message
+ */
+
+fun Message.shortString(): String {
+    return "[id=$id, thid=$thid, type=$type]"
 }
 

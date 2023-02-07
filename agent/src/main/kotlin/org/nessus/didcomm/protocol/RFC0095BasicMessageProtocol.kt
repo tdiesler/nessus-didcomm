@@ -46,6 +46,9 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
         val RFC0095_BASIC_MESSAGE_TYPE = "${RFC0095_BASIC_MESSAGE.uri}/message"
     }
 
+    override val supportedAgentTypes
+        get() = listOf(AgentType.ACAPY, AgentType.NESSUS)
+
     override fun invokeMethod(to: Wallet, messageType: String): Boolean {
         when (messageType) {
             RFC0095_BASIC_MESSAGE_TYPE -> receiveMessage()

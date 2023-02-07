@@ -33,6 +33,7 @@ import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toCurve25519
 import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxEasyBytes
 import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxOpenEasyBytes
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.service.RFC0019_ENCRYPTED_ENVELOPE
 import org.nessus.didcomm.util.*
 
@@ -48,6 +49,9 @@ class RFC0019EncryptionEnvelope: Protocol<RFC0019EncryptionEnvelope>(MessageExch
     companion object {
         val RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE = "application/didcomm-envelope-enc; charset=utf-8".toMediaType()
     }
+
+    override val supportedAgentTypes
+        get() = listOf(AgentType.ACAPY, AgentType.NESSUS)
 
     /**
      * Pack a message into an encrypted envelope

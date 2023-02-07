@@ -23,7 +23,8 @@ import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
-import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
@@ -41,12 +42,16 @@ class RFC0434Commands
 
 open class AbstractInvitationCommand: AbstractBaseCommand() {
 
+    @Option(names = ["--v2" ], description = ["Use DID Comm V2 messages"])
+    var v2: Boolean = false
+
     protected fun printCreateInvitation(name: String, invitation: Invitation) {
         val header = "$name created an RFC0434 Invitation: "
-        if (verbose)
+        if (verbose) {
             printResult("${header}\n", listOf(invitation))
-        else
+        } else {
             printResult(header, listOf(invitation.shortString()))
+        }
     }
 
     protected fun printReceiveInvitation(name: String, invitation: Invitation) {
@@ -67,9 +72,21 @@ class RFC0434CreateInvitation: AbstractInvitationCommand() {
     override fun call(): Int {
         getContextWallet(inviterAlias).also {
             checkWalletEndpoint(it)
-            val invitation = MessageExchange().withProtocol(RFC0434_OUT_OF_BAND)
-                .createOutOfBandInvitation(it)
-                .getMessageExchange().last.body as Invitation
+            val mex = when {
+                v2 -> {
+                    MessageExchange()
+                        .withProtocol(RFC0434_OUT_OF_BAND_V2)
+                        .createOutOfBandInvitation(it)
+                        .getMessageExchange()
+                }
+                else -> {
+                    MessageExchange()
+                        .withProtocol(RFC0434_OUT_OF_BAND_V1)
+                        .createOutOfBandInvitation(it)
+                        .getMessageExchange()
+                }
+            }
+            val invitation = mex.getInvitation() as Invitation
             checkNotNull(it.getInvitation(invitation.id))
             cliService.putContextInvitation(invitation)
             printCreateInvitation(it.name, invitation)
@@ -96,11 +113,22 @@ class RFC0434ReceiveInvitation: AbstractInvitationCommand() {
         }
         getContextWallet(inviteeAlias).also {
             val invitee = it
-            val mex = MessageExchange()
-                .withAttachment(INVITATION_ATTACHMENT_KEY, ctxInvitation)
-                .withProtocol(RFC0434_OUT_OF_BAND)
-                .receiveOutOfBandInvitation(invitee)
-                .getMessageExchange()
+            val mex = when {
+                v2 || ctxInvitation.isV2 -> {
+                    MessageExchange()
+                        .withAttachment(INVITATION_ATTACHMENT_KEY, ctxInvitation)
+                        .withProtocol(RFC0434_OUT_OF_BAND_V2)
+                        .receiveOutOfBandInvitation(invitee)
+                        .getMessageExchange()
+                }
+                else -> {
+                    MessageExchange()
+                        .withAttachment(INVITATION_ATTACHMENT_KEY, ctxInvitation)
+                        .withProtocol(RFC0434_OUT_OF_BAND_V1)
+                        .receiveOutOfBandInvitation(invitee)
+                        .getMessageExchange()
+                }
+            }
             val connection = mex.getConnection()
             val invitation = mex.getInvitation() as Invitation
             checkNotNull(it.getConnection(connection.id))
@@ -128,7 +156,7 @@ class RFC0434InviteAndConnect: AbstractInvitationCommand() {
         checkWalletEndpoint(inviter, invitee)
 
         val pcon = MessageExchange()
-            .withProtocol(RFC0434_OUT_OF_BAND)
+            .withProtocol(RFC0434_OUT_OF_BAND_V1)
             .createOutOfBandInvitation(inviter)
             .also {
                 val invitation = it.getMessageExchange().getInvitation()

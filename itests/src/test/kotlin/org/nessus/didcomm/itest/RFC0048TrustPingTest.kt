@@ -26,7 +26,7 @@ import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.service.RFC0048_TRUST_PING
-import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.fail
@@ -53,7 +53,7 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
             endpointService.startEndpoint(alice.endpointUrl).use {
 
                 val mex = MessageExchange()
-                    .withProtocol(RFC0434_OUT_OF_BAND)
+                    .withProtocol(RFC0434_OUT_OF_BAND_V1)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
                     .receiveOutOfBandInvitation(alice)
 

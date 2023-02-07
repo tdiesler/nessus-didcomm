@@ -21,6 +21,7 @@ package org.nessus.didcomm.protocol
 
 import id.walt.services.keystore.KeyStoreService
 import mu.KLogger
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.*
 import org.nessus.didcomm.util.toUnionMap
@@ -40,6 +41,13 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     val protocolService get() = ProtocolService.getService()
 
     val nowIso8601: OffsetDateTime get() = OffsetDateTime.now(ZoneOffset.UTC)
+
+    abstract val supportedAgentTypes: List<AgentType>
+
+    fun checkAgentType(agentType: AgentType) {
+        require(agentType in supportedAgentTypes) { "Protocol not supported by $agentType" }
+    }
+
 
     internal open fun invokeMethod(to: Wallet, messageType: String): Boolean {
         throw IllegalStateException("Dispatch not supported in protocol wrapper: $protocolUri")

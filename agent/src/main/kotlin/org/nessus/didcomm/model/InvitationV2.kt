@@ -17,9 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.model.dcv2
+package org.nessus.didcomm.model
 
-import com.google.gson.Gson
+import org.didcommx.didcomm.message.Attachment
+import org.didcommx.didcomm.message.Message
+import org.didcommx.didcomm.message.MessageBuilder
 
 /**
  * [Out of Band Invitation]https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
@@ -47,7 +49,7 @@ import com.google.gson.Gson
  *   ]
  * }
  */
-data class OutOfBandInvitation(
+data class InvitationV2(
 
     /**
      * Message ID. The id attribute value MUST be unique to the sender, across all messages they send.
@@ -55,6 +57,12 @@ data class OutOfBandInvitation(
      * REQUIRED
      */
     val id: String,
+
+    /**
+     * The header conveying the DIDComm Message Type URI.
+     * REQUIRED
+     */
+    val type: String,
 
     /**
      * The DID representing the sender to be used by recipients for future interactions.
@@ -87,13 +95,66 @@ data class OutOfBandInvitation(
      * Only one of the messages should be chosen and acted upon.
      * OPTIONAL
      */
-    val attachments: List<Any>?,
-) : MessageType(OUT_OF_BAND_INVITATION) {
+    val attachments: List<Attachment>?,
+) {
+    internal constructor(builder: InvitationV2Builder): this(
+        id = builder.id,
+        type = builder.type,
+        from = builder.from,
+        goalCode = builder.goalCode,
+        goal = builder.goal,
+        accept = builder.accept,
+        attachments = builder.attachments,
+    )
 
+    @Suppress("UNCHECKED_CAST")
     companion object {
-        fun fromBody(body: Map<String, Any?>): OutOfBandInvitation {
-            val gson = Gson()
-            return gson.fromJson(gson.toJson(body), OutOfBandInvitation::class.java)
+        fun fromMessage(msg: Message): InvitationV2 {
+            requireNotNull(msg.from) { "No from" }
+            return InvitationV2Builder(msg.id, msg.type, msg.from!!)
+                .goalCode(msg.body["goal_code"] as? String)
+                .goal(msg.body["goal"] as? String)
+                .accept(msg.body["accept"] as? List<String>)
+                .attachments(msg.attachments)
+                .build()
         }
+    }
+
+    fun toMessage(): Message {
+        val body = LinkedHashMap<String, Any>()
+        goalCode?.also { body["goal_code"] = goalCode }
+        goal?.also { body["goal"] = goal }
+        accept?.also { body["accept"] = accept }
+        return MessageBuilder(id, body, type)
+            .from(from)
+            .attachments(attachments)
+            .build()
+    }
+}
+
+class InvitationV2Builder(
+    val id: String,
+    val type: String,
+    val from: String) {
+
+    internal var goalCode: String? = null
+        private set
+
+    internal var goal: String? = null
+        private set
+
+    internal var accept: List<String>? = null
+        private set
+
+    internal var attachments: List<Attachment>? = null
+        private set
+
+    fun goalCode(goalCode: String?) = apply { this.goalCode = goalCode }
+    fun goal(goal: String?) = apply { this.goal = goal }
+    fun accept(accept: List<String>?) = apply { this.accept = accept?.toList() }
+    fun attachments(attachments: List<Attachment>?) = apply { this.attachments = attachments?.toList() }
+
+    fun build(): InvitationV2 {
+        return InvitationV2(this)
     }
 }

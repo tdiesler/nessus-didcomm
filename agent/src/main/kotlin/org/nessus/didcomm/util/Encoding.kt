@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.util
 
+import com.google.gson.FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
@@ -29,19 +30,38 @@ import com.google.gson.JsonSerializer
 import io.ipfs.multibase.Base58
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
+import org.didcommx.didcomm.message.Message
 import org.web3j.utils.Numeric
 import java.lang.reflect.Type
 import java.util.*
 
 /***********************************************************************************************************************
+ * Message
+ */
+
+fun Message.encodeJson(): String {
+    val gson = gsonBuilder
+        .setFieldNamingPolicy(LOWER_CASE_WITH_UNDERSCORES)
+        .create()
+    return gson.toJson(this)
+}
+
+fun String.decodeMessage(): Message {
+    val jsonMap = this.decodeJson()
+    return Message.parse(jsonMap)
+}
+
+/***********************************************************************************************************************
  * JSON
  */
-val gson: Gson = GsonBuilder()
+val gsonBuilder: GsonBuilder = GsonBuilder()
     .registerTypeHierarchyAdapter(Collection::class.java, CollectionAdapter())
     .registerTypeHierarchyAdapter(Map::class.java, MapAdapter())
+
+val gson: Gson = gsonBuilder
     .create()
 
-val prettyGson: Gson = GsonBuilder()
+val prettyGson: Gson = gsonBuilder
     .setPrettyPrinting()
     .create()
 
@@ -59,16 +79,16 @@ fun Map<String, Any?>.encodeJsonPretty(sorted: Boolean = false): String {
     return prettyGson.toJson(input)
 }
 
-fun Any.isJson(): Boolean {
-    return this is String && this.trim().startsWith('{')
+fun String.isJson(): Boolean {
+    return this.trim().startsWith('{')
 }
 
 @Suppress("UNCHECKED_CAST")
-fun String.decodeJson(): Map<String, Any?> {
+fun String.decodeJson(): Map<String, Any> {
     // Naive decoding of int values may produce double
     return gson.fromJson(this, Map::class.java).mapValues{ (_, v) ->
         if (v is Double && v % 1 == 0.0) v.toInt() else v
-    } as Map<String, Any?>
+    } as Map<String, Any>
 }
 
 fun String.trimJson(): String {

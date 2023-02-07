@@ -47,7 +47,6 @@ import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import picocli.CommandLine
 import picocli.CommandLine.Command
-import picocli.CommandLine.ExecutionException
 import picocli.CommandLine.ParameterException
 import picocli.shell.jline3.PicocliCommands
 import kotlin.system.exitProcess
@@ -97,8 +96,10 @@ class NessusCli {
             cmdln.executionStrategy.execute(pres)
         }
         execResult.onFailure {
-            val ex = execResult.exceptionOrNull() as ExecutionException
-            cmdln.executionExceptionHandler.handleExecutionException(ex, cmdln, parseResult.getOrNull())
+            when(it) {
+                is Exception -> cmdln.executionExceptionHandler.handleExecutionException(it, cmdln, parseResult.getOrNull())
+                else -> it.printStackTrace()
+            }
         }
         return execResult
     }

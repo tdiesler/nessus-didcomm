@@ -29,7 +29,8 @@ val RFC0019_ENCRYPTED_ENVELOPE = ProtocolKey("https://rfc0019/application/didcom
 val RFC0023_DIDEXCHANGE = ProtocolKey("https://didcomm.org/didexchange/1.0", RFC0023DidExchangeProtocol::class)
 val RFC0048_TRUST_PING = ProtocolKey("https://didcomm.org/trust_ping/1.0", RFC0048TrustPingProtocol::class)
 val RFC0095_BASIC_MESSAGE = ProtocolKey("https://didcomm.org/basicmessage/1.0", RFC0095BasicMessageProtocol::class)
-val RFC0434_OUT_OF_BAND = ProtocolKey("https://didcomm.org/out-of-band/1.1", RFC0434OutOfBandProtocol::class)
+val RFC0434_OUT_OF_BAND_V1 = ProtocolKey("https://didcomm.org/out-of-band/1.1", RFC0434OutOfBandProtocolV1::class)
+val RFC0434_OUT_OF_BAND_V2 = ProtocolKey("https://didcomm.org/out-of-band/2.0", RFC0434OutOfBandProtocolV2::class)
 
 class ProtocolKey<T: Protocol<T>>(uri: String, type: KClass<T>): AttachmentKey<T>(uri, type) {
     val uri get() = this.name
@@ -44,11 +45,12 @@ class ProtocolService : NessusBaseService() {
         override fun getService() = implementation
 
         val supportedProtocols: List<ProtocolKey<*>> get() = listOf(
-                RFC0019_ENCRYPTED_ENVELOPE,
-                RFC0023_DIDEXCHANGE,
-                RFC0048_TRUST_PING,
-                RFC0095_BASIC_MESSAGE,
-                RFC0434_OUT_OF_BAND,
+            RFC0019_ENCRYPTED_ENVELOPE,
+            RFC0023_DIDEXCHANGE,
+            RFC0048_TRUST_PING,
+            RFC0095_BASIC_MESSAGE,
+            RFC0434_OUT_OF_BAND_V1,
+            RFC0434_OUT_OF_BAND_V2,
             )
     }
 
@@ -65,7 +67,8 @@ class ProtocolService : NessusBaseService() {
             RFC0023_DIDEXCHANGE -> RFC0023DidExchangeProtocol(mex)
             RFC0048_TRUST_PING -> RFC0048TrustPingProtocol(mex)
             RFC0095_BASIC_MESSAGE -> RFC0095BasicMessageProtocol(mex)
-            RFC0434_OUT_OF_BAND -> RFC0434OutOfBandProtocol(mex)
+            RFC0434_OUT_OF_BAND_V1 -> RFC0434OutOfBandProtocolV1(mex)
+            RFC0434_OUT_OF_BAND_V2 -> RFC0434OutOfBandProtocolV2(mex)
             else -> throw IllegalStateException("Unknown protocol: $key")
         } as T
     }

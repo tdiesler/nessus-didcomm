@@ -26,19 +26,38 @@ import kotlin.test.assertTrue
 class RFC0434CmdTest: AbstractCmdTest() {
 
     @Test
-    fun testRFC0434Commands() {
+    fun testRFC0434CommandsV1() {
 
         assertTrue(cliService.execute("wallet create --name Alice").isSuccess)
         assertTrue(cliService.execute("agent start").isSuccess)
 
         try {
 
-            assertTrue(cliService.execute("rfc0434 create-invitation --inviter faber").isSuccess)
-            assertTrue(cliService.execute("rfc0434 receive-invitation --invitee alice").isSuccess)
+            assertTrue(cliService.execute("rfc0434 create-invitation --inviter Faber").isSuccess)
+            assertTrue(cliService.execute("rfc0434 receive-invitation --invitee Alice").isSuccess)
 
         } finally {
             assertTrue(cliService.execute("agent stop").isSuccess)
-            assertTrue(cliService.execute("wallet remove --alias alice").isSuccess)
+            assertTrue(cliService.execute("wallet remove --alias Alice").isSuccess)
+        }
+    }
+
+    @Test
+    fun testRFC0434CommandsV2() {
+
+        assertTrue(cliService.execute("wallet create --name Acme").isSuccess)
+        assertTrue(cliService.execute("wallet create --name Alice").isSuccess)
+        assertTrue(cliService.execute("agent start").isSuccess)
+
+        try {
+
+            assertTrue(cliService.execute("rfc0434 create-invitation --inviter Acme --v2").isSuccess)
+            assertTrue(cliService.execute("rfc0434 receive-invitation --invitee Alice -v").isSuccess)
+
+        } finally {
+            assertTrue(cliService.execute("agent stop").isSuccess)
+            assertTrue(cliService.execute("wallet remove --alias Alice").isSuccess)
+            assertTrue(cliService.execute("wallet remove --alias Acme").isSuccess)
         }
     }
 }

@@ -17,17 +17,24 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.model.dcv2
+package org.nessus.didcomm.test.model.dcv2
 
-abstract class MessageType (
+import org.didcommx.didcomm.message.Message
+import org.junit.jupiter.api.Test
+import org.nessus.didcomm.model.InvitationV2
+import org.nessus.didcomm.util.decodeMessage
+import kotlin.test.assertEquals
 
-    /**
-     * The header conveying the DIDComm Message Type URI.
-     * REQUIRED
-     */
-    val type: String
-) {
-    companion object {
-        const val OUT_OF_BAND_INVITATION = "https://didcomm.org/out-of-band/2.0/invitation"
+class InvitationV2Test {
+
+    @Test
+    fun testOutOfBandInvitation() {
+
+        val exp: String = OutOfBand.FABER_OUT_OF_BAND_INVITATION
+        val expMsg: Message = exp.decodeMessage()
+        val inviV2: InvitationV2 = InvitationV2.fromMessage(expMsg)
+
+        val wasMsg: Message = inviV2.toMessage()
+        assertEquals(expMsg.toJSONObject(), wasMsg.toJSONObject())
     }
 }

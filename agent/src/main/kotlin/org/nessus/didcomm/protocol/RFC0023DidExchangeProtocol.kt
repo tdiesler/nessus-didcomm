@@ -24,16 +24,16 @@ import mu.KotlinLogging
 import org.hyperledger.aries.api.connection.ConnectionFilter
 import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
-import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.model.InvitationV1
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.DID_DOCUMENT_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING
@@ -62,6 +62,9 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE = "${RFC0023_DIDEXCHANGE.uri}/complete"
     }
 
+    override val supportedAgentTypes
+        get() = listOf(AgentType.ACAPY, AgentType.NESSUS)
+
     override fun invokeMethod(to: Wallet, messageType: String): Boolean {
         when (messageType) {
             RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST -> receiveDidExchangeRequest(to)
@@ -77,12 +80,14 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val requester = maybeRequester ?: mex.getAttachment(WALLET_ATTACHMENT_KEY)
         checkNotNull(requester) { "No requester wallet" }
 
-        val attachedInvitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY)
+        val attachedInvitation = mex.getInvitation()
         val invitationKey = attachedInvitation?.invitationKey()
         checkNotNull(invitationKey) { "No invitation" }
 
         val invitation = requester.findInvitation { it.invitationKey() == invitationKey }
         checkNotNull(invitation) { "Requester has no such invitation" }
+
+        val invitationV1 = invitation.actV1
 
         when(requester.agentType) {
 
@@ -116,7 +121,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
                 // sendTrustPing
                 // awaitTrustPingResponse
 
-                sendDidExchangeRequest(requester, invitation)
+                sendDidExchangeRequest(requester, invitationV1)
 
                 awaitDidExchangeResponse()
 
@@ -133,7 +138,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         return this
     }
 
-    private fun sendDidExchangeRequest(requester: Wallet, invitation: Invitation) {
+    private fun sendDidExchangeRequest(requester: Wallet, invitation: InvitationV1) {
 
         // Register the response future with the message exchange
         mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE)
@@ -217,7 +222,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
          *  - An implicit invitation contained in a DID document's service attribute that conforms to the DIDComm conventions.
          */
 
-        val invitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY)
+        val invitation = mex.getInvitation()
         checkNotNull(invitation) { "Cannot find invitation for: $invitationId" }
         check(invitationId == invitation.id) { "Unexpected invitation id" }
 
@@ -271,7 +276,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val didexThid = mex.last.thid
         mex.checkLastMessageType(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST)
 
-        val invitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY)
+        val invitation = mex.getInvitation()
         checkNotNull(invitation) { "No invitation" }
 
         val requesterDidDoc = mex.getAttachment(DID_DOCUMENT_ATTACHMENT_KEY)
@@ -331,7 +336,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         checkNotNull(senderVerkey) { "No sender verification key" }
         checkNotNull(invitationId) { "Must include the ID of the parent thread" }
 
-        val invitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY)
+        val invitation = mex.getInvitation()
         checkNotNull(invitation) { "No invitation attached" }
         val invitationDid = invitation.recipientDidKey()
         val invitationKey = invitation.invitationKey()
@@ -416,7 +421,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
 
         val invitationId = mex.last.pthid as String
 
-        val invitation = mex.getAttachment(INVITATION_ATTACHMENT_KEY)
+        val invitation = mex.getInvitation()
         checkNotNull(invitation) { "No invitation" }
         check(invitationId == invitation.id) { "Unexpected invitation id" }
 

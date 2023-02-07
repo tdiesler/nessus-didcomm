@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.protocol
 
+import org.didcommx.didcomm.message.Message
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.isJson
 import org.nessus.didcomm.util.selectJson
@@ -58,6 +59,11 @@ class EndpointMessage(
             type?.run { effHeaders[MESSAGE_HEADER_TYPE] = type }
             thid?.run { effHeaders[MESSAGE_HEADER_THID] = thid }
             pthid?.run { effHeaders[MESSAGE_HEADER_PTHID] = pthid }
+        } else if (body is Message) {
+            effHeaders[MESSAGE_HEADER_ID] = body.id
+            effHeaders[MESSAGE_HEADER_TYPE] = body.type
+            effHeaders[MESSAGE_HEADER_THID] = body.thid
+            effHeaders[MESSAGE_HEADER_PTHID] = body.pthid
         }
         if (effHeaders[MESSAGE_HEADER_ID] == null) {
             val auxId = "${UUID.randomUUID()}"

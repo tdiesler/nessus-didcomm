@@ -29,7 +29,7 @@ import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocol.Companion.RFC0095_BASIC_MESSAGE_TYPE
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE
-import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
 import org.nessus.didcomm.util.selectJson
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
@@ -69,7 +69,7 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
             endpointService.startEndpoint(alice.endpointUrl, listener).use {
 
                 val mex = MessageExchange()
-                    .withProtocol(RFC0434_OUT_OF_BAND)
+                    .withProtocol(RFC0434_OUT_OF_BAND_V1)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
                     .receiveOutOfBandInvitation(alice)
 

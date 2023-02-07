@@ -25,7 +25,6 @@ import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.ConnectionState.*
-import org.nessus.didcomm.model.InvitationState.*
 import org.nessus.didcomm.service.WalletPlugin
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.wallet.AcapyWallet

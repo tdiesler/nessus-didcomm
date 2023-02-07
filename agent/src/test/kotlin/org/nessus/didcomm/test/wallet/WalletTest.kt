@@ -26,6 +26,7 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -33,16 +34,16 @@ import kotlin.test.assertNotNull
 class WalletTest: AbstractDidCommTest() {
 
     @Test
-    fun create_wallet_with_DidKey() {
+    fun createWalletWithDidKey() {
 
-        val faber = Wallet.Builder("Faber1")
+        val alice = Wallet.Builder(Alice.name)
             .build()
 
-        assertEquals("Faber1", faber.name)
-        assertEquals(AgentType.NESSUS, faber.agentType)
-        assertEquals(StorageType.IN_MEMORY, faber.storageType)
+        assertEquals(Alice.name, alice.name)
+        assertEquals(AgentType.NESSUS, alice.agentType)
+        assertEquals(StorageType.IN_MEMORY, alice.storageType)
 
-        val faberDid = faber.createDid(seed= Faber.seed)
+        val faberDid = alice.createDid(seed= Faber.seed)
 
         assertEquals(Faber.didkey, faberDid.qualified)
         assertEquals(Faber.verkey, faberDid.verkey)
@@ -51,6 +52,6 @@ class WalletTest: AbstractDidCommTest() {
         assertNotNull(keyStore.load(faberDid.qualified, KeyType.PUBLIC))
         assertNotNull(keyStore.load(faberDid.verkey, KeyType.PUBLIC))
 
-        walletService.removeWallet(faber.id)
+        walletService.removeWallet(alice.id)
     }
 }

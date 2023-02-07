@@ -49,6 +49,9 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
         val RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE = "${RFC0048_TRUST_PING.uri}/ping_response"
     }
 
+    override val supportedAgentTypes
+        get() = listOf(AgentType.ACAPY, AgentType.NESSUS)
+
     override fun invokeMethod(to: Wallet, messageType: String): Boolean {
         when (messageType) {
             RFC0048_TRUST_PING_MESSAGE_TYPE_PING -> receiveTrustPing(to)

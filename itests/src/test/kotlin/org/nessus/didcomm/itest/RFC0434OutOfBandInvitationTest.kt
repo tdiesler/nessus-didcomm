@@ -21,11 +21,11 @@ package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.model.AgentType
-import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.model.InvitationV1
 import org.nessus.didcomm.model.InvitationState
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
@@ -64,14 +64,14 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
              */
 
             val mex = MessageExchange()
-                .withProtocol(RFC0434_OUT_OF_BAND)
+                .withProtocol(RFC0434_OUT_OF_BAND_V1)
                 .createOutOfBandInvitation(faber, "Faber invites Alice")
                 .receiveOutOfBandInvitation(alice)
                 .getMessageExchange()
 
             assertEquals(1, mex.messages.size)
 
-            val invitation = mex.last.body as? Invitation
+            val invitation = mex.last.body as? InvitationV1
             assertEquals(InvitationState.DONE, invitation?.state)
 
         } finally {
@@ -102,14 +102,14 @@ class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
              */
 
             val mex = MessageExchange()
-                .withProtocol(RFC0434_OUT_OF_BAND)
+                .withProtocol(RFC0434_OUT_OF_BAND_V1)
                 .createOutOfBandInvitation(alice, "Alice invites Faber")
                 .receiveOutOfBandInvitation(faber)
                 .getMessageExchange()
 
             assertEquals(1, mex.messages.size)
 
-            val invitation = mex.last.body as? Invitation
+            val invitation = mex.last.body as? InvitationV1
             assertEquals(InvitationState.DONE, invitation?.state)
 
         } finally {
