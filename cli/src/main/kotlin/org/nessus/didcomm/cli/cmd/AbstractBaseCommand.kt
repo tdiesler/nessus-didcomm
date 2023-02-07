@@ -21,13 +21,13 @@ package org.nessus.didcomm.cli.cmd
 
 import id.walt.common.prettyPrint
 import org.nessus.didcomm.cli.CLIService
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation
-import org.nessus.didcomm.model.WalletModel
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.CamelEndpointService
-import org.nessus.didcomm.service.DataModelService
+import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.WalletService
-import org.nessus.didcomm.wallet.AgentType
 import picocli.CommandLine
 import picocli.CommandLine.Option
 import java.net.URL
@@ -37,7 +37,7 @@ abstract class AbstractBaseCommand: Callable<Int> {
 
     val cliService get() = CLIService.getService()
     val endpointService get() = CamelEndpointService.getService()
-    val modelService get() = DataModelService.getService()
+    val modelService get() = ModelService.getService()
     val walletService get() = WalletService.getService()
 
     @Option(names = ["-q", "--quiet"], description = ["Suppress terminal output"])
@@ -63,7 +63,7 @@ abstract class AbstractBaseCommand: Callable<Int> {
         }
     }
 
-    fun checkWalletEndpoint(vararg wallets: WalletModel) {
+    fun checkWalletEndpoint(vararg wallets: Wallet) {
         wallets.forEach {
             when (it.agentType) {
                 AgentType.ACAPY -> {
@@ -96,7 +96,7 @@ abstract class AbstractBaseCommand: Callable<Int> {
         return invitation
     }
 
-    fun getContextWallet(alias: String? = null): WalletModel {
+    fun getContextWallet(alias: String? = null): Wallet {
         val walletModel = cliService.findContextWallet(alias)
         checkNotNull(walletModel) { "Cannot find wallet: $alias" }
         return walletModel

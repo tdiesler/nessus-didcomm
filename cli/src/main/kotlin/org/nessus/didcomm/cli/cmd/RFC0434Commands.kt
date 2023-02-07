@@ -20,7 +20,6 @@
 package org.nessus.didcomm.cli.cmd
 
 import org.nessus.didcomm.model.Invitation
-import org.nessus.didcomm.model.toWallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
@@ -69,7 +68,7 @@ class RFC0434CreateInvitation: AbstractInvitationCommand() {
         getContextWallet(inviterAlias).also {
             checkWalletEndpoint(it)
             val invitation = MessageExchange().withProtocol(RFC0434_OUT_OF_BAND)
-                .createOutOfBandInvitation(it.toWallet())
+                .createOutOfBandInvitation(it)
                 .getMessageExchange().last.body as Invitation
             checkNotNull(it.getInvitation(invitation.id))
             cliService.putContextInvitation(invitation)
@@ -96,7 +95,7 @@ class RFC0434ReceiveInvitation: AbstractInvitationCommand() {
             check(candidates.any { c -> c.startsWith(invitationAlias!!.lowercase()) }) { "Invitation does not match" }
         }
         getContextWallet(inviteeAlias).also {
-            val invitee = it.toWallet()
+            val invitee = it
             val mex = MessageExchange()
                 .withAttachment(INVITATION_ATTACHMENT_KEY, ctxInvitation)
                 .withProtocol(RFC0434_OUT_OF_BAND)
@@ -130,18 +129,18 @@ class RFC0434InviteAndConnect: AbstractInvitationCommand() {
 
         val pcon = MessageExchange()
             .withProtocol(RFC0434_OUT_OF_BAND)
-            .createOutOfBandInvitation(inviter.toWallet())
+            .createOutOfBandInvitation(inviter)
             .also {
                 val invitation = it.getMessageExchange().getInvitation()
                 printCreateInvitation(inviter.name, invitation!!)
             }
-            .receiveOutOfBandInvitation(invitee.toWallet())
+            .receiveOutOfBandInvitation(invitee)
             .also {
                 val invitation = it.getMessageExchange().getInvitation()
                 printReceiveInvitation(invitee.name, invitation!!)
             }
             .withProtocol(RFC0023_DIDEXCHANGE)
-            .connect(invitee.toWallet())
+            .connect(invitee)
             .getMessageExchange()
             .getConnection()
 

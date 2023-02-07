@@ -23,14 +23,14 @@ import id.walt.common.prettyPrint
 import mu.KotlinLogging
 import org.hyperledger.acy_py.generated.model.SendMessage
 import org.nessus.didcomm.agent.AriesClient
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
-import org.nessus.didcomm.model.toWallet
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE
 import org.nessus.didcomm.util.trimJson
-import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.Wallet
+import org.nessus.didcomm.wallet.AcapyWallet
 import java.util.*
 
 /**
@@ -61,7 +61,7 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
 
         check(pcon.state == ConnectionState.ACTIVE) { "Connection not active: $pcon" }
 
-        val sender = modelService.findWalletByVerkey(pcon.myDid.verkey)?.toWallet()
+        val sender = modelService.findWalletByVerkey(pcon.myDid.verkey)
         checkNotNull(sender) { "No sender wallet" }
 
         val rfc0095 = when(sender.agentType) {
@@ -80,7 +80,7 @@ class RFC0095BasicMessageProtocol(mex: MessageExchange): Protocol<RFC0095BasicMe
         val myMex = MessageExchange.findByVerkey(pcon.myVerkey)
         val rfc0095 = myMex.withProtocol(RFC0095_BASIC_MESSAGE)
 
-        val fromClient = sender.walletClient() as AriesClient
+        val fromClient = (sender as AcapyWallet).walletClient() as AriesClient
         val basicMessage = SendMessage.builder().content(message).build()
         fromClient.connectionsSendMessage(pcon.id, basicMessage)
 

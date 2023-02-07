@@ -24,13 +24,13 @@ import id.walt.services.keystore.KeyType
 import mu.KotlinLogging
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.trimJson
-import org.nessus.didcomm.wallet.DidMethod
 import kotlin.test.assertEquals
 
 class RFC0019EnvelopeTest: AbstractDidCommTest() {

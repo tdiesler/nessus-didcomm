@@ -23,15 +23,13 @@ import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation
-import org.nessus.didcomm.model.WalletModel
-import org.nessus.didcomm.model.toWallet
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.service.AbstractAttachmentsService
-import org.nessus.didcomm.service.DataModelService
+import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.WalletService
-import org.nessus.didcomm.wallet.toWalletModel
 import picocli.CommandLine
 
 
@@ -49,7 +47,7 @@ class CLIService: AbstractAttachmentsService() {
         WalletService.getService()
     }
 
-    private val modelService get() = DataModelService.getService()
+    private val modelService get() = ModelService.getService()
 
     fun execute(args: String, cmdln: CommandLine? = null): Result<Any> {
         return NessusCli().execute(args, cmdln)
@@ -81,7 +79,7 @@ class CLIService: AbstractAttachmentsService() {
         return putAttachment(INVITATION_ATTACHMENT_KEY, invitation)
     }
 
-    fun findContextWallet(alias: String? = null): WalletModel? {
+    fun findContextWallet(alias: String? = null): Wallet? {
         val effAlias = alias ?: getAttachment(WALLET_ATTACHMENT_KEY)?.id ?: return null
         return modelService.findWallet {
             val candidates = listOf(it.id, it.name).map { c -> c.lowercase() }
@@ -89,8 +87,8 @@ class CLIService: AbstractAttachmentsService() {
         }
     }
 
-    fun putContextWallet(wallet: WalletModel): WalletModel? {
-        return putAttachment(WALLET_ATTACHMENT_KEY, wallet.toWallet())?.toWalletModel()
+    fun putContextWallet(wallet: Wallet): Wallet? {
+        return putAttachment(WALLET_ATTACHMENT_KEY, wallet)
     }
 
     // Private ---------------------------------------------------------------------------------------------------------

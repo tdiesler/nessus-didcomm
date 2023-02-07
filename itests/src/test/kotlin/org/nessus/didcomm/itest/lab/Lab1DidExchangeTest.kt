@@ -33,13 +33,14 @@ import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.itest.AbstractIntegrationTest
 import org.nessus.didcomm.itest.Alice
 import org.nessus.didcomm.itest.Faber
+import org.nessus.didcomm.model.AgentType
+import org.nessus.didcomm.model.StorageType
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.util.WireMessageParser.parseWireMessages
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.prettyGson
 import org.nessus.didcomm.util.sortedJson
-import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.StorageType
-import org.nessus.didcomm.wallet.Wallet
+import org.nessus.didcomm.wallet.AcapyWallet
 import kotlin.test.fail
 
 /**
@@ -60,18 +61,18 @@ import kotlin.test.fail
  * 4. The requester sends the responder a complete message that confirms the response message was received.
  */
 class Lab1DidExchangeTest : AbstractIntegrationTest() {
-    val log = KotlinLogging.logger {}
+    private val log = KotlinLogging.logger {}
 
     @Test
     fun test_FaberAcapy_invites_AliceAcapy() {
 
-        val faber = getWalletByAlias(Faber.name) ?: fail("No Faber")
+        val faber = getWalletByAlias(Faber.name) as? AcapyWallet ?: fail("No Faber")
 
         val alice = Wallet.Builder(Alice.name)
             //.options(ACAPY_OPTIONS_02)
             .agentType(AgentType.ACAPY)
             .storageType(StorageType.IN_MEMORY)
-            .build()
+            .build() as AcapyWallet
 
         val faberClient = faber.walletClient() as AriesClient
         val aliceClient = alice.walletClient() as AriesClient

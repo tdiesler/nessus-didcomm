@@ -20,12 +20,12 @@
 package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.InvitationState
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
-import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.Wallet
 import kotlin.test.assertEquals
 import kotlin.test.fail
 

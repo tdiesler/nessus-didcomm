@@ -24,7 +24,14 @@ import id.walt.crypto.convertMultiBase58BtcToRawKey
 import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.util.decodeBase58
 import org.nessus.didcomm.util.encodeBase58
-import org.nessus.didcomm.wallet.DidMethod
+
+enum class DidMethod(val value: String) {
+    KEY("key"),
+    SOV("sov");
+    companion object {
+        fun fromValue(value: String) = DidMethod.valueOf(value.uppercase())
+    }
+}
 
 class Did(id: String, val method: DidMethod, val algorithm: KeyAlgorithm, val verkey: String) {
 

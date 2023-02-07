@@ -20,13 +20,13 @@
 package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.service.RFC0048_TRUST_PING
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
-import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.Wallet
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.fail
@@ -71,7 +71,7 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
                     .awaitTrustPingResponse()
 
                 // Send a reverse trust ping
-                val faberAlice = faber.findConnection(aliceFaber.theirVerkey)
+                val faberAlice = faber.findConnection{ it.myVerkey == aliceFaber.theirVerkey }
                 assertNotNull(faberAlice, "No Faber/Alice Connection")
                 assertEquals(AgentType.ACAPY, faberAlice.agent)
 

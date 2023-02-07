@@ -23,16 +23,16 @@ import id.walt.common.prettyPrint
 import mu.KotlinLogging
 import org.hyperledger.aries.api.trustping.PingRequest
 import org.nessus.didcomm.agent.AriesClient
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
-import org.nessus.didcomm.model.toWallet
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.service.RFC0048_TRUST_PING
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.trimJson
-import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.Wallet
+import org.nessus.didcomm.wallet.AcapyWallet
 import java.util.*
 
 /**
@@ -63,7 +63,7 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
         val pcon = connection ?: mex.getAttachment(CONNECTION_ATTACHMENT_KEY)
         checkNotNull(pcon) { "No connection" }
 
-        val sender = modelService.findWalletByVerkey(pcon.myVerkey)?.toWallet()
+        val sender = modelService.findWalletByVerkey(pcon.myVerkey)
         checkNotNull(sender) { "No sender wallet" }
 
         // Use the Connection's MessageExchange
@@ -77,7 +77,7 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
                 // Register the TrustPing Response future
                 myMex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE)
 
-                val senderClient = sender.walletClient() as AriesClient
+                val senderClient = (sender as AcapyWallet).walletClient() as AriesClient
                 val pingRequest = PingRequest.builder().comment("ping").build()
                 log.info { "${sender.name} sends TrustPing: ${pingRequest.prettyPrint()}" }
 

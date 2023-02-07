@@ -19,17 +19,22 @@
  */
 package org.nessus.didcomm.test.did
 
-import id.walt.crypto.*
+import id.walt.crypto.KeyAlgorithm
+import id.walt.crypto.buildEd25519PubKey
+import id.walt.crypto.convertRawKeyToMultiBase58Btc
+import id.walt.crypto.decodeBase58
+import id.walt.crypto.encBase64
+import id.walt.crypto.getMulticodecKeyCode
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import mu.KotlinLogging
 import org.junit.jupiter.api.Test
+import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.service.toDidSov
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.util.encodeHex
-import org.nessus.didcomm.wallet.DidMethod
 import java.security.PublicKey
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

@@ -27,7 +27,7 @@ import okhttp3.WebSocket
 import org.hyperledger.aries.BaseClient
 import org.hyperledger.aries.webhook.EventType
 import org.nessus.didcomm.util.gson
-import org.nessus.didcomm.wallet.Wallet
+import org.nessus.didcomm.wallet.AcapyWallet
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 
@@ -45,7 +45,7 @@ import java.util.concurrent.locks.ReentrantLock
  * Note, there is currently no resource limit on the volume of recorded events. This must
  * be taken care of by the application doing the recording.
  */
-class WebSocketListener(val wallet: Wallet, private val eventListener: (wse: WebSocketEvent) -> Unit) : okhttp3.WebSocketListener() {
+class WebSocketListener(val wallet: AcapyWallet, private val eventListener: (wse: WebSocketEvent) -> Unit) : okhttp3.WebSocketListener() {
     val log = KotlinLogging.logger {}
 
     enum class WebSocketState {

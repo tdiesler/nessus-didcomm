@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.test
 
-import id.walt.servicematrix.ServiceMatrix
 import id.walt.services.crypto.CryptoService
 import id.walt.services.keystore.KeyStoreService
 import org.junit.jupiter.api.BeforeAll
@@ -27,6 +26,7 @@ import org.nessus.didcomm.crypto.NessusCryptoService
 import org.nessus.didcomm.service.DidDocumentService
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.ProtocolService
+import org.nessus.didcomm.service.ServiceMatrixLoader
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
 
@@ -83,8 +83,8 @@ abstract class AbstractDidCommTest {
         @BeforeAll
         @JvmStatic
         internal fun beforeAll() {
-            val resourcesPath: String = "src/test/resources"
-            ServiceMatrix("$resourcesPath/service-matrix.properties")
+            val matrixProperties = "src/test/resources/service-matrix.properties"
+            ServiceMatrixLoader.loadServiceDefinitions(matrixProperties)
         }
     }
 

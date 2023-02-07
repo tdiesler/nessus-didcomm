@@ -26,7 +26,6 @@ import org.hyperledger.acy_py.generated.model.DID
 import org.hyperledger.acy_py.generated.model.DID.KeyTypeEnum
 import org.hyperledger.acy_py.generated.model.DIDCreate
 import org.hyperledger.acy_py.generated.model.DIDCreateOptions
-import org.hyperledger.aries.AriesClient
 import org.hyperledger.aries.api.connection.ConnectionTheirRole
 import org.hyperledger.aries.api.ledger.IndyLedgerRoles
 import org.hyperledger.aries.api.ledger.RegisterNymFilter
@@ -34,12 +33,20 @@ import org.hyperledger.aries.api.multitenancy.CreateWalletRequest
 import org.hyperledger.aries.api.multitenancy.RemoveWalletRequest
 import org.hyperledger.aries.api.multitenancy.WalletDispatchType
 import org.hyperledger.aries.api.wallet.WalletDIDCreate
-import org.nessus.didcomm.agent.AgentConfiguration
+import org.nessus.didcomm.agent.AgentConfiguration.Companion.agentConfiguration
 import org.nessus.didcomm.agent.AriesAgent
+import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
-import org.nessus.didcomm.service.*
+import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.StorageType
+import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
+import org.nessus.didcomm.service.DidService
+import org.nessus.didcomm.service.ModelService
+import org.nessus.didcomm.service.WalletPlugin
 
 fun ConnectionTheirRole.toConnectionRole(): ConnectionRole {
     return ConnectionRole.valueOf(this.name.uppercase())
@@ -49,14 +56,10 @@ fun org.hyperledger.aries.api.connection.ConnectionState.toConnectionState(): Co
     return ConnectionState.valueOf(this.name.uppercase())
 }
 
-class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
+class AcapyWalletPlugin: WalletPlugin {
     val log = KotlinLogging.logger {}
 
-    val modelService get() = DataModelService.getService()
-
-    override fun getEndpointUrl(wallet: Wallet): String {
-        return AgentConfiguration.agentConfiguration(wallet.options).userUrl
-    }
+    val modelService get() = ModelService.getService()
 
     override fun createWallet(config: WalletConfig): Wallet {
 
@@ -67,12 +70,12 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
         val publicDidMethod = config.publicDidMethod
         val ledgerRole = config.ledgerRole
         val trusteeWallet = config.trusteeWallet
-        val walletOptions = config.walletOptions
+        val options = config.options
         val indyLedgerRole = if (ledgerRole != null)
             IndyLedgerRoles.valueOf(ledgerRole.name.uppercase())
         else null
 
-        val agentConfig = AgentConfiguration.agentConfiguration(walletOptions)
+        val agentConfig = agentConfiguration(options)
         val adminClient = AriesAgent.adminClient(agentConfig)
 
         val walletRequest = CreateWalletRequest.builder()
@@ -82,9 +85,10 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
             .walletType(storageType.toAriesWalletType())
             .build()
         val walletRecord = adminClient.multitenancyWalletCreate(walletRequest).get()
-        val auxWallet = Wallet(
-            walletRecord.walletId, walletName, agentType, storageType,
-            authToken=walletRecord.token, options = walletOptions
+        val auxWallet = AcapyWallet(
+            walletRecord.walletId, walletName, agentType,
+            storageType, agentConfig.userUrl,
+            options=options, authToken=walletRecord.token
         )
 
         var publicDid: Did? = null
@@ -114,8 +118,17 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
 
             // Set the public DID for the wallet
             walletClient.walletDidPublic(publicDid.id)
+            val endpointUrl = walletClient.walletGetDidEndpoint(publicDid.id).get().endpoint
 
-            Wallet(auxWallet.id, walletName, agentType, storageType, auxWallet.authToken, auxWallet.options)
+            AcapyWallet(
+                auxWallet.id,
+                walletName,
+                agentType,
+                storageType,
+                endpointUrl,
+                auxWallet.options,
+                auxWallet.authToken
+            )
         } else auxWallet
 
         log.info("{}: did={} endpoint={}", walletName, publicDid?.qualified, wallet.endpointUrl)
@@ -123,6 +136,7 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
     }
 
     override fun removeWallet(wallet: Wallet) {
+        require(wallet is AcapyWallet) { "Not an AcapyWallet" }
 
         val walletId = wallet.id
         val walletName = wallet.name
@@ -138,7 +152,7 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
     }
 
     override fun createDid(wallet: Wallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
-        val walletClient = wallet.walletClient() as AriesClient
+        val walletClient = walletClient(wallet)
         val didOptions = DIDCreateOptions.builder()
             .keyType((algorithm ?: DEFAULT_KEY_ALGORITHM).toAriesKeyType())
             .build()
@@ -153,7 +167,7 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
     }
 
     override fun publicDid(wallet: Wallet): Did? {
-        val walletClient = wallet.walletClient() as AriesClient
+        val walletClient = walletClient(wallet)
         val ariesDid = walletClient.walletDidPublic().orElse(null) ?:
             return null
         val publicDid = ariesDid.toNessusDid()
@@ -164,21 +178,19 @@ class AriesWalletPlugin: WalletServicePlugin, WalletPlugin {
         return publicDid
     }
 
-    override fun findDids(wallet: Wallet): List<Did> {
-        val walletClient = wallet.walletClient() as AriesClient
-        val dids = walletClient.walletDid().get().map { it.toNessusDid() }
-        dids.forEach { wallet.toWalletModel().addDid(it) }
-        return dids
-    }
-
     override fun removeConnections(wallet: Wallet) {
-        val walletClient = wallet.walletClient() as AriesClient
+        val walletClient = walletClient(wallet)
         walletClient.connectionIds().forEach {
             walletClient.connectionsRemove( it )
         }
     }
 
 // Private ---------------------------------------------------------------------------------------------------------
+
+    private fun walletClient(wallet: Wallet): AriesClient {
+        require(wallet is AcapyWallet) { "Not an AcapyWallet" }
+        return wallet.walletClient() as AriesClient
+    }
 
     private fun DID.toNessusDid(): Did = run {
         val method = DidMethod.valueOf(this.method.name)

@@ -37,10 +37,10 @@ import mu.KotlinLogging
 import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toRaw
 import org.nessus.didcomm.crypto.NessusCryptoService
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.util.decodeBase58
 import org.nessus.didcomm.util.encodeBase58
 import org.nessus.didcomm.util.encodeBase64
-import org.nessus.didcomm.wallet.DidMethod
 import java.security.KeyFactory
 import java.security.KeyPair
 

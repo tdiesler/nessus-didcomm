@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.cli.cmd
 
-import org.nessus.didcomm.model.toWallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
@@ -63,7 +62,7 @@ class RFC0023ConnectCommand: AbstractBaseCommand() {
         val pcon = MessageExchange.findByVerkey(requesterConn.myVerkey)
             .withAttachment(INVITATION_ATTACHMENT_KEY, invitation)
             .withProtocol(RFC0023_DIDEXCHANGE)
-            .connect(requester.toWallet())
+            .connect(requester)
             .getMessageExchange()
             .getConnection()
 

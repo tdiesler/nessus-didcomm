@@ -22,27 +22,25 @@ package org.nessus.didcomm.wallet
 import id.walt.crypto.KeyAlgorithm
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.model.AgentType
+import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.StorageType
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.WalletPlugin
-import org.nessus.didcomm.service.WalletServicePlugin
 import java.util.*
 
-class NessusWalletPlugin: WalletServicePlugin, WalletPlugin {
+class NessusWalletPlugin: WalletPlugin {
     val log = KotlinLogging.logger {}
 
-    override fun getEndpointUrl(wallet: Wallet): String {
-        val hostname = wallet.options["NESSUS_HOSTNAME"] ?: System.getenv("NESSUS_HOSTNAME") ?: "localhost"
-        val userPort = wallet.options["NESSUS_USER_PORT"] ?: System.getenv("NESSUS_USER_PORT") ?: "8130"
-        return "http://$hostname:$userPort"
-    }
-
-    override fun createWallet(config: WalletConfig): Wallet {
+    override fun createWallet(config: WalletConfig): NessusWallet {
         val walletId = "${UUID.randomUUID()}"
-        val agentType = AgentType.NESSUS
         val walletName = config.name
+        val agentType = AgentType.NESSUS
+        val endpointUrl = getEndpointUrl(config.options)
         val storageType = config.storageType ?: StorageType.IN_MEMORY
-        return Wallet(walletId, walletName, agentType, storageType, options = config.walletOptions)
+        return NessusWallet(walletId, walletName, agentType, storageType, endpointUrl, options = config.options)
     }
 
     override fun removeWallet(wallet: Wallet) {
@@ -66,13 +64,15 @@ class NessusWalletPlugin: WalletServicePlugin, WalletPlugin {
         return null
     }
 
-    override fun findDids(wallet: Wallet): List<Did> {
-        return wallet.toWalletModel().dids
-    }
-
     override fun removeConnections(wallet: Wallet) {
-        wallet.toWalletModel().removeConnections()
+        wallet.removeConnections()
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
+
+    private fun getEndpointUrl(options: Map<String, Any>): String {
+        val hostname = options["NESSUS_HOSTNAME"] ?: System.getenv("NESSUS_HOSTNAME") ?: "localhost"
+        val userPort = options["NESSUS_USER_PORT"] ?: System.getenv("NESSUS_USER_PORT") ?: "8130"
+        return "http://$hostname:$userPort"
+    }
 }

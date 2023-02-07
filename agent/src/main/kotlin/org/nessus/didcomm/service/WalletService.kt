@@ -27,20 +27,21 @@ import id.walt.servicematrix.BaseService
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
+import org.nessus.didcomm.agent.AgentConfiguration
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.AgentType
+import org.nessus.didcomm.model.StorageType
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.wallet.*
 import java.nio.file.Files
 import java.nio.file.Paths
 import kotlin.io.path.isReadable
 
 class WalletService : BaseService() {
-    override val implementation get() = serviceImplementation<WalletService>()
-
     private val log = KotlinLogging.logger {}
-
-    private val walletStore get() = WalletStoreService.getService()
-    private val modelService get() = DataModelService.getService()
+    override val implementation get() = serviceImplementation<WalletService>()
 
     companion object: ServiceProvider {
         private val implementation = WalletService()
@@ -51,7 +52,8 @@ class WalletService : BaseService() {
         initAcaPyWallets()
     }
 
-    val wallets get() = walletStore.wallets
+    val modelService get() = ModelService.getService()
+    val wallets get() = modelService.wallets
 
     fun createWallet(config: WalletConfig): Wallet {
         val maybeWallet = findByName(config.name)
@@ -62,30 +64,31 @@ class WalletService : BaseService() {
             check(maybeWallet.storageType == storageType)  {"Wallet ${config.name} exists, with other type: ${maybeWallet.storageType}"}
             return maybeWallet
         }
-        val wallet = walletServicePlugin(agentType).createWallet(config)
+
+        val wallet = when(config.agentType!!) {
+            AgentType.ACAPY -> AcapyWalletPlugin().createWallet(config)
+            AgentType.NESSUS -> NessusWalletPlugin().createWallet(config)
+        }
+
         addWallet(wallet)
         return wallet
     }
 
     fun addWallet(wallet: Wallet) {
-        walletStore.addWallet(wallet)
+        modelService.addWallet(wallet)
     }
 
     fun removeWallet(id: String): Wallet? {
-        val wallet = getWallet(id)
+        val wallet = modelService.getWallet(id)
         if (wallet != null) {
-            walletServicePlugin(wallet.agentType).removeWallet(wallet)
-            walletStore.removeWallet(id)
+            wallet.walletPlugin.removeWallet(wallet)
+            modelService.removeWallet(id)
         }
         return wallet
     }
 
-    fun getWallet(id: String): Wallet? {
-        return walletStore.getWallet(id)
-    }
-
     fun findByName(name: String): Wallet? {
-        return walletStore.findWallet { it.name.lowercase() == name.lowercase() }
+        return modelService.findWallet { it.name.lowercase() == name.lowercase() }
     }
 
     /**
@@ -95,16 +98,8 @@ class WalletService : BaseService() {
      */
     fun createDid(wallet: Wallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
         val did = wallet.walletPlugin.createDid(wallet, method, algorithm, seed)
-        wallet.toWalletModel().addDid(did)
+        wallet.addDid(did)
         return did
-    }
-
-    /**
-     * List Dids registered with the given wallet
-     * Note, the internal model may differ from external agent model
-     */
-    fun listDids(wallet: Wallet): List<Did> {
-        return wallet.walletPlugin.findDids(wallet)
     }
 
     /**
@@ -116,26 +111,34 @@ class WalletService : BaseService() {
 
     fun removeConnections(wallet: Wallet) {
         wallet.walletPlugin.removeConnections(wallet)
-        return wallet.toWalletModel().removeConnections()
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
 
+    @Suppress("UNCHECKED_CAST")
     private fun initAcaPyWallets() {
-        val adminClient = AriesAgent.adminClient()
+        val agentConfig = AgentConfiguration.defaultConfiguration
+        val adminClient = AriesAgent.adminClient(agentConfig)
 
         // Initialize wallets from Siera config
         readSieraConfig()?.filterKeys { k -> k != "default" }?.forEach {
-            @Suppress("UNCHECKED_CAST")
+            val walletName = it.key
             val values = it.value as Map<String, String>
             val agent = values["agent"] ?: "aca-py"
             check(agent == "aca-py") { "Unsupported agent: $agent" }
-            val alias = it.key
+            val endpointUrl = values["endpoint"] as String
             val authToken = values["auth_token"]
-            val walletRecord = adminClient.multitenancyWallets(alias).get().firstOrNull()
+            val walletRecord = adminClient.multitenancyWallets(walletName).get().firstOrNull()
             walletRecord?.run {
                 val walletId = walletRecord.walletId
-                val wallet = Wallet(walletId, alias, AgentType.ACAPY, StorageType.INDY, authToken=authToken)
+                val wallet = AcapyWallet(
+                    walletId,
+                    walletName,
+                    AgentType.ACAPY,
+                    StorageType.INDY,
+                    endpointUrl,
+                    authToken=authToken
+                )
                 addWallet(wallet)
             }
         }
@@ -149,17 +152,17 @@ class WalletService : BaseService() {
                 val storageType = StorageType.valueOf(it.settings.walletType.name)
                 val tokReq = CreateWalletTokenRequest.builder().build()
                 val tokRes = adminClient.multitenancyWalletToken(walletId, tokReq).get()
-                val wallet = Wallet(walletId, alias, AgentType.ACAPY, storageType, authToken=tokRes.token)
+                val wallet = AcapyWallet(
+                    walletId,
+                    alias,
+                    AgentType.ACAPY,
+                    storageType,
+                    agentConfig.userUrl,
+                    authToken=tokRes.token
+                )
                 addWallet(wallet)
             }
         log.info { "Done Wallet Init ".padEnd(180, '=') }
-    }
-
-    private fun walletServicePlugin(agentType: AgentType): WalletServicePlugin {
-        return when(agentType) {
-            AgentType.ACAPY -> AriesWalletPlugin()
-            AgentType.NESSUS -> NessusWalletPlugin()
-        }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -178,16 +181,11 @@ class WalletService : BaseService() {
     }
 }
 
-interface WalletServicePlugin {
+interface WalletPlugin {
 
     fun createWallet(config: WalletConfig): Wallet
 
     fun removeWallet(wallet: Wallet)
-}
-
-interface WalletPlugin {
-
-    fun getEndpointUrl(wallet: Wallet): String
 
     fun createDid(
         wallet: Wallet,
@@ -196,8 +194,6 @@ interface WalletPlugin {
         seed: String? = null): Did
 
     fun publicDid(wallet: Wallet): Did?
-
-    fun findDids(wallet: Wallet): List<Did>
 
     fun removeConnections(wallet: Wallet)
 }

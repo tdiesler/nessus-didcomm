@@ -24,10 +24,13 @@ import mu.KotlinLogging
 import org.hyperledger.aries.api.connection.ConnectionFilter
 import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
@@ -38,7 +41,9 @@ import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.service.RFC0048_TRUST_PING
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.trimJson
-import org.nessus.didcomm.wallet.*
+import org.nessus.didcomm.wallet.AcapyWallet
+import org.nessus.didcomm.wallet.toConnectionRole
+import org.nessus.didcomm.wallet.toConnectionState
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -76,7 +81,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val invitationKey = attachedInvitation?.invitationKey()
         checkNotNull(invitationKey) { "No invitation" }
 
-        val invitation = requester.toWalletModel().findInvitation { it.invitationKey() == invitationKey }
+        val invitation = requester.findInvitation { it.invitationKey() == invitationKey }
         checkNotNull(invitation) { "Requester has no such invitation" }
 
         when(requester.agentType) {
@@ -451,7 +456,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val theirWallet = theirMex?.getAttachment(WALLET_ATTACHMENT_KEY)
 
         if (theirWallet?.agentType == AgentType.ACAPY) {
-            val walletClient = theirWallet.walletClient() as AriesClient
+            val walletClient = (theirWallet as AcapyWallet).walletClient() as AriesClient
             val filter = ConnectionFilter.builder().invitationKey(invitationKey).build()
             val conRecord = walletClient.connections(filter).get().firstOrNull()
             checkNotNull(conRecord) { "No connection for invitationKey: $invitationKey" }
@@ -477,7 +482,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
                     state = conRecord.state.toConnectionState()
                 )
 
-                theirWallet.toWalletModel().addConnection(pcon)
+                theirWallet.addConnection(pcon)
                 theirMex.setConnection(pcon)
                 pcon
             }
@@ -501,9 +506,9 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         }
     }
 
-    private fun registerTheirDid(theirWallet: Wallet, theirDid: Did) {
+    private fun registerTheirDid(theirWallet: AcapyWallet, theirDid: Did) {
 
-        val walletModel = theirWallet.toWalletModel()
+        val walletModel = theirWallet
         if (!walletModel.hasDid(theirDid.verkey))
             walletModel.addDid(theirDid)
 

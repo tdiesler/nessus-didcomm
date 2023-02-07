@@ -27,7 +27,7 @@ import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.service.RFC0023DidDocument
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.util.*
-import org.nessus.didcomm.wallet.DidMethod
+import org.nessus.didcomm.did.DidMethod
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 

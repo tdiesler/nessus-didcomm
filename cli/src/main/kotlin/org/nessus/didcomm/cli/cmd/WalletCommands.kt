@@ -20,13 +20,12 @@
 package org.nessus.didcomm.cli.cmd
 
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
-import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.toWalletModel
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
@@ -84,13 +83,12 @@ class WalletCreateCommand: AbstractBaseCommand() {
         val wallet = Wallet.Builder(name!!)
             .agentType(AgentType.fromValue(agent!!))
             .build()
-        val walletModel = wallet.toWalletModel()
-        cliService.putContextWallet(walletModel)
+        cliService.putContextWallet(wallet)
         val header = "Wallet created: "
         if (verbose)
-            printResult(header, listOf(walletModel))
+            printResult(header, listOf(wallet))
         else
-            printResult(header, listOf(walletModel.shortString()))
+            printResult(header, listOf(wallet.shortString()))
         return 0
     }
 }
@@ -107,7 +105,7 @@ class WalletRemoveCommand: AbstractBaseCommand() {
             if (ctxWallet?.id == wm.id) {
                 cliService.putAttachment(WALLET_ATTACHMENT_KEY, null)
             }
-            walletService.removeWallet(wm.id) as Wallet
+            walletService.removeWallet(wm.id)
             val header = "Wallet removed: "
             if (verbose)
                 printResult(header, listOf(wm))

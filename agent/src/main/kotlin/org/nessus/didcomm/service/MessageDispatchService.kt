@@ -21,7 +21,7 @@ package org.nessus.didcomm.service
 
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
-import org.nessus.didcomm.model.toWallet
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_PROTOCOL_URI
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_RECIPIENT_VERKEY
@@ -30,7 +30,7 @@ import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.util.matches
-import org.nessus.didcomm.wallet.Wallet
+import org.nessus.didcomm.wallet.AcapyWallet
 
 typealias MessageDispatcher = (msg: EndpointMessage) -> MessageExchange?
 
@@ -47,7 +47,7 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
     }
 
     private val httpService get() = HttpService.getService()
-    private val modelService get() = DataModelService.getService()
+    private val modelService get() = ModelService.getService()
     private val protocolService get() = ProtocolService.getService()
 
     /**
@@ -113,7 +113,7 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
             MESSAGE_HEADER_SENDER_VERKEY to senderVerkey,
             MESSAGE_HEADER_RECIPIENT_VERKEY to recipientVerkey))
 
-        val recipientWallet = modelService.findWalletByVerkey(recipientVerkey)?.toWallet()
+        val recipientWallet = modelService.findWalletByVerkey(recipientVerkey)
         checkNotNull(recipientWallet) { "Cannot find recipient wallet for: $recipientVerkey" }
 
         /**

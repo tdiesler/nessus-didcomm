@@ -23,12 +23,12 @@ import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
 import mu.KotlinLogging
 import org.junit.jupiter.api.Test
+import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.service.toOctetKeyPair
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.util.decodeHex
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.trimJson
-import org.nessus.didcomm.wallet.DidMethod
 import kotlin.test.assertEquals
 
 /**

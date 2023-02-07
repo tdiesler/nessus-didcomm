@@ -22,19 +22,19 @@ package org.nessus.didcomm.test.model
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.service.DataModelService
+import org.nessus.didcomm.model.AgentType
+import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Alice
-import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.Wallet
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
-class ModelManagerTest: AbstractDidCommTest() {
+class ModelServiceTest: AbstractDidCommTest() {
     val log = KotlinLogging.logger {}
 
-    private val modelService get() = DataModelService.getService()
+    private val modelService get() = ModelService.getService()
 
     @Test
     fun testModelManager() {

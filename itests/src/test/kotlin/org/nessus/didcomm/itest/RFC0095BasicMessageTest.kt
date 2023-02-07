@@ -20,7 +20,9 @@
 package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageListener
@@ -29,8 +31,6 @@ import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
 import org.nessus.didcomm.util.selectJson
-import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.Wallet
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
@@ -84,7 +84,7 @@ class RFC0095BasicMessageTest : AbstractIntegrationTest() {
                     .sendMessage(aliceMessage, aliceFaber)
 
                 // Find the reverse connection
-                val faberAlice = faber.findConnection(aliceFaber.theirVerkey)
+                val faberAlice = faber.findConnection{ it.myVerkey == aliceFaber.theirVerkey }
                 checkNotNull(faberAlice) { "No Faber/Alice connection" }
 
                 val faberMessage = "I have an Elk under my Sombrero"

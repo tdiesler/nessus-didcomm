@@ -23,7 +23,7 @@ import org.nessus.didcomm.util.gson
 
 class AgentModel {
 
-    internal val walletsMap: MutableMap<String, WalletModel> = mutableMapOf()
+    internal val walletsMap: MutableMap<String, Wallet> = mutableMapOf()
 
     @get:Synchronized
     val wallets
@@ -33,13 +33,13 @@ class AgentModel {
         get() = gson.toJson(mapOf("wallets" to wallets.sortedBy { it.name }))
 
     @Synchronized
-    fun addWallet(wallet: WalletModel) {
+    fun addWallet(wallet: Wallet) {
         check(!walletsMap.containsKey(wallet.id)) { "Wallet already exists: ${wallet.id}" }
         walletsMap[wallet.id] = wallet
     }
 
     @Synchronized
-    fun removeWallet(id: String): WalletModel? {
+    fun removeWallet(id: String): Wallet? {
         return walletsMap.remove(id)
     }
 }

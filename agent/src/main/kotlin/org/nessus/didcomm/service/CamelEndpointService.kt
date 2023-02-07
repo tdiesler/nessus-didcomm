@@ -26,7 +26,6 @@ import org.apache.camel.builder.RouteBuilder
 import org.apache.camel.impl.DefaultCamelContext
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.MessageListener
-import org.nessus.didcomm.wallet.Wallet
 
 
 class CamelEndpointService: EndpointService<CamelContext>() {

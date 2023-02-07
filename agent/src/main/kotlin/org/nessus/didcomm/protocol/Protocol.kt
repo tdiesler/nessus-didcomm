@@ -21,9 +21,9 @@ package org.nessus.didcomm.protocol
 
 import id.walt.services.keystore.KeyStoreService
 import mu.KLogger
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.*
 import org.nessus.didcomm.util.toUnionMap
-import org.nessus.didcomm.wallet.Wallet
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
@@ -36,7 +36,7 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     val diddocService get() = DidDocumentService.getService()
     val dispatchService get() = MessageDispatchService.getService()
     val keyStore get() = KeyStoreService.getService()
-    val modelService get() = DataModelService.getService()
+    val modelService get() = ModelService.getService()
     val protocolService get() = ProtocolService.getService()
 
     val nowIso8601: OffsetDateTime get() = OffsetDateTime.now(ZoneOffset.UTC)

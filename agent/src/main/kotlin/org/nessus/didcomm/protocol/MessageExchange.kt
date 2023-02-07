@@ -22,13 +22,13 @@ package org.nessus.didcomm.protocol
 import mu.KotlinLogging
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocol.Companion.RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION
 import org.nessus.didcomm.service.ProtocolKey
 import org.nessus.didcomm.service.ProtocolService
 import org.nessus.didcomm.service.RFC0023DidDocument
 import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.AttachmentSupport
-import org.nessus.didcomm.wallet.Wallet
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit

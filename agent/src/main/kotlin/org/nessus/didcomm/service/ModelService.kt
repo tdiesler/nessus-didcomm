@@ -22,14 +22,14 @@ package org.nessus.didcomm.service
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
 import org.nessus.didcomm.model.AgentModel
-import org.nessus.didcomm.model.WalletModel
+import org.nessus.didcomm.model.Wallet
 
-class DataModelService : NessusBaseService() {
-    override val implementation get() = serviceImplementation<DataModelService>()
+class ModelService : NessusBaseService() {
+    override val implementation get() = serviceImplementation<ModelService>()
     override val log = KotlinLogging.logger {}
 
     companion object: ServiceProvider {
-        private val implementation = DataModelService()
+        private val implementation = ModelService()
         override fun getService() = implementation
     }
 
@@ -37,29 +37,29 @@ class DataModelService : NessusBaseService() {
     val modelAsJson: String get() = model.asJson
     val wallets get() = model.wallets
 
-    fun addWallet(wallet: WalletModel) {
+    fun addWallet(wallet: Wallet) {
         check(findWalletByName(wallet.name) == null) { "Wallet already exists: ${wallet.name}" }
         log.info {"Add: $wallet" }
         model.addWallet(wallet)
     }
 
-    fun getWallet(id: String): WalletModel? {
+    fun getWallet(id: String): Wallet? {
         return model.walletsMap[id]
     }
 
-    fun findWallet(predicate: (w: WalletModel) -> Boolean): WalletModel? {
+    fun findWallet(predicate: (w: Wallet) -> Boolean): Wallet? {
         return wallets.firstOrNull(predicate)
     }
 
-    fun findWalletByName(name: String): WalletModel? {
+    fun findWalletByName(name: String): Wallet? {
         return findWallet { it.name.lowercase() == name.lowercase() }
     }
 
-    fun findWalletByVerkey(verkey: String): WalletModel? {
+    fun findWalletByVerkey(verkey: String): Wallet? {
         return findWallet { it.findDid { d -> d.verkey == verkey } != null }
     }
 
-    fun removeWallet(id: String): WalletModel? {
+    fun removeWallet(id: String): Wallet? {
         model.removeWallet(id)?.run {
             log.info {"Removed: $this" }
             return this

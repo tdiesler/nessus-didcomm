@@ -25,7 +25,7 @@ import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import org.nessus.didcomm.service.HttpService
 import org.nessus.didcomm.service.HttpService.HttpClient.Companion.createHttpLoggingInterceptor
-import org.nessus.didcomm.wallet.Wallet
+import org.nessus.didcomm.wallet.AcapyWallet
 import org.slf4j.event.Level
 
 data class AgentConfiguration(
@@ -72,7 +72,7 @@ object AriesClientFactory {
     /**
      * Create a client for a multitenant wallet
      */
-    fun walletClient(wallet: Wallet, config: AgentConfiguration? = null, level: Level? = null): AriesClient {
+    fun walletClient(wallet: AcapyWallet, config: AgentConfiguration? = null, level: Level? = null): AriesClient {
         val loggingInterceptor = if (level != null) createHttpLoggingInterceptor(level) else null
         return walletClient(config, wallet, null, loggingInterceptor)
     }
@@ -82,7 +82,7 @@ object AriesClientFactory {
      */
     fun walletClient(
         agentConfig: AgentConfiguration?,
-        wallet: Wallet? = null,
+        wallet: AcapyWallet? = null,
         httpClient: OkHttpClient? = null,
         loggingInterceptor: HttpLoggingInterceptor? = null
     ): AriesClient {

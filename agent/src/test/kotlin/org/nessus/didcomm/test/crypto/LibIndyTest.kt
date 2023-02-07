@@ -27,6 +27,10 @@ import org.junit.jupiter.api.Test
 import org.nessus.didcomm.crypto.LibIndyService.closeAndDeleteWallet
 import org.nessus.didcomm.crypto.LibIndyService.createAnOpenWallet
 import org.nessus.didcomm.crypto.LibIndyService.createAndStoreDid
+import org.nessus.didcomm.model.AgentType
+import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.StorageType
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Alice
@@ -34,9 +38,6 @@ import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.test.NESSUS_OPTIONS_01
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.gson
-import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.DidMethod
-import org.nessus.didcomm.wallet.StorageType
 import kotlin.test.assertEquals
 
 /**
@@ -122,7 +123,7 @@ class LibIndyTest: AbstractDidCommTest() {
             log.info { "Faber Did: ${faberDid.qualified}" }
 
             log.info("Create wallet - Alice")
-            org.nessus.didcomm.wallet.Wallet.Builder(Alice.name)
+            Wallet.Builder(Alice.name)
                 .options(NESSUS_OPTIONS_01)
                 .agentType(AgentType.NESSUS)
                 .storageType(StorageType.IN_MEMORY)
@@ -155,7 +156,7 @@ class LibIndyTest: AbstractDidCommTest() {
             log.info { "Faber Did: ${faberDid.qualified}" }
 
             log.info("Create wallet - Alice")
-            org.nessus.didcomm.wallet.Wallet.Builder(Alice.name)
+            Wallet.Builder(Alice.name)
                 .options(NESSUS_OPTIONS_01)
                 .agentType(AgentType.NESSUS)
                 .storageType(StorageType.IN_MEMORY)

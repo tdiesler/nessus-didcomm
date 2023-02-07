@@ -22,14 +22,13 @@ package org.nessus.didcomm.itest
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
 import org.junit.jupiter.api.Test
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND
-import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.toWalletModel
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
@@ -84,7 +83,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                     .getMessageExchange()
 
                 val aliceFaber = mex.getConnection()
-                val faberAlice = faber.findConnection(aliceFaber.theirVerkey)
+                val faberAlice = faber.findConnection { it.myVerkey == aliceFaber.theirVerkey }
 
                 verifyConnection(alice, aliceFaber)
 
@@ -133,7 +132,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                     .getMessageExchange()
 
                 val aliceFaber = mex.getConnection()
-                val faberAlice = faber.findConnection(aliceFaber.theirVerkey)
+                val faberAlice = faber.findConnection{ it.myVerkey == aliceFaber.theirVerkey }
 
                 verifyConnection(alice, aliceFaber)
 
@@ -185,7 +184,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                     .getMessageExchange()
 
                 val aliceBob = mex.getConnection()
-                val bobAlice = bob.findConnection(aliceBob.theirVerkey)
+                val bobAlice = bob.findConnection{ it.myVerkey == aliceBob.theirVerkey }
 
                 verifyConnection(alice, aliceBob)
 
@@ -206,14 +205,13 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
         log.info { "${wallet.name}'s Connection: ${pcon.prettyPrint()}" }
         assertEquals(ACTIVE, pcon.state)
 
-        val walletModel = wallet.toWalletModel()
-        val myModelInvi = walletModel.findInvitation { i -> i.invitationKey() == pcon.invitationKey }
+        val myModelInvi = wallet.findInvitation { i -> i.invitationKey() == pcon.invitationKey }
         assertEquals(pcon.invitationKey, myModelInvi?.invitationKey())
 
-        val myModelCon = walletModel.findConnection { c -> c.id == pcon.id }
+        val myModelCon = wallet.findConnection { c -> c.id == pcon.id }
         assertEquals(pcon, myModelCon)
 
-        val myModelDid = walletModel.findDid { d -> d.verkey == pcon.myVerkey }
+        val myModelDid = wallet.findDid { d -> d.verkey == pcon.myVerkey }
         assertEquals(pcon.myDid, myModelDid)
     }
 }

@@ -20,11 +20,12 @@
 package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
-import org.nessus.didcomm.wallet.DidMethod
-import org.nessus.didcomm.wallet.LedgerRole
-import org.nessus.didcomm.wallet.Wallet
-import org.nessus.didcomm.wallet.AgentType
-import org.nessus.didcomm.wallet.StorageType
+import org.nessus.didcomm.model.AgentType
+import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.StorageType
+import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.wallet.AcapyWallet
+import org.nessus.didcomm.model.LedgerRole
 import kotlin.test.assertEquals
 
 /**
@@ -36,7 +37,7 @@ class OnboardFaberTest : AbstractIntegrationTest() {
     fun testOnboardFaber() {
 
         // ./wallet-bootstrap --create Government --ledger-role TRUSTEE
-        val gov = getWalletByAlias(Government.name) as Wallet
+        val gov = getWalletByAlias(Government.name) as AcapyWallet
 
         // ./wallet-bootstrap --create Faber --ledger-role ENDORSER
         val maybeFaber = getWalletByAlias(Faber.name)

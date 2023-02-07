@@ -19,14 +19,13 @@
  */
 package org.nessus.didcomm.itest
 
-import id.walt.servicematrix.ServiceMatrix
-import id.walt.services.crypto.CryptoService
-import id.walt.services.keystore.KeyStoreService
 import org.junit.jupiter.api.BeforeAll
-import org.nessus.didcomm.crypto.NessusCryptoService
-import org.nessus.didcomm.service.*
+import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.service.CamelEndpointService
+import org.nessus.didcomm.service.MessageDispatchService
+import org.nessus.didcomm.service.ServiceMatrixLoader
+import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
-import org.nessus.didcomm.wallet.Wallet
 
 val ACAPY_OPTIONS_01 = mapOf(
     "ACAPY_HOSTNAME" to System.getenv("ACAPY_HOSTNAME"),
@@ -81,23 +80,14 @@ abstract class AbstractIntegrationTest {
         @BeforeAll
         @JvmStatic
         internal fun beforeAll() {
-            val resourcesPath: String = "src/test/resources"
-            ServiceMatrix("$resourcesPath/service-matrix.properties")
+            val matrixProperties = "src/test/resources/service-matrix.properties"
+            ServiceMatrixLoader.loadServiceDefinitions(matrixProperties)
         }
     }
 
-    val cryptoService get() = CryptoService.getService().implementation as NessusCryptoService
-    val didService get() = DidService.getService()
-    val diddocService = DidDocumentService.getService()
     val dispatchService = MessageDispatchService.getService()
     val endpointService get() = CamelEndpointService.getService()
-    val httpService get() = HttpService.getService()
-    val keyStore get() = KeyStoreService.getService()
-    val modelService get() = DataModelService.getService()
-    val protocolService get() = ProtocolService.getService()
     val walletService get() = WalletService.getService()
-
-    val httpClient get() = httpService.httpClient()
 
     fun getWalletByAlias(name: String): Wallet? {
         return walletService.findByName(name)

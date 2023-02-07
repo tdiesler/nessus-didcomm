@@ -24,12 +24,12 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.WebSocket
 import org.nessus.didcomm.agent.AgentConfiguration.Companion.agentConfiguration
-import org.nessus.didcomm.wallet.Wallet
+import org.nessus.didcomm.wallet.AcapyWallet
 
 /**
  * Creates and maintains a WebSocket connection (optionally) on behalf of a given wallet.
  */
-class WebSocketClient(val wallet: Wallet, val listener: WebSocketListener) {
+class WebSocketClient(val wallet: AcapyWallet, val listener: WebSocketListener) {
     val log = KotlinLogging.logger {}
 
     private var webSocket: WebSocket? = null
