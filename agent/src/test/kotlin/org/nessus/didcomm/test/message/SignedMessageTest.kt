@@ -29,7 +29,7 @@ import org.didcommx.didcomm.model.UnpackParams
 import org.didcommx.didcomm.test.fixtures.JWM
 import org.didcommx.didcomm.test.fixtures.JWS
 import org.didcommx.didcomm.test.fixtures.isJDK15Plus
-import org.didcommx.didcomm.test.mock.AliceSecretResolverMock
+import org.didcommx.didcomm.test.mock.AliceSpecSecretResolverMock
 import org.didcommx.didcomm.test.mock.DIDDocResolverMock
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -41,7 +41,7 @@ class SignedMessageTest {
 
     @Test
     fun testSignedPackUnpack() {
-        val didComm = DIDComm(DIDDocResolverMock(), AliceSecretResolverMock())
+        val didComm = DIDComm(DIDDocResolverMock(), AliceSpecSecretResolverMock())
 
         for (test in JWS.TEST_VECTORS) {
 

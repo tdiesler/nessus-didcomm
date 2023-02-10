@@ -3,11 +3,8 @@ package org.didcommx.didcomm.test.diddoc
 import org.didcommx.didcomm.common.VerificationMaterial
 import org.didcommx.didcomm.common.VerificationMaterialFormat
 import org.didcommx.didcomm.common.VerificationMethodType
-import org.didcommx.didcomm.diddoc.DIDCommService
 import org.didcommx.didcomm.diddoc.DIDDoc
 import org.didcommx.didcomm.diddoc.VerificationMethod
-import org.didcommx.didcomm.protocols.routing.PROFILE_DIDCOMM_AIP2_ENV_RFC587
-import org.didcommx.didcomm.protocols.routing.PROFILE_DIDCOMM_V2
 
 val BOB_VERIFICATION_METHOD_KEY_AGREEM_X25519_1 = VerificationMethod(
     id = "did:example:bob#key-x25519-1",
@@ -248,48 +245,5 @@ val DID_DOC_BOB_SPEC_TEST_VECTORS = DIDDoc(
         BOB_VERIFICATION_METHOD_KEY_AGREEM_P384_2,
         BOB_VERIFICATION_METHOD_KEY_AGREEM_P521_1,
         BOB_VERIFICATION_METHOD_KEY_AGREEM_P521_2,
-    )
-)
-
-val DID_DOC_BOB_WITH_NO_SECRETS = DIDDoc(
-    did = "did:example:bob",
-    authentications = listOf(),
-    keyAgreements = listOf(
-        "did:example:bob#key-x25519-1",
-        "did:example:bob#key-x25519-2",
-        "did:example:bob#key-x25519-3",
-        "did:example:bob#key-x25519-not-secrets-1",
-        "did:example:bob#key-p256-1",
-        "did:example:bob#key-p256-2",
-        "did:example:bob#key-p256-not-secrets-1",
-        "did:example:bob#key-p384-1",
-        "did:example:bob#key-p384-2",
-        "did:example:bob#key-p384-not-secrets-1",
-        "did:example:bob#key-p521-1",
-        "did:example:bob#key-p521-2",
-        "did:example:bob#key-p521-not-secrets-1",
-    ),
-    didCommServices = listOf(
-        DIDCommService(
-            id = "did:example:123456789abcdefghi#didcomm-1",
-            serviceEndpoint = "http://example.com/path",
-            accept = listOf(PROFILE_DIDCOMM_V2, PROFILE_DIDCOMM_AIP2_ENV_RFC587),
-            routingKeys = listOf("did:example:mediator1#key-x25519-1"),
-        )
-    ),
-    verificationMethods = listOf(
-        BOB_VERIFICATION_METHOD_KEY_AGREEM_X25519_1,
-        BOB_VERIFICATION_METHOD_KEY_AGREEM_X25519_2,
-        BOB_VERIFICATION_METHOD_KEY_AGREEM_X25519_3,
-        BOB_VERIFICATION_METHOD_KEY_AGREEM_X25519_NOT_IN_SECRETS_1,
-        BOB_VERIFICATION_METHOD_KEY_AGREEM_P256_1,
-        BOB_VERIFICATION_METHOD_KEY_AGREEM_P256_2,
-        BOB_VERIFICATION_METHOD_KEY_AGREEM_P256_NOT_IN_SECRETS_1,
-        BOB_VERIFICATION_METHOD_KEY_AGREEM_P384_1,
-        BOB_VERIFICATION_METHOD_KEY_AGREEM_P384_2,
-        BOB_VERIFICATION_METHOD_KEY_AGREEM_P384_NOT_IN_SECRETS_1,
-        BOB_VERIFICATION_METHOD_KEY_AGREEM_P521_1,
-        BOB_VERIFICATION_METHOD_KEY_AGREEM_P521_2,
-        BOB_VERIFICATION_METHOD_KEY_AGREEM_P521_NOT_IN_SECRETS_1,
     )
 )

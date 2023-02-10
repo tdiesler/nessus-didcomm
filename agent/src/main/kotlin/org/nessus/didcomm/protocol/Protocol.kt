@@ -34,7 +34,9 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     abstract val protocolUri: String
 
     val didService get() = DidService.getService()
-    val diddocService get() = DidDocumentService.getService()
+    val didComm get() = DidCommService.getService()
+    val diddocV1Service get() = DidDocumentV1Service.getService()
+    val diddocV2Service get() = DidDocumentV2Service.getService()
     val dispatchService get() = MessageDispatchService.getService()
     val keyStore get() = KeyStoreService.getService()
     val modelService get() = ModelService.getService()
@@ -50,7 +52,7 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
 
 
     internal open fun invokeMethod(to: Wallet, messageType: String): Boolean {
-        throw IllegalStateException("Dispatch not supported in protocol wrapper: $protocolUri")
+        throw IllegalStateException("Dispatch not supported in protocol: $protocolUri")
     }
 
     fun <T :Protocol<T>> withProtocol(key: ProtocolKey<T>): T {

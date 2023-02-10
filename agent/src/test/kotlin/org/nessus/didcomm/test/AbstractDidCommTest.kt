@@ -23,11 +23,17 @@ import id.walt.services.crypto.CryptoService
 import id.walt.services.keystore.KeyStoreService
 import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.crypto.NessusCryptoService
-import org.nessus.didcomm.service.DidDocumentService
+import org.nessus.didcomm.protocol.MessageListener
+import org.nessus.didcomm.service.CamelEndpointService
+import org.nessus.didcomm.service.DidCommService
+import org.nessus.didcomm.service.DidDocumentV1Service
+import org.nessus.didcomm.service.DidDocumentV2Service
 import org.nessus.didcomm.service.DidService
+import org.nessus.didcomm.service.SecretResolverService
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
+import org.nessus.didcomm.wallet.NessusWalletPlugin.Companion.getNessusEndpointUrl
 
 val ACAPY_OPTIONS_01 = mapOf(
     "ACAPY_HOSTNAME" to System.getenv("ACAPY_HOSTNAME"),
@@ -84,6 +90,7 @@ object Acme {
     val didsov = "did:sov:8A9VYDjAVEqWrsfjLA3VDc"
 }
 
+@Suppress("MemberVisibilityCanBePrivate")
 abstract class AbstractDidCommTest {
 
     companion object {
@@ -96,10 +103,19 @@ abstract class AbstractDidCommTest {
     }
 
     val cryptoService get() = CryptoService.getService().implementation as NessusCryptoService
-    val didDocumentService = DidDocumentService.getService()
+    val didComm = DidCommService.getService()
+    val diddocV1Service = DidDocumentV1Service.getService()
+    val diddocV2Service = DidDocumentV2Service.getService()
     val didService get() = DidService.getService()
+    val endpointService get() = CamelEndpointService.getService()
     val keyStore get() = KeyStoreService.getService()
+    val secretResolver = SecretResolverService.getService()
     val walletService get() = WalletService.getService()
+
+    fun startNessusEndpoint(options: Map<String, Any>, listener: MessageListener? = null): AutoCloseable {
+        val endpointUrl = getNessusEndpointUrl(options)
+        return endpointService.startEndpoint(endpointUrl, listener)
+    }
 
     fun removeWallet(alias: String) {
         walletService.findByName(alias)?.run {

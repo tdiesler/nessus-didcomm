@@ -4,6 +4,8 @@ Nessus DIDComm is about Digital Identity and Verifiable Credentials based on [DI
 
 [<img src="docs/img/ssi-book.png" height="200" alt="self sovereign identity">](https://www.manning.com/books/self-sovereign-identity)
 
+The initial scope of this project is laid out in [Proof-of-Concept](./docs/proof-of-concept.md).
+
 ### External Documentation
 
 * [The Story of Open SSI Standards](https://www.youtube.com/watch?v=RllH91rcFdE)
@@ -52,56 +54,70 @@ The above should have created the respective siera environment.
 
 ### Supported Protocols
 
-| Protocol                                      | AcaPy | Nessus |
-|:----------------------------------------------|:-----:|:------:|
-| [RFC0019 Encryption Envelope][rfc0019]        |   x   |   x    |
-| [RFC0023 DID Exchange Protocol 1.0][rfc0023]  |   x   |        |
-| [RFC0048 Trust Ping Protocol 1.0][rfc0048]    |   x   |        |
-| [RFC0095 Basic Message Protocol 1.0][rfc0095] |   x   |        |
-| [RFC0434 Out-of-Band Protocol 1.1][rfc0434]   |   x   |        |
+| Protocol                                       | AcaPy | Nessus |
+|:-----------------------------------------------|:-----:|:------:|
+| [RFC0019 Encryption Envelope][rfc0019]         |   x   |   x    |
+| [RFC0023 DID Exchange Protocol 1.0][rfc0023]   |   x   |   x    |
+| [RFC0048 Trust Ping Protocol 1.0][rfc0048]     |   x   |   x    |
+| [RFC0095 Basic Message Protocol 1.0][rfc0095]  |   x   |   x    |
+| [RFC0434 Out-of-Band Protocol 1.1][rfc0434]    |   x   |   x    |
+| [RFC0023 DID Exchange Protocol 2.0][rfc0023v2] |       |   x    |
+| [RFC0095 Basic Message 2.0][rfc0095v2]         |       |   x    |
+| [RFC0434 Out-of-Band Protocol 2.0][rfc0434v2]  |       |   x    |
 
 [rfc0019]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0019-encryption-envelope
 [rfc0023]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange
 [rfc0048]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0048-trust-ping
 [rfc0095]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0095-basic-message
 [rfc0434]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0434-outofband
+[rfc0023v2]: ./features/0023-did-exchange.md
+[rfc0095v2]: ./features/0095-basic-message.md
+[rfc0434v2]: ./features/0434-oob-invitation.md
 
 ### Code Sample
 
 ```kotlin
     /** Create the wallets */
-    
+
     val faber = getWalletByAlias(Faber.name) ?: fail("No Faber")
     
     val alice = Wallet.Builder(Alice.name)
-        .walletAgent(WalletAgent.ACAPY)
-        .walletType(WalletType.IN_MEMORY)
+        .agentType(AgentType.NESSUS)
         .build()
-            
+
+    /** Start the Nessus endpoint */
+    
+    endpointService.startEndpoint(alice.endpointUrl)
+
     /** Establish a peer connection */
     
-    val peerConnection = faber.getProtocol(PROTOCOL_URI_RFC0434_OUT_OF_BAND_V1_1)
-        .createOutOfBandInvitation(faber)
-        .dispatchTo(alice)
-        .getPeerConnection()
+    val mex = MessageExchange()
+        .withProtocol(RFC0434_OUT_OF_BAND_V1)
+        .createOutOfBandInvitation(faber, "Faber invites Alice")
+        .receiveOutOfBandInvitation(alice)
+        .withProtocol(RFC0023_DIDEXCHANGE)
+        .connect(alice)
+        .getMessageExchange()
     
     /** Verify connection state */
     
+    val peerConnection = mex.getConnection()
+    
     assertNotNull(peerConnection, "No peer connection")
-    assertEquals(ConnectionState.ACTIVE, peerConnection.state)
+    assertEquals(ACTIVE, peerConnection.state)
     
     /** Send a basic message */
     
     val userMessage = "Your hovercraft is full of eels."
     
-    val mex = alice.getProtocol(PROTOCOL_URI_RFC0095_BASIC_MESSAGE)
-        .sendMessage(alice, peerConnection.id, userMessage)
+    mex.withProtocol(RFC0095_BASIC_MESSAGE)
+        .sendMessage(userMessage)
     
     /** Verify message exchange state */
     
     val epm: EndpointMessage = mex.last
-    assertEquals("https://didcomm.org/basicmessage/1.0/message", epm.contentUri)
-    assertEquals(userMessage, epm.body)
+    assertEquals("https://didcomm.org/basicmessage/1.0/message", epm.type)
+    assertEquals(userMessage, epm.bodyAsJson.selectJson("content"))
 ```
 
 ### Install LibIndy

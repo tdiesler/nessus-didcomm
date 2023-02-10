@@ -27,9 +27,11 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
+import org.didcommx.didcomm.message.Message
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
 import org.nessus.didcomm.service.HttpService.HttpClient.Companion.createHttpLoggingInterceptor
 import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.util.encodeJsonPretty
+import org.nessus.didcomm.util.encodeJson
 import org.slf4j.event.Level
 import java.util.concurrent.TimeUnit
 
@@ -83,7 +85,7 @@ class HttpService: NessusBaseService() {
                     if (log.isEnabledForLevel(effLevel) && msg.isNotEmpty()) {
                         if (msg.startsWith("{")) {
                             val json = msg.decodeJson()
-                            log("{}", json.encodeJsonPretty(sorted = true))
+                            log("{}", json.encodeJson(true))
                         } else {
                             log("{}", msg)
                         }
@@ -107,16 +109,19 @@ class HttpService: NessusBaseService() {
             }
             val builder = Request.Builder().url(actUrl)
 
-            headers.filterKeys { it != "Content-Type" }
+            headers.filterKeys { it !in listOf("Content-Type", MESSAGE_HEADER_MEDIA_TYPE) }
                 .forEach { (k, v) -> builder.header(k, v) }
 
             // The given Content-Type or JSON by default
-            val mediaType = (headers["Content-Type"] ?: "application/json").toMediaType()
+            val mediaType = (headers["Content-Type"]
+                ?: headers[MESSAGE_HEADER_MEDIA_TYPE]
+                ?: "application/json").toMediaType()
 
             val reqBody = when (body) {
                 is String -> body.toRequestBody(mediaType)
                 is ByteArray -> body.toRequestBody(mediaType)
-                else -> throw IllegalArgumentException("Unsupported body type")
+                is Message -> body.encodeJson().toRequestBody(mediaType)
+                else -> throw IllegalArgumentException("Unsupported body type: ${body.javaClass}")
             }
 
             val req = builder.post(reqBody).build()

@@ -26,9 +26,10 @@ import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
-import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST
+import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocolV1.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Alice
+import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.trimJson
 import kotlin.test.assertEquals
@@ -75,13 +76,13 @@ class RFC0019EnvelopeTest: AbstractDidCommTest() {
 
         val rfc0019 = RFC0019EncryptionEnvelope()
         val (message, _, recipientVerkey) = rfc0019.unpackEncryptedEnvelope(envelope)!!
-        assertEquals(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST, message.selectJson("@type"))
+        assertEquals(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1, message.selectJson("@type"))
         assertEquals(aliceDidSov.verkey, recipientVerkey)
 
 
         val didDocAttachment = message.selectJson("did_doc~attach") as String
-        val (didDocument, _) = didDocumentService.extractFromAttachment(didDocAttachment, null)
-        val diddocAttach = didDocumentService.createAttachment(didDocument, aliceDidSov) // This should be Faber's Did, but we don't have the secret
+        val (didDocument, _) = diddocV1Service.extractDidDocAttachment(didDocAttachment, null)
+        val didDocAttach = diddocV1Service.createDidDocAttachmentMap(didDocument, aliceDidSov) // This should be Faber's Did, but we don't have the secret
 
         val didRequest = """
         {
@@ -91,7 +92,7 @@ class RFC0019EnvelopeTest: AbstractDidCommTest() {
                 "thid": "7168055e-e19a-448c-9f4d-6e88d0de79c7",
                 "pthid": "08e7ed44-6ed5-4aa8-9824-18dbeab5253d"
             },
-            "did_doc~attach": $diddocAttach,
+            "did_doc~attach": ${didDocAttach.encodeJson()},
             "did": "CT7WXu41fw8A3s7wDy6VUp",
             "label": "Aries Cloud Agent"
         }

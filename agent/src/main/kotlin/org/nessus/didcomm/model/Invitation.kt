@@ -19,8 +19,8 @@
  */
 package org.nessus.didcomm.model
 
-import org.didcommx.didcomm.message.Attachment
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.gson
 
 class Invitation {
@@ -53,30 +53,22 @@ class Invitation {
     val id get() = optV1?.id ?: actV2.id
     val type get() = optV1?.type ?: actV2.type
 
-    val services get() = when {
-        isV1 -> actV1.services
-        else -> run {
-            val attachment = actV2.attachments?.firstOrNull { it.data is Attachment.Data.Json }
-            checkNotNull(attachment) { "No json attachment" }
-            val json = gson.toJson(attachment.data.toJSONObject()["json"])
-            listOf(gson.fromJson(json, Service::class.java))
-        }
-    }
-
     fun invitationKey(idx: Int = 0): String {
         return recipientDidKey(idx).verkey
     }
 
     fun recipientDidKey(idx: Int = 0): Did {
-        check(services.size > idx) { "No services[$idx].recipientKeys" }
-        check(services[idx].recipientKeys.isNotEmpty()) { "No recipient keys" }
-        check(services[idx].recipientKeys.size == 1) { "Multiple recipient keys" }
-        return Did.fromSpec(services[idx].recipientKeys[0])
+        return when {
+            isV1 -> actV1.recipientDidKey(idx)
+            else -> actV2.recipientDidKey(idx)
+        }
     }
 
     fun recipientServiceEndpoint(idx: Int = 0): String {
-        check(services.size > idx) { "No services[$idx].serviceEndpoint" }
-        return services[idx].serviceEndpoint
+        return when {
+            isV1 -> actV1.recipientServiceEndpoint(idx)
+            else -> actV2.recipientServiceEndpoint(idx)
+        }
     }
 
     fun shortString(): String {
@@ -86,7 +78,7 @@ class Invitation {
     override fun toString(): String {
         return when {
             isV1 -> gson.toJson(actV1)
-            else -> gson.toJson(actV2.toMessage())
+            else -> actV2.toMessage().encodeJson()
         }
     }
 

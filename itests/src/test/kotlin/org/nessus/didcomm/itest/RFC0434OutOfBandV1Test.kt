@@ -40,7 +40,7 @@ import kotlin.test.fail
  * DIDComm - Out Of Band Messages
  * https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
  */
-class RFC0434OutOfBandInvitationTest : AbstractIntegrationTest() {
+class RFC0434OutOfBandV1Test : AbstractIntegrationTest() {
 
     @Test
     fun test_FaberAcapy_invites_AliceNessus() {

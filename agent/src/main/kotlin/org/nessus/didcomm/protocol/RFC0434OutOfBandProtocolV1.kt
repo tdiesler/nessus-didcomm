@@ -21,6 +21,7 @@ package org.nessus.didcomm.protocol
 
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
+import org.didcommx.didcomm.protocols.routing.PROFILE_DIDCOMM_V2
 import org.hyperledger.aries.api.connection.ConnectionFilter
 import org.hyperledger.aries.api.out_of_band.CreateInvitationFilter
 import org.hyperledger.aries.api.out_of_band.InvitationCreateRequest
@@ -41,11 +42,11 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_PROT
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_THID
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocol.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST
-import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
+import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocolV1.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1
+import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V1
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
 import org.nessus.didcomm.util.gson
-import org.nessus.didcomm.util.prettyGson
+import org.nessus.didcomm.util.gsonPretty
 import org.nessus.didcomm.wallet.AcapyWallet
 import org.nessus.didcomm.wallet.NessusWallet
 import java.util.*
@@ -94,7 +95,7 @@ class RFC0434OutOfBandProtocolV1(mex: MessageExchange): Protocol<RFC0434OutOfBan
         } else {
             createOutOfBandInvitationNessus(inviter as NessusWallet, label)
         }.validate()
-        log.info { "Inviter (${inviter.name}) created Invitation: ${prettyGson.toJson(invitationV1)}" }
+        log.info { "Inviter (${inviter.name}) created Invitation: ${gsonPretty.toJson(invitationV1)}" }
 
         mex.addMessage(EndpointMessage(
             invitationV1, mapOf(
@@ -140,10 +141,10 @@ class RFC0434OutOfBandProtocolV1(mex: MessageExchange): Protocol<RFC0434OutOfBan
         val autoAccept = options["autoAccept"] as? Boolean ?: true
 
         val createInvRequest = InvitationCreateRequest.builder()
-            .accept(listOf("didcomm/v2"))
+            .accept(listOf(PROFILE_DIDCOMM_V2))
             .alias(inviter.name)
             .myLabel(label)
-            .handshakeProtocols(listOf(RFC0023_DIDEXCHANGE.uri))
+            .handshakeProtocols(listOf(RFC0023_DIDEXCHANGE_V1.uri))
             .usePublicDid(usePublicDid)
             .build()
         val createInvFilter = CreateInvitationFilter.builder()
@@ -198,8 +199,8 @@ class RFC0434OutOfBandProtocolV1(mex: MessageExchange): Protocol<RFC0434OutOfBan
             id = "${UUID.randomUUID()}",
             type = RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V1,
             label = label,
-            accept = listOf("didcomm/v2"),
-            handshakeProtocols = listOf(RFC0023_DIDEXCHANGE.uri),
+            accept = listOf(PROFILE_DIDCOMM_V2),
+            handshakeProtocols = listOf(RFC0023_DIDEXCHANGE_V1.uri),
             services = listOf(
                 Invitation.Service(
                     id = "#inline",
@@ -210,7 +211,6 @@ class RFC0434OutOfBandProtocolV1(mex: MessageExchange): Protocol<RFC0434OutOfBan
             )
         )
 
-        val myEndpointUrl = inviter.endpointUrl
         val invitationKey = invitationV1.invitationKey()
 
         // Create and attach the Connection
@@ -221,7 +221,7 @@ class RFC0434OutOfBandProtocolV1(mex: MessageExchange): Protocol<RFC0434OutOfBan
             myDid = invitationDid,
             myRole = ConnectionRole.INVITER,
             myLabel = label,
-            myEndpointUrl = myEndpointUrl,
+            myEndpointUrl = inviter.endpointUrl,
             theirDid = null,
             theirRole = ConnectionRole.INVITEE,
             theirLabel = null,
@@ -273,7 +273,7 @@ class RFC0434OutOfBandProtocolV1(mex: MessageExchange): Protocol<RFC0434OutOfBan
          *
          * We place the future before the receive-invitation admin command
          */
-        mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST)
+        mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1)
 
         val inviteeClient = invitee.walletClient() as AriesClient
         inviteeClient.outOfBandReceiveInvitation(invitationMessage, receiveInvFilter).get()

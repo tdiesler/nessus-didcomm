@@ -21,6 +21,7 @@ package org.nessus.didcomm.protocol
 
 import mu.KotlinLogging
 import org.didcommx.didcomm.message.Message
+import org.nessus.didcomm.did.DidDoc
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.InvitationV1
@@ -30,7 +31,6 @@ import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocolV1.Companion.RFC0434_
 import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocolV2.Companion.RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
 import org.nessus.didcomm.service.ProtocolKey
 import org.nessus.didcomm.service.ProtocolService
-import org.nessus.didcomm.service.RFC0023DidDocument
 import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.AttachmentSupport
 import java.util.*
@@ -60,7 +60,8 @@ class MessageExchange(): AttachmentSupport() {
 
         val INVITATION_ATTACHMENT_KEY = AttachmentKey(Invitation::class)
         val CONNECTION_ATTACHMENT_KEY = AttachmentKey(Connection::class)
-        val DID_DOCUMENT_ATTACHMENT_KEY = AttachmentKey(RFC0023DidDocument::class)
+        val REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY = AttachmentKey("RequesterDidDoc", DidDoc::class)
+        val RESPONDER_DID_DOCUMENT_ATTACHMENT_KEY = AttachmentKey("ResponderDidDoc", DidDoc::class)
         val WALLET_ATTACHMENT_KEY = AttachmentKey(Wallet::class)
 
         // [TODO] MEMORY LEAK - evict outdated messages exchanges
@@ -101,6 +102,13 @@ class MessageExchange(): AttachmentSupport() {
     val messages: List<EndpointMessage>
         get() = messageStore.toList()
 
+    /**
+     * The connection becomes available when this message exchange receives the first message, which
+     * must be one of the supported invitation message types. The connection may be in any of its
+     * supported states.
+     *
+     * @throws IllegalStateException when there is no connection available
+     */
     fun getConnection(): Connection {
         synchronized(exchangeRegistry) {
             checkNotNull(getAttachment(CONNECTION_ATTACHMENT_KEY)) { "No connection" }

@@ -24,10 +24,16 @@ import id.walt.crypto.KeyAlgorithm
 import mu.KotlinLogging
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.service.RFC0023DidDocument
-import org.nessus.didcomm.test.AbstractDidCommTest
-import org.nessus.didcomm.util.*
 import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.did.DidDocV1
+import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.util.decodeBase64Url
+import org.nessus.didcomm.util.decodeBase64UrlStr
+import org.nessus.didcomm.util.decodeHex
+import org.nessus.didcomm.util.encodeJson
+import org.nessus.didcomm.util.gson
+import org.nessus.didcomm.util.selectJson
+import org.nessus.didcomm.util.trimJson
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -93,7 +99,7 @@ class RFC0023DidDocumentTest: AbstractDidCommTest() {
         assertEquals(expDidDocument, didDocument.trimJson())
 
         // Verify RFC0023DidDocument serialization
-        val rfC0023DidDocument = gson.fromJson(didDocument, RFC0023DidDocument::class.java)
+        val rfC0023DidDocument = gson.fromJson(didDocument, DidDocV1::class.java)
         val was = gson.toJson(rfC0023DidDocument)
         assertEquals(expDidDocument, was)
 
@@ -136,7 +142,7 @@ class RFC0023DidDocumentTest: AbstractDidCommTest() {
         // -------------------------------------------------------------------------------------------
         // Do all of the above in one API call
 
-        val (extractedDocument, _) = didDocumentService.extractFromAttachment(didDocAttachment, didSov.verkey)
+        val (extractedDocument, _) = diddocV1Service.extractDidDocAttachment(didDocAttachment, didSov.verkey)
         assertEquals(expDidDocument, gson.toJson(extractedDocument))
     }
 
@@ -146,17 +152,17 @@ class RFC0023DidDocumentTest: AbstractDidCommTest() {
         val seedSov = "0000000000000000000000000000000000000000000000000000000000000005".decodeHex()
         val didSov = didService.createDid(DidMethod.SOV, KeyAlgorithm.EdDSA_Ed25519, seedSov)
 
-        val didDocument = didDocumentService.createDidDocument(didSov, "http://host.docker.internal:9030")
+        val didDocument = diddocV1Service.createDidDocument(didSov, "http://host.docker.internal:9030")
         val didDocumentJson = gson.toJson(didDocument)
 
         log.info { "Did Document: ${didDocumentJson.prettyPrint()}" }
 
-        val attachmentJson = didDocumentService.createAttachment(didDocument, didSov)
-        val didDocAttachment = gson.toJson(attachmentJson)
+        val didDocAttach = diddocV1Service.createDidDocAttachmentMap(didDocument, didSov)
+        val didDocAttachJson = didDocAttach.encodeJson()
 
-        log.info { "Attachment: ${didDocAttachment.prettyPrint()}" }
+        log.info { "Attachment: ${didDocAttach.encodeJson(true)}" }
 
-        val (extractedDocument, _) = didDocumentService.extractFromAttachment(didDocAttachment, didSov.verkey)
+        val (extractedDocument, _) = diddocV1Service.extractDidDocAttachment(didDocAttachJson, didSov.verkey)
         assertEquals(didDocumentJson, gson.toJson(extractedDocument))
     }
 }

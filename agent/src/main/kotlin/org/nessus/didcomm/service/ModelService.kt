@@ -39,7 +39,7 @@ class ModelService : NessusBaseService() {
 
     fun addWallet(wallet: Wallet) {
         check(findWalletByName(wallet.name) == null) { "Wallet already exists: ${wallet.name}" }
-        log.info {"Add: $wallet" }
+        log.info {"Add Wallet: $wallet" }
         model.addWallet(wallet)
     }
 
@@ -61,7 +61,7 @@ class ModelService : NessusBaseService() {
 
     fun removeWallet(id: String): Wallet? {
         model.removeWallet(id)?.run {
-            log.info {"Removed: $this" }
+            log.info {"Removed Wallet: ${shortString()}" }
             return this
         }
         return null

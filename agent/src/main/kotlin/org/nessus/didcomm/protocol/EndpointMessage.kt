@@ -38,6 +38,7 @@ class EndpointMessage(
          * Header constants
          */
         const val MESSAGE_HEADER_ID = "MessageId"
+        const val MESSAGE_HEADER_MEDIA_TYPE = "MessageMediaType"
         const val MESSAGE_HEADER_PROTOCOL_URI = "MessageProtocolUri"
         const val MESSAGE_HEADER_SENDER_VERKEY = "MessageSenderVerkey"
         const val MESSAGE_HEADER_RECIPIENT_VERKEY = "MessageRecipientVerkey"
@@ -61,6 +62,7 @@ class EndpointMessage(
             pthid?.run { effHeaders[MESSAGE_HEADER_PTHID] = pthid }
         } else if (body is Message) {
             effHeaders[MESSAGE_HEADER_ID] = body.id
+            effHeaders[MESSAGE_HEADER_MEDIA_TYPE] = body.typ.typ
             effHeaders[MESSAGE_HEADER_TYPE] = body.type
             effHeaders[MESSAGE_HEADER_THID] = body.thid
             effHeaders[MESSAGE_HEADER_PTHID] = body.pthid
@@ -97,8 +99,8 @@ class EndpointMessage(
         }
 
         fun body(body: Any) = apply {this.body = body }
-        fun header(k: String, v: Any) = apply { this.headers[k] = v }
-        fun headers(headers: Map<String, Any>) = apply {this.headers.putAll(headers) }
+        fun header(k: String, v: Any?) = apply { if (v != null) this.headers[k] = v }
+        fun headers(headers: Map<String, Any>) = apply { this.headers.putAll(headers) }
         fun build() = EndpointMessage(body, headers)
     }
 

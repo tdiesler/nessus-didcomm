@@ -19,7 +19,12 @@
  */
 package org.nessus.didcomm.test.crypto
 
-import com.nimbusds.jose.*
+import com.nimbusds.jose.JWSAlgorithm
+import com.nimbusds.jose.JWSHeader
+import com.nimbusds.jose.JWSObject
+import com.nimbusds.jose.JWSSigner
+import com.nimbusds.jose.JWSVerifier
+import com.nimbusds.jose.Payload
 import com.nimbusds.jose.crypto.Ed25519Signer
 import com.nimbusds.jose.crypto.Ed25519Verifier
 import com.nimbusds.jose.jwk.Curve
@@ -28,7 +33,7 @@ import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator
 import mu.KotlinLogging
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.test.AbstractDidCommTest
-import org.nessus.didcomm.util.encodeJsonPretty
+import org.nessus.didcomm.util.encodeJson
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -50,7 +55,7 @@ class NimbusJwsTest: AbstractDidCommTest() {
             .keyID("123")
             .generate()
 
-        log.info { jwk.toJSONObject().encodeJsonPretty() }
+        log.info { jwk.toJSONObject().encodeJson(true) }
 
         // Create the EdDSA signer
         val signer: JWSSigner = Ed25519Signer(jwk)

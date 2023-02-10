@@ -33,7 +33,8 @@ import org.nessus.didcomm.service.RFC0048_TRUST_PING
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.trimJson
 import org.nessus.didcomm.wallet.AcapyWallet
-import java.util.*
+import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 /**
  * Aries RFC 0048: Trust Ping Protocol 1.0
@@ -124,8 +125,8 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
         return rfc0048
     }
 
-    fun awaitTrustPingResponse(): RFC0048TrustPingProtocol {
-        mex.awaitEndpointMessage(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE)
+    fun awaitTrustPingResponse(timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): RFC0048TrustPingProtocol {
+        mex.awaitEndpointMessage(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE, timeout, unit)
         return this
     }
 

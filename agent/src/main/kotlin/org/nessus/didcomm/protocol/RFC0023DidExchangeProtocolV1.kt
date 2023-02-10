@@ -24,6 +24,7 @@ import mu.KotlinLogging
 import org.hyperledger.aries.api.connection.ConnectionFilter
 import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.did.DidDoc
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
@@ -33,33 +34,35 @@ import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.InvitationV1
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.MessageExchange.Companion.DID_DOCUMENT_ATTACHMENT_KEY
+import org.nessus.didcomm.protocol.MessageExchange.Companion.REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY
+import org.nessus.didcomm.protocol.MessageExchange.Companion.RESPONDER_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING
-import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
+import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V1
 import org.nessus.didcomm.service.RFC0048_TRUST_PING
+import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.trimJson
 import org.nessus.didcomm.wallet.AcapyWallet
 import org.nessus.didcomm.wallet.toConnectionRole
 import org.nessus.didcomm.wallet.toConnectionState
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
  * Aries RFC 0023: DID Exchange Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange
  */
-class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExchangeProtocol>(mex) {
+class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExchangeProtocolV1>(mex) {
     override val log = KotlinLogging.logger {}
 
-    override val protocolUri = RFC0023_DIDEXCHANGE.uri
+    override val protocolUri = RFC0023_DIDEXCHANGE_V1.uri
 
     companion object {
-        val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST = "${RFC0023_DIDEXCHANGE.uri}/request"
-        val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE = "${RFC0023_DIDEXCHANGE.uri}/response"
-        val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE = "${RFC0023_DIDEXCHANGE.uri}/complete"
+        val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1 = "${RFC0023_DIDEXCHANGE_V1.uri}/request"
+        val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V1 = "${RFC0023_DIDEXCHANGE_V1.uri}/response"
+        val RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE_V1 = "${RFC0023_DIDEXCHANGE_V1.uri}/complete"
     }
 
     override val supportedAgentTypes
@@ -67,17 +70,17 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
 
     override fun invokeMethod(to: Wallet, messageType: String): Boolean {
         when (messageType) {
-            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST -> receiveDidExchangeRequest(to)
-            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE -> receiveDidExchangeResponse(to)
-            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE -> receiveDidExchangeComplete(to)
+            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1 -> receiveDidExchangeRequest(to)
+            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V1 -> receiveDidExchangeResponse(to)
+            RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE_V1 -> receiveDidExchangeComplete(to)
             else -> throw IllegalStateException("Unsupported message type: $messageType")
         }
         return true
     }
 
-    fun connect(maybeRequester: Wallet? = null, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): RFC0023DidExchangeProtocol {
+    fun connect(invitee: Wallet? = null, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): RFC0023DidExchangeProtocolV1 {
 
-        val requester = maybeRequester ?: mex.getAttachment(WALLET_ATTACHMENT_KEY)
+        val requester = invitee ?: mex.getAttachment(WALLET_ATTACHMENT_KEY)
         checkNotNull(requester) { "No requester wallet" }
 
         val attachedInvitation = mex.getInvitation()
@@ -141,7 +144,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
     private fun sendDidExchangeRequest(requester: Wallet, invitation: InvitationV1) {
 
         // Register the response future with the message exchange
-        mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE)
+        mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V1)
 
         when(requester.agentType) {
 
@@ -161,18 +164,18 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
                 val recipientServiceEndpoint = invitation.recipientServiceEndpoint()
 
                 // Create the Requester Did & Document
-                val myEndpointUrl = requester.endpointUrl
-                val myDidDoc = diddocService.createDidDocument(pcon.myDid, myEndpointUrl)
-                log.info { "Requester (${requester.name}) created: ${myDidDoc.prettyPrint()}" }
+                val requesterEndpointUrl = requester.endpointUrl
+                val requesterDidDoc = diddocV1Service.createDidDocument(pcon.myDid, requesterEndpointUrl)
+                log.info { "Requester (${requester.name}) created Did Document: ${requesterDidDoc.encodeJson(true)}" }
 
-                mex.putAttachment(DID_DOCUMENT_ATTACHMENT_KEY, myDidDoc)
+                mex.putAttachment(REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(requesterDidDoc))
 
                 val didexReqId = "${UUID.randomUUID()}"
-                val requesterDidDocAttach = diddocService.createAttachment(myDidDoc, pcon.myDid)
+                val didDocAttach = diddocV1Service.createDidDocAttachmentMap(requesterDidDoc, pcon.myDid)
 
                 val didexRequest = """
                 {
-                    "@type": "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST",
+                    "@type": "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1",
                     "@id": "$didexReqId",
                     "~thread": {
                         "thid": "$didexReqId",
@@ -180,7 +183,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
                     },
                     "did": "${pcon.myDid.id}",
                     "label": "Invitee ${requester.name}",
-                    "did_doc~attach": $requesterDidDocAttach
+                    "did_doc~attach": ${didDocAttach.encodeJson()}
                 }
                 """.trimJson()
 
@@ -207,7 +210,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         log.info { "Responder (${responder.name}) received DidEx Request" }
 
         val didexRequest = mex.last
-        didexRequest.checkMessageType(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST)
+        didexRequest.checkMessageType(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1)
 
         val invitationId = mex.last.pthid
         val senderVerkey = didexRequest.senderVerkey
@@ -240,10 +243,10 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val didDocAttachment = body.selectJson("did_doc~attach")
         checkNotNull(didDocAttachment) {"Cannot find attached did document"}
 
-        val (requesterDidDoc, _) = diddocService.extractFromAttachment(didDocAttachment, null)
+        val (requesterDidDoc, _) = diddocV1Service.extractDidDocAttachment(didDocAttachment, null)
         val docdidVerkey = requesterDidDoc.publicKeyDid().verkey
         check(senderVerkey == docdidVerkey) { "Did in Document does not match with senderVerkey: $senderVerkey != $docdidVerkey" }
-        mex.putAttachment(DID_DOCUMENT_ATTACHMENT_KEY, requesterDidDoc)
+        mex.putAttachment(REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(requesterDidDoc))
 
         val theirDid = requesterDidDoc.publicKeyDid(0)
         val theirEndpointUrl = requesterDidDoc.serviceEndpoint(0)
@@ -259,12 +262,12 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         pcon.state = ConnectionState.REQUEST
 
         // Register the complete future with the message exchange
-        mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE)
+        mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE_V1)
 
         fixupTheirConnection(invitation)
 
-        if (mex.hasEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST))
-            mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST, mex.last)
+        if (mex.hasEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1))
+            mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1, mex.last)
 
         sendDidExchangeResponse(responder)
 
@@ -274,42 +277,44 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
     private fun sendDidExchangeResponse(responder: Wallet) {
 
         val didexThid = mex.last.thid
-        mex.checkLastMessageType(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST)
+        mex.checkLastMessageType(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1)
 
         val invitation = mex.getInvitation()
         checkNotNull(invitation) { "No invitation" }
 
-        val requesterDidDoc = mex.getAttachment(DID_DOCUMENT_ATTACHMENT_KEY)
+        val requesterDidDoc = mex.getAttachment(REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY)
         checkNotNull(requesterDidDoc) { "No requester Did Document" }
 
         val theirEndpointUrl = requesterDidDoc.serviceEndpoint()
         val recipientDidKey = invitation.recipientDidKey()
 
         // Create the Responder Did & Document
-        val myEndpointUrl = responder.endpointUrl
-        val myDid = responder.createDid(DidMethod.SOV)
-        val myDidDoc = diddocService.createDidDocument(myDid, myEndpointUrl)
-        log.info { "Responder (${responder.name}) created: ${myDidDoc.prettyPrint()}" }
+        val responderEndpointUrl = responder.endpointUrl
+        val responderDid = responder.createDid(DidMethod.SOV)
+        val responderDidDoc = diddocV1Service.createDidDocument(responderDid, responderEndpointUrl)
+        log.info { "Responder (${responder.name}) created Did Document: ${responderDidDoc.encodeJson(true)}" }
 
-        val myDidDocAttach = diddocService.createAttachment(myDidDoc, recipientDidKey)
+        mex.putAttachment(RESPONDER_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(responderDidDoc))
+
+        val didDocAttach = diddocV1Service.createDidDocAttachmentMap(responderDidDoc, recipientDidKey)
 
         val didexResponse = """
         {
-            "@type": "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE",
+            "@type": "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V1",
             "@id": "${UUID.randomUUID()}",
             "~thread": {
                 "thid": "$didexThid",
                 "pthid": "${invitation.id}"
             },
-            "did_doc~attach": $myDidDocAttach,
-            "did": "${myDid.id}"
+            "did_doc~attach": ${didDocAttach.encodeJson()},
+            "did": "${responderDid.id}"
         }
         """.trimJson()
         mex.addMessage(EndpointMessage(didexResponse))
         log.info { "Responder (${responder.name}) sends DidEx Response: ${didexResponse.prettyPrint()}" }
 
         val pcon = mex.getConnection()
-        pcon.myDid = myDid
+        pcon.myDid = responderDid
         pcon.state = ConnectionState.RESPONSE
 
         log.info { "Responder (${responder.name}) Connection: ${pcon.prettyPrint()}" }
@@ -329,7 +334,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         log.info { "Requester (${requester.name}) received DidEx Response" }
 
         val didexResponse = mex.last
-        didexResponse.checkMessageType(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE)
+        didexResponse.checkMessageType(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V1)
 
         val invitationId = mex.last.pthid
         val senderVerkey = didexResponse.senderVerkey
@@ -345,7 +350,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         val body = mex.last.bodyAsJson
         val didDocAttachment = body.selectJson("did_doc~attach")
         checkNotNull(didDocAttachment) { "No Did Document attachment" }
-        val (responderDidDoc, signatoryDid) = diddocService.extractFromAttachment(didDocAttachment, invitationKey)
+        val (responderDidDoc, signatoryDid) = diddocV1Service.extractDidDocAttachment(didDocAttachment, invitationKey)
         val docdidVerkey = responderDidDoc.publicKeyDid().verkey
         check(invitationId == invitation.id) { "Unexpected invitation id" }
         check(signatoryDid == invitationDid) { "Signatory Did does not match Invitation Did" }
@@ -365,7 +370,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
 
         log.info { "Requester (${requester.name}) Connection: ${pcon.prettyPrint()}" }
 
-        mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE, mex.last)
+        mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V1, mex.last)
 
         return requester
     }
@@ -373,7 +378,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
     private fun sendDidExchangeComplete(requester: Wallet) {
 
         val didexResponse = mex.last
-        mex.checkLastMessageType(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE)
+        mex.checkLastMessageType(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V1)
 
         when(requester.agentType) {
 
@@ -392,7 +397,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
                 val didexThid = didexResponse.thid
                 val didexComplete = """
                 {
-                    "@type": "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE",
+                    "@type": "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE_V1",
                     "@id": "${UUID.randomUUID()}",
                     "~thread": {
                         "thid": "$didexThid",
@@ -431,7 +436,7 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
         pcon.state = ConnectionState.COMPLETED
 
         mex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING)
-        mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE, mex.last)
+        mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE_V1, mex.last)
 
         return responder
     }
@@ -439,15 +444,15 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
     // Private ---------------------------------------------------------------------------------------------------------
 
     private fun awaitDidExchangeRequest(): EndpointMessage {
-        return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST)
+        return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1)
     }
 
     private fun awaitDidExchangeResponse(): EndpointMessage {
-        return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE)
+        return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V1)
     }
 
     private fun awaitDidExchangeComplete(): EndpointMessage {
-        return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE)
+        return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE_V1)
     }
 
     private fun awaitTrustPing(timeout: Int, unit: TimeUnit): EndpointMessage {
@@ -513,9 +518,8 @@ class RFC0023DidExchangeProtocol(mex: MessageExchange): Protocol<RFC0023DidExcha
 
     private fun registerTheirDid(theirWallet: AcapyWallet, theirDid: Did) {
 
-        val walletModel = theirWallet
-        if (!walletModel.hasDid(theirDid.verkey))
-            walletModel.addDid(theirDid)
+        if (!theirWallet.hasDid(theirDid.verkey))
+            theirWallet.addDid(theirDid)
 
         if (keyStore.getKeyId(theirDid.verkey) == null)
             didService.registerWithKeyStore(theirDid)

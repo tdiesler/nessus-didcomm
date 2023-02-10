@@ -22,23 +22,24 @@ package org.nessus.didcomm.protocol
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
 import org.didcommx.didcomm.message.Attachment
+import org.didcommx.didcomm.protocols.routing.PROFILE_DIDCOMM_V2
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Invitation
-import org.nessus.didcomm.model.InvitationV2Builder
+import org.nessus.didcomm.model.InvitationV2
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.gson
-import java.util.*
+import java.util.UUID
 
 /**
- * RFC 0434: Out-of-Band Invitation 2.0
- * https://identity.foundation/didcomm-messaging/spec/#invitation
+ * Nessus DIDComm RFC0434: Out-of-Band Invitation 2.0
+ * https://github.com/tdiesler/nessus-didcomm/features/0434-oob-invitation
  */
 class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBandProtocolV2>(mex) {
     override val log = KotlinLogging.logger {}
@@ -59,21 +60,24 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
      * -----------------
      * goal_code: String
      * goal: String
+     * label: String
      */
     fun createOutOfBandInvitation(inviter: Wallet, options: Map<String, Any> = mapOf()): RFC0434OutOfBandProtocolV2 {
         checkAgentType(inviter.agentType)
 
-
         val id = "${UUID.randomUUID()}"
         val type = RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
-        val inviterDid = inviter.createDid(DidMethod.KEY)
-        val from = inviterDid.qualified
+        val invitationDid = inviter.createDid(DidMethod.KEY)
+        val inviterEndpointUrl = inviter.endpointUrl
+
+        // Create and register the Did Document for this Invitation
+        diddocV2Service.createDidDocument(invitationDid, inviterEndpointUrl)
 
         val service = Invitation.Service(
             id = "#inline",
             type = "did-communication",
-            recipientKeys = listOf(inviterDid.qualified),
-            serviceEndpoint = inviter.endpointUrl
+            recipientKeys = listOf(invitationDid.qualified),
+            serviceEndpoint = inviterEndpointUrl
         )
 
         val dataJson = Attachment.Data.Json.parse(mapOf(
@@ -82,10 +86,10 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
         val attachment = Attachment.Builder("${UUID.randomUUID()}", dataJson)
             .build()
 
-        val invitationV2 = InvitationV2Builder(id, type, from)
+        val invitationV2 = InvitationV2.Builder(id, type, invitationDid.qualified)
             .goalCode(options["goal_code"] as? String)
             .goal(options["goal"] as? String)
-            .accept(listOf("didcomm/v2", "didcomm/aip2;env=rfc587"))
+            .accept(listOf(PROFILE_DIDCOMM_V2))
             .attachments(listOf(attachment))
             .build()
 
@@ -97,6 +101,28 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
 
         mex.putAttachment(WALLET_ATTACHMENT_KEY, inviter)
         inviter.addInvitation(Invitation(invitationV2))
+
+        val invitationKey = invitationV2.invitationKey()
+        val myLabel = options["label"] as? String ?: "Invitation from ${inviter.name}"
+
+        // Create and attach the Connection
+        val pcon = Connection(
+            id = "${UUID.randomUUID()}",
+            agent = inviter.agentType,
+            invitationKey = invitationKey,
+            myDid = invitationDid,
+            myRole = ConnectionRole.INVITER,
+            myLabel = myLabel,
+            myEndpointUrl = inviter.endpointUrl,
+            theirDid = null,
+            theirRole = ConnectionRole.INVITEE,
+            theirLabel = null,
+            theirEndpointUrl = null,
+            state = ConnectionState.INVITATION
+        )
+
+        mex.setConnection(pcon)
+        inviter.addConnection(pcon)
 
         return this
     }
@@ -110,21 +136,6 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
         // [TODO] invitation state for v2
         // check(invitation.state == InvitationState.INITIAL) { "Unexpected invitation state: $invitation" }
 
-        val rfc0434 = receiveOutOfBandInvitationNessus(invitee, invitation)
-
-        // Associate this invitation with the invitee wallet
-        // invitationV2.state = InvitationState.RECEIVED
-        // invitationV2.state = InvitationState.DONE
-        invitee.addInvitation(invitation)
-
-        // Returns an instance of this protocol associated with another MessageExchange
-        return rfc0434
-    }
-
-    // Private ---------------------------------------------------------------------------------------------------------
-
-    private fun receiveOutOfBandInvitationNessus(invitee: Wallet, invitation: Invitation): RFC0434OutOfBandProtocolV2 {
-
         // Start a new MessageExchange
         val inviteeMex = MessageExchange()
         inviteeMex.putAttachment(WALLET_ATTACHMENT_KEY, invitee)
@@ -133,20 +144,21 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
         val epm = EndpointMessage(invitationV2.toMessage())
         inviteeMex.addMessage(epm)
 
-        val myDid = invitee.createDid(DidMethod.KEY)
-        val myLabel = "Invitee ${invitee.name} on ${invitee.agentType}"
-        val myEndpointUrl = invitee.endpointUrl
+        // Create and attach the Connection
+
+        val inviteeDid = invitee.createDid(DidMethod.KEY)
+        val inviteeLabel = "Invitee ${invitee.name} on ${invitee.agentType}"
+        val inviteeEndpointUrl = invitee.endpointUrl
         val invitationKey = invitation.invitationKey()
 
-        // Create and attach the Connection
         val pcon = Connection(
             id = "${UUID.randomUUID()}",
             agent = invitee.agentType,
             invitationKey = invitationKey,
-            myDid = myDid,
+            myDid = inviteeDid,
             myRole = ConnectionRole.INVITEE,
-            myLabel = myLabel,
-            myEndpointUrl = myEndpointUrl,
+            myLabel = inviteeLabel,
+            myEndpointUrl = inviteeEndpointUrl,
             theirDid = null,
             theirRole = ConnectionRole.INVITER,
             theirLabel = null,
@@ -157,7 +169,14 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
         inviteeMex.setConnection(pcon)
         invitee.addConnection(pcon)
 
+        // Associate this invitation with the invitee wallet
+        // invitationV2.state = InvitationState.RECEIVED
+        // invitationV2.state = InvitationState.DONE
+        invitee.addInvitation(invitation)
+
+        // Returns an instance of this protocol associated with another MessageExchange
         return inviteeMex.withProtocol(RFC0434_OUT_OF_BAND_V2)
     }
 
+    // Private ---------------------------------------------------------------------------------------------------------
 }

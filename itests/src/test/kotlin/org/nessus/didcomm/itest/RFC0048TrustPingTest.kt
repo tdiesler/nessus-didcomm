@@ -24,7 +24,7 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
+import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V1
 import org.nessus.didcomm.service.RFC0048_TRUST_PING
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
 import kotlin.test.assertEquals
@@ -40,24 +40,24 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
     @Test
     fun test_FaberAcapy_AliceNessus() {
 
-        /** Create the wallets */
+        startNessusEndpoint(NESSUS_OPTIONS_01).use {
 
-        val faber = getWalletByAlias(Faber.name) ?: fail("No Faber")
+            /** Create the wallets */
 
-        val alice = Wallet.Builder(Alice.name)
-            .options(NESSUS_OPTIONS_01)
-            .agentType(AgentType.NESSUS)
-            .build()
+            val faber = getWalletByAlias(Faber.name) ?: fail("No Faber")
 
-        try {
-            endpointService.startEndpoint(alice.endpointUrl).use {
+            val alice = Wallet.Builder(Alice.name)
+                .options(NESSUS_OPTIONS_01)
+                .agentType(AgentType.NESSUS)
+                .build()
 
+            try {
                 val mex = MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND_V1)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
                     .receiveOutOfBandInvitation(alice)
 
-                    .withProtocol(RFC0023_DIDEXCHANGE)
+                    .withProtocol(RFC0023_DIDEXCHANGE_V1)
                     .connect(alice).getMessageExchange()
 
                 val aliceFaber = mex.getConnection()
@@ -79,11 +79,11 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
                     .withProtocol(RFC0048_TRUST_PING)
                     .sendTrustPing(faberAlice)
                     .awaitTrustPingResponse()
-            }
 
-        } finally {
-            faber.removeConnections()
-            removeWallet(Alice.name)
+            } finally {
+                faber.removeConnections()
+                removeWallet(Alice.name)
+            }
         }
     }
 }

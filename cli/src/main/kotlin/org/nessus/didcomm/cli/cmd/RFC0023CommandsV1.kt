@@ -21,7 +21,7 @@ package org.nessus.didcomm.cli.cmd
 
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
-import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
+import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V1
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 
@@ -61,7 +61,7 @@ class RFC0023ConnectCommand: AbstractBaseCommand() {
 
         val pcon = MessageExchange.findByVerkey(requesterConn.myVerkey)
             .withAttachment(INVITATION_ATTACHMENT_KEY, invitation)
-            .withProtocol(RFC0023_DIDEXCHANGE)
+            .withProtocol(RFC0023_DIDEXCHANGE_V1)
             .connect(requester)
             .getMessageExchange()
             .getConnection()

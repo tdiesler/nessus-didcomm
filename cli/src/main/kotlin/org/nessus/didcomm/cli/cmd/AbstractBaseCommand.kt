@@ -97,8 +97,8 @@ abstract class AbstractBaseCommand: Callable<Int> {
     }
 
     fun getContextWallet(alias: String? = null): Wallet {
-        val walletModel = cliService.findContextWallet(alias)
-        checkNotNull(walletModel) { "Cannot find wallet: $alias" }
-        return walletModel
+        val wallet = cliService.findContextWallet(alias)
+        checkNotNull(wallet) { "Cannot find wallet: $alias" }
+        return wallet
     }
 }

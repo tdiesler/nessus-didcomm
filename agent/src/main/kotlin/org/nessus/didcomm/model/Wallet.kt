@@ -182,6 +182,13 @@ abstract class Wallet(
         return "$name [agent=${agentType.value}, url=$endpointUrl]"
     }
 
+    override fun toString(): String {
+        val redactedToken = (options["authToken"] as? String)?.run {
+            substring(0, 6) + "..." + substring(length - 6)
+        }
+        return "Wallet(id='$id', agent=$agentType, type=$storageType, alias=$name, endpointUrl=$endpointUrl, options=$options, authToken=$redactedToken)"
+    }
+
     data class Builder (var walletName: String) {
         var agentType: AgentType? = AgentType.NESSUS
         var storageType: StorageType? = null
@@ -206,19 +213,22 @@ abstract class Wallet(
             AgentType.NESSUS -> NessusWallet::class
         }
 
-        fun build() = WalletService.getService().createWallet(
-            WalletConfig(
-                walletName,
-                agentType,
-                storageType,
-                walletKey,
-                ledgerRole,
-                trusteeWallet,
-                publicDidMethod,
-                options.toMap(),
-                mayExist
+        fun build(): Wallet {
+            val walletService = WalletService.getService()
+            return walletService.createWallet(
+                WalletConfig(
+                    walletName,
+                    agentType,
+                    storageType,
+                    walletKey,
+                    ledgerRole,
+                    trusteeWallet,
+                    publicDidMethod,
+                    options.toMap(),
+                    mayExist
+                )
             )
-        )
+        }
 
     }
 }

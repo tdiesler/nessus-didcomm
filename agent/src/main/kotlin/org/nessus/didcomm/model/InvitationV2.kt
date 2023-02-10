@@ -22,6 +22,8 @@ package org.nessus.didcomm.model
 import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.message.MessageBuilder
+import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.util.gson
 
 /**
  * [Out of Band Invitation]https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
@@ -97,7 +99,7 @@ data class InvitationV2(
      */
     val attachments: List<Attachment>?,
 ) {
-    internal constructor(builder: InvitationV2Builder): this(
+    internal constructor(builder: Builder): this(
         id = builder.id,
         type = builder.type,
         from = builder.from,
@@ -111,13 +113,37 @@ data class InvitationV2(
     companion object {
         fun fromMessage(msg: Message): InvitationV2 {
             requireNotNull(msg.from) { "No from" }
-            return InvitationV2Builder(msg.id, msg.type, msg.from!!)
+            return Builder(msg.id, msg.type, msg.from!!)
                 .goalCode(msg.body["goal_code"] as? String)
                 .goal(msg.body["goal"] as? String)
                 .accept(msg.body["accept"] as? List<String>)
                 .attachments(msg.attachments)
                 .build()
         }
+    }
+
+    val services: List<Invitation.Service> = attachments?.run {attachments
+            .filter { it.data is Attachment.Data.Json }
+            .map {
+                val json = gson.toJson(it.data.toJSONObject()["json"])
+                gson.fromJson(json, Invitation.Service::class.java)
+            }
+        } ?: listOf()
+
+    fun invitationKey(idx: Int = 0): String {
+        return recipientDidKey(idx).verkey
+    }
+
+    fun recipientDidKey(idx: Int = 0): Did {
+        check(services.size > idx) { "No services[$idx].recipientKeys" }
+        check(services[idx].recipientKeys.isNotEmpty()) { "No recipient keys" }
+        check(services[idx].recipientKeys.size == 1) { "Multiple recipient keys" }
+        return Did.fromSpec(services[idx].recipientKeys[0])
+    }
+
+    fun recipientServiceEndpoint(idx: Int = 0): String {
+        check(services.size > idx) { "No services[$idx].serviceEndpoint" }
+        return services[idx].serviceEndpoint
     }
 
     fun toMessage(): Message {
@@ -130,31 +156,31 @@ data class InvitationV2(
             .attachments(attachments)
             .build()
     }
-}
 
-class InvitationV2Builder(
-    val id: String,
-    val type: String,
-    val from: String) {
+    class Builder(
+        val id: String,
+        val type: String,
+        val from: String) {
 
-    internal var goalCode: String? = null
-        private set
+        internal var goalCode: String? = null
+            private set
 
-    internal var goal: String? = null
-        private set
+        internal var goal: String? = null
+            private set
 
-    internal var accept: List<String>? = null
-        private set
+        internal var accept: List<String>? = null
+            private set
 
-    internal var attachments: List<Attachment>? = null
-        private set
+        internal var attachments: List<Attachment>? = null
+            private set
 
-    fun goalCode(goalCode: String?) = apply { this.goalCode = goalCode }
-    fun goal(goal: String?) = apply { this.goal = goal }
-    fun accept(accept: List<String>?) = apply { this.accept = accept?.toList() }
-    fun attachments(attachments: List<Attachment>?) = apply { this.attachments = attachments?.toList() }
+        fun goalCode(goalCode: String?) = apply { this.goalCode = goalCode }
+        fun goal(goal: String?) = apply { this.goal = goal }
+        fun accept(accept: List<String>?) = apply { this.accept = accept?.toList() }
+        fun attachments(attachments: List<Attachment>?) = apply { this.attachments = attachments?.toList() }
 
-    fun build(): InvitationV2 {
-        return InvitationV2(this)
+        fun build(): InvitationV2 {
+            return InvitationV2(this)
+        }
     }
 }

@@ -22,8 +22,8 @@ package org.nessus.didcomm.wallet
 import id.walt.crypto.KeyAlgorithm
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
@@ -34,11 +34,19 @@ import java.util.*
 class NessusWalletPlugin: WalletPlugin {
     val log = KotlinLogging.logger {}
 
+    companion object {
+        fun getNessusEndpointUrl(options: Map<String, Any>): String {
+            val hostname = options["NESSUS_HOSTNAME"] ?: System.getenv("NESSUS_HOSTNAME") ?: "localhost"
+            val userPort = options["NESSUS_USER_PORT"] ?: System.getenv("NESSUS_USER_PORT") ?: "8130"
+            return "http://$hostname:$userPort"
+        }
+    }
+
     override fun createWallet(config: WalletConfig): NessusWallet {
         val walletId = "${UUID.randomUUID()}"
         val walletName = config.name
         val agentType = AgentType.NESSUS
-        val endpointUrl = getEndpointUrl(config.options)
+        val endpointUrl = getNessusEndpointUrl(config.options)
         val storageType = config.storageType ?: StorageType.IN_MEMORY
         return NessusWallet(walletId, walletName, agentType, storageType, endpointUrl, options = config.options)
     }
@@ -69,10 +77,4 @@ class NessusWalletPlugin: WalletPlugin {
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
-
-    private fun getEndpointUrl(options: Map<String, Any>): String {
-        val hostname = options["NESSUS_HOSTNAME"] ?: System.getenv("NESSUS_HOSTNAME") ?: "localhost"
-        val userPort = options["NESSUS_USER_PORT"] ?: System.getenv("NESSUS_USER_PORT") ?: "8130"
-        return "http://$hostname:$userPort"
-    }
 }

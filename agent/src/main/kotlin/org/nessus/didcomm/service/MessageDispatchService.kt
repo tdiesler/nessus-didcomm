@@ -21,6 +21,13 @@ package org.nessus.didcomm.service
 
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
+import okhttp3.MediaType.Companion.toMediaType
+import org.didcommx.didcomm.common.Typ.Encrypted
+import org.didcommx.didcomm.common.Typ.Plaintext
+import org.didcommx.didcomm.common.Typ.Signed
+import org.didcommx.didcomm.message.Message
+import org.didcommx.didcomm.model.UnpackParams
+import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_PROTOCOL_URI
@@ -29,8 +36,10 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_SEND
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING
+import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.matches
-import org.nessus.didcomm.wallet.AcapyWallet
 
 typealias MessageDispatcher = (msg: EndpointMessage) -> MessageExchange?
 
@@ -57,7 +66,10 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
         val contentType = epm.headers["Content-Type"] as? String
         checkNotNull(contentType) { "No 'Content-Type' header"}
         return when {
-            RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE.matches(contentType) -> dispatchEncryptedEnvelope(epm)
+            RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE.matches(contentType) -> dispatchEncryptionEnvelopeV1(epm)
+            Plaintext.typ.toMediaType().matches(contentType) -> dispatchPlaintextEnvelope(epm)
+            Signed.typ.toMediaType().matches(contentType) -> dispatchSignedEnvelope(epm)
+            Encrypted.typ.toMediaType().matches(contentType) -> dispatchEncryptedEnvelopeV2(epm)
             else -> throw IllegalStateException("Unknown content type: $contentType")
         }
     }
@@ -81,8 +93,8 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
 
         val protocolService = ProtocolService.getService()
         val key = protocolService.findProtocolKey(protocolUri)
-        val protocolWrapper = protocolService.getProtocol(key, mex)
-        return protocolWrapper.invokeMethod(target, messageType)
+        val protocol = protocolService.getProtocol(key, mex)
+        return protocol.invokeMethod(target, messageType)
     }
 
     /**
@@ -94,7 +106,7 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun dispatchEncryptedEnvelope(encrypted: EndpointMessage): MessageExchange? {
+    private fun dispatchEncryptionEnvelopeV1(encrypted: EndpointMessage): MessageExchange? {
 
         val rfc0019 = RFC0019EncryptionEnvelope()
         val (message, senderVerkey, recipientVerkey) = rfc0019.unpackEncryptedEnvelope(encrypted.body as String) ?: run {
@@ -113,8 +125,16 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
             MESSAGE_HEADER_SENDER_VERKEY to senderVerkey,
             MESSAGE_HEADER_RECIPIENT_VERKEY to recipientVerkey))
 
-        val recipientWallet = modelService.findWalletByVerkey(recipientVerkey)
-        checkNotNull(recipientWallet) { "Cannot find recipient wallet for: $recipientVerkey" }
+        // The other agent may send ping messages to a wallet that we have already deleted
+        // We warn about these, all other undeliverable messages cause an error
+        val recipientWallet = modelService.findWalletByVerkey(recipientVerkey) ?: run {
+            val logmsg = "Cannot find recipient wallet verkey=$recipientVerkey"
+            when (aux.type) {
+                RFC0048_TRUST_PING_MESSAGE_TYPE_PING -> log.warn { "$logmsg for trust ping" }
+                else -> log.error { "$logmsg for message type: ${aux.type}" }
+            }
+            return null
+        }
 
         /**
          * Now, we dispatch to the MessageExchange associated with the recipientVerkey
@@ -126,6 +146,67 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
         val mex = MessageExchange.findByVerkey(recipientVerkey)
         mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
             .header(MESSAGE_HEADER_PROTOCOL_URI, protocolKey.name)
+            .build())
+
+        dispatchToWallet(recipientWallet, mex)
+        return mex
+    }
+
+    private fun dispatchPlaintextEnvelope(plaintext: EndpointMessage): MessageExchange? {
+        val message = Message.parse(plaintext.bodyAsJson.decodeJson())
+        return dispatchUnpackedMessage(message)
+    }
+
+    private fun dispatchSignedEnvelope(signed: EndpointMessage): MessageExchange? {
+        TODO("dispatchSignedEnvelope")
+    }
+
+    private fun dispatchEncryptedEnvelopeV2(encrypted: EndpointMessage): MessageExchange? {
+        val didComm = DidCommService.getService()
+
+        val unpackResult = didComm.unpack(
+            UnpackParams.Builder(encrypted.bodyAsJson)
+                .secretResolver(didComm.secretResolver)
+                .build()
+        )
+
+        return dispatchUnpackedMessage(unpackResult.message)
+    }
+
+    private fun dispatchUnpackedMessage(msg: Message): MessageExchange? {
+
+        log.info { "Unpacked Message\n${msg.encodeJson(true)}" }
+        checkNotNull(msg.to) { "No target did" }
+
+        /**
+         * Find the target Wallet and MessageExchange
+         */
+
+        val recipientDids = msg.to!!.map { Did.fromSpec(it) }
+            .filter { modelService.findWalletByVerkey(it.verkey) != null }
+        check(recipientDids.size < 2) { "Multiple recipients not supported" }
+        check(recipientDids.isNotEmpty()) { "No recipient wallet" }
+
+        /**
+         * Now, we dispatch to the MessageExchange associated with the recipientVerkey
+         */
+
+        val protocolKey = protocolService.getProtocolKey(msg.type)
+        checkNotNull(protocolKey) { "Unknown message type: ${msg.type}" }
+
+        val recipientVerkey = recipientDids.first().verkey
+        val recipientWallet = modelService.findWalletByVerkey(recipientVerkey) as Wallet
+
+        val senderVerkey =
+            if (msg.from?.startsWith("did:key") == true)
+                Did.fromSpec(msg.from!!).verkey
+            else null
+
+        val mex = MessageExchange.findByVerkey(recipientVerkey)
+        mex.addMessage(EndpointMessage.Builder(msg)
+            .header(MESSAGE_HEADER_PROTOCOL_URI, protocolKey.name)
+            .header(MESSAGE_HEADER_SENDER_VERKEY, senderVerkey)
+            .header(MESSAGE_HEADER_RECIPIENT_VERKEY, recipientVerkey)
             .build())
 
         dispatchToWallet(recipientWallet, mex)

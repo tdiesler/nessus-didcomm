@@ -27,7 +27,7 @@ import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE
+import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V1
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
 import kotlin.test.assertEquals
 import kotlin.test.fail
@@ -43,25 +43,26 @@ import kotlin.test.fail
  * DIDComm - Out Of Band Messages
  * https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
  */
-class RFC0023DidExchangeTest : AbstractIntegrationTest() {
+class RFC0023DidExchangeV1Test : AbstractIntegrationTest() {
     private val log = KotlinLogging.logger {}
 
     @Test
     fun test_FaberAcapy_invites_AliceNessus() {
 
-        /**
-         * Create the Wallets
-         */
+        startNessusEndpoint(NESSUS_OPTIONS_01).use {
 
-        val faber = getWalletByAlias(Faber.name) ?: fail("No Inviter")
+            /**
+             * Create the Wallets
+             */
 
-        val alice = Wallet.Builder(Alice.name)
-            .options(NESSUS_OPTIONS_01)
-            .agentType(AgentType.NESSUS)
-            .build()
+            val faber = getWalletByAlias(Faber.name) ?: fail("No Inviter")
 
-        try {
-            endpointService.startEndpoint(alice.endpointUrl).use {
+            val alice = Wallet.Builder(Alice.name)
+                .options(NESSUS_OPTIONS_01)
+                .agentType(AgentType.NESSUS)
+                .build()
+
+            try {
 
                 /**
                  * Inviter (Faber) creates an Out-of-Band Invitation
@@ -78,7 +79,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
                     .receiveOutOfBandInvitation(alice)
 
-                    .withProtocol(RFC0023_DIDEXCHANGE)
+                    .withProtocol(RFC0023_DIDEXCHANGE_V1)
                     .connect(alice)
                     .getMessageExchange()
 
@@ -88,29 +89,31 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                 verifyConnection(alice, aliceFaber)
 
                 verifyConnection(faber, faberAlice)
+
+            } finally {
+                faber.removeConnections()
+                removeWallet(Alice.name)
             }
-        } finally {
-            faber.removeConnections()
-            removeWallet(Alice.name)
         }
     }
 
     @Test
     fun test_AliceNessus_invites_FaberAcapy() {
 
-        /**
-         * Create the Wallets
-         */
+        startNessusEndpoint(NESSUS_OPTIONS_01).use {
 
-        val faber = getWalletByAlias(Faber.name) ?: fail("No Inviter")
+            /**
+             * Create the Wallets
+             */
 
-        val alice = Wallet.Builder(Alice.name)
-            .options(NESSUS_OPTIONS_01)
-            .agentType(AgentType.NESSUS)
-            .build()
+            val faber = getWalletByAlias(Faber.name) ?: fail("No Inviter")
 
-        try {
-            endpointService.startEndpoint(alice.endpointUrl).use {
+            val alice = Wallet.Builder(Alice.name)
+                .options(NESSUS_OPTIONS_01)
+                .agentType(AgentType.NESSUS)
+                .build()
+
+            try {
 
                 /**
                  * Inviter (Alice) creates an Out-of-Band Invitation
@@ -127,7 +130,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                     .createOutOfBandInvitation(alice, "Alice invites Faber")
                     .receiveOutOfBandInvitation(faber)
 
-                    .withProtocol(RFC0023_DIDEXCHANGE)
+                    .withProtocol(RFC0023_DIDEXCHANGE_V1)
                     .connect(faber)
                     .getMessageExchange()
 
@@ -137,32 +140,34 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                 verifyConnection(alice, aliceFaber)
 
                 verifyConnection(faber, faberAlice)
+
+            } finally {
+                faber.removeConnections()
+                removeWallet(Alice.name)
             }
-        } finally {
-            faber.removeConnections()
-            removeWallet(Alice.name)
         }
     }
 
     @Test
     fun test_BobNessus_invites_AliceNessus() {
 
-        /**
-         * Create the Wallets
-         */
+        startNessusEndpoint(NESSUS_OPTIONS_01).use {
 
-        val bob = Wallet.Builder("Bob")
-            .options(NESSUS_OPTIONS_01)
-            .agentType(AgentType.NESSUS)
-            .build()
+            /**
+             * Create the Wallets
+             */
 
-        val alice = Wallet.Builder(Alice.name)
-            .options(NESSUS_OPTIONS_01)
-            .agentType(AgentType.NESSUS)
-            .build()
+            val bob = Wallet.Builder("Bob")
+                .options(NESSUS_OPTIONS_01)
+                .agentType(AgentType.NESSUS)
+                .build()
 
-        try {
-            endpointService.startEndpoint(alice.endpointUrl).use {
+            val alice = Wallet.Builder(Alice.name)
+                .options(NESSUS_OPTIONS_01)
+                .agentType(AgentType.NESSUS)
+                .build()
+
+            try {
 
                 /**
                  * Inviter (Bob) creates an Out-of-Band Invitation
@@ -179,7 +184,7 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                     .createOutOfBandInvitation(bob, "Bob invites Alice")
                     .receiveOutOfBandInvitation(alice)
 
-                    .withProtocol(RFC0023_DIDEXCHANGE)
+                    .withProtocol(RFC0023_DIDEXCHANGE_V1)
                     .connect(alice)
                     .getMessageExchange()
 
@@ -189,10 +194,11 @@ class RFC0023DidExchangeTest : AbstractIntegrationTest() {
                 verifyConnection(alice, aliceBob)
 
                 verifyConnection(bob, bobAlice)
+
+            } finally {
+                removeWallet(Alice.name)
+                removeWallet("Bob")
             }
-        } finally {
-            removeWallet(Alice.name)
-            removeWallet("Bob")
         }
     }
 

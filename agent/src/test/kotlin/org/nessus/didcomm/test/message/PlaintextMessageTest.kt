@@ -25,7 +25,7 @@ import org.didcommx.didcomm.model.PackPlaintextParams
 import org.didcommx.didcomm.model.UnpackParams
 import org.didcommx.didcomm.test.fixtures.JWM.Companion.ALICE_DID
 import org.didcommx.didcomm.test.fixtures.JWM.Companion.BOB_DID
-import org.didcommx.didcomm.test.mock.AliceSecretResolverMock
+import org.didcommx.didcomm.test.mock.AliceSpecSecretResolverMock
 import org.didcommx.didcomm.test.mock.DIDDocResolverMock
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
@@ -35,7 +35,7 @@ class PlaintextMessageTest {
 
     @Test
     fun testPlaintextPackUnpack() {
-        val didComm = DIDComm(DIDDocResolverMock(), AliceSecretResolverMock())
+        val didComm = DIDComm(DIDDocResolverMock(), AliceSpecSecretResolverMock())
 
         // ALICE
         val message = Message.builder(

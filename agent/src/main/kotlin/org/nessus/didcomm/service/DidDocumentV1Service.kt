@@ -19,25 +19,30 @@
  */
 package org.nessus.didcomm.service
 
-import com.google.gson.JsonObject
-import com.google.gson.annotations.SerializedName
 import id.walt.common.prettyPrint
 import id.walt.servicematrix.ServiceProvider
 import id.walt.services.crypto.CryptoService
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import mu.KotlinLogging
+import org.didcommx.didcomm.message.Attachment
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.util.*
-import java.util.*
+import org.nessus.didcomm.did.DidDocV1
+import org.nessus.didcomm.util.decodeBase64Url
+import org.nessus.didcomm.util.decodeBase64UrlStr
+import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.encodeBase64Url
+import org.nessus.didcomm.util.gson
+import org.nessus.didcomm.util.selectJson
+import org.nessus.didcomm.util.trimJson
+import java.util.UUID
 
-
-class DidDocumentService: NessusBaseService() {
+class DidDocumentV1Service: NessusBaseService() {
     override val implementation get() = serviceImplementation<DidService>()
     override val log = KotlinLogging.logger {}
 
     companion object: ServiceProvider {
-        private val implementation = DidDocumentService()
+        private val implementation = DidDocumentV1Service()
         override fun getService() = implementation
     }
 
@@ -45,7 +50,7 @@ class DidDocumentService: NessusBaseService() {
     private val didService get() = DidService.getService()
     private val keyStore get() = KeyStoreService.getService()
 
-    fun createDidDocument(did: Did, endpointUrl: String): RFC0023DidDocument {
+    fun createDidDocument(did: Did, endpointUrl: String): DidDocV1 {
 
         val template = """
         {
@@ -78,10 +83,18 @@ class DidDocumentService: NessusBaseService() {
             ]
         }
         """.trimJson()
-        return gson.fromJson(template, RFC0023DidDocument::class.java)
+        return gson.fromJson(template, DidDocV1::class.java)
     }
 
-    fun createAttachment(didDocument: RFC0023DidDocument, sigDid: Did): JsonObject {
+    fun createDidDocAttachment(didDocument: DidDocV1, sigDid: Did): Attachment {
+        val didDocAttachMap = createDidDocAttachmentMap(didDocument, sigDid)
+        val jsonData = Attachment.Data.Json.parse(mapOf("json" to didDocAttachMap))
+        return Attachment.Builder("${UUID.randomUUID()}", jsonData)
+            .mediaType(DID_DOCUMENT_MEDIA_TYPE)
+            .build()
+    }
+
+    fun createDidDocAttachmentMap(didDocument: DidDocV1, sigDid: Did): Map<String, Any> {
 
         val didDocumentJson = gson.toJson(didDocument)
         val didDocument64 = didDocumentJson.toByteArray().encodeBase64Url()
@@ -108,7 +121,7 @@ class DidDocumentService: NessusBaseService() {
         val keyId = keyStore.load(sigDid.verkey).keyId
         val signature64 = cryptoService.sign(keyId, data).encodeBase64Url()
 
-        val template = """
+        return """
         {
             "@id": "${UUID.randomUUID()}",
             "mime-type": "application/json",
@@ -123,12 +136,19 @@ class DidDocumentService: NessusBaseService() {
               }
             }
           }
-        """.trimJson()
-
-        return gson.fromJson(template, JsonObject::class.java)!!
+        """.decodeJson()
     }
 
-    fun extractFromAttachment(attachment: String, verkey: String?): RFC0023DidDocumentAttachment {
+    fun extractDidDocAttachment(attachment: Attachment, verkey: String?): DidDocV1Attachment {
+        require(attachment.mediaType == DID_DOCUMENT_MEDIA_TYPE) { "Unexpected media_type: ${attachment.mediaType} "}
+
+        val didDocAttachment = gson.toJson(attachment.data.toJSONObject()["json"])
+        checkNotNull(didDocAttachment) {"Cannot find attached did document"}
+
+        return extractDidDocAttachment(didDocAttachment, verkey)
+    }
+
+    fun extractDidDocAttachment(attachment: String, verkey: String?): DidDocV1Attachment {
 
         val didDocument64 = attachment.selectJson("data.base64")
         val jwsProtected64 = attachment.selectJson("data.jws.protected")
@@ -140,7 +160,7 @@ class DidDocumentService: NessusBaseService() {
         checkNotNull(jwsHeaderKid) { "No 'data.jws.header.kid'" }
 
         val diddocJson = didDocument64.decodeBase64UrlStr() // Contains json whitespace
-        val didDocument = gson.fromJson(diddocJson, RFC0023DidDocument::class.java)
+        val didDocument = gson.fromJson(diddocJson, DidDocV1::class.java)
 
         val signature = jwsSignature64.decodeBase64Url()
         val data = "$jwsProtected64.$didDocument64".toByteArray()
@@ -176,52 +196,12 @@ class DidDocumentService: NessusBaseService() {
             jwsHeaderDid
         }
 
-        return RFC0023DidDocumentAttachment(didDocument, signatoryDid)
+        return DidDocV1Attachment(didDocument, signatoryDid)
     }
 }
 
-data class RFC0023DidDocumentAttachment(
-    val didDocument: RFC0023DidDocument,
+data class DidDocV1Attachment(
+    val didDocument: DidDocV1,
     val signatoryDid: Did
 )
 
-data class RFC0023DidDocument(
-    @SerializedName("@context")
-    val atContext: String,
-    val id: String,
-    val publicKey: List<PublicKey>,
-    val authentication: List<Authentication>,
-    val service: List<Service>,
-) {
-
-    fun publicKeyDid(idx: Int = 0): Did {
-        check(publicKey.size > idx) { "No publicKey[$idx]" }
-        val didSpec = publicKey[idx].controller as? String
-        val didVerkey = publicKey[idx].publicKeyBase58 as? String
-        checkNotNull(didSpec) { "No 'publicKey[$idx].controller'" }
-        checkNotNull(didVerkey) { "No 'publicKey[$idx].publicKeyBase58'" }
-        return Did.fromSpec(didSpec, didVerkey)
-    }
-
-    fun serviceEndpoint(idx: Int = 0): String {
-        check(service.size > idx) { "No service[$idx]" }
-        return service[idx].serviceEndpoint
-    }
-
-    data class PublicKey(
-        val id: String,
-        val type: String,
-        val controller: String,
-        val publicKeyBase58: String)
-
-    data class Authentication(
-        val type: String,
-        val publicKey: String)
-
-    data class Service(
-        val id: String,
-        val type: String,
-        val priority: Int,
-        val recipientKeys: List<String>,
-        val serviceEndpoint: String)
-}

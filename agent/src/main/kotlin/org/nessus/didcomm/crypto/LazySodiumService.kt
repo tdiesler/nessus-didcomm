@@ -33,30 +33,34 @@ object LazySodiumService {
     val lazySodium = LazySodiumJava(SodiumJava())
 
     fun java.security.PublicKey.convertEd25519toRaw(): ByteArray {
-        require(this.format == "X.509") { "Unexpected format: ${this.format}" }
-        val keySize = this.encoded.size
-        return this.encoded.sliceArray(keySize - 32 until keySize)
+        require(format == "X.509") { "Unexpected format: $format" }
+        val keySize = encoded.size
+        return encoded.sliceArray(keySize - 32 until keySize)
     }
 
     fun java.security.KeyPair.convertEd25519toRaw(): KeyPair {
-        val publicKey = Key.fromBytes(this.public.convertEd25519toRaw())
-        val secretKey = if (this.private != null) run {
-            val prvKey = this.private
-            require(prvKey.format == "PKCS#8") { "Unexpected format: ${prvKey.format}" }
-            val keySize = prvKey.encoded.size
-            val secretPart = prvKey.encoded.sliceArray(keySize - 32 until keySize)
+        val publicKey = Key.fromBytes(public.convertEd25519toRaw())
+        val secretKey = if (private != null) run {
+            require(private.format == "PKCS#8") { "Unexpected format: ${private.format}" }
+            val keySize = private.encoded.size
+            val secretPart = private.encoded.sliceArray(keySize - 32 until keySize)
             Key.fromBytes(secretPart + publicKey.asBytes)
         } else null
         return KeyPair(publicKey, secretKey)
     }
 
     fun java.security.PublicKey.convertEd25519toCurve25519(): Key {
-        val edKey = Key.fromBytes(this.convertEd25519toRaw())
+        val edKey = Key.fromBytes(convertEd25519toRaw())
+        return edKey.convertEd25519toCurve25519()
+    }
+
+    fun ByteArray.convertEd25519toCurve25519(): Key {
+        val edKey = Key.fromBytes(this)
         return edKey.convertEd25519toCurve25519()
     }
 
     fun Key.convertEd25519toCurve25519(): Key {
-        val edPkBytes = this.asBytes
+        val edPkBytes = asBytes
         val curvePkBytes = ByteArray(Sign.CURVE25519_PUBLICKEYBYTES)
 
         val signNative = lazySodium as Sign.Native
@@ -68,7 +72,7 @@ object LazySodiumService {
     }
 
     fun java.security.KeyPair.convertEd25519toCurve25519(): KeyPair {
-        val ed25519RawKeys = this.convertEd25519toRaw()
+        val ed25519RawKeys = convertEd25519toRaw()
         val lazySign = lazySodium as Sign.Lazy
         return lazySign.convertKeyPairEd25519ToCurve25519(ed25519RawKeys)
     }

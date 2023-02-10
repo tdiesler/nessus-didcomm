@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.util
 
-import com.google.gson.FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonArray
@@ -31,6 +30,7 @@ import io.ipfs.multibase.Base58
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
 import org.didcommx.didcomm.message.Message
+import org.json.JSONObject
 import org.web3j.utils.Numeric
 import java.lang.reflect.Type
 import java.util.*
@@ -39,16 +39,19 @@ import java.util.*
  * Message
  */
 
-fun Message.encodeJson(): String {
-    val gson = gsonBuilder
-        .setFieldNamingPolicy(LOWER_CASE_WITH_UNDERSCORES)
-        .create()
-    return gson.toJson(this)
+class EmptyBodyMap: LinkedHashMap<String, Any>()
+
+fun Message.encodeJson(pretty: Boolean = false): String {
+    var jsonObj = toJSONObject()
+    if ((jsonObj["body"] as Map<*, *>).isEmpty()) {
+        jsonObj = jsonObj.toMutableMap()
+        jsonObj["body"] = EmptyBodyMap()
+    }
+    return jsonObj.encodeJson(pretty)
 }
 
 fun String.decodeMessage(): Message {
-    val jsonMap = this.decodeJson()
-    return Message.parse(jsonMap)
+    return Message.parse(decodeJson())
 }
 
 /***********************************************************************************************************************
@@ -61,22 +64,18 @@ val gsonBuilder: GsonBuilder = GsonBuilder()
 val gson: Gson = gsonBuilder
     .create()
 
-val prettyGson: Gson = gsonBuilder
+val gsonPretty: Gson = gsonBuilder
     .setPrettyPrinting()
     .create()
 
-fun Map<String, Any?>.encodeJson(sorted: Boolean = false, pretty: Boolean = false): String {
-    val input = if (sorted) this.toDeeplySortedMap() else this
-    return if (pretty) {
-        prettyGson.toJson(input)
-    } else {
-        gson.toJson(input)
-    }
+@Suppress("UNCHECKED_CAST")
+fun JSONObject.encodeJson(pretty: Boolean = false, sorted: Boolean = false): String {
+    return (this as Map<String, Any?>).encodeJson(pretty, sorted)
 }
 
-fun Map<String, Any?>.encodeJsonPretty(sorted: Boolean = false): String {
-    val input = if (sorted) this.toDeeplySortedMap() else this
-    return prettyGson.toJson(input)
+fun Map<String, Any?>.encodeJson(pretty: Boolean = false, sorted: Boolean = false): String {
+    val input = if (sorted) toDeeplySortedMap() else this
+    return if (pretty) gsonPretty.toJson(input) else gson.toJson(input)
 }
 
 fun String.isJson(): Boolean {
@@ -96,7 +95,7 @@ fun String.trimJson(): String {
 }
 
 fun String.sortedJson(): String {
-    return this.decodeJson().encodeJson(true)
+    return this.decodeJson().encodeJson(sorted = true)
 }
 
 internal class CollectionAdapter : JsonSerializer<Collection<*>> {
@@ -112,7 +111,8 @@ internal class CollectionAdapter : JsonSerializer<Collection<*>> {
 
 internal class MapAdapter : JsonSerializer<Map<String, *>> {
     override fun serialize(src: Map<String, *>, type: Type, ctx: JsonSerializationContext): JsonElement? {
-        if (src.isEmpty()) return null
+        if (src.isEmpty() && src !is EmptyBodyMap)
+            return null
         val obj = JsonObject()
         src.forEach {(k, v) ->
             obj.add(k, ctx.serialize(v))

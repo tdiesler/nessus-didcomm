@@ -21,11 +21,13 @@ package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.service.CamelEndpointService
 import org.nessus.didcomm.service.MessageDispatchService
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
+import org.nessus.didcomm.wallet.NessusWalletPlugin
 
 val ACAPY_OPTIONS_01 = mapOf(
     "ACAPY_HOSTNAME" to System.getenv("ACAPY_HOSTNAME"),
@@ -74,6 +76,7 @@ object Alice {
     val didsov = "did:sov:RfoA7oboFMiFuJPEtPdvKP"
 }
 
+@Suppress("MemberVisibilityCanBePrivate")
 abstract class AbstractIntegrationTest {
 
     companion object {
@@ -91,6 +94,11 @@ abstract class AbstractIntegrationTest {
 
     fun getWalletByAlias(name: String): Wallet? {
         return walletService.findByName(name)
+    }
+
+    fun startNessusEndpoint(options: Map<String, Any>, listener: MessageListener? = null): AutoCloseable {
+        val endpointUrl = NessusWalletPlugin.getNessusEndpointUrl(options)
+        return endpointService.startEndpoint(endpointUrl, listener)
     }
 
     fun removeWallet(name: String) {
