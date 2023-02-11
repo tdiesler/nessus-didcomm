@@ -27,11 +27,14 @@ import org.didcommx.didcomm.model.UnpackParams
 import org.didcommx.didcomm.protocols.routing.PROFILE_DIDCOMM_V2
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.DidExchangeMessageV2
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocolV2.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V2
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V2
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_V1
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Acme
@@ -59,15 +62,40 @@ class RFC0023DidExchangeV2Test: AbstractDidCommTest() {
 
             try {
 
+                /**
+                 * Inviter (Acme) creates an Out-of-Band Invitation
+                 * Invitee (Alice) receives and accepts the Invitation
+                 * Requester (Alice) send the DidEx Request
+                 * Responder (Acme) accepts the DidEx Request and sends a Response
+                 * Requester (Alice) sends the DidEx Complete message
+                 * Requester (Alice) sends a Trust Ping
+                 * Responder (Acme) sends a Trust Ping Response
+                 */
+
                 val mex = MessageExchange()
+
                     .withProtocol(RFC0434_OUT_OF_BAND_V2)
                     .createOutOfBandInvitation(acme, mapOf(
                         "goal_code" to "issue-vc",
                         "goal" to "Employment credential with Acme"))
                     .receiveOutOfBandInvitation(alice)
+
                     .withProtocol(RFC0023_DIDEXCHANGE_V2)
-                    .connect(alice)
+                    .sendDidExchangeRequest(alice)
+                    .awaitDidExchangeResponse()
+                    .sendDidExchangeComplete()
+
+                    .withProtocol(RFC0048_TRUST_PING_V1)
+                    .sendTrustPing()
+                    .awaitTrustPingResponse()
+
                     .getMessageExchange()
+
+                val aliceAcme = mex.getConnection()
+                val acmeAlice = acme.findConnection{ it.myVerkey == aliceAcme.theirVerkey }
+
+                verifyConnection(alice, aliceAcme)
+                verifyConnection(acme, acmeAlice)
 
             } finally {
                 removeWallet(Alice.name)
@@ -124,6 +152,26 @@ class RFC0023DidExchangeV2Test: AbstractDidCommTest() {
             assertFalse { anonymousSender }
             assertFalse { reWrappedInForward }
         }
+    }
+
+
+    private fun verifyConnection(wallet: Wallet, pcon: Connection?) {
+        requireNotNull(pcon) { "No connection" }
+
+        val aliceMex = MessageExchange.findByVerkey(pcon.myVerkey)
+        aliceMex.showMessages(wallet.name)
+
+        log.info { "${wallet.name}'s Connection: ${pcon.prettyPrint()}" }
+        assertEquals(ConnectionState.ACTIVE, pcon.state)
+
+        val myModelInvi = wallet.findInvitation { i -> i.invitationKey() == pcon.invitationKey }
+        assertEquals(pcon.invitationKey, myModelInvi?.invitationKey())
+
+        val myModelCon = wallet.findConnection { c -> c.id == pcon.id }
+        assertEquals(pcon, myModelCon)
+
+        val myModelDid = wallet.findDid { d -> d.verkey == pcon.myVerkey }
+        assertEquals(pcon.myDid, myModelDid)
     }
 }
 

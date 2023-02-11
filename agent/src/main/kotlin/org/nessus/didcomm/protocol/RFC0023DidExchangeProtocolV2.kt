@@ -32,7 +32,6 @@ import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
-import org.nessus.didcomm.model.InvitationV2
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
 import org.nessus.didcomm.protocol.MessageExchange.Companion.REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY
@@ -94,20 +93,28 @@ class RFC0023DidExchangeProtocolV2(mex: MessageExchange): Protocol<RFC0023DidExc
         // sendTrustPing
         // awaitTrustPingResponse
 
-        sendDidExchangeRequest(requester, invitationV2)
+        sendDidExchangeRequest(requester)
 
         awaitDidExchangeResponse()
 
-        sendDidExchangeComplete(requester)
+        sendDidExchangeComplete()
 
         mex.withProtocol(RFC0048_TRUST_PING_V2)
             .sendTrustPing()
-            .awaitTrustPingResponse()
+            .awaitTrustPingResponse(timeout, unit)
 
         return this
     }
 
-    private fun sendDidExchangeRequest(requester: Wallet, invitation: InvitationV2) {
+    fun sendDidExchangeRequest(requester: Wallet): RFC0023DidExchangeProtocolV2 {
+        check(requester.agentType == AgentType.NESSUS) { "Requester must be Nessus" }
+
+        val attachedInvitation = mex.getInvitation()
+        val invitationKey = attachedInvitation?.invitationKey()
+        checkNotNull(invitationKey) { "No invitation" }
+
+        val invitation = requester.findInvitation { it.invitationKey() == invitationKey }
+        checkNotNull(invitation) { "Requester has no such invitation" }
 
         // Register the response future with the message exchange
         mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V2)
@@ -157,6 +164,12 @@ class RFC0023DidExchangeProtocolV2(mex: MessageExchange): Protocol<RFC0023DidExc
         pcon.state = ConnectionState.REQUEST
 
         dispatchToEndpoint(recipientServiceEndpoint, packedEpm)
+        return this
+    }
+
+    fun awaitDidExchangeResponse(): RFC0023DidExchangeProtocolV2 {
+        mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V2)
+        return this
     }
 
     private fun receiveDidExchangeRequest(responder: Wallet): Wallet {
@@ -329,7 +342,10 @@ class RFC0023DidExchangeProtocolV2(mex: MessageExchange): Protocol<RFC0023DidExc
         return requester
     }
 
-    private fun sendDidExchangeComplete(requester: Wallet) {
+    fun sendDidExchangeComplete(): RFC0023DidExchangeProtocolV2 {
+
+        val requester = mex.getAttachment(WALLET_ATTACHMENT_KEY) as Wallet
+        check(requester.agentType == AgentType.NESSUS) { "Requester must be Nessus" }
 
         val didexResponse = mex.last
         mex.checkLastMessageType(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V2)
@@ -368,6 +384,7 @@ class RFC0023DidExchangeProtocolV2(mex: MessageExchange): Protocol<RFC0023DidExc
         pcon.state = ConnectionState.COMPLETED
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
+        return this
     }
 
     private fun receiveDidExchangeComplete(responder: Wallet): Wallet {
@@ -390,10 +407,6 @@ class RFC0023DidExchangeProtocolV2(mex: MessageExchange): Protocol<RFC0023DidExc
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
-
-    private fun awaitDidExchangeResponse(): EndpointMessage {
-        return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V2)
-    }
 }
 
 class DidExchangeMessageV2(

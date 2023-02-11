@@ -75,6 +75,14 @@ object Alice {
     val didkey = "did:key:z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv"
     val didsov = "did:sov:RfoA7oboFMiFuJPEtPdvKP"
 }
+object Acme {
+    val name = "Acme"
+    val seed = "000000000000000000000000000Acme1"
+    val seedHex = seed.toByteArray().encodeHex()
+    val verkey = "4uGbbt1jJf69tjCfTiimoEtWsdCSuKndfEfFVYaw5ou4"
+    val didkey = "did:key:z6MkiMXeC8GAeCad1E3N9HgceLSWhCUJKD2zMFaBKpYx12gS"
+    val didsov = "did:sov:8A9VYDjAVEqWrsfjLA3VDc"
+}
 
 @Suppress("MemberVisibilityCanBePrivate")
 abstract class AbstractIntegrationTest {

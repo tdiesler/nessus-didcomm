@@ -76,7 +76,9 @@ class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
                     .receiveOutOfBandInvitation(alice)
 
                     .withProtocol(RFC0023_DIDEXCHANGE_V1)
-                    .connect(alice).getMessageExchange()
+                    .connect(alice)
+
+                    .getMessageExchange()
 
                 val aliceFaber = mex.getConnection()
                 assertEquals(ACTIVE, aliceFaber.state)
@@ -126,8 +128,10 @@ class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
                     .withProtocol(RFC0434_OUT_OF_BAND_V1)
                     .createOutOfBandInvitation(faber, "Faber invites Alice")
                     .receiveOutOfBandInvitation(alice)
+
                     .withProtocol(RFC0023_DIDEXCHANGE_V1)
                     .connect(alice)
+
                     .getMessageExchange()
 
                 /** Verify connection state */

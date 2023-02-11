@@ -21,8 +21,10 @@ package org.nessus.didcomm.protocol
 
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
+import org.hyperledger.aries.api.connection.ConnectionFilter
 import org.hyperledger.aries.api.trustping.PingRequest
 import org.nessus.didcomm.agent.AriesClient
+import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
@@ -34,6 +36,8 @@ import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.trimJson
 import org.nessus.didcomm.wallet.AcapyWallet
+import org.nessus.didcomm.wallet.toConnectionRole
+import org.nessus.didcomm.wallet.toConnectionState
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -176,9 +180,77 @@ class RFC0048TrustPingProtocolV1(mex: MessageExchange): Protocol<RFC0048TrustPin
     private fun receiveTrustPingResponse(): RFC0048TrustPingProtocolV1 {
 
         val pcon = mex.getConnection()
+
+        fixupTheirConnection(pcon.invitationKey)
+
         pcon.state = ConnectionState.ACTIVE
         mex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1, mex.last)
 
         return this
+    }
+
+    private fun fixupTheirConnection(invitationKey: String) {
+
+        val theirMex = MessageExchange.findByInvitationKey(invitationKey).firstOrNull { it != mex }
+        val theirWallet = theirMex?.getAttachment(MessageExchange.WALLET_ATTACHMENT_KEY)
+
+        if (theirWallet?.agentType == AgentType.ACAPY) {
+            val walletClient = (theirWallet as AcapyWallet).walletClient() as AriesClient
+            val filter = ConnectionFilter.builder().invitationKey(invitationKey).build()
+            val conRecord = walletClient.connections(filter).get().firstOrNull()
+            checkNotNull(conRecord) { "No connection for invitationKey: $invitationKey" }
+
+            val myCon = mex.getConnection()
+
+            val theirDid = myCon.theirDid
+            val theirCon = theirMex.getAttachment(CONNECTION_ATTACHMENT_KEY) ?: run {
+
+                // Create and attach the Connection
+                val pcon = Connection(
+                    id = conRecord.connectionId,
+                    agent = theirWallet.agentType,
+                    invitationKey = invitationKey,
+                    myDid = theirDid,
+                    myRole = myCon.theirRole,
+                    myLabel = myCon.theirLabel as String,
+                    myEndpointUrl = myCon.theirEndpointUrl as String,
+                    theirDid = myCon.myDid,
+                    theirRole = conRecord.theirRole.toConnectionRole(),
+                    theirLabel = myCon.myLabel,
+                    theirEndpointUrl = myCon.myEndpointUrl,
+                    state = conRecord.state.toConnectionState()
+                )
+
+                theirWallet.addConnection(pcon)
+                theirMex.setConnection(pcon)
+                pcon
+            }
+
+            check(theirCon.agent == AgentType.ACAPY) { "Unexpected connection agent" }
+            check(theirCon.id == conRecord.connectionId) { "Unexpected connection id" }
+            check(theirDid.id == conRecord.myDid) { "Unexpected connection did" }
+
+            theirCon.myDid = theirDid
+            theirCon.myRole = myCon.theirRole
+            theirCon.myLabel = myCon.theirLabel as String
+            theirCon.myEndpointUrl = myCon.theirEndpointUrl as String
+            theirCon.theirDid = myCon.myDid
+            theirCon.theirRole = conRecord.theirRole.toConnectionRole()
+            theirCon.theirLabel = myCon.myLabel
+            theirCon.theirEndpointUrl = myCon.myEndpointUrl
+            theirCon.state = conRecord.state.toConnectionState()
+
+            // Register theirDid
+            registerTheirDid(theirWallet, theirDid)
+        }
+    }
+
+    private fun registerTheirDid(theirWallet: AcapyWallet, theirDid: Did) {
+
+        if (!theirWallet.hasDid(theirDid.verkey))
+            theirWallet.addDid(theirDid)
+
+        if (keyStore.getKeyId(theirDid.verkey) == null)
+            didService.registerWithKeyStore(theirDid)
     }
 }

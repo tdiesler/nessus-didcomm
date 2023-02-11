@@ -21,19 +21,12 @@ package org.nessus.didcomm.protocol
 
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
-import org.hyperledger.aries.api.connection.ConnectionFilter
-import org.nessus.didcomm.agent.AriesClient
-import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidDoc
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
-import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
-import org.nessus.didcomm.model.Invitation
-import org.nessus.didcomm.model.InvitationV1
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.RESPONDER_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
@@ -44,9 +37,6 @@ import org.nessus.didcomm.service.RFC0048_TRUST_PING_V1
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.trimJson
-import org.nessus.didcomm.wallet.AcapyWallet
-import org.nessus.didcomm.wallet.toConnectionRole
-import org.nessus.didcomm.wallet.toConnectionState
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -78,10 +68,7 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
         return true
     }
 
-    fun connect(invitee: Wallet? = null, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): RFC0023DidExchangeProtocolV1 {
-
-        val requester = invitee ?: mex.getAttachment(WALLET_ATTACHMENT_KEY)
-        checkNotNull(requester) { "No requester wallet" }
+    fun connect(requester: Wallet, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): RFC0023DidExchangeProtocolV1 {
 
         val attachedInvitation = mex.getInvitation()
         val invitationKey = attachedInvitation?.invitationKey()
@@ -90,90 +77,47 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
         val invitation = requester.findInvitation { it.invitationKey() == invitationKey }
         checkNotNull(invitation) { "Requester has no such invitation" }
 
-        val invitationV1 = invitation.actV1
+        sendDidExchangeRequest(requester)
 
-        when(requester.agentType) {
+        awaitDidExchangeResponse()
 
-            /**
-             * AcaPy becomes the Requester when it receives an Invitation
-             * It then automatically sends the DidEx Request
-             */
-            AgentType.ACAPY -> {
+        sendDidExchangeComplete()
 
-                // awaitDidExchangeRequest
-                // +- sendDidExchangeResponse
-                // awaitDidExchangeComplete
-                // awaitTrustPing
-                // +- sendTrustPingResponse
-
-                awaitDidExchangeRequest()
-
-                awaitDidExchangeComplete()
-
-                awaitTrustPing(timeout, unit)
-            }
-
-            /**
-             * Nessus becomes the Requester when it receives an Invitation
-             */
-            AgentType.NESSUS -> {
-
-                // sendDidExchangeRequest
-                // awaitDidExchangeResponse
-                // sendDidExchangeComplete
-                // sendTrustPing
-                // awaitTrustPingResponse
-
-                sendDidExchangeRequest(requester, invitationV1)
-
-                awaitDidExchangeResponse()
-
-                sendDidExchangeComplete(requester)
-
-                mex.withProtocol(RFC0048_TRUST_PING_V1)
-                    .sendTrustPing()
-                    .awaitTrustPingResponse()
-            }
-        }
-
-        fixupTheirConnection(invitation)
+        mex.withProtocol(RFC0048_TRUST_PING_V1)
+            .sendTrustPing()
+            .awaitTrustPingResponse(timeout, unit)
 
         return this
     }
 
-    private fun sendDidExchangeRequest(requester: Wallet, invitation: InvitationV1) {
+    fun sendDidExchangeRequest(requester: Wallet): RFC0023DidExchangeProtocolV1 {
+        check(requester.agentType == AgentType.NESSUS) { "Requester must be Nessus" }
+
+        val attachedInvitation = mex.getInvitation()
+        val invitationKey = attachedInvitation?.invitationKey()
+        checkNotNull(invitationKey) { "No invitation" }
+
+        val invitation = requester.findInvitation { it.invitationKey() == invitationKey }
+        checkNotNull(invitation) { "Requester has no such invitation" }
 
         // Register the response future with the message exchange
         mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V1)
 
-        when(requester.agentType) {
+        val pcon = mex.getConnection()
+        val recipientDidKey = invitation.recipientDidKey()
+        val recipientServiceEndpoint = invitation.recipientServiceEndpoint()
 
-            /*
-             * AcaPy seems to send the DidEx Request automatically on receipt
-             * of the Invitation. This is regardless of the auto-accept flag.
-             */
-            AgentType.ACAPY -> {
+        // Create the Requester Did & Document
+        val requesterEndpointUrl = requester.endpointUrl
+        val requesterDidDoc = diddocV1Service.createDidDocument(pcon.myDid, requesterEndpointUrl)
+        log.info { "Requester (${requester.name}) created Did Document: ${requesterDidDoc.encodeJson(true)}" }
 
-                // do nothing
-            }
+        mex.putAttachment(REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(requesterDidDoc))
 
-            AgentType.NESSUS -> {
+        val didexReqId = "${UUID.randomUUID()}"
+        val didDocAttach = diddocV1Service.createDidDocAttachmentMap(requesterDidDoc, pcon.myDid)
 
-                val pcon = mex.getConnection()
-                val recipientDidKey = invitation.recipientDidKey()
-                val recipientServiceEndpoint = invitation.recipientServiceEndpoint()
-
-                // Create the Requester Did & Document
-                val requesterEndpointUrl = requester.endpointUrl
-                val requesterDidDoc = diddocV1Service.createDidDocument(pcon.myDid, requesterEndpointUrl)
-                log.info { "Requester (${requester.name}) created Did Document: ${requesterDidDoc.encodeJson(true)}" }
-
-                mex.putAttachment(REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(requesterDidDoc))
-
-                val didexReqId = "${UUID.randomUUID()}"
-                val didDocAttach = diddocV1Service.createDidDocAttachmentMap(requesterDidDoc, pcon.myDid)
-
-                val didexRequest = """
+        val didexRequest = """
                 {
                     "@type": "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1",
                     "@id": "$didexReqId",
@@ -187,22 +131,65 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
                 }
                 """.trimJson()
 
-                mex.addMessage(EndpointMessage(didexRequest))
-                log.info { "Requester (${requester.name}) sends DidEx Request: ${didexRequest.prettyPrint()}" }
+        mex.addMessage(EndpointMessage(didexRequest))
+        log.info { "Requester (${requester.name}) sends DidEx Request: ${didexRequest.prettyPrint()}" }
 
-                val packedDidExRequest = RFC0019EncryptionEnvelope()
-                    .packEncryptedEnvelope(didexRequest, pcon.myDid, recipientDidKey)
+        val packedDidExRequest = RFC0019EncryptionEnvelope()
+            .packEncryptedEnvelope(didexRequest, pcon.myDid, recipientDidKey)
 
-                val packedEpm = EndpointMessage(packedDidExRequest, mapOf(
-                    "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
-                ))
+        val packedEpm = EndpointMessage(packedDidExRequest, mapOf(
+            "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+        ))
 
-                pcon.myRole = ConnectionRole.REQUESTER
-                pcon.state = ConnectionState.REQUEST
+        pcon.myRole = ConnectionRole.REQUESTER
+        pcon.state = ConnectionState.REQUEST
 
-                dispatchToEndpoint(recipientServiceEndpoint, packedEpm)
-            }
-        }
+        dispatchToEndpoint(recipientServiceEndpoint, packedEpm)
+        return this
+    }
+
+    fun awaitDidExchangeResponse(timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): RFC0023DidExchangeProtocolV1 {
+        mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V1, timeout, unit)
+        return this
+    }
+
+    fun sendDidExchangeComplete(): RFC0023DidExchangeProtocolV1 {
+
+        val requester = mex.getAttachment(WALLET_ATTACHMENT_KEY) as Wallet
+        check(requester.agentType == AgentType.NESSUS) { "Requester must be Nessus" }
+
+        val didexResponse = mex.last
+        mex.checkLastMessageType(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V1)
+
+        val pcon = mex.getConnection()
+        val invitation = mex.getInvitation()
+        checkNotNull(invitation) { "No invitation" }
+
+        val didexThid = didexResponse.thid
+        val didexComplete = """
+                {
+                    "@type": "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE_V1",
+                    "@id": "${UUID.randomUUID()}",
+                    "~thread": {
+                        "thid": "$didexThid",
+                        "pthid": "${invitation.id}"
+                    }
+                }
+                """.trimJson()
+        mex.addMessage(EndpointMessage(didexComplete))
+        log.info { "Requester (${requester.name}) sends DidEx Complete: ${didexComplete.prettyPrint()}" }
+
+        val packedDidExComplete = RFC0019EncryptionEnvelope()
+            .packEncryptedEnvelope(didexComplete, pcon.myDid, pcon.theirDid)
+
+        val packedEpm = EndpointMessage(packedDidExComplete, mapOf(
+            "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+        ))
+
+        dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
+
+        pcon.state = ConnectionState.COMPLETED
+        return this
     }
 
     private fun receiveDidExchangeRequest(responder: Wallet): Wallet {
@@ -263,8 +250,6 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
 
         // Register the complete future with the message exchange
         mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE_V1)
-
-        fixupTheirConnection(invitation)
 
         if (mex.hasEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1))
             mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1, mex.last)
@@ -375,53 +360,6 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
         return requester
     }
 
-    private fun sendDidExchangeComplete(requester: Wallet) {
-
-        val didexResponse = mex.last
-        mex.checkLastMessageType(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V1)
-
-        when(requester.agentType) {
-
-            /*
-             * AcaPy seems to send DidEx Complete automatically on receipt of the Response.
-             */
-            AgentType.ACAPY -> {
-                // do nothing
-            }
-
-            AgentType.NESSUS -> {
-                val pcon = mex.getConnection()
-                val invitation = mex.getInvitation()
-                checkNotNull(invitation) { "No invitation" }
-
-                val didexThid = didexResponse.thid
-                val didexComplete = """
-                {
-                    "@type": "$RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE_V1",
-                    "@id": "${UUID.randomUUID()}",
-                    "~thread": {
-                        "thid": "$didexThid",
-                        "pthid": "${invitation.id}"
-                    }
-                }
-                """.trimJson()
-                mex.addMessage(EndpointMessage(didexComplete))
-                log.info { "Requester (${requester.name}) sends DidEx Complete: ${didexComplete.prettyPrint()}" }
-
-                val packedDidExComplete = RFC0019EncryptionEnvelope()
-                    .packEncryptedEnvelope(didexComplete, pcon.myDid, pcon.theirDid)
-
-                val packedEpm = EndpointMessage(packedDidExComplete, mapOf(
-                    "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
-                ))
-
-                dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
-
-                pcon.state = ConnectionState.COMPLETED
-            }
-        }
-    }
-
     private fun receiveDidExchangeComplete(responder: Wallet): Wallet {
 
         val invitationId = mex.last.pthid as String
@@ -447,82 +385,12 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
         return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1)
     }
 
-    private fun awaitDidExchangeResponse(): EndpointMessage {
-        return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V1)
-    }
-
     private fun awaitDidExchangeComplete(): EndpointMessage {
         return mex.awaitEndpointMessage(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE_V1)
     }
 
     private fun awaitTrustPing(timeout: Int, unit: TimeUnit): EndpointMessage {
         return mex.awaitEndpointMessage(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1, timeout, unit)
-    }
-
-    private fun fixupTheirConnection(invitation: Invitation) {
-
-        val invitationKey = invitation.invitationKey()
-        val theirMex = MessageExchange.findByInvitationKey(invitationKey).firstOrNull { it != mex }
-        val theirWallet = theirMex?.getAttachment(WALLET_ATTACHMENT_KEY)
-
-        if (theirWallet?.agentType == AgentType.ACAPY) {
-            val walletClient = (theirWallet as AcapyWallet).walletClient() as AriesClient
-            val filter = ConnectionFilter.builder().invitationKey(invitationKey).build()
-            val conRecord = walletClient.connections(filter).get().firstOrNull()
-            checkNotNull(conRecord) { "No connection for invitationKey: $invitationKey" }
-
-            val myCon = mex.getConnection()
-
-            val theirDid = myCon.theirDid
-            val theirCon = theirMex.getAttachment(CONNECTION_ATTACHMENT_KEY) ?: run {
-
-                // Create and attach the Connection
-                val pcon = Connection(
-                    id = conRecord.connectionId,
-                    agent = theirWallet.agentType,
-                    invitationKey = invitationKey,
-                    myDid = theirDid,
-                    myRole = myCon.theirRole,
-                    myLabel = myCon.theirLabel as String,
-                    myEndpointUrl = myCon.theirEndpointUrl as String,
-                    theirDid = myCon.myDid,
-                    theirRole = conRecord.theirRole.toConnectionRole(),
-                    theirLabel = myCon.myLabel,
-                    theirEndpointUrl = myCon.myEndpointUrl,
-                    state = conRecord.state.toConnectionState()
-                )
-
-                theirWallet.addConnection(pcon)
-                theirMex.setConnection(pcon)
-                pcon
-            }
-
-            check(theirCon.agent == AgentType.ACAPY) { "Unexpected connection agent" }
-            check(theirCon.id == conRecord.connectionId) { "Unexpected connection id" }
-            check(theirDid.id == conRecord.myDid) { "Unexpected connection did" }
-
-            theirCon.myDid = theirDid
-            theirCon.myRole = myCon.theirRole
-            theirCon.myLabel = myCon.theirLabel as String
-            theirCon.myEndpointUrl = myCon.theirEndpointUrl as String
-            theirCon.theirDid = myCon.myDid
-            theirCon.theirRole = conRecord.theirRole.toConnectionRole()
-            theirCon.theirLabel = myCon.myLabel
-            theirCon.theirEndpointUrl = myCon.myEndpointUrl
-            theirCon.state = conRecord.state.toConnectionState()
-
-            // Register theirDid
-            registerTheirDid(theirWallet, theirDid)
-        }
-    }
-
-    private fun registerTheirDid(theirWallet: AcapyWallet, theirDid: Did) {
-
-        if (!theirWallet.hasDid(theirDid.verkey))
-            theirWallet.addDid(theirDid)
-
-        if (keyStore.getKeyId(theirDid.verkey) == null)
-            didService.registerWithKeyStore(theirDid)
     }
 }
 

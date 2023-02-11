@@ -40,41 +40,6 @@ import kotlin.test.assertTrue
 class RFC0434OutOfBandV2Test: AbstractDidCommTest() {
 
     @Test
-    fun testInvitationV2() {
-
-        val exp = """
-        {
-          "type": "https://didcomm.org/out-of-band/2.0/invitation",
-          "id": "1234567890",
-          "from": "did:example:faber",
-          "body": {
-            "goal_code": "issue-vc",
-            "goal": "To issue a Faber College Graduate credential",
-            "accept": [
-              "didcomm/v2",
-              "didcomm/aip2;env=rfc587"
-            ]
-          },
-          "attachments": [
-            {
-                "id": "request-0",
-                "media_type": "application/json",
-                "data": {
-                    "json": {"protocol message": "content"}
-                }
-            }
-          ]
-        }                
-        """.trimJson()
-
-        val expMsg: Message = exp.decodeMessage()
-        val inviV2: InvitationV2 = InvitationV2.fromMessage(expMsg)
-
-        val wasMsg: Message = inviV2.toMessage()
-        assertEquals(expMsg.toJSONObject(), wasMsg.toJSONObject())
-    }
-
-    @Test
     fun testRFC0434OutOfBandV2() {
 
         val acme = Wallet.Builder(Acme.name)
@@ -112,5 +77,40 @@ class RFC0434OutOfBandV2Test: AbstractDidCommTest() {
             removeWallet(Alice.name)
             removeWallet(Acme.name)
         }
+    }
+
+    @Test
+    fun testInvitationV2() {
+
+        val exp = """
+        {
+          "type": "https://didcomm.org/out-of-band/2.0/invitation",
+          "id": "1234567890",
+          "from": "did:example:faber",
+          "body": {
+            "goal_code": "issue-vc",
+            "goal": "To issue a Faber College Graduate credential",
+            "accept": [
+              "didcomm/v2",
+              "didcomm/aip2;env=rfc587"
+            ]
+          },
+          "attachments": [
+            {
+                "id": "request-0",
+                "media_type": "application/json",
+                "data": {
+                    "json": {"protocol message": "content"}
+                }
+            }
+          ]
+        }                
+        """.trimJson()
+
+        val expMsg: Message = exp.decodeMessage()
+        val inviV2: InvitationV2 = InvitationV2.fromMessage(expMsg)
+
+        val wasMsg: Message = inviV2.toMessage()
+        assertEquals(expMsg.toJSONObject(), wasMsg.toJSONObject())
     }
 }

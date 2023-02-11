@@ -58,7 +58,9 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
                     .receiveOutOfBandInvitation(alice)
 
                     .withProtocol(RFC0023_DIDEXCHANGE_V1)
-                    .connect(alice).getMessageExchange()
+                    .connect(alice)
+
+                    .getMessageExchange()
 
                 val aliceFaber = mex.getConnection()
                 assertEquals(ACTIVE, aliceFaber.state)

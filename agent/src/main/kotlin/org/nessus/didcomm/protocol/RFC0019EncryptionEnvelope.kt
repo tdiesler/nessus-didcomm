@@ -137,7 +137,7 @@ class RFC0019EncryptionEnvelope: Protocol<RFC0019EncryptionEnvelope>(MessageExch
         val protected64 = envelopeMap["protected"] as? String
         checkNotNull(protected64) { "No 'protected' in: $envelope"}
         val protectedJson = protected64.decodeBase64UrlStr()
-        log.info { "Decoded protected: ${protectedJson.prettyPrint()}"}
+        log.debug { "Decoded protected: $protectedJson"}
 
         val protectedMap = protectedJson.decodeJson()
         val recipients = protectedMap["recipients"] as? List<Map<String, Any>>
