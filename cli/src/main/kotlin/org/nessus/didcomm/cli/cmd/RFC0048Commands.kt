@@ -22,8 +22,8 @@ package org.nessus.didcomm.cli.cmd
 import id.walt.common.prettyPrint
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE
-import org.nessus.didcomm.service.RFC0048_TRUST_PING
+import org.nessus.didcomm.protocol.RFC0048TrustPingProtocolV1.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_V1
 import picocli.CommandLine.Command
 
 @Command(
@@ -44,11 +44,11 @@ class RFC0048SendPingCommand: AbstractBaseCommand() {
         checkNotNull(sender) { "No sender wallet for: ${pcon.myVerkey}" }
         val mex = MessageExchange()
             .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
-            .withProtocol(RFC0048_TRUST_PING)
+            .withProtocol(RFC0048_TRUST_PING_V1)
             .sendTrustPing()
             .awaitTrustPingResponse()
             .getMessageExchange()
-        mex.checkLastMessageType(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE)
+        mex.checkLastMessageType(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1)
         val header = "${sender.name} received a Trust Ping response"
         if (verbose)
             printResult("${header}\n", listOf(mex.last.prettyPrint()))

@@ -17,14 +17,13 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.test.model
+package org.nessus.didcomm.test.service
 
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Alice
 import kotlin.test.assertEquals
@@ -34,10 +33,8 @@ import kotlin.test.assertNull
 class ModelServiceTest: AbstractDidCommTest() {
     val log = KotlinLogging.logger {}
 
-    private val modelService get() = ModelService.getService()
-
     @Test
-    fun testModelManager() {
+    fun testModelService() {
 
         // Show empty state
         log.info { modelService.modelAsJson.prettyPrint() }

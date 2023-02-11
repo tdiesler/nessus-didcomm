@@ -20,6 +20,7 @@
 package org.nessus.didcomm.service
 
 import com.goterl.lazysodium.interfaces.Sign
+import com.nimbusds.jose.jwk.Curve
 import com.nimbusds.jose.jwk.OctetKeyPair
 import id.walt.crypto.Key
 import id.walt.crypto.KeyAlgorithm
@@ -51,11 +52,6 @@ import java.security.KeyPair
 
 
 val DEFAULT_KEY_ALGORITHM = KeyAlgorithm.EdDSA_Ed25519
-
-enum class CurveType {
-    Ed25519,
-    X25519
-}
 
 fun Did.toOctetKeyPair(): OctetKeyPair {
     val keyStore = KeyStoreService.getService()
@@ -135,7 +131,7 @@ class DidService: NessusBaseService() {
         return keyId
     }
 
-    fun toOctetKeyPair(kid: String, crv: CurveType, keyType: KeyType = KeyType.PUBLIC): OctetKeyPair {
+    fun toOctetKeyPair(kid: String, crv: Curve, keyType: KeyType = KeyType.PUBLIC): OctetKeyPair {
 
         val key: Key = keyStore.load(kid, keyType)
         check(key.cryptoProvider == CryptoProvider.SUN) { "Unexpected provider: ${key.cryptoProvider}" }
@@ -143,7 +139,7 @@ class DidService: NessusBaseService() {
 
         return when(crv) {
 
-            CurveType.Ed25519 -> {
+            Curve.Ed25519 -> {
                 when(keyType) {
 
                     KeyType.PRIVATE -> {
@@ -163,7 +159,7 @@ class DidService: NessusBaseService() {
                 }
             }
 
-            CurveType.X25519 -> {
+            Curve.X25519 -> {
                 when(keyType) {
 
                     KeyType.PRIVATE -> {
@@ -204,6 +200,8 @@ class DidService: NessusBaseService() {
                     }
                 }
             }
+
+            else -> throw IllegalArgumentException("Unsupported curve: $crv")
         }
     }
 }

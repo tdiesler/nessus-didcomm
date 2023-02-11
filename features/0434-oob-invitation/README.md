@@ -1,8 +1,8 @@
 ## Nessus DidComm RFC0434: Out-of-Band Invitation 2.0
 
 Related:
-* [DIDComm V2: Out Of Band Messages][dcv2-oob]
 * [Aries RFC0434: Out-of-Band Protocol 1.1][rfc0434]
+* [DIDComm V2: Out Of Band Messages][dcv2-oob]
 
 ### Summary
 

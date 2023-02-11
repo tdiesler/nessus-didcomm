@@ -27,12 +27,13 @@ import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_V2
+import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.trimJson
 import java.util.*
 
 /**
  * Nessus DIDComm RFC0095: Basic Message Protocol 2.0
- * https://github.com/tdiesler/nessus-didcomm/features/0095-basic-message
+ * https://github.com/tdiesler/nessus-didcomm/tree/main/features/0095-basic-message
  */
 class RFC0095BasicMessageProtocolV2(mex: MessageExchange): Protocol<RFC0095BasicMessageProtocolV2>(mex) {
     override val log = KotlinLogging.logger {}
@@ -81,7 +82,7 @@ class RFC0095BasicMessageProtocolV2(mex: MessageExchange): Protocol<RFC0095Basic
         {
             "@type": "$RFC0095_BASIC_MESSAGE_TYPE_V2",
             "@id": "${UUID.randomUUID()}",
-            "sent_time": "$nowIso8601",
+            "sent_time": "${dateTimeNow()}",
             "content": "$message"
         }
         """.trimJson()

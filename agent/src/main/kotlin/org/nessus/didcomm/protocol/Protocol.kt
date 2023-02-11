@@ -25,6 +25,7 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.*
 import org.nessus.didcomm.util.toUnionMap
+import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 
@@ -41,8 +42,6 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     val keyStore get() = KeyStoreService.getService()
     val modelService get() = ModelService.getService()
     val protocolService get() = ProtocolService.getService()
-
-    val nowIso8601: OffsetDateTime get() = OffsetDateTime.now(ZoneOffset.UTC)
 
     abstract val supportedAgentTypes: List<AgentType>
 

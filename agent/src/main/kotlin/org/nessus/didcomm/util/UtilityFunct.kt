@@ -20,10 +20,27 @@
 package org.nessus.didcomm.util
 
 import org.didcommx.didcomm.message.Message
+import java.time.Instant
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 
 // A mutable holder of a nullable type
 // data class Holder<T>(var obj: T?)
+
+/***********************************************************************************************************************
+ * DateTime
+ */
+
+fun dateTimeNow(): OffsetDateTime {
+    return OffsetDateTime.now(ZoneOffset.UTC)
+}
+
+fun dateTimeInstant(seconds: Long): OffsetDateTime {
+    val instant = Instant.ofEpochSecond(seconds)
+    return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC)
+}
+
 
 /***********************************************************************************************************************
  * Map

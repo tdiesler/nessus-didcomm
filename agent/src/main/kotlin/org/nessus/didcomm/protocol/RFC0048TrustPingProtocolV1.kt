@@ -29,7 +29,8 @@ import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
-import org.nessus.didcomm.service.RFC0048_TRUST_PING
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_V1
+import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.trimJson
 import org.nessus.didcomm.wallet.AcapyWallet
@@ -40,14 +41,14 @@ import java.util.concurrent.TimeUnit
  * Aries RFC 0048: Trust Ping Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0048-trust-ping
  */
-class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingProtocol>(mex) {
+class RFC0048TrustPingProtocolV1(mex: MessageExchange): Protocol<RFC0048TrustPingProtocolV1>(mex) {
     override val log = KotlinLogging.logger {}
 
-    override val protocolUri = RFC0048_TRUST_PING.uri
+    override val protocolUri = RFC0048_TRUST_PING_V1.uri
 
     companion object {
-        val RFC0048_TRUST_PING_MESSAGE_TYPE_PING = "${RFC0048_TRUST_PING.uri}/ping"
-        val RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE = "${RFC0048_TRUST_PING.uri}/ping_response"
+        val RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1 = "${RFC0048_TRUST_PING_V1.uri}/ping"
+        val RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1 = "${RFC0048_TRUST_PING_V1.uri}/ping_response"
     }
 
     override val supportedAgentTypes
@@ -55,14 +56,14 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
 
     override fun invokeMethod(to: Wallet, messageType: String): Boolean {
         when (messageType) {
-            RFC0048_TRUST_PING_MESSAGE_TYPE_PING -> receiveTrustPing(to)
-            RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE -> receiveTrustPingResponse()
+            RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1 -> receiveTrustPing(to)
+            RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1 -> receiveTrustPingResponse()
             else -> throw IllegalStateException("Unsupported message type: $messageType")
         }
         return true
     }
 
-    fun sendTrustPing(connection: Connection? = null): RFC0048TrustPingProtocol {
+    fun sendTrustPing(connection: Connection? = null): RFC0048TrustPingProtocolV1 {
 
         val pcon = connection ?: mex.getAttachment(CONNECTION_ATTACHMENT_KEY)
         checkNotNull(pcon) { "No connection" }
@@ -72,14 +73,14 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
 
         // Use the Connection's MessageExchange
         val myMex = MessageExchange.findByVerkey(pcon.myVerkey)
-        val rfc0048 = myMex.withProtocol(RFC0048_TRUST_PING)
+        val rfc0048 = myMex.withProtocol(RFC0048_TRUST_PING_V1)
 
         when (sender.agentType) {
 
             AgentType.ACAPY -> {
 
                 // Register the TrustPing Response future
-                myMex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE)
+                myMex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1)
 
                 val senderClient = (sender as AcapyWallet).walletClient() as AriesClient
                 val pingRequest = PingRequest.builder().comment("ping").build()
@@ -92,17 +93,17 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
                 val responseEpm = EndpointMessage(pingResponseJson)
                 myMex.addMessage(responseEpm)
 
-                myMex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE, responseEpm)
+                myMex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1, responseEpm)
             }
 
             AgentType.NESSUS -> {
 
                 // Register the TrustPing Response future
-                myMex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE)
+                myMex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1)
 
                 val trustPing = """
                     {
-                        "@type": "$RFC0048_TRUST_PING_MESSAGE_TYPE_PING",
+                        "@type": "$RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1",
                         "@id": "${UUID.randomUUID()}",
                         "response_requested": True
                     }
@@ -125,8 +126,8 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
         return rfc0048
     }
 
-    fun awaitTrustPingResponse(timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): RFC0048TrustPingProtocol {
-        mex.awaitEndpointMessage(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE, timeout, unit)
+    fun awaitTrustPingResponse(timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): RFC0048TrustPingProtocolV1 {
+        mex.awaitEndpointMessage(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1, timeout, unit)
         return this
     }
 
@@ -135,7 +136,7 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
     /**
      * Receives a Trust Ping and automatically sends the response
      */
-    private fun receiveTrustPing(receiver: Wallet): RFC0048TrustPingProtocol {
+    private fun receiveTrustPing(receiver: Wallet): RFC0048TrustPingProtocolV1 {
 
         val pingId = mex.last.id
         val trustPingEpm = mex.last
@@ -144,10 +145,10 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
 
         val pingResponse = """
         {
-          "@type": "$RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE",
+          "@type": "$RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1",
           "@id": "${UUID.randomUUID()}",
           "~thread": { "thid": "$pingId" },
-          "~timing": { "out_time": "$nowIso8601"},
+          "~timing": { "out_time": "${dateTimeNow()}"},
           "comment": "Hi from ${receiver.name}"
         }
         """.trimJson()
@@ -166,17 +167,17 @@ class RFC0048TrustPingProtocol(mex: MessageExchange): Protocol<RFC0048TrustPingP
 
         pcon.state = ConnectionState.ACTIVE
 
-        if (mex.hasEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING))
-            mex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING, trustPingEpm)
+        if (mex.hasEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1))
+            mex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1, trustPingEpm)
 
         return this
     }
 
-    private fun receiveTrustPingResponse(): RFC0048TrustPingProtocol {
+    private fun receiveTrustPingResponse(): RFC0048TrustPingProtocolV1 {
 
         val pcon = mex.getConnection()
         pcon.state = ConnectionState.ACTIVE
-        mex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE, mex.last)
+        mex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1, mex.last)
 
         return this
     }

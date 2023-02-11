@@ -29,6 +29,7 @@ import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_V1
+import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.trimJson
 import org.nessus.didcomm.wallet.AcapyWallet
 import java.util.*
@@ -92,7 +93,7 @@ class RFC0095BasicMessageProtocolV1(mex: MessageExchange): Protocol<RFC0095Basic
             "@type": "$RFC0095_BASIC_MESSAGE_TYPE_V1",
             "@id": "${UUID.randomUUID()}",
             "content": "$message",
-            "sent_time": "$nowIso8601"
+            "sent_time": "${dateTimeNow()}"
         }
         """.trimJson()
 
@@ -112,7 +113,7 @@ class RFC0095BasicMessageProtocolV1(mex: MessageExchange): Protocol<RFC0095Basic
         {
             "@type": "$RFC0095_BASIC_MESSAGE_TYPE_V1",
             "@id": "${UUID.randomUUID()}",
-            "sent_time": "$nowIso8601",
+            "sent_time": "${dateTimeNow()}",
             "content": "$message"
         }
         """.trimJson()

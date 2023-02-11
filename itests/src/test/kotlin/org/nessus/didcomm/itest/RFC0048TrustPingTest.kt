@@ -25,7 +25,7 @@ import org.nessus.didcomm.model.ConnectionState.ACTIVE
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V1
-import org.nessus.didcomm.service.RFC0048_TRUST_PING
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_V1
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -66,7 +66,7 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
 
                 // Send an explicit trust ping
                 MessageExchange()
-                    .withProtocol(RFC0048_TRUST_PING)
+                    .withProtocol(RFC0048_TRUST_PING_V1)
                     .sendTrustPing(aliceFaber)
                     .awaitTrustPingResponse()
 
@@ -76,7 +76,7 @@ class RFC0048TrustPingTest : AbstractIntegrationTest() {
                 assertEquals(AgentType.ACAPY, faberAlice.agent)
 
                 MessageExchange()
-                    .withProtocol(RFC0048_TRUST_PING)
+                    .withProtocol(RFC0048_TRUST_PING_V1)
                     .sendTrustPing(faberAlice)
                     .awaitTrustPingResponse()
 

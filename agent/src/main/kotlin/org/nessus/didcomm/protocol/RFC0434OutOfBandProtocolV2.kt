@@ -39,7 +39,7 @@ import java.util.UUID
 
 /**
  * Nessus DIDComm RFC0434: Out-of-Band Invitation 2.0
- * https://github.com/tdiesler/nessus-didcomm/features/0434-oob-invitation
+ * https://github.com/tdiesler/nessus-didcomm/tree/main/features/0434-oob-invitation
  */
 class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBandProtocolV2>(mex) {
     override val log = KotlinLogging.logger {}

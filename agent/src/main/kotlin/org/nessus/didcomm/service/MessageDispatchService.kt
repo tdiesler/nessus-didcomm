@@ -36,7 +36,7 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_SEND
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
-import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING
+import org.nessus.didcomm.protocol.RFC0048TrustPingProtocolV1.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.matches
@@ -130,7 +130,7 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
         val recipientWallet = modelService.findWalletByVerkey(recipientVerkey) ?: run {
             val logmsg = "Cannot find recipient wallet verkey=$recipientVerkey"
             when (aux.type) {
-                RFC0048_TRUST_PING_MESSAGE_TYPE_PING -> log.warn { "$logmsg for trust ping" }
+                RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1 -> log.warn { "$logmsg for trust ping" }
                 else -> log.error { "$logmsg for message type: ${aux.type}" }
             }
             return null

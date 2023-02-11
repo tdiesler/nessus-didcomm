@@ -21,6 +21,7 @@ package org.nessus.didcomm.test.did
 
 import com.goterl.lazysodium.interfaces.Sign
 import com.goterl.lazysodium.utils.KeyPair
+import com.nimbusds.jose.jwk.Curve
 import com.nimbusds.jose.jwk.OctetKeyPair
 import id.walt.crypto.Key
 import id.walt.crypto.KeyAlgorithm
@@ -37,7 +38,6 @@ import mu.KotlinLogging
 import org.junit.jupiter.api.Test
 import org.nessus.didcomm.crypto.LazySodiumService.lazySodium
 import org.nessus.didcomm.did.DidMethod
-import org.nessus.didcomm.service.CurveType
 import org.nessus.didcomm.service.toOctetKeyPair
 import org.nessus.didcomm.test.AbstractDidCommTest
 import org.nessus.didcomm.test.Alice
@@ -185,19 +185,19 @@ class DidServiceTest: AbstractDidCommTest() {
         // Do the above through the DidService
         run {
 
-            val ed25519Prv = didService.toOctetKeyPair(didKey05.verkey, CurveType.Ed25519, KeyType.PRIVATE)
+            val ed25519Prv = didService.toOctetKeyPair(didKey05.verkey, Curve.Ed25519, KeyType.PRIVATE)
             assertEquals("_eT7oDCtAC98L31MMx9J0T-w7HR-zuvsY08f9MvKne8", "${ed25519Prv.x}")
             assertEquals("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU", "${ed25519Prv.d}")
 
-            val x25519Prv = didService.toOctetKeyPair(didKey05.verkey, CurveType.X25519, KeyType.PRIVATE)
+            val x25519Prv = didService.toOctetKeyPair(didKey05.verkey, Curve.X25519, KeyType.PRIVATE)
             assertEquals("jRIz3oriXDNZmnb35XQb7K1UIlz3ae1ao1YSqLeBXHs", "${x25519Prv.x}")
             assertEquals("aEAAB3VBFPCQtgF3N__wRiXhMOgeiRGstpPC3gnJ1Eo", "${x25519Prv.d}")
 
-            val ed25519Pub = didService.toOctetKeyPair(didKey05.verkey, CurveType.Ed25519)
+            val ed25519Pub = didService.toOctetKeyPair(didKey05.verkey, Curve.Ed25519)
             assertEquals("_eT7oDCtAC98L31MMx9J0T-w7HR-zuvsY08f9MvKne8", "${ed25519Pub.x}")
             assertNull(ed25519Pub.d)
 
-            val x25519Pub = didService.toOctetKeyPair(didKey05.verkey, CurveType.X25519)
+            val x25519Pub = didService.toOctetKeyPair(didKey05.verkey, Curve.X25519)
             assertEquals("jRIz3oriXDNZmnb35XQb7K1UIlz3ae1ao1YSqLeBXHs", "${x25519Pub.x}")
             assertNull(x25519Pub.d)
         }

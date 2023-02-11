@@ -7,13 +7,15 @@ As a [framework or methodology][dcv2-purpose] DIDComm Messaging enables higher-o
 Here we define a set of (very) basic protocols that can get us started with DIDComm Messaging. Over time, these protocols are 
 expected to get replaced by standards from the DIDComm Messaging space that allow actual agent-to-agent interoperability.
 
-| Protocol                                        | AcaPy | Nessus |
-|:------------------------------------------------|:-----:|:------:|
-| [RFC0023 DID Exchange Protocol 2.0][rfc0023v2]  |       |   x    |
-| [RFC0095 Basic Message 2.0][rfc0095v2]          |       |   x    |
-| [RFC0434 Out-of-Band Protocol 2.0][rfc0434v2]   |       |   x    |
+| Protocol                                       | AcaPy | Nessus |
+|:-----------------------------------------------|:-----:|:------:|
+| [RFC0023 DID Exchange Protocol 2.0][rfc0023v2] |       |   x    |
+| [RFC0048 Trust Ping 2.0][rfc0048v2]            |       |   x    |
+| [RFC0095 Basic Message 2.0][rfc0095v2]         |       |   x    |
+| [RFC0434 Out-of-Band Protocol 2.0][rfc0434v2]  |       |   x    |
 
 [dcv2-purpose]: https://identity.foundation/didcomm-messaging/spec/#purpose-and-scope
-[rfc0023v2]: ./0023-did-exchange.md
-[rfc0095v2]: ./0095-basic-message.md
-[rfc0434v2]: ./0434-oob-invitation.md
+[rfc0023v2]: 0023-did-exchange
+[rfc0048v2]: 0048-trust-ping
+[rfc0095v2]: 0095-basic-message
+[rfc0434v2]: 0434-oob-invitation

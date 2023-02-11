@@ -38,9 +38,9 @@ import org.nessus.didcomm.protocol.MessageExchange.Companion.REQUESTER_DID_DOCUM
 import org.nessus.didcomm.protocol.MessageExchange.Companion.RESPONDER_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
-import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING
+import org.nessus.didcomm.protocol.RFC0048TrustPingProtocolV1.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V1
-import org.nessus.didcomm.service.RFC0048_TRUST_PING
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_V1
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.trimJson
@@ -130,7 +130,7 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
 
                 sendDidExchangeComplete(requester)
 
-                mex.withProtocol(RFC0048_TRUST_PING)
+                mex.withProtocol(RFC0048_TRUST_PING_V1)
                     .sendTrustPing()
                     .awaitTrustPingResponse()
             }
@@ -435,7 +435,7 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
 
         pcon.state = ConnectionState.COMPLETED
 
-        mex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING)
+        mex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1)
         mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE_V1, mex.last)
 
         return responder
@@ -456,7 +456,7 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
     }
 
     private fun awaitTrustPing(timeout: Int, unit: TimeUnit): EndpointMessage {
-        return mex.awaitEndpointMessage(RFC0048_TRUST_PING_MESSAGE_TYPE_PING, timeout, unit)
+        return mex.awaitEndpointMessage(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1, timeout, unit)
     }
 
     private fun fixupTheirConnection(invitation: Invitation) {

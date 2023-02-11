@@ -38,17 +38,17 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_MEDI
 import org.nessus.didcomm.protocol.MessageExchange.Companion.REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.RESPONDER_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.RFC0048TrustPingProtocol.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING
+import org.nessus.didcomm.protocol.RFC0048TrustPingProtocolV2.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V2
 import org.nessus.didcomm.service.DID_DOCUMENT_MEDIA_TYPE
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V2
-import org.nessus.didcomm.service.RFC0048_TRUST_PING
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_V2
 import org.nessus.didcomm.util.encodeJson
 import java.util.*
 import java.util.concurrent.TimeUnit
 
 /**
  * Nessus DIDComm RFC0023: DID Exchange Protocol 2.0
- * https://github.com/tdiesler/nessus-didcomm/features/0023-did-exchange
+ * https://github.com/tdiesler/nessus-didcomm/tree/main/features/0023-did-exchange
  */
 class RFC0023DidExchangeProtocolV2(mex: MessageExchange): Protocol<RFC0023DidExchangeProtocolV2>(mex) {
     override val log = KotlinLogging.logger {}
@@ -100,7 +100,7 @@ class RFC0023DidExchangeProtocolV2(mex: MessageExchange): Protocol<RFC0023DidExc
 
         sendDidExchangeComplete(requester)
 
-        mex.withProtocol(RFC0048_TRUST_PING)
+        mex.withProtocol(RFC0048_TRUST_PING_V2)
             .sendTrustPing()
             .awaitTrustPingResponse()
 
@@ -383,7 +383,7 @@ class RFC0023DidExchangeProtocolV2(mex: MessageExchange): Protocol<RFC0023DidExc
 
         pcon.state = ConnectionState.COMPLETED
 
-        mex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING)
+        mex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V2)
         mex.completeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_COMPLETE_V2, mex.last)
 
         return responder
@@ -396,7 +396,6 @@ class RFC0023DidExchangeProtocolV2(mex: MessageExchange): Protocol<RFC0023DidExc
     }
 }
 
-@Suppress("MemberVisibilityCanBePrivate")
 class DidExchangeMessageV2(
     val id: String,
     val type: String,

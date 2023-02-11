@@ -1,8 +1,8 @@
 ## Nessus DidComm RFC0023: DID Exchange 2.0
 
 Related:
-* [DIDComm V2: DIDComm Encrypted Messages][dcv2-encrypted-msg]
 * [Aries RFC0023: DID Exchange 1.0][rfc0023]
+* [DIDComm V2: DIDComm Encrypted Messages][dcv2-encrypted-msg]
 
 ### Summary
 
@@ -18,7 +18,7 @@ with the [Aries RFC0023: DID Exchange 1.0][rfc0023] protocol
 #### Requester (Alice) creates DidEx Request
 
 Here we show the plain DidEx Request message with an attached Did Document.
-On the wire, this message will be signed and encrypted 
+On the wire, this message is signed and encrypted 
 
 ```json
 {
@@ -88,7 +88,7 @@ On the wire, this message will be signed and encrypted
 #### Responder (Acme) creates DidEx Response
 
 Here we show the plain DidEx Response message with an attached Did Document.
-On the wire, this message will be signed and encrypted
+On the wire, this message is signed and encrypted
 
 ```json
 {
@@ -158,7 +158,7 @@ On the wire, this message will be signed and encrypted
 #### Requester (Alice) sends DidEx Complete
 
 Here we show the plain DidEx Complete message with an attached Did Document.
-On the wire, this message will be signed and encrypted
+On the wire, this message is signed and encrypted
 
 ```json
 {

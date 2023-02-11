@@ -1,5 +1,6 @@
 package org.nessus.didcomm.did
 
+import com.nimbusds.jose.jwk.Curve
 import id.walt.crypto.KeyId
 import id.walt.services.keystore.KeyStoreService
 import org.didcommx.didcomm.common.VerificationMaterial
@@ -9,7 +10,6 @@ import org.didcommx.didcomm.diddoc.DIDCommService
 import org.didcommx.didcomm.diddoc.DIDDoc
 import org.didcommx.didcomm.diddoc.VerificationMethod
 import org.didcommx.didcomm.protocols.routing.PROFILE_DIDCOMM_V2
-import org.nessus.didcomm.service.CurveType
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
@@ -58,7 +58,7 @@ data class DidDocV2(
         fun authentication() = apply {
             val kid = keyStore.getKeyId(did)
             checkNotNull(kid) { "Did not in store: $did" }
-            val okp = didService.toOctetKeyPair(did, CurveType.Ed25519)
+            val okp = didService.toOctetKeyPair(did, Curve.Ed25519)
             val keyIdx = authentications.size + 1
             val keyId = "${did}#key-$keyIdx"
             authentications.add(keyId)
@@ -80,7 +80,7 @@ data class DidDocV2(
         fun keyAgreement() = apply {
             val kid = keyStore.getKeyId(did)
             checkNotNull(kid) { "Did not in store: $did" }
-            val okp = didService.toOctetKeyPair(did, CurveType.X25519)
+            val okp = didService.toOctetKeyPair(did, Curve.X25519)
             val keyIdx = keyAgreements.size + 1
             val keyId = "${did}#key-x25519-$keyIdx"
             keyAgreements.add(keyId)

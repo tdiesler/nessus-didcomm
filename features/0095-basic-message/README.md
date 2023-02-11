@@ -1,10 +1,10 @@
 ## Nessus DidComm RFC0095: Basic Message 2.0
 
 Related:
+* [Aries RFC0095: Basic Message Protocol 1.0][rfc0095]
 * [DIDComm V2: DIDComm Plaintext Messages][dcv2-plain-msg]
 * [DIDComm V2: DIDComm Signed Messages][dcv2-signed-msg]
 * [DIDComm V2: DIDComm Encrypted Messages][dcv2-encrypted-msg]
-* [Aries RFC0095: Basic Message Protocol 1.0][rfc0095]
 
 ### Summary
 
