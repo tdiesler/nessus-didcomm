@@ -1,4 +1,4 @@
-package org.nessus.didcomm.cli.cmd
+package org.nessus.didcomm.cli
 
 import org.jline.terminal.Terminal
 import org.jline.utils.InfoCmp

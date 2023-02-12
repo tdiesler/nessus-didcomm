@@ -29,6 +29,7 @@ import org.nessus.didcomm.service.DidCommService
 import org.nessus.didcomm.service.DidDocumentV1Service
 import org.nessus.didcomm.service.DidDocumentV2Service
 import org.nessus.didcomm.service.DidService
+import org.nessus.didcomm.service.MessageDispatchService
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.SecretResolverService
 import org.nessus.didcomm.service.ServiceMatrixLoader
@@ -108,6 +109,7 @@ abstract class AbstractDidCommTest {
     val diddocV1Service = DidDocumentV1Service.getService()
     val diddocV2Service = DidDocumentV2Service.getService()
     val didService get() = DidService.getService()
+    val dispatchService = MessageDispatchService.getService()
     val endpointService get() = CamelEndpointService.getService()
     val keyStore get() = KeyStoreService.getService()
     val modelService get() = ModelService.getService()

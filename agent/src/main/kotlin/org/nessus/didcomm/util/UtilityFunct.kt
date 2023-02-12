@@ -26,7 +26,7 @@ import java.time.ZoneOffset
 
 
 // A mutable holder of a nullable type
-// data class Holder<T>(var obj: T?)
+ data class Holder<T>(var content: T?)
 
 /***********************************************************************************************************************
  * DateTime

@@ -17,31 +17,26 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.cli.cmd
+package org.nessus.didcomm.cli
 
 import id.walt.common.prettyPrint
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocolV1.Companion.RFC0095_BASIC_MESSAGE_TYPE_V1
-import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_V1
+import org.nessus.didcomm.protocol.RFC0048TrustPingProtocolV1.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_V1
 import picocli.CommandLine.Command
-import picocli.CommandLine.Parameters
-import picocli.CommandLine.ScopeType.INHERIT
 
 @Command(
-    name = "rfc0095",
-    description = ["RFC0095 Basic Message"],
+    name = "rfc0048",
+    description = ["RFC0048 Trust Ping"],
     subcommands = [
-        RFC0095SendMessageCommand::class
+        RFC0048SendPingCommand::class
     ],
 )
-class RFC0095BasicMessageCommand
+class RFC0048TrustPingCommand
 
-@Command(name="send", description = ["Send a basic message"])
-class RFC0095SendMessageCommand: AbstractBaseCommand() {
-
-    @Parameters(index = "0", scope = INHERIT, description = ["The message"])
-    var message: String? = null
+@Command(name="send-ping", description = ["Send a trust ping message"])
+class RFC0048SendPingCommand: AbstractBaseCommand() {
 
     override fun call(): Int {
         val pcon = getContextConnection()
@@ -49,15 +44,17 @@ class RFC0095SendMessageCommand: AbstractBaseCommand() {
         checkNotNull(sender) { "No sender wallet for: ${pcon.myVerkey}" }
         val mex = MessageExchange()
             .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
-            .withProtocol(RFC0095_BASIC_MESSAGE_V1)
-            .sendMessage(message!!)
+            .withProtocol(RFC0048_TRUST_PING_V1)
+            .sendTrustPing()
+            .awaitTrustPingResponse()
             .getMessageExchange()
-        mex.checkLastMessageType(RFC0095_BASIC_MESSAGE_TYPE_V1)
-        val header = "${sender.name} sent: $message"
+        mex.checkLastMessageType(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1)
+        val header = "${sender.name} received a Trust Ping response"
         if (verbose)
             printResult("${header}\n", listOf(mex.last.prettyPrint()))
         else
             printResult("${header}\n", listOf())
         return 0
     }
+
 }

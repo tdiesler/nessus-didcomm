@@ -35,15 +35,6 @@ import org.jline.reader.impl.DefaultParser
 import org.jline.terminal.Terminal
 import org.jline.terminal.TerminalBuilder
 import org.jline.widget.TailTipWidgets
-import org.nessus.didcomm.cli.cmd.AgentCommands
-import org.nessus.didcomm.cli.cmd.ClearScreenCommand
-import org.nessus.didcomm.cli.cmd.CommandsCommand
-import org.nessus.didcomm.cli.cmd.RFC0434CommandsV2
-import org.nessus.didcomm.cli.cmd.RFC0023Commands
-import org.nessus.didcomm.cli.cmd.RFC0048TrustPingCommand
-import org.nessus.didcomm.cli.cmd.RFC0095BasicMessageCommand
-import org.nessus.didcomm.cli.cmd.RFC0434CommandsV1
-import org.nessus.didcomm.cli.cmd.WalletCommands
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import picocli.CommandLine

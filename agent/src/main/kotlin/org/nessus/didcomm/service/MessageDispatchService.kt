@@ -37,7 +37,6 @@ import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.protocol.RFC0048TrustPingProtocolV1.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1
-import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.matches
 
@@ -153,23 +152,23 @@ class MessageDispatchService: NessusBaseService(), MessageDispatcher {
     }
 
     private fun dispatchPlaintextEnvelope(plaintext: EndpointMessage): MessageExchange? {
-        val message = Message.parse(plaintext.bodyAsJson.decodeJson())
-        return dispatchUnpackedMessage(message)
+        val unpackResult = DidCommService.getService().unpack(
+            UnpackParams.Builder(plaintext.bodyAsJson).build()
+        )
+        return dispatchUnpackedMessage(unpackResult.message)
     }
 
     private fun dispatchSignedEnvelope(signed: EndpointMessage): MessageExchange? {
-        TODO("dispatchSignedEnvelope")
+        val unpackResult = DidCommService.getService().unpack(
+            UnpackParams.Builder(signed.bodyAsJson).build()
+        )
+        return dispatchUnpackedMessage(unpackResult.message)
     }
 
     private fun dispatchEncryptedEnvelopeV2(encrypted: EndpointMessage): MessageExchange? {
-        val didComm = DidCommService.getService()
-
-        val unpackResult = didComm.unpack(
-            UnpackParams.Builder(encrypted.bodyAsJson)
-                .secretResolver(didComm.secretResolver)
-                .build()
+        val unpackResult = DidCommService.getService().unpack(
+            UnpackParams.Builder(encrypted.bodyAsJson).build()
         )
-
         return dispatchUnpackedMessage(unpackResult.message)
     }
 

@@ -46,6 +46,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/**
+ * Nessus DIDComm RFC0023: DID Exchange Protocol 2.0
+ * https://github.com/tdiesler/nessus-didcomm/tree/main/features/0023-did-exchange
+ */
 class RFC0023DidExchangeV2Test: AbstractDidCommTest() {
     val log = KotlinLogging.logger {}
 

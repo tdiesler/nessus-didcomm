@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.cli.cmd
+package org.nessus.didcomm.cli
 
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.AgentType

@@ -18,9 +18,8 @@
  * #L%
  */
 
-package org.nessus.didcomm.cli.cmd
+package org.nessus.didcomm.cli
 
-import org.nessus.didcomm.cli.NessusCli
 import picocli.CommandLine
 import picocli.CommandLine.Command
 import picocli.CommandLine.Model.UsageMessageSpec.SECTION_KEY_COMMAND_LIST

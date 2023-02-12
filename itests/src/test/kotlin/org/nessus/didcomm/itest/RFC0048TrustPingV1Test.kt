@@ -35,7 +35,7 @@ import kotlin.test.fail
  * Aries RFC 0048: Trust Ping Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0048-trust-ping
  */
-class RFC0048TrustPingTest : AbstractIntegrationTest() {
+class RFC0048TrustPingV1Test : AbstractIntegrationTest() {
 
     @Test
     fun test_FaberAcapy_AliceNessus() {

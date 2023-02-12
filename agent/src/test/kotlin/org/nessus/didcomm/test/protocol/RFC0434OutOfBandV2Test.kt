@@ -37,6 +37,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
+/**
+ * Nessus DIDComm RFC0434: Out-of-Band Invitation 2.0
+ * https://github.com/tdiesler/nessus-didcomm/tree/main/features/0434-oob-invitation
+ */
 class RFC0434OutOfBandV2Test: AbstractDidCommTest() {
 
     @Test

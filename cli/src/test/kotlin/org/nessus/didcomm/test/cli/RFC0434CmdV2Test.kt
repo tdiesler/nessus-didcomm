@@ -23,23 +23,24 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
 
 
-class RFC0095CmdTest: AbstractCmdTest() {
+class RFC0434CmdV2Test: AbstractCmdTest() {
 
     @Test
-    fun testRFC0095Commands() {
+    fun testRFC0434CommandsV2() {
 
+        assertTrue(cliService.execute("wallet create --name Acme").isSuccess)
         assertTrue(cliService.execute("wallet create --name Alice").isSuccess)
         assertTrue(cliService.execute("agent start").isSuccess)
 
         try {
 
-            assertTrue(cliService.execute("rfc0434 connect faber alice").isSuccess)
-
-            assertTrue(cliService.execute("rfc0095 send 'Ich habe Sauerkraut in meinen Lederhosen'").isSuccess)
+            assertTrue(cliService.execute("rfc0434v2 create-invitation --inviter Acme").isSuccess)
+            assertTrue(cliService.execute("rfc0434v2 receive-invitation --invitee Alice -v").isSuccess)
 
         } finally {
             assertTrue(cliService.execute("agent stop").isSuccess)
-            assertTrue(cliService.execute("wallet remove --alias alice").isSuccess)
+            assertTrue(cliService.execute("wallet remove --alias Alice").isSuccess)
+            assertTrue(cliService.execute("wallet remove --alias Acme").isSuccess)
         }
     }
 }

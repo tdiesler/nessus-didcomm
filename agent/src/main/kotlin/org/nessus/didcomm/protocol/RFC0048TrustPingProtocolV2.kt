@@ -72,15 +72,15 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)
         checkNotNull(sender) { "No sender wallet" }
 
-        val senderDid = pcon.myDid
-        val recipientDid = pcon.theirDid
-
         // Use the Connection's MessageExchange
         val myMex = MessageExchange.findByVerkey(pcon.myVerkey)
         val rfc0048 = myMex.withProtocol(RFC0048_TRUST_PING_V2)
 
         // Register the TrustPing Response future
         myMex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
+
+        val senderDid = pcon.myDid
+        val recipientDid = pcon.theirDid
 
         val trustPing = TrustPingMessageV2.Builder(
                 id = "${UUID.randomUUID()}",
@@ -93,7 +93,7 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
             .build()
 
         val trustPingMsg = trustPing.toMessage()
-        mex.addMessage(EndpointMessage(trustPingMsg)).last
+        myMex.addMessage(EndpointMessage(trustPingMsg))
         log.info { "Sender (${sender.name}) creates TrustPing: ${trustPingMsg.encodeJson(true)}" }
 
         val packResult = didComm.packEncrypted(
@@ -104,11 +104,9 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = mex.addMessage(EndpointMessage(packedMessage, mapOf(
+        val packedEpm = myMex.addMessage(EndpointMessage(packedMessage, mapOf(
             EndpointMessage.MESSAGE_HEADER_MEDIA_TYPE to Typ.Encrypted.typ
         ))).last
-
-        myMex.addMessage(EndpointMessage(trustPing))
         log.info { "${sender.name} sends TrustPing: ${trustPing.prettyPrint()}" }
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)

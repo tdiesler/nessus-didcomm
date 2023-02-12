@@ -17,10 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.cli.cmd
+package org.nessus.didcomm.cli
 
 import id.walt.common.prettyPrint
-import org.nessus.didcomm.cli.CLIService
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation

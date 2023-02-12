@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
 
 
-class RFC0048CmdTest: AbstractCmdTest() {
+class RFC0048CmdV1Test: AbstractCmdTest() {
 
     @Test
     fun testRFC0048Commands() {

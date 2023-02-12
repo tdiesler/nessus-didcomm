@@ -94,10 +94,6 @@ fun String.trimJson(): String {
     return gson.toJson(gson.fromJson(this, JsonObject::class.java))
 }
 
-fun String.sortedJson(): String {
-    return this.decodeJson().encodeJson(sorted = true)
-}
-
 internal class CollectionAdapter : JsonSerializer<Collection<*>> {
     override fun serialize(src: Collection<*>, type: Type, ctx: JsonSerializationContext): JsonElement? {
         if (src.isEmpty()) return null

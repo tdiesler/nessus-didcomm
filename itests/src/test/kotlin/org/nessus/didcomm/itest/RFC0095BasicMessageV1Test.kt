@@ -28,6 +28,7 @@ import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocolV1.Companion.RFC0095_BASIC_MESSAGE_TYPE_V1
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V1
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_V1
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_V1
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
 import org.nessus.didcomm.util.selectJson
@@ -83,7 +84,7 @@ class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
                 val aliceFaber = mex.getConnection()
                 assertEquals(ACTIVE, aliceFaber.state)
 
-                val aliceMessage = "Ich habe Sauerkraut in meinen Lederhosen"
+                val aliceMessage = "Your hovercraft is full of eels"
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE_V1)
                     .sendMessage(aliceMessage, aliceFaber)
 
@@ -130,7 +131,13 @@ class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
                     .receiveOutOfBandInvitation(alice)
 
                     .withProtocol(RFC0023_DIDEXCHANGE_V1)
-                    .connect(alice)
+                    .sendDidExchangeRequest(alice)
+                    .awaitDidExchangeResponse()
+                    .sendDidExchangeComplete()
+
+                    .withProtocol(RFC0048_TRUST_PING_V1)
+                    .sendTrustPing()
+                    .awaitTrustPingResponse()
 
                     .getMessageExchange()
 
@@ -150,7 +157,7 @@ class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
                 /** Verify message exchange state */
 
                 val epm: EndpointMessage = mex.last
-                assertEquals("https://didcomm.org/basicmessage/1.0/message", epm.type)
+                assertEquals(RFC0095_BASIC_MESSAGE_TYPE_V1, epm.type)
                 assertEquals(userMessage, epm.bodyAsJson.selectJson("content"))
 
             } finally {

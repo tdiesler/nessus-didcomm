@@ -17,29 +17,32 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.cli.cmd
+package org.nessus.didcomm.cli
 
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
-import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
+import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V1
+import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
+import picocli.CommandLine.Parameters
 
 @Command(
-    name = "rfc0434v2",
-    description = ["RFC0434 Out-of-Band Invitation 2.0"],
+    name = "rfc0434",
+    description = ["RFC0434 Out-of-Band Invitation 1.1"],
     subcommands = [
-        RFC0023CreateInvitationV2::class,
-        RFC0023ReceiveInvitationV2::class,
+        RFC0434CreateInvitationV1::class,
+        RFC0434ReceiveInvitationV1::class,
+        RFC0434InviteAndConnectV1::class,
     ]
 )
-class RFC0434CommandsV2
+class RFC0434CommandsV1
 
-open class AbstractRFC0434CommandV2: DidCommV2Command() {
+open class AbstractRFC0434CommandV1: AbstractBaseCommand() {
 
     protected fun printCreateInvitation(name: String, invitation: Invitation) {
-        val header = "$name created an RFC0023 Invitation: "
+        val header = "$name created an RFC0434 Invitation: "
         if (verbose) {
             printResult("${header}\n", listOf(invitation))
         } else {
@@ -56,8 +59,8 @@ open class AbstractRFC0434CommandV2: DidCommV2Command() {
     }
 }
 
-@Command(name = "create-invitation", description = ["Create an RFC0023 Invitation"])
-class RFC0023CreateInvitationV2: AbstractRFC0434CommandV2() {
+@Command(name = "create-invitation", description = ["Create an RFC0434 Invitation"])
+class RFC0434CreateInvitationV1: AbstractRFC0434CommandV1() {
 
     @Option(names = ["--inviter" ], description = ["Optional inviter alias"])
     var inviterAlias: String? = null
@@ -66,7 +69,7 @@ class RFC0023CreateInvitationV2: AbstractRFC0434CommandV2() {
         getContextWallet(inviterAlias).also {
             checkWalletEndpoint(it)
             val mex = MessageExchange()
-                .withProtocol(RFC0434_OUT_OF_BAND_V2)
+                .withProtocol(RFC0434_OUT_OF_BAND_V1)
                 .createOutOfBandInvitation(it)
                 .getMessageExchange()
             val invitation = mex.getInvitation() as Invitation
@@ -78,8 +81,8 @@ class RFC0023CreateInvitationV2: AbstractRFC0434CommandV2() {
     }
 }
 
-@Command(name = "receive-invitation", description = ["Receive an RFC0023 Invitation"])
-class RFC0023ReceiveInvitationV2: AbstractRFC0434CommandV2() {
+@Command(name = "receive-invitation", description = ["Receive an RFC0434 Invitation"])
+class RFC0434ReceiveInvitationV1: AbstractRFC0434CommandV1() {
 
     @Option(names = ["--invitee" ], description = ["Optional invitee alias"])
     var inviteeAlias: String? = null
@@ -98,7 +101,7 @@ class RFC0023ReceiveInvitationV2: AbstractRFC0434CommandV2() {
             val invitee = it
             val mex = MessageExchange()
                 .withAttachment(INVITATION_ATTACHMENT_KEY, ctxInvitation)
-                .withProtocol(RFC0434_OUT_OF_BAND_V2)
+                .withProtocol(RFC0434_OUT_OF_BAND_V1)
                 .receiveOutOfBandInvitation(invitee)
                 .getMessageExchange()
             val connection = mex.getConnection()
@@ -109,6 +112,49 @@ class RFC0023ReceiveInvitationV2: AbstractRFC0434CommandV2() {
             cliService.putContextInvitation(invitation)
             printReceiveInvitation(it.name, invitation)
         }
+        return 0
+    }
+}
+
+@Command(name = "connect", description = ["Combine RFC0434 Invitation and RFC0023 Did Exchange"])
+class RFC0434InviteAndConnectV1: AbstractRFC0434CommandV1() {
+
+    @Parameters(index = "0", description = ["The inviter alias"])
+    var inviterAlias: String? = null
+
+    @Parameters(index = "1", description = ["The invitee alias"])
+    var inviteeAlias: String? = null
+
+    override fun call(): Int {
+        val inviter = getContextWallet(inviterAlias)
+        val invitee = getContextWallet(inviteeAlias)
+        checkWalletEndpoint(inviter, invitee)
+
+        val pcon = MessageExchange()
+            .withProtocol(RFC0434_OUT_OF_BAND_V1)
+            .createOutOfBandInvitation(inviter)
+            .also {
+                val invitation = it.getMessageExchange().getInvitation()
+                printCreateInvitation(inviter.name, invitation!!)
+            }
+            .receiveOutOfBandInvitation(invitee)
+            .also {
+                val invitation = it.getMessageExchange().getInvitation()
+                printReceiveInvitation(invitee.name, invitation!!)
+            }
+            .withProtocol(RFC0023_DIDEXCHANGE_V1)
+            .connect(invitee)
+            .getMessageExchange()
+            .getConnection()
+
+        cliService.putContextConnection(pcon)
+        cliService.putAttachment(INVITATION_ATTACHMENT_KEY, null)
+
+        if (verbose)
+            printResult("", listOf(pcon))
+        else
+            printResult("", listOf(pcon.shortString()))
+
         return 0
     }
 }

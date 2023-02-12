@@ -21,15 +21,24 @@ package org.nessus.didcomm.protocol
 
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
+import org.didcommx.didcomm.common.Typ
+import org.didcommx.didcomm.message.Message
+import org.didcommx.didcomm.message.MessageBuilder
+import org.didcommx.didcomm.model.PackEncryptedParams
+import org.didcommx.didcomm.model.PackPlaintextParams
+import org.didcommx.didcomm.model.PackSignedParams
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_V2
+import org.nessus.didcomm.util.dateTimeInstant
 import org.nessus.didcomm.util.dateTimeNow
-import org.nessus.didcomm.util.trimJson
-import java.util.*
+import org.nessus.didcomm.util.encodeJson
+import java.time.OffsetDateTime
+import java.util.UUID
 
 /**
  * Nessus DIDComm RFC0095: Basic Message Protocol 2.0
@@ -55,57 +64,227 @@ class RFC0095BasicMessageProtocolV2(mex: MessageExchange): Protocol<RFC0095Basic
         return true
     }
 
-    fun sendMessage(message: String, connection: Connection? = null): RFC0095BasicMessageProtocolV2 {
+    fun sendPlaintextMessage(message: String, connection: Connection? = null): RFC0095BasicMessageProtocolV2 {
 
         val pcon = connection ?: mex.getAttachment(CONNECTION_ATTACHMENT_KEY)
         checkNotNull(pcon) { "No connection" }
 
-        // [TODO] Do we really want to allow basic messages without Trust Ping?
-        // check(pcon.state == ConnectionState.ACTIVE) { "Connection not active: $pcon" }
+        check(pcon.state == ConnectionState.ACTIVE) { "Connection not active: $pcon" }
 
         val sender = modelService.findWalletByVerkey(pcon.myDid.verkey)
         checkNotNull(sender) { "No sender wallet" }
 
-        return sendMessageNessus(sender, pcon, message)
-    }
-
-    // Private ---------------------------------------------------------------------------------------------------------
-
-    @Suppress("UNUSED_PARAMETER")
-    private fun sendMessageNessus(sender: Wallet, pcon: Connection, message: String): RFC0095BasicMessageProtocolV2 {
-
         // Use my previous MessageExchange
-        val myMex = MessageExchange.findByVerkey(pcon.myVerkey)
-        val rfc0095 = myMex.withProtocol(RFC0095_BASIC_MESSAGE_V2)
+        val senderMex = MessageExchange.findByVerkey(pcon.myVerkey)
+        val rfc0095 = senderMex.withProtocol(RFC0095_BASIC_MESSAGE_V2)
 
-        val basicMsg = """
-        {
-            "@type": "$RFC0095_BASIC_MESSAGE_TYPE_V2",
-            "@id": "${UUID.randomUUID()}",
-            "sent_time": "${dateTimeNow()}",
-            "content": "$message"
-        }
-        """.trimJson()
+        val senderDid = pcon.myDid
+        val recipientDid = pcon.theirDid
 
-        myMex.addMessage(EndpointMessage(basicMsg))
+        val basicMessage = BasicMessageV2.Builder(
+                id = "${UUID.randomUUID()}",
+                type = RFC0095_BASIC_MESSAGE_TYPE_V2)
+            .from(senderDid.qualified)
+            .to(listOf(recipientDid.qualified))
+            .createdTime(dateTimeNow())
+            .content(message)
+            .build()
 
-        val packedBasicMsg = RFC0019EncryptionEnvelope()
-            .packEncryptedEnvelope(basicMsg, pcon.myDid, pcon.theirDid)
+        val basicMessageMsg = basicMessage.toMessage()
+        senderMex.addMessage(EndpointMessage(basicMessageMsg)).last
+        log.info { "Sender (${sender.name}) creates Basic Message: ${basicMessageMsg.encodeJson(true)}" }
 
-        val packedEpm = EndpointMessage(packedBasicMsg, mapOf(
-            "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
-        ))
+        val packResult = didComm.packPlaintext(
+            PackPlaintextParams.builder(basicMessageMsg)
+                .build()
+        )
+
+        val packedMessage = packResult.packedMessage
+        val packedEpm = senderMex.addMessage(EndpointMessage(packedMessage, mapOf(
+            MESSAGE_HEADER_MEDIA_TYPE to Typ.Plaintext.typ
+        ))).last
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
         return rfc0095
     }
 
+    fun sendSignedMessage(message: String, connection: Connection? = null): RFC0095BasicMessageProtocolV2 {
+
+        val pcon = connection ?: mex.getAttachment(CONNECTION_ATTACHMENT_KEY)
+        checkNotNull(pcon) { "No connection" }
+
+        check(pcon.state == ConnectionState.ACTIVE) { "Connection not active: $pcon" }
+
+        val sender = modelService.findWalletByVerkey(pcon.myDid.verkey)
+        checkNotNull(sender) { "No sender wallet" }
+
+        // Use my previous MessageExchange
+        val senderMex = MessageExchange.findByVerkey(pcon.myVerkey)
+        val rfc0095 = senderMex.withProtocol(RFC0095_BASIC_MESSAGE_V2)
+
+        val senderDid = pcon.myDid
+        val recipientDid = pcon.theirDid
+
+        val basicMessage = BasicMessageV2.Builder(
+                id = "${UUID.randomUUID()}",
+                type = RFC0095_BASIC_MESSAGE_TYPE_V2)
+            .from(senderDid.qualified)
+            .to(listOf(recipientDid.qualified))
+            .createdTime(dateTimeNow())
+            .content(message)
+            .build()
+
+        val basicMessageMsg = basicMessage.toMessage()
+        senderMex.addMessage(EndpointMessage(basicMessageMsg)).last
+        log.info { "Sender (${sender.name}) creates Basic Message: ${basicMessageMsg.encodeJson(true)}" }
+
+        val packResult = didComm.packSigned(
+            PackSignedParams.builder(basicMessageMsg, senderDid.qualified)
+                .build()
+        )
+
+        val packedMessage = packResult.packedMessage
+        val packedEpm = senderMex.addMessage(EndpointMessage(packedMessage, mapOf(
+            MESSAGE_HEADER_MEDIA_TYPE to Typ.Signed.typ
+        ))).last
+
+        dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
+        return rfc0095
+    }
+
+    fun sendEncryptedMessage(message: String, connection: Connection? = null): RFC0095BasicMessageProtocolV2 {
+
+        val pcon = connection ?: mex.getAttachment(CONNECTION_ATTACHMENT_KEY)
+        checkNotNull(pcon) { "No connection" }
+
+        check(pcon.state == ConnectionState.ACTIVE) { "Connection not active: $pcon" }
+
+        val sender = modelService.findWalletByVerkey(pcon.myDid.verkey)
+        checkNotNull(sender) { "No sender wallet" }
+
+        // Use my previous MessageExchange
+        val senderMex = MessageExchange.findByVerkey(pcon.myVerkey)
+        val rfc0095 = senderMex.withProtocol(RFC0095_BASIC_MESSAGE_V2)
+
+        val senderDid = pcon.myDid
+        val recipientDid = pcon.theirDid
+
+        val basicMessage = BasicMessageV2.Builder(
+                id = "${UUID.randomUUID()}",
+                type = RFC0095_BASIC_MESSAGE_TYPE_V2)
+            .from(senderDid.qualified)
+            .to(listOf(recipientDid.qualified))
+            .createdTime(dateTimeNow())
+            .content(message)
+            .build()
+
+        val basicMessageMsg = basicMessage.toMessage()
+        senderMex.addMessage(EndpointMessage(basicMessageMsg)).last
+        log.info { "Sender (${sender.name}) creates Basic Message: ${basicMessageMsg.encodeJson(true)}" }
+
+        val packResult = didComm.packEncrypted(
+            PackEncryptedParams.builder(basicMessageMsg, recipientDid.qualified)
+                .signFrom(senderDid.qualified)
+                .from(senderDid.qualified)
+                .build()
+        )
+
+        val packedMessage = packResult.packedMessage
+        val packedEpm = senderMex.addMessage(EndpointMessage(packedMessage, mapOf(
+            MESSAGE_HEADER_MEDIA_TYPE to Typ.Plaintext.typ
+        ))).last
+
+        dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
+        return rfc0095
+    }
+
+    // Private ---------------------------------------------------------------------------------------------------------
+
     private fun receiveMessage(): RFC0095BasicMessageProtocolV2 {
 
-        val bodyJson = mex.last.bodyAsJson
-        log.info { "Received basic message: ${bodyJson.prettyPrint()}" }
+        val basicMessageEpm = mex.last
+        val basicMessageMsg = mex.last.body as Message
+        basicMessageEpm.checkMessageType(RFC0095_BASIC_MESSAGE_TYPE_V2)
+
+        BasicMessageV2.fromMessage(basicMessageMsg)
+        log.info { "Received basic message: ${basicMessageMsg.prettyPrint()}" }
 
         return this
     }
 }
 
+class BasicMessageV2(
+    val id: String,
+    val type: String,
+    val thid: String?,
+    val from: String?,
+    val to: List<String>?,
+    val createdTime: OffsetDateTime?,
+    val content: String?,
+) {
+    internal constructor(builder: Builder): this(
+        id = builder.id,
+        type = builder.type,
+        thid = builder.thid,
+        from = builder.from,
+        to = builder.to,
+        createdTime = builder.createdTime,
+        content = builder.content,
+    )
+
+    companion object {
+        fun fromMessage(msg: Message): BasicMessageV2 {
+            requireNotNull(msg.from) { "No from" }
+            val createdTime = msg.createdTime?.run { dateTimeInstant(msg.createdTime!!) }
+            val content = msg.body["content"] as? String
+            return Builder(msg.id, msg.type)
+                .thid(msg.thid)
+                .from(msg.from)
+                .to(msg.to)
+                .createdTime(createdTime)
+                .content(content)
+                .build()
+        }
+    }
+
+    fun toMessage(): Message {
+        val body = LinkedHashMap<String, Any>()
+        content?.also { body["content"] = content }
+        return MessageBuilder(id, body, type)
+            .thid(thid)
+            .from(from)
+            .to(to)
+            .createdTime(createdTime?.toInstant()?.epochSecond)
+            .build()
+    }
+
+    class Builder(
+        val id: String,
+        val type: String) {
+
+        internal var thid: String? = null
+            private set
+
+        internal var from: String? = null
+            private set
+
+        internal var to: List<String>? = null
+            private set
+
+        internal var createdTime: OffsetDateTime? = null
+            private set
+
+        internal var content: String? = null
+            private set
+
+        fun thid(thid: String?) = apply { this.thid = thid }
+        fun from(from: String?) = apply { this.from = from }
+        fun to(to: List<String>?) = apply { this.to = to }
+        fun createdTime(createdTime: OffsetDateTime?) = apply { this.createdTime = createdTime }
+        fun content(comment: String?) = apply { this.content = comment }
+
+        fun build(): BasicMessageV2 {
+            return BasicMessageV2(this)
+        }
+    }
+}
