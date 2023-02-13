@@ -29,6 +29,7 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.service.RFC0048_TRUST_PING_V1
@@ -95,8 +96,6 @@ class RFC0048TrustPingProtocolV1(mex: MessageExchange): Protocol<RFC0048TrustPin
                 log.info { "${sender.name} received TrustPing Response: ${pingResponseJson.prettyPrint()}" }
 
                 val responseEpm = EndpointMessage(pingResponseJson)
-                myMex.addMessage(responseEpm)
-
                 myMex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1, responseEpm)
             }
 
@@ -120,7 +119,7 @@ class RFC0048TrustPingProtocolV1(mex: MessageExchange): Protocol<RFC0048TrustPin
                     .packEncryptedEnvelope(trustPing, pcon.myDid, pcon.theirDid)
 
                 val packedEpm = EndpointMessage(packedTrustPing, mapOf(
-                    "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+                    MESSAGE_HEADER_MEDIA_TYPE to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
                 ))
 
                 dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
@@ -164,7 +163,7 @@ class RFC0048TrustPingProtocolV1(mex: MessageExchange): Protocol<RFC0048TrustPin
             .packEncryptedEnvelope(pingResponse, pcon.myDid, pcon.theirDid)
 
         val packedEpm = EndpointMessage(packedTrustPing, mapOf(
-            "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+            MESSAGE_HEADER_MEDIA_TYPE to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
         ))
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)

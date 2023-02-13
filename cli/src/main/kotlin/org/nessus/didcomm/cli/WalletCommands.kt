@@ -33,7 +33,7 @@ import kotlin.math.max
 
 @Command(
     name = "wallet",
-    description = ["Show available wallets and details"],
+    description = ["Multitenant wallet commands"],
     subcommands = [
         WalletCreateCommand::class,
         WalletRemoveCommand::class,
@@ -41,7 +41,7 @@ import kotlin.math.max
         WalletDidCommand::class,
         WalletInvitationCommand::class,
         WalletMessagesCommand::class,
-        WalletUseCommand::class,
+        WalletSwitchCommand::class,
     ]
 )
 class WalletCommands: AbstractBaseCommand() {
@@ -136,7 +136,7 @@ class WalletConnectionCommand: AbstractBaseCommand() {
         } else {
             ctxWallet.connections
         }
-        val header = "Wallet connections: "
+        val header = "Wallet connections:\n"
         if (verbose)
             printResult(header, pcons)
         else
@@ -165,7 +165,7 @@ class WalletDidCommand: AbstractBaseCommand() {
         } else {
             ctxWallet.dids
         }
-        val header = "Wallet dids: "
+        val header = "Wallet dids:\n"
         if (verbose)
             printResult(header, dids)
         else
@@ -194,7 +194,7 @@ class WalletInvitationCommand: AbstractBaseCommand() {
         } else {
             ctxWallet.invitations
         }
-        val header = "Wallet invitations: "
+        val header = "Wallet invitations:\n"
         if (verbose)
             printResult(header, invis)
         else
@@ -241,8 +241,8 @@ class WalletMessagesCommand: AbstractBaseCommand() {
     }
 }
 
-@Command(name = "use", description = ["Use the given wallet"])
-class WalletUseCommand: AbstractBaseCommand() {
+@Command(name = "switch", description = ["Switch the current context wallet"])
+class WalletSwitchCommand: AbstractBaseCommand() {
 
     @Parameters(description = ["The wallet alias"])
     var alias: String? = null

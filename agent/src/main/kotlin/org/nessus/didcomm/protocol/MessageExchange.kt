@@ -130,6 +130,7 @@ class MessageExchange(): AttachmentSupport() {
     fun addMessage(msg: EndpointMessage): MessageExchange {
         synchronized(exchangeRegistry) {
             val logMsg = "Add message [id=${msg.id}, type=${msg.type}] to mex=$id"
+            checkNotNull(msg.type) { "No message type" }
             if (messageStore.isEmpty()) {
                 check(msg.type in listOf(
                     RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V1,

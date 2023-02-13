@@ -53,10 +53,8 @@ internal class CommandListRenderer : CommandLine.IHelpSectionRenderer {
         textTable.isAdjustLineBreaksForWideCJKCharacters = spec.usageMessage().adjustLineBreaksForWideCJKCharacters()
         for (subcommand in spec.subcommands().values) {
             val name = subcommand.commandSpec.names().first()
-            if (name !in listOf("clear", "commands")) {
-                addHierarchy(subcommand, textTable, "")
-                textTable.addRowValues("")
-            }
+            addHierarchy(subcommand, textTable, "")
+            textTable.addRowValues("")
         }
         return textTable.toString()
     }

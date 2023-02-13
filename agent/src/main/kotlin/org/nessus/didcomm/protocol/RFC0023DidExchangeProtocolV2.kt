@@ -33,7 +33,10 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_ID
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_THID
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.protocol.MessageExchange.Companion.REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.RESPONDER_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
@@ -156,9 +159,13 @@ class RFC0023DidExchangeProtocolV2(mex: MessageExchange): Protocol<RFC0023DidExc
                 .build()
         )
         val packedMessage = packResult.packedMessage
-        val packedEpm = mex.addMessage(EndpointMessage(packedMessage, mapOf(
+        val packedEpm = EndpointMessage(packedMessage, mapOf(
+            MESSAGE_HEADER_ID to "${requestMsg.id}.packed",
+            MESSAGE_HEADER_THID to requestMsg.thid,
+            MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
             MESSAGE_HEADER_MEDIA_TYPE to Typ.Encrypted.typ
-        ))).last
+        ))
+        log.info { "Requester (${requester.name}) sends DidEx Request: ${packedEpm.prettyPrint()}" }
 
         pcon.myRole = ConnectionRole.REQUESTER
         pcon.state = ConnectionState.REQUEST
@@ -285,9 +292,13 @@ class RFC0023DidExchangeProtocolV2(mex: MessageExchange): Protocol<RFC0023DidExc
                 .build()
         )
         val packedMessage = packResult.packedMessage
-        val packedEpm = mex.addMessage(EndpointMessage(packedMessage, mapOf(
+        val packedEpm = EndpointMessage(packedMessage, mapOf(
+            MESSAGE_HEADER_ID to "${responseMsg.id}.packed",
+            MESSAGE_HEADER_THID to responseMsg.thid,
+            MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
             MESSAGE_HEADER_MEDIA_TYPE to Typ.Encrypted.typ
-        ))).last
+        ))
+        log.info { "Responder (${responder.name}) sends DidEx Response: ${packedEpm.prettyPrint()}" }
 
         val pcon = mex.getConnection()
         pcon.myDid = responderDid
@@ -368,7 +379,7 @@ class RFC0023DidExchangeProtocolV2(mex: MessageExchange): Protocol<RFC0023DidExc
 
         val completeMsg = didexComplete.toMessage()
         mex.addMessage(EndpointMessage(completeMsg)).last
-        log.info { "Requester (${requester.name}) sends DidEx Complete: ${completeMsg.encodeJson(true)}" }
+        log.info { "Requester (${requester.name}) creates DidEx Complete: ${completeMsg.encodeJson(true)}" }
 
         val packResult = didComm.packEncrypted(
             PackEncryptedParams.builder(completeMsg, responderDid.qualified)
@@ -377,9 +388,13 @@ class RFC0023DidExchangeProtocolV2(mex: MessageExchange): Protocol<RFC0023DidExc
                 .build()
         )
         val packedMessage = packResult.packedMessage
-        val packedEpm = mex.addMessage(EndpointMessage(packedMessage, mapOf(
+        val packedEpm = EndpointMessage(packedMessage, mapOf(
+            MESSAGE_HEADER_ID to "${completeMsg.id}.packed",
+            MESSAGE_HEADER_THID to completeMsg.thid,
+            MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
             MESSAGE_HEADER_MEDIA_TYPE to Typ.Encrypted.typ
-        ))).last
+        ))
+        log.info { "Requester (${requester.name}) sends DidEx Complete: ${packedEpm.prettyPrint()}" }
 
         pcon.state = ConnectionState.COMPLETED
 

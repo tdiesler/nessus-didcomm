@@ -27,6 +27,7 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_V1
 import org.nessus.didcomm.util.dateTimeNow
@@ -124,7 +125,7 @@ class RFC0095BasicMessageProtocolV1(mex: MessageExchange): Protocol<RFC0095Basic
             .packEncryptedEnvelope(basicMsg, pcon.myDid, pcon.theirDid)
 
         val packedEpm = EndpointMessage(packedBasicMsg, mapOf(
-            "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+            MESSAGE_HEADER_MEDIA_TYPE to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
         ))
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)

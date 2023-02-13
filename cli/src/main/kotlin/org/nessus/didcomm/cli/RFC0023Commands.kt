@@ -22,6 +22,7 @@ package org.nessus.didcomm.cli
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V1
+import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V2
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 
@@ -35,7 +36,7 @@ import picocli.CommandLine.Option
 class RFC0023Commands
 
 @Command(name = "connect", description = ["Connect a requester with a responder"])
-class RFC0023ConnectCommand: AbstractBaseCommand() {
+class RFC0023ConnectCommand: DidCommV2Command() {
 
     @Option(names = ["--requester" ], description = ["Optional requester alias"])
     var requesterAlias: String? = null
@@ -59,13 +60,24 @@ class RFC0023ConnectCommand: AbstractBaseCommand() {
 
         checkWalletEndpoint(requester, responder)
 
-        val pcon = MessageExchange.findByVerkey(requesterConn.myVerkey)
-            .withAttachment(INVITATION_ATTACHMENT_KEY, invitation)
-            .withProtocol(RFC0023_DIDEXCHANGE_V1)
-            .connect(requester)
-            .getMessageExchange()
-            .getConnection()
+        val mex = when {
+            dcv2 -> {
+                MessageExchange.findByVerkey(requesterConn.myVerkey)
+                    .withAttachment(INVITATION_ATTACHMENT_KEY, invitation)
+                    .withProtocol(RFC0023_DIDEXCHANGE_V2)
+                    .connect(requester)
+                    .getMessageExchange()
+            }
+            else -> {
+                MessageExchange.findByVerkey(requesterConn.myVerkey)
+                    .withAttachment(INVITATION_ATTACHMENT_KEY, invitation)
+                    .withProtocol(RFC0023_DIDEXCHANGE_V1)
+                    .connect(requester)
+                    .getMessageExchange()
+            }
+        }
 
+        val pcon = mex.getConnection()
         if (verbose)
             printResult("", listOf(pcon))
         else

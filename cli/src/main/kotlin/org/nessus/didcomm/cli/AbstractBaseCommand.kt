@@ -20,6 +20,7 @@
 package org.nessus.didcomm.cli
 
 import id.walt.common.prettyPrint
+import org.nessus.didcomm.cli.service.CLIService
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation

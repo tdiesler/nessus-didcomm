@@ -27,6 +27,7 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
 import org.nessus.didcomm.protocol.MessageExchange.Companion.REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.RESPONDER_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
@@ -138,7 +139,7 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
             .packEncryptedEnvelope(didexRequest, pcon.myDid, recipientDidKey)
 
         val packedEpm = EndpointMessage(packedDidExRequest, mapOf(
-            "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+            MESSAGE_HEADER_MEDIA_TYPE to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
         ))
 
         pcon.myRole = ConnectionRole.REQUESTER
@@ -183,7 +184,7 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
             .packEncryptedEnvelope(didexComplete, pcon.myDid, pcon.theirDid)
 
         val packedEpm = EndpointMessage(packedDidExComplete, mapOf(
-            "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+            MESSAGE_HEADER_MEDIA_TYPE to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
         ))
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
@@ -308,7 +309,7 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
             .packEncryptedEnvelope(didexResponse, pcon.myDid, pcon.theirDid)
 
         val packedEpm = EndpointMessage(packedDidExResponse, mapOf(
-            "Content-Type" to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
+            MESSAGE_HEADER_MEDIA_TYPE to RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
         ))
 
         dispatchToEndpoint(theirEndpointUrl, packedEpm)

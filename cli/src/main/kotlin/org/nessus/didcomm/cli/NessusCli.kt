@@ -35,6 +35,7 @@ import org.jline.reader.impl.DefaultParser
 import org.jline.terminal.Terminal
 import org.jline.terminal.TerminalBuilder
 import org.jline.widget.TailTipWidgets
+import org.nessus.didcomm.cli.service.CLIService
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import picocli.CommandLine
@@ -44,18 +45,17 @@ import picocli.shell.jline3.PicocliCommands
 import kotlin.system.exitProcess
 
 @Command(
-    name = "didcomm", description = ["Nessus DIDComm-V2"], version = ["1.0"],
+    name = "didcomm", description = ["Nessus DIDComm CLI"], version = ["1.0"],
     mixinStandardHelpOptions = false,
     usageHelpWidth = 160,
     subcommands = [
         AgentCommands::class,
         ClearScreenCommand::class,
         CommandsCommand::class,
-        RFC0434CommandsV2::class,
         RFC0023Commands::class,
         RFC0048TrustPingCommand::class,
         RFC0095BasicMessageCommand::class,
-        RFC0434CommandsV1::class,
+        RFC0434Commands::class,
         WalletCommands::class,
     ]
 )

@@ -19,11 +19,10 @@
  */
 package org.nessus.didcomm.cli
 
-import id.walt.common.prettyPrint
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.RFC0048TrustPingProtocolV1.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1
 import org.nessus.didcomm.service.RFC0048_TRUST_PING_V1
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_V2
 import picocli.CommandLine.Command
 
 @Command(
@@ -36,24 +35,38 @@ import picocli.CommandLine.Command
 class RFC0048TrustPingCommand
 
 @Command(name="send-ping", description = ["Send a trust ping message"])
-class RFC0048SendPingCommand: AbstractBaseCommand() {
+class RFC0048SendPingCommand: DidCommV2Command() {
 
     override fun call(): Int {
         val pcon = getContextConnection()
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)
         checkNotNull(sender) { "No sender wallet for: ${pcon.myVerkey}" }
-        val mex = MessageExchange()
-            .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
-            .withProtocol(RFC0048_TRUST_PING_V1)
-            .sendTrustPing()
-            .awaitTrustPingResponse()
-            .getMessageExchange()
-        mex.checkLastMessageType(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1)
+
+        val mex = when {
+            dcv2 -> {
+                MessageExchange()
+                    .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
+                    .withProtocol(RFC0048_TRUST_PING_V2)
+                    .sendTrustPing()
+                    .awaitTrustPingResponse()
+                    .getMessageExchange()
+            }
+            else -> {
+                MessageExchange()
+                    .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
+                    .withProtocol(RFC0048_TRUST_PING_V1)
+                    .sendTrustPing()
+                    .awaitTrustPingResponse()
+                    .getMessageExchange()
+            }
+        }
         val header = "${sender.name} received a Trust Ping response"
-        if (verbose)
-            printResult("${header}\n", listOf(mex.last.prettyPrint()))
-        else
+        if (verbose) {
+            val pingMessages = mex.messages.takeLast(2)
+            printResult("${header}\n", pingMessages)
+        } else {
             printResult("${header}\n", listOf())
+        }
         return 0
     }
 

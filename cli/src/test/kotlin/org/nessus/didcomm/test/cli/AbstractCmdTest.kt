@@ -21,7 +21,7 @@ package org.nessus.didcomm.test.cli
 
 import mu.KotlinLogging
 import org.junit.jupiter.api.BeforeAll
-import org.nessus.didcomm.cli.CLIService
+import org.nessus.didcomm.cli.service.CLIService
 import org.nessus.didcomm.cli.NessusCli
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.ServiceMatrixLoader

@@ -17,10 +17,11 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.cli
+package org.nessus.didcomm.cli.service
 
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
+import org.nessus.didcomm.cli.NessusCli
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.Wallet

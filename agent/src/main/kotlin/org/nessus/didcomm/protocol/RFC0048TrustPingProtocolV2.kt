@@ -104,10 +104,13 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = myMex.addMessage(EndpointMessage(packedMessage, mapOf(
+        val packedEpm = EndpointMessage(packedMessage, mapOf(
+            EndpointMessage.MESSAGE_HEADER_ID to "${trustPingMsg.id}.packed",
+            EndpointMessage.MESSAGE_HEADER_THID to trustPingMsg.thid,
+            EndpointMessage.MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
             EndpointMessage.MESSAGE_HEADER_MEDIA_TYPE to Typ.Encrypted.typ
-        ))).last
-        log.info { "${sender.name} sends TrustPing: ${trustPing.prettyPrint()}" }
+        ))
+        log.info { "Sender (${sender.name}) sends TrustPing: ${packedEpm.prettyPrint()}" }
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
         return rfc0048
@@ -158,9 +161,9 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = mex.addMessage(EndpointMessage(packedMessage, mapOf(
+        val packedEpm = EndpointMessage(packedMessage, mapOf(
             EndpointMessage.MESSAGE_HEADER_MEDIA_TYPE to Typ.Encrypted.typ
-        ))).last
+        ))
 
         pcon.state = ConnectionState.ACTIVE
 

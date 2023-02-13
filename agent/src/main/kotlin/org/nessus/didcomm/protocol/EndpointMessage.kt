@@ -23,7 +23,7 @@ import org.didcommx.didcomm.message.Message
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.isJson
 import org.nessus.didcomm.util.selectJson
-import java.util.*
+import java.util.UUID
 
 /**
  * Associates an endpoint message with additional metadata
@@ -56,16 +56,16 @@ class EndpointMessage(
             val type = body.selectJson("@type")
             val thid = body.selectJson("~thread.thid")
             val pthid = body.selectJson("~thread.pthid")
-            id?.run { effHeaders[MESSAGE_HEADER_ID] = id }
-            type?.run { effHeaders[MESSAGE_HEADER_TYPE] = type }
-            thid?.run { effHeaders[MESSAGE_HEADER_THID] = thid }
-            pthid?.run { effHeaders[MESSAGE_HEADER_PTHID] = pthid }
+            id?.also { effHeaders[MESSAGE_HEADER_ID] = id }
+            type?.also { effHeaders[MESSAGE_HEADER_TYPE] = type }
+            thid?.also { effHeaders[MESSAGE_HEADER_THID] = thid }
+            pthid?.also { effHeaders[MESSAGE_HEADER_PTHID] = pthid }
         } else if (body is Message) {
             effHeaders[MESSAGE_HEADER_ID] = body.id
             effHeaders[MESSAGE_HEADER_MEDIA_TYPE] = body.typ.typ
             effHeaders[MESSAGE_HEADER_TYPE] = body.type
-            effHeaders[MESSAGE_HEADER_THID] = body.thid
-            effHeaders[MESSAGE_HEADER_PTHID] = body.pthid
+            body.thid?.also { effHeaders[MESSAGE_HEADER_THID] = body.thid }
+            body.pthid?.also { effHeaders[MESSAGE_HEADER_PTHID] = body.pthid }
         }
         if (effHeaders[MESSAGE_HEADER_ID] == null) {
             val auxId = "${UUID.randomUUID()}"

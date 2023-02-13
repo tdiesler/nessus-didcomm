@@ -36,7 +36,7 @@ class WalletCmdTest: AbstractCmdTest() {
 
         assertEquals("Alice", cliService.findContextWallet()?.name)
 
-        assertTrue(cliService.execute("wallet use faber").isSuccess)
+        assertTrue(cliService.execute("wallet switch faber").isSuccess)
         assertEquals("Faber", cliService.findContextWallet()?.name)
 
         assertTrue(cliService.execute("wallet remove --alias Alice").isSuccess)

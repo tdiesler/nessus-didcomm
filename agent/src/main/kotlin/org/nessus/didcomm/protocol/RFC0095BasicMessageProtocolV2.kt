@@ -100,9 +100,9 @@ class RFC0095BasicMessageProtocolV2(mex: MessageExchange): Protocol<RFC0095Basic
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = senderMex.addMessage(EndpointMessage(packedMessage, mapOf(
+        val packedEpm = EndpointMessage(packedMessage, mapOf(
             MESSAGE_HEADER_MEDIA_TYPE to Typ.Plaintext.typ
-        ))).last
+        ))
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
         return rfc0095
@@ -144,9 +144,9 @@ class RFC0095BasicMessageProtocolV2(mex: MessageExchange): Protocol<RFC0095Basic
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = senderMex.addMessage(EndpointMessage(packedMessage, mapOf(
+        val packedEpm = EndpointMessage(packedMessage, mapOf(
             MESSAGE_HEADER_MEDIA_TYPE to Typ.Signed.typ
-        ))).last
+        ))
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
         return rfc0095
@@ -190,9 +190,9 @@ class RFC0095BasicMessageProtocolV2(mex: MessageExchange): Protocol<RFC0095Basic
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = senderMex.addMessage(EndpointMessage(packedMessage, mapOf(
+        val packedEpm = EndpointMessage(packedMessage, mapOf(
             MESSAGE_HEADER_MEDIA_TYPE to Typ.Plaintext.typ
-        ))).last
+        ))
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
         return rfc0095
