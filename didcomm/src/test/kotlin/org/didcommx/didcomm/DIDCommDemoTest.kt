@@ -1,5 +1,6 @@
 package org.didcommx.didcomm
 
+import mu.KotlinLogging
 import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.mock.AliceSecretResolverMock
@@ -20,6 +21,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class DIDCommDemoTest {
+    val log = KotlinLogging.logger {}
 
     val ALICE_DID = "did:example:alice"
     val BOB_DID = "did:example:bob"
@@ -45,14 +47,14 @@ class DIDCommDemoTest {
                 .from(ALICE_DID)
                 .build()
         )
-        println("Sending ${packResult.packedMessage} to ${packResult.serviceMetadata?.serviceEndpoint ?: ""}")
+        log.info("Sending ${packResult.packedMessage} to ${packResult.serviceMetadata?.serviceEndpoint ?: ""}")
 
         val unpackResult = didComm.unpack(
             UnpackParams.Builder(packResult.packedMessage)
                 .secretResolver(BobSecretResolverMock())
                 .build()
         )
-        println("Got ${unpackResult.message} message")
+        log.info("Got ${unpackResult.message} message")
 
         assertEquals(message, unpackResult.message)
         with(unpackResult.metadata) {
@@ -81,14 +83,14 @@ class DIDCommDemoTest {
         val packResult = didComm.packEncrypted(
             PackEncryptedParams.builder(message, BOB_DID).build()
         )
-        println("Sending ${packResult.packedMessage} to ${packResult.serviceMetadata?.serviceEndpoint ?: ""}")
+        log.info("Sending ${packResult.packedMessage} to ${packResult.serviceMetadata?.serviceEndpoint ?: ""}")
 
         val unpackResult = didComm.unpack(
             UnpackParams.Builder(packResult.packedMessage)
                 .secretResolver(BobSecretResolverMock())
                 .build()
         )
-        println("Got ${unpackResult.message} message")
+        log.info("Got ${unpackResult.message} message")
 
         assertEquals(message, unpackResult.message)
         with(unpackResult.metadata) {
@@ -121,14 +123,14 @@ class DIDCommDemoTest {
                 .from(ALICE_DID)
                 .build()
         )
-        println("Sending ${packResult.packedMessage} to ${packResult.serviceMetadata?.serviceEndpoint ?: ""}")
+        log.info("Sending ${packResult.packedMessage} to ${packResult.serviceMetadata?.serviceEndpoint ?: ""}")
 
         val unpackResult = didComm.unpack(
             UnpackParams.Builder(packResult.packedMessage)
                 .secretResolver(BobSecretResolverMock())
                 .build()
         )
-        println("Got ${unpackResult.message} message")
+        log.info("Got ${unpackResult.message} message")
 
         assertEquals(message, unpackResult.message)
         with(unpackResult.metadata) {
@@ -162,14 +164,14 @@ class DIDCommDemoTest {
                 .from(ALICE_DID)
                 .build()
         )
-        println("Sending ${packResult.packedMessage} to ${packResult.serviceMetadata?.serviceEndpoint ?: ""}")
+        log.info("Sending ${packResult.packedMessage} to ${packResult.serviceMetadata?.serviceEndpoint ?: ""}")
 
         val unpackResult = didComm.unpack(
             UnpackParams.Builder(packResult.packedMessage)
                 .secretResolver(BobSecretResolverMock())
                 .build()
         )
-        println("Got ${unpackResult.message} message")
+        log.info("Got ${unpackResult.message} message")
 
         assertEquals(message, unpackResult.message)
         with(unpackResult.metadata) {
@@ -200,12 +202,12 @@ class DIDCommDemoTest {
             PackSignedParams.builder(message, ALICE_DID)
                 .build()
         )
-        println("Publishing ${packResult.packedMessage}")
+        log.info("Publishing ${packResult.packedMessage}")
 
         val unpackResult = didComm.unpack(
             UnpackParams.Builder(packResult.packedMessage).build()
         )
-        println("Got ${unpackResult.message} message")
+        log.info("Got ${unpackResult.message} message")
 
         assertEquals(message, unpackResult.message)
         with(unpackResult.metadata) {
@@ -236,12 +238,12 @@ class DIDCommDemoTest {
             PackPlaintextParams.builder(message)
                 .build()
         )
-        println("Publishing ${packResult.packedMessage}")
+        log.info("Publishing ${packResult.packedMessage}")
 
         val unpackResult = didComm.unpack(
             UnpackParams.Builder(packResult.packedMessage).build()
         )
-        println("Got ${unpackResult.message} message")
+        log.info("Got ${unpackResult.message} message")
 
         assertEquals(message, unpackResult.message)
         with(unpackResult.metadata) {
@@ -276,14 +278,14 @@ class DIDCommDemoTest {
                 .from(ALICE_DID)
                 .build()
         )
-        println("Sending ${packResultBob.packedMessage} to ${packResultBob.serviceMetadata?.serviceEndpoint ?: ""} for Bob")
+        log.info("Sending ${packResultBob.packedMessage} to ${packResultBob.serviceMetadata?.serviceEndpoint ?: ""} for Bob")
 
         val unpackResultBob = didComm.unpack(
             UnpackParams.Builder(packResultBob.packedMessage)
                 .secretResolver(BobSecretResolverMock())
                 .build()
         )
-        println("Bob got ${unpackResultBob.message} message")
+        log.info("Bob got ${unpackResultBob.message} message")
 
         with(unpackResultBob.metadata) {
             assertTrue { encrypted }
@@ -300,7 +302,7 @@ class DIDCommDemoTest {
                 .from(ALICE_DID)
                 .build()
         )
-        println("Sending ${packResultCharlie.packedMessage} to ${packResultCharlie.serviceMetadata?.serviceEndpoint ?: ""} for Charlie")
+        log.info("Sending ${packResultCharlie.packedMessage} to ${packResultCharlie.serviceMetadata?.serviceEndpoint ?: ""} for Charlie")
 
         // TODO make focused on initial subject (without forward)
         // CHARLIE's first mediator (MEDIATOR2)
@@ -324,7 +326,7 @@ class DIDCommDemoTest {
                 .secretResolver(CharlieSecretResolverMock())
                 .build()
         )
-        println("Charlie got ${unpackResultCharlie.message} message")
+        log.info("Charlie got ${unpackResultCharlie.message} message")
 
         with(unpackResultCharlie.metadata) {
             assertTrue { encrypted }
@@ -368,14 +370,14 @@ class DIDCommDemoTest {
         val packResult = didComm.packEncrypted(
             PackEncryptedParams.builder(msg, BOB_DID).build()
         )
-        println("Sending ${packResult.packedMessage} to ${packResult.serviceMetadata?.serviceEndpoint ?: ""}")
+        log.info("Sending ${packResult.packedMessage} to ${packResult.serviceMetadata?.serviceEndpoint ?: ""}")
 
         val unpackResult = didComm.unpack(
             UnpackParams.Builder(packResult.packedMessage)
                 .secretResolver(BobSecretResolverMock())
                 .build()
         )
-        println("Got ${unpackResult.message} message")
+        log.info("Got ${unpackResult.message} message")
 
         assertEquals(msg, unpackResult.message)
     }
