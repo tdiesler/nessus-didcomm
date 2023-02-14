@@ -23,7 +23,6 @@ import org.junit.jupiter.api.Test
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V2
 import org.nessus.didcomm.service.RFC0048_TRUST_PING_V2
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
 import org.nessus.didcomm.test.AbstractDidCommTest
@@ -58,27 +57,28 @@ class RFC0048TrustPingV2Test : AbstractDidCommTest() {
                     .createOutOfBandInvitation(acme)
                     .receiveOutOfBandInvitation(alice)
 
-                    .withProtocol(RFC0023_DIDEXCHANGE_V2)
-                    .connect(alice)
+                    .withProtocol(RFC0048_TRUST_PING_V2)
+                    .sendTrustPing()
+                    .awaitTrustPingResponse()
 
                     .getMessageExchange()
 
-                val aliceFaber = mex.getConnection()
-                assertEquals(ACTIVE, aliceFaber.state)
+                val aliceAcme = mex.getConnection()
+                assertEquals(ACTIVE, aliceAcme.state)
 
                 // Send an explicit trust ping
                 MessageExchange()
                     .withProtocol(RFC0048_TRUST_PING_V2)
-                    .sendTrustPing(aliceFaber)
+                    .sendTrustPing(aliceAcme)
                     .awaitTrustPingResponse()
 
                 // Send a reverse trust ping
-                val faberAlice = acme.findConnection{ it.myVerkey == aliceFaber.theirVerkey }
-                assertNotNull(faberAlice, "No Acme/Alice Connection")
+                val acmeAlice = acme.findConnection{ it.myVerkey == aliceAcme.theirVerkey }
+                assertNotNull(acmeAlice, "No Acme/Alice Connection")
 
                 MessageExchange()
                     .withProtocol(RFC0048_TRUST_PING_V2)
-                    .sendTrustPing(faberAlice)
+                    .sendTrustPing(acmeAlice)
                     .awaitTrustPingResponse()
 
             } finally {

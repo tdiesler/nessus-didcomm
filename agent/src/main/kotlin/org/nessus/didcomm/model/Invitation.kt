@@ -60,14 +60,14 @@ class Invitation {
     fun recipientDidKey(idx: Int = 0): Did {
         return when {
             isV1 -> actV1.recipientDidKey(idx)
-            else -> actV2.recipientDidKey(idx)
+            else -> actV2.recipientDidKey()
         }
     }
 
     fun recipientServiceEndpoint(idx: Int = 0): String {
         return when {
             isV1 -> actV1.recipientServiceEndpoint(idx)
-            else -> actV2.recipientServiceEndpoint(idx)
+            else -> actV2.recipientServiceEndpoint()
         }
     }
 

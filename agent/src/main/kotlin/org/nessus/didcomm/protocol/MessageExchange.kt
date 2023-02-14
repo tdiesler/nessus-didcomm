@@ -60,8 +60,8 @@ class MessageExchange(): AttachmentSupport() {
 
         val INVITATION_ATTACHMENT_KEY = AttachmentKey(Invitation::class)
         val CONNECTION_ATTACHMENT_KEY = AttachmentKey(Connection::class)
-        val REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY = AttachmentKey("RequesterDidDoc", DidDoc::class)
-        val RESPONDER_DID_DOCUMENT_ATTACHMENT_KEY = AttachmentKey("ResponderDidDoc", DidDoc::class)
+        val INVITEE_DID_DOCUMENT_ATTACHMENT_KEY = AttachmentKey("InviteeDidDoc", DidDoc::class)
+        val INVITER_DID_DOCUMENT_ATTACHMENT_KEY = AttachmentKey("InviterDidDoc", DidDoc::class)
         val WALLET_ATTACHMENT_KEY = AttachmentKey(Wallet::class)
 
         // [TODO] MEMORY LEAK - evict outdated messages exchanges

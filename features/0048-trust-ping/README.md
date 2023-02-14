@@ -17,6 +17,7 @@ Demonstrate the use of [encrypted][dcv2-encrypted-msg] DIDComm V2 message from T
 #### Sender (Alice) creates TrustPing
 
 On the wire, the Trust Ping message is signed and encrypted
+Note, the first Trust Ping may contain a Did Document attachment for the Invitee
 
 ```json
 {
@@ -38,6 +39,7 @@ On the wire, the Trust Ping message is signed and encrypted
 #### Receiver (Acme) creates TrustPing Response
 
 On the wire, the Trust Ping Response message is signed and encrypted
+Note, a Trust Ping Response may use `fromPrior` to communicate a change of recipient Did
 
 ```json
 {

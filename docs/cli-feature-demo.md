@@ -94,7 +94,6 @@ Faber>>
 The CLI supports command/option completion with TAB and command history with UP/DOWN.
 An element selection alias (in this case for a wallet) can be abbreviated and case-ignorant
 
-
 ### Agent Endpoints
 
 Every wallet has a public HTTP endpoint - multiple wallets may share the same endpoint.
@@ -109,7 +108,7 @@ Alice>> agent start
 Started Camel endpoint on 192.168.0.10:8130
 ```
 
-As you can see, the starts an [Apache Camel](https://camel.apache.org) endpoint, and hence provides a plethora of routing 
+As you can see, this starts an [Apache Camel](https://camel.apache.org) endpoint, and hence provides a plethora of routing 
 transformation and other processing possibilities for incoming DIDComm messages. 
 
 ### RFC0434: Out-of-Band Invitation
@@ -167,10 +166,10 @@ Wallet created: Acme [agent=Nessus, url=http://192.168.0.10:8130]
 Acme>> rfc0434 create-invitation --verbose --dcv2
 Acme created an RFC0434 Invitation: 
 {
-    "id":"e3489913-6ddd-48c3-a644-686c02a10d1e",
+    "id":"8180da5f-043c-4d2c-b46a-425ea8b78af3",
     "typ":"application/didcomm-plain+json",
     "type":"https://didcomm.org/out-of-band/2.0-preview/invitation",
-    "from":"did:key:z6MktC5G2hPNder9c2mpuLUuvdEV9uH5ncAhVdku5TVHzXvk",
+    "from":"did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ",
     "body":{
         "accept":[
             "didcomm/v2"
@@ -178,17 +177,56 @@ Acme created an RFC0434 Invitation:
     },
     "attachments":[
         {
-            "id":"65bb163c-d3df-4425-9926-fc95517f255a",
+            "id":"e4409e62-72ba-4ec2-ae58-e3d7cc347189",
             "data":{
                 "json":{
-                    "id":"#inline",
-                    "type":"did-communication",
-                    "recipientKeys":[
-                        "did:key:z6MktC5G2hPNder9c2mpuLUuvdEV9uH5ncAhVdku5TVHzXvk"
+                    "did":"did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ",
+                    "keyAgreements":[
+                        "did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ#key-x25519-1"
                     ],
-                    "serviceEndpoint":"http://192.168.0.10:8130"
+                    "authentications":[
+                        "did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ#key-1"
+                    ],
+                    "verificationMethods":[
+                        {
+                            "id":"did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ#key-1",
+                            "type":"JSON_WEB_KEY_2020",
+                            "verificationMaterial":{
+                                "format":"JWK",
+                                "value":"{
+                                    \"kty\":\"OKP\",
+                                    \"crv\":\"Ed25519\",
+                                    \"x\":\"-Gm6q189MdH-x2tg2kUCEPGN-DMDMpiPKqrlm-97ZcM\"
+                                }"
+                            },
+                            "controller":"did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ#key-1"
+                        },
+                        {
+                            "id":"did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ#key-x25519-1",
+                            "type":"JSON_WEB_KEY_2020",
+                            "verificationMaterial":{
+                                "format":"JWK",
+                                "value":"{
+                                    \"kty\":\"OKP\",
+                                    \"crv\":\"X25519\",
+                                    \"x\":\"nzr0w2G8L-EFcd5gjcc5hLBa1F-o5mlfJ1e6wbP1SSY\"
+                                }"
+                            },
+                            "controller":"did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ#key-x25519-1"
+                        }
+                    ],
+                    "didCommServices":[
+                        {
+                            "id":"did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ#didcomm-1",
+                            "serviceEndpoint":"http://192.168.0.10:8130",
+                            "accept":[
+                                "didcomm/v2"
+                            ]
+                        }
+                    ]
                 }
-            }
+            },
+            "media_type":"application/did+json"
         }
     ]
 }
@@ -197,11 +235,13 @@ Acme created an RFC0434 Invitation:
 The message above follows the general layout for [DIDComm V2 Out-of-Band](https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages) messages.
 However, the spec unfortunately or purposefully leaves out the specifics of a DIDComm peer-to-peer Invitation.
 
-In such cases, Nessus makes a number of assumptions and throw away protocol detail decisions for this [POC](https://github.com/tdiesler/nessus-didcomm/blob/main/docs/proof-of-concept.md) implementation.
+In such cases, Nessus makes a number of assumptions for this [POC](https://github.com/tdiesler/nessus-didcomm/blob/main/docs/proof-of-concept.md) implementation.
 These Nessus preview protocols are documented [here](https://github.com/tdiesler/nessus-didcomm/tree/main/features).
 
 Generally, everything we demonstrate with Faber-Alice (i.e. AcaPy/Nessus) is also available in it's DIDComm V2 variant for Acme-Alice
 In future, when DIDComm V2 becomes available in AcaPy, we expect message content and type URI to change and reflect official standards.
+
+In this case, a Nessus DidComm RFC0434 Invitation message has a Did Document attached that the Invitee can use to establish a peer connection with the Inviter
 
 ### RFC0023: DID Exchange
 
@@ -304,86 +344,80 @@ Acme created an RFC0434 Invitation: [key=D6LVaw3C2Y5xFVrePCerZBFWvSx6HWMuzhAqMWU
 Alice>> rfc0434 receive-invitation --dcv2 
 Alice received an RFC0434 Invitation: [key=D6LVaw3C2Y5xFVrePCerZBFWvSx6HWMuzhAqMWUqw4x2, url=http://192.168.0.10:8130]
                                                                                                                                                                                                                      Invi:D6LVaw3
-Alice>> rfc0023 connect --dcv2 
-Alice-Acme [id=a898df77-06c8-40b5-b522-974aba825f74, myDid=did:key:z6MkpWjs8yeNJBoTpN9g5QHyRLsWg5jax7x4siig1di5dHdv, theirDid=did:key:z6Mko48L34d8tTnwHr1sTMAJmGnsgSBiT3Hf2CJVFMbUcajM, state=ACTIVE]
+Alice>> rfc0048 send-ping --dcv2
+Alice received a Trust Ping response
                                                                                                                                                                                                                      Conn:a898df7
 Alice>> wallet messages 
 Messages:
-[id=ae384b09-f09d-4e31-9c29-3d1e40dd52a5, thid=ae384b09-f09d-4e31-9c29-3d1e40dd52a5, type=https://didcomm.org/out-of-band/2.0-preview/invitation]
-[id=f010c733-881b-4c86-b763-6836cee8c677, thid=f010c733-881b-4c86-b763-6836cee8c677, type=https://didcomm.org/didexchange/2.0-preview/request]
-[id=bc5b3a82-4e0d-4939-a241-a7ded52e271c, thid=f010c733-881b-4c86-b763-6836cee8c677, type=https://didcomm.org/didexchange/2.0-preview/response]
-[id=8b70e6c5-913f-4c65-817e-e2513fbe420d, thid=f010c733-881b-4c86-b763-6836cee8c677, type=https://didcomm.org/didexchange/2.0-preview/complete]
-[id=8adf4a72-63ea-4220-a01c-71e6a22199df, thid=8adf4a72-63ea-4220-a01c-71e6a22199df, type=https://didcomm.org/trust_ping/2.0-preview/ping]
-[id=b30a5409-24ce-4d82-8b95-7873a840f392, thid=8adf4a72-63ea-4220-a01c-71e6a22199df, type=https://didcomm.org/trust_ping/2.0-preview/ping_response]
+[id=8180da5f-043c-4d2c-b46a-425ea8b78af3, thid=8180da5f-043c-4d2c-b46a-425ea8b78af3, type=https://didcomm.org/out-of-band/2.0-preview/invitation]
+[id=fc292f99-eb72-4443-a4e4-bb6f2f658f65, thid=fc292f99-eb72-4443-a4e4-bb6f2f658f65, type=https://didcomm.org/trust_ping/2.0-preview/ping]
+[id=67f18d32-dcbe-4459-a534-63af9e1cce5e, thid=fc292f99-eb72-4443-a4e4-bb6f2f658f65, type=https://didcomm.org/trust_ping/2.0-preview/ping_response]
 
-Alice>> wallet messages --msg=bc5b3a82 -v
+Alice>> wallet messages --msg=fc292f99 -v
 EndpointMessage(
     headers={
-        MessageId=bc5b3a82-4e0d-4939-a241-a7ded52e271c,
+        MessageId=fc292f99-eb72-4443-a4e4-bb6f2f658f65,
         MessageMediaType=application/didcomm-plain+json,
-        MessageParentThid=ae384b09-f09d-4e31-9c29-3d1e40dd52a5,
-        MessageProtocolUri=https://didcomm.org/didexchange/2.0-preview,
-        MessageRecipientVerkey=B4UpYjPvxeJzhsJyPqL8aFKWrWTjYEhiBhokBMk4i4rY,
-        MessageSenderVerkey=9bsHSpNhYvJUBMBAmnCTvBEsrrus3A3JLBPZR5dThMwy,
-        MessageThid=f010c733-881b-4c86-b763-6836cee8c677,
-        MessageType=https://didcomm.org/didexchange/2.0-preview/response
+        MessageType=https://didcomm.org/trust_ping/2.0-preview/ping
     },
     body={
-        "id":"bc5b3a82-4e0d-4939-a241-a7ded52e271c",
+        "id":"fc292f99-eb72-4443-a4e4-bb6f2f658f65",
         "typ":"application/didcomm-plain+json",
-        "type":"https://didcomm.org/didexchange/2.0-preview/response",
-        "from":"did:key:z6Mko48L34d8tTnwHr1sTMAJmGnsgSBiT3Hf2CJVFMbUcajM",
+        "type":"https://didcomm.org/trust_ping/2.0-preview/ping",
+        "from":"did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm",
         "to":[
-            "did:key:z6MkpWjs8yeNJBoTpN9g5QHyRLsWg5jax7x4siig1di5dHdv"
+            "did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ"
         ],
+        "created_time":1676366926,
+        "expires_time":1676453326,
         "body":{
-            "accept":[
-                "didcomm/v2"
-            ]
+            "comment":"Ping from Alice"
         },
         "attachments":[
             {
-                "id":"efe82194-bc11-400e-a18d-89e2eb1dd971",
+                "id":"4836047a-8ba4-4cab-a2d4-3e6af2e48859",
                 "data":{
+                    "jws":null,
+                    "hash":null,
                     "json":{
-                        "did":"did:key:z6Mko48L34d8tTnwHr1sTMAJmGnsgSBiT3Hf2CJVFMbUcajM",
+                        "did":"did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm",
                         "keyAgreements":[
-                            "did:key:z6Mko48L34d8tTnwHr1sTMAJmGnsgSBiT3Hf2CJVFMbUcajM#key-x25519-1"
+                            "did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm#key-x25519-1"
                         ],
                         "authentications":[
-                            "did:key:z6Mko48L34d8tTnwHr1sTMAJmGnsgSBiT3Hf2CJVFMbUcajM#key-1"
+                            "did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm#key-1"
                         ],
                         "verificationMethods":[
                             {
-                                "id":"did:key:z6Mko48L34d8tTnwHr1sTMAJmGnsgSBiT3Hf2CJVFMbUcajM#key-1",
+                                "id":"did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm#key-1",
                                 "type":"JSON_WEB_KEY_2020",
                                 "verificationMaterial":{
                                     "format":"JWK",
                                     "value":"{
                                         \"kty\":\"OKP\",
                                         \"crv\":\"Ed25519\",
-                                        \"x\":\"f8wZRBlCZeiyW8JynmfwilUh38KjuzxiIZjXModDaKQ\"
+                                        \"x\":\"n-8NCt6DcUrb2JZJBcGyjRVRP4AHH63u8zXMA7j5QoA\"
                                     }"
                                 },
-                                "controller":"did:key:z6Mko48L34d8tTnwHr1sTMAJmGnsgSBiT3Hf2CJVFMbUcajM#key-1"
+                                "controller":"did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm#key-1"
                             },
                             {
-                                "id":"did:key:z6Mko48L34d8tTnwHr1sTMAJmGnsgSBiT3Hf2CJVFMbUcajM#key-x25519-1",
+                                "id":"did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm#key-x25519-1",
                                 "type":"JSON_WEB_KEY_2020",
                                 "verificationMaterial":{
                                     "format":"JWK",
                                     "value":"{
                                         \"kty\":\"OKP\",
                                         \"crv\":\"X25519\",
-                                        \"x\":\"kJADg6SQszmN4C1xTh9xqi8Clt3Gzx_EfwYDc2Jz7hA\"
+                                        \"x\":\"qwmMMf08jZbpbV-jzAeepr7VLxoaUHN5TDZp0p13K28\"
                                     }"
                                 },
-                                "controller":"did:key:z6Mko48L34d8tTnwHr1sTMAJmGnsgSBiT3Hf2CJVFMbUcajM#key-x25519-1"
+                                "controller":"did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm#key-x25519-1"
                             }
                         ],
                         "didCommServices":[
                             {
-                                "id":"did:key:z6Mko48L34d8tTnwHr1sTMAJmGnsgSBiT3Hf2CJVFMbUcajM#didcomm-1",
+                                "id":"did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm#didcomm-1",
                                 "serviceEndpoint":"http://192.168.0.10:8130",
                                 "accept":[
                                     "didcomm/v2"
@@ -394,20 +428,18 @@ EndpointMessage(
                 },
                 "media_type":"application/did+json"
             }
-        ],
-        "thid":"f010c733-881b-4c86-b763-6836cee8c677",
-        "pthid":"ae384b09-f09d-4e31-9c29-3d1e40dd52a5"
+        ]
     }
 )
 ```
 
-Here we see how the responder (Acme) communicates it's DID Document as an attachment to a DIDComm V2 message. 
+Here we see how the Invitee (Alice) communicates her DID Document as an attachment to a DIDComm V2 message. 
 As the message type suggests, this again isn't official protocol content - for details see 
-[Nessus DidComm RFC0023: DID Exchange 2.0](https://github.com/tdiesler/nessus-didcomm/tree/main/features/0023-did-exchange)
+[Nessus DidComm RFC0048: Trust Ping 2.0](https://github.com/tdiesler/nessus-didcomm/tree/main/features/0048-trust-ping)
 
 #### RFC0434 Connect Shortcut
 
-Because Out-of-Band Invitation followed by DID Exchange is so common and the foundation for almost every other protocol, there
+Because Out-of-Band Invitation followed by some sort of Did exchange is so common and the foundation for almost every other protocol, there
 is a shortcut available directly on the RFC0434 protocol
 
 ```shell
@@ -458,17 +490,12 @@ Notice, how she uses DID method `sov` with Faber and `key` with Acme
 
 ### RFC0048: Trust Ping
 
-In RFC0023 DID Exchange, Trust Ping is an integral part of the protocol - we've seen it above already. It is however
-also available as separate protocol/command.
+Trust Ping is an integral of establishing a peer connection - we've seen it above already. 
+It is however also available as a separate protocol/command.
 
 Lets see, what it looks like in DIDComm V2 ...
 
 ```shell
-Alice>> rfc0434 connect acme alice --dcv2
-Acme created an RFC0434 Invitation: [key=46GtFk3B2qWXB7cVgzbZH5GLBgbnXLEraK3Xw5aWCiYL, url=http://192.168.0.10:8130]
-Alice received an RFC0434 Invitation: [key=46GtFk3B2qWXB7cVgzbZH5GLBgbnXLEraK3Xw5aWCiYL, url=http://192.168.0.10:8130]
-Alice-Acme [id=0b8d154c-6a24-4a83-ab3b-ed86b298ffd1, myDid=did:key:z6Mkm8ezEDdR1Au4TxyW7UQejVduZsbhdGcc6pC7oNMKxhxs, theirDid=did:key:z6Mkit4ysNAR9YmUCnyti1Sp2yGF2AJEbwV92j2Ny5Yduwcp, state=ACTIVE]
-                                                                                                                                                                                                                     Conn:0b8d154
 Alice>> rfc0048 send-ping --dcv2
 Alice received a Trust Ping response
                                                                                                                                                                                                                      Conn:0b8d154
@@ -523,7 +550,8 @@ EndpointMessage(
 )
 ```
 
-Note, on the wire these messages will be signed+encrypted and not plain text. 
+Note, on the wire these messages will be signed+encrypted and not plain text.
+In the first Trust Ping, the Invitee may attach his/her peer Did Document   
 
 Currently, the DIDComm V2 [MessageBuilder](https://github.com/sicpa-dlab/didcomm-jvm/blob/main/lib/src/main/kotlin/org/didcommx/didcomm/message/Message.kt#L139)
 API does not provide write access to this field ... not sure if this is intentional

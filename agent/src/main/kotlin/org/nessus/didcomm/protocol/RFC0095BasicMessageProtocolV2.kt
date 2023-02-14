@@ -31,7 +31,8 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_ID
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_V2
 import org.nessus.didcomm.util.dateTimeInstant
@@ -101,7 +102,8 @@ class RFC0095BasicMessageProtocolV2(mex: MessageExchange): Protocol<RFC0095Basic
 
         val packedMessage = packResult.packedMessage
         val packedEpm = EndpointMessage(packedMessage, mapOf(
-            MESSAGE_HEADER_MEDIA_TYPE to Typ.Plaintext.typ
+            MESSAGE_HEADER_ID to "${basicMessageMsg.id}.packed",
+            MESSAGE_HEADER_TYPE to Typ.Plaintext.typ
         ))
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
@@ -145,7 +147,8 @@ class RFC0095BasicMessageProtocolV2(mex: MessageExchange): Protocol<RFC0095Basic
 
         val packedMessage = packResult.packedMessage
         val packedEpm = EndpointMessage(packedMessage, mapOf(
-            MESSAGE_HEADER_MEDIA_TYPE to Typ.Signed.typ
+            MESSAGE_HEADER_ID to "${basicMessageMsg.id}.packed",
+            MESSAGE_HEADER_TYPE to Typ.Signed.typ
         ))
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
@@ -191,7 +194,8 @@ class RFC0095BasicMessageProtocolV2(mex: MessageExchange): Protocol<RFC0095Basic
 
         val packedMessage = packResult.packedMessage
         val packedEpm = EndpointMessage(packedMessage, mapOf(
-            MESSAGE_HEADER_MEDIA_TYPE to Typ.Plaintext.typ
+            MESSAGE_HEADER_ID to "${basicMessageMsg.id}.packed",
+            MESSAGE_HEADER_TYPE to Typ.Encrypted.typ
         ))
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)

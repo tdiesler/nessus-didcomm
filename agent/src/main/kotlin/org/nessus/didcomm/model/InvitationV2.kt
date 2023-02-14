@@ -23,7 +23,8 @@ import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.message.MessageBuilder
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.util.gson
+import org.nessus.didcomm.service.DID_DOCUMENT_MEDIA_TYPE
+import org.nessus.didcomm.service.DidDocumentV2Service
 
 /**
  * [Out of Band Invitation]https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
@@ -122,28 +123,28 @@ data class InvitationV2(
         }
     }
 
-    val services: List<Invitation.Service> = attachments?.run {attachments
-            .filter { it.data is Attachment.Data.Json }
-            .map {
-                val json = gson.toJson(it.data.toJSONObject()["json"])
-                gson.fromJson(json, Invitation.Service::class.java)
-            }
-        } ?: listOf()
+    val diddoc get() = run {
+            checkNotNull(attachments) { "No attachments" }
+            val invitationDidDoc = attachments
+                .filter { it.mediaType == DID_DOCUMENT_MEDIA_TYPE }
+                .map {
+                    val diddocV2Service = DidDocumentV2Service.getService()
+                    diddocV2Service.extractDidDocAttachment(it)
+                }.firstOrNull()
+            checkNotNull(invitationDidDoc) { "No invitation DidDoc" }
+            invitationDidDoc
+        }
 
-    fun invitationKey(idx: Int = 0): String {
-        return recipientDidKey(idx).verkey
+    fun invitationKey(): String {
+        return recipientDidKey().verkey
     }
 
-    fun recipientDidKey(idx: Int = 0): Did {
-        check(services.size > idx) { "No services[$idx].recipientKeys" }
-        check(services[idx].recipientKeys.isNotEmpty()) { "No recipient keys" }
-        check(services[idx].recipientKeys.size == 1) { "Multiple recipient keys" }
-        return Did.fromSpec(services[idx].recipientKeys[0])
+    fun recipientDidKey(): Did {
+        return Did.fromSpec(diddoc.did)
     }
 
-    fun recipientServiceEndpoint(idx: Int = 0): String {
-        check(services.size > idx) { "No services[$idx].serviceEndpoint" }
-        return services[idx].serviceEndpoint
+    fun recipientServiceEndpoint(): String {
+        return diddoc.serviceEndpoint() as String
     }
 
     fun toMessage(): Message {

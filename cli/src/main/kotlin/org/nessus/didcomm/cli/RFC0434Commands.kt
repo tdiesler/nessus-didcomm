@@ -23,7 +23,7 @@ import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V1
-import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V2
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_V2
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
 import picocli.CommandLine.Command
@@ -167,8 +167,9 @@ class RFC0434InviteAndConnect: AbstractRFC0434Command() {
                         val invitation = it.getMessageExchange().getInvitation()
                         printReceiveInvitation(invitee.name, invitation!!)
                     }
-                    .withProtocol(RFC0023_DIDEXCHANGE_V2)
-                    .connect(invitee)
+                    .withProtocol(RFC0048_TRUST_PING_V2)
+                    .sendTrustPing()
+                    .awaitTrustPingResponse()
                     .getMessageExchange()
             }
             else -> {

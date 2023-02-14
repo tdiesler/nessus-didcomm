@@ -28,8 +28,8 @@ import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
-import org.nessus.didcomm.protocol.MessageExchange.Companion.REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.MessageExchange.Companion.RESPONDER_DID_DOCUMENT_ATTACHMENT_KEY
+import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITEE_DID_DOCUMENT_ATTACHMENT_KEY
+import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITER_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
 import org.nessus.didcomm.protocol.RFC0048TrustPingProtocolV1.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1
@@ -113,7 +113,7 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
         val requesterDidDoc = diddocV1Service.createDidDocument(pcon.myDid, requesterEndpointUrl)
         log.info { "Requester (${requester.name}) created Did Document: ${requesterDidDoc.encodeJson(true)}" }
 
-        mex.putAttachment(REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(requesterDidDoc))
+        mex.putAttachment(INVITEE_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(requesterDidDoc))
 
         val didexReqId = "${UUID.randomUUID()}"
         val didDocAttach = diddocV1Service.createDidDocAttachmentMap(requesterDidDoc, pcon.myDid)
@@ -234,7 +234,7 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
         val (requesterDidDoc, _) = diddocV1Service.extractDidDocAttachment(didDocAttachment, null)
         val docdidVerkey = requesterDidDoc.publicKeyDid().verkey
         check(senderVerkey == docdidVerkey) { "Did in Document does not match with senderVerkey: $senderVerkey != $docdidVerkey" }
-        mex.putAttachment(REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(requesterDidDoc))
+        mex.putAttachment(INVITEE_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(requesterDidDoc))
 
         val theirDid = requesterDidDoc.publicKeyDid(0)
         val theirEndpointUrl = requesterDidDoc.serviceEndpoint(0)
@@ -268,7 +268,7 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
         val invitation = mex.getInvitation()
         checkNotNull(invitation) { "No invitation" }
 
-        val requesterDidDoc = mex.getAttachment(REQUESTER_DID_DOCUMENT_ATTACHMENT_KEY)
+        val requesterDidDoc = mex.getAttachment(INVITEE_DID_DOCUMENT_ATTACHMENT_KEY)
         checkNotNull(requesterDidDoc) { "No requester Did Document" }
 
         val theirEndpointUrl = requesterDidDoc.serviceEndpoint()
@@ -280,7 +280,7 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
         val responderDidDoc = diddocV1Service.createDidDocument(responderDid, responderEndpointUrl)
         log.info { "Responder (${responder.name}) created Did Document: ${responderDidDoc.encodeJson(true)}" }
 
-        mex.putAttachment(RESPONDER_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(responderDidDoc))
+        mex.putAttachment(INVITER_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(responderDidDoc))
 
         val didDocAttach = diddocV1Service.createDidDocAttachmentMap(responderDidDoc, recipientDidKey)
 

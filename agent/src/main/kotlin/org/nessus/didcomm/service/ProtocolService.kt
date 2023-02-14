@@ -31,7 +31,6 @@ val RFC0048_TRUST_PING_V1 = ProtocolKey("https://didcomm.org/trust_ping/1.0", RF
 val RFC0095_BASIC_MESSAGE_V1 = ProtocolKey("https://didcomm.org/basicmessage/1.0", RFC0095BasicMessageProtocolV1::class)
 val RFC0434_OUT_OF_BAND_V1 = ProtocolKey("https://didcomm.org/out-of-band/1.1", RFC0434OutOfBandProtocolV1::class)
 
-val RFC0023_DIDEXCHANGE_V2 = ProtocolKey("https://didcomm.org/didexchange/2.0-preview", RFC0023DidExchangeProtocolV2::class)
 val RFC0048_TRUST_PING_V2 = ProtocolKey("https://didcomm.org/trust_ping/2.0-preview", RFC0048TrustPingProtocolV2::class)
 val RFC0095_BASIC_MESSAGE_V2 = ProtocolKey("https://didcomm.org/basicmessage/2.0-preview", RFC0095BasicMessageProtocolV2::class)
 val RFC0434_OUT_OF_BAND_V2 = ProtocolKey("https://didcomm.org/out-of-band/2.0-preview", RFC0434OutOfBandProtocolV2::class)
@@ -58,7 +57,6 @@ class ProtocolService : NessusBaseService() {
 
             RFC0048_TRUST_PING_V2,
             RFC0095_BASIC_MESSAGE_V2,
-            RFC0023_DIDEXCHANGE_V2,
             RFC0434_OUT_OF_BAND_V2,
             )
     }
@@ -80,7 +78,6 @@ class ProtocolService : NessusBaseService() {
             RFC0434_OUT_OF_BAND_V1 -> RFC0434OutOfBandProtocolV1(mex)
 
             RFC0048_TRUST_PING_V2 -> RFC0048TrustPingProtocolV2(mex)
-            RFC0023_DIDEXCHANGE_V2 -> RFC0023DidExchangeProtocolV2(mex)
             RFC0095_BASIC_MESSAGE_V2 -> RFC0095BasicMessageProtocolV2(mex)
             RFC0434_OUT_OF_BAND_V2 -> RFC0434OutOfBandProtocolV2(mex)
 

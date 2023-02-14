@@ -30,6 +30,7 @@ import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.gson
 import java.util.Optional
 import java.util.UUID
+import kotlin.jvm.optionals.getOrNull
 
 /**
  * https://w3c.github.io/did-core/#iana-considerations
@@ -37,6 +38,7 @@ import java.util.UUID
 const val DID_DOCUMENT_MEDIA_TYPE = "application/did+json"
 
 
+@OptIn(ExperimentalStdlibApi::class)
 class DidDocumentV2Service: NessusBaseService(), DIDDocResolver {
     override val implementation get() = serviceImplementation<DidService>()
     override val log = KotlinLogging.logger {}
@@ -71,6 +73,12 @@ class DidDocumentV2Service: NessusBaseService(), DIDDocResolver {
     override fun resolve(did: String): Optional<DIDDoc> {
         val didDoc = documentStore[did]?.run { toDIDDoc() }
         return Optional.ofNullable(didDoc)
+    }
+
+    fun resolveDidDocument(did: String): DidDocV2 {
+        val didDoc = resolve(did).getOrNull()
+        checkNotNull(didDoc) { "No Did Document for: $did" }
+        return DidDocV2.fromDIDDoc(didDoc)
     }
 
     fun createDidDocAttachment(didDoc: DidDocV2): Attachment {

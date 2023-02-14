@@ -21,8 +21,9 @@ package org.nessus.didcomm.protocol
 
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
-import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.protocols.routing.PROFILE_DIDCOMM_V2
+import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.did.DidDoc
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
@@ -31,10 +32,11 @@ import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.InvitationV2
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITEE_DID_DOCUMENT_ATTACHMENT_KEY
+import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITER_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
+import org.nessus.didcomm.service.DID_DOCUMENT_MEDIA_TYPE
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
-import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.util.gson
 import java.util.UUID
 
 /**
@@ -71,26 +73,14 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
         val inviterEndpointUrl = inviter.endpointUrl
 
         // Create and register the Did Document for this Invitation
-        diddocV2Service.createDidDocument(invitationDid, inviterEndpointUrl)
-
-        val service = Invitation.Service(
-            id = "#inline",
-            type = "did-communication",
-            recipientKeys = listOf(invitationDid.qualified),
-            serviceEndpoint = inviterEndpointUrl
-        )
-
-        val dataJson = Attachment.Data.Json.parse(mapOf(
-            "json" to gson.toJson(service).decodeJson()
-        ))
-        val attachment = Attachment.Builder("${UUID.randomUUID()}", dataJson)
-            .build()
+        val invitationDidDoc = diddocV2Service.createDidDocument(invitationDid, inviterEndpointUrl)
+        val invitationDidDocAttachment = diddocV2Service.createDidDocAttachment(invitationDidDoc)
 
         val invitationV2 = InvitationV2.Builder(id, type, invitationDid.qualified)
             .goalCode(options["goal_code"] as? String)
             .goal(options["goal"] as? String)
             .accept(listOf(PROFILE_DIDCOMM_V2))
-            .attachments(listOf(attachment))
+            .attachments(listOf(invitationDidDocAttachment))
             .build()
 
         val message = invitationV2.toMessage()
@@ -103,7 +93,7 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
         inviter.addInvitation(Invitation(invitationV2))
 
         val invitationKey = invitationV2.invitationKey()
-        val myLabel = options["label"] as? String ?: "Invitation from ${inviter.name}"
+        val inviterLabel = options["label"] as? String ?: "Invitation from ${inviter.name}"
 
         // Create and attach the Connection
         val pcon = Connection(
@@ -112,7 +102,7 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
             invitationKey = invitationKey,
             myDid = invitationDid,
             myRole = ConnectionRole.INVITER,
-            myLabel = myLabel,
+            myLabel = inviterLabel,
             myEndpointUrl = inviter.endpointUrl,
             theirDid = null,
             theirRole = ConnectionRole.INVITEE,
@@ -130,25 +120,41 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
     fun receiveOutOfBandInvitation(invitee: Wallet): RFC0434OutOfBandProtocolV2 {
         checkAgentType(invitee.agentType)
 
-        val invitation = mex.getInvitation() as Invitation
+        val invitation = mex.getInvitation()
+        checkNotNull(invitation) { "No invitation" }
+        check(invitation.isV2) { "Invalid invitation" }
         log.info { "Invitee (${invitee.name}) received Invitation: ${invitation.prettyPrint()}"}
 
         // [TODO] invitation state for v2
         // check(invitation.state == InvitationState.INITIAL) { "Unexpected invitation state: $invitation" }
 
+        // Extract Inviter Did + Document
+        val invitationV2 = invitation.actV2
+        val inviterDidDocAttachment = invitationV2.attachments?.firstOrNull { it.mediaType == DID_DOCUMENT_MEDIA_TYPE }
+        checkNotNull(inviterDidDocAttachment) {"Cannot find attached did document"}
+
+        val inviterDidDoc = diddocV2Service.extractDidDocAttachment(inviterDidDocAttachment)
+        mex.putAttachment(INVITER_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(inviterDidDoc))
+
+        val inviterDid = Did.fromSpec(inviterDidDoc.did)
+        val inviterEndpointUrl = inviterDidDoc.serviceEndpoint()
+
+        // Create Invitee Did + Document
+        val inviteeDid = invitee.createDid(DidMethod.KEY)
+        val inviteeEndpointUrl = invitee.endpointUrl
+        val inviteeDidDoc = diddocV2Service.createDidDocument(inviteeDid, inviteeEndpointUrl)
+        mex.putAttachment(INVITEE_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(inviteeDidDoc))
+
         // Start a new MessageExchange
         val inviteeMex = MessageExchange()
         inviteeMex.putAttachment(WALLET_ATTACHMENT_KEY, invitee)
 
-        val invitationV2 = invitation.actV2
         val epm = EndpointMessage(invitationV2.toMessage())
         inviteeMex.addMessage(epm)
 
         // Create and attach the Connection
 
-        val inviteeDid = invitee.createDid(DidMethod.KEY)
         val inviteeLabel = "Invitee ${invitee.name} on ${invitee.agentType}"
-        val inviteeEndpointUrl = invitee.endpointUrl
         val invitationKey = invitation.invitationKey()
 
         val pcon = Connection(
@@ -159,10 +165,10 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
             myRole = ConnectionRole.INVITEE,
             myLabel = inviteeLabel,
             myEndpointUrl = inviteeEndpointUrl,
-            theirDid = null,
+            theirDid = inviterDid,
             theirRole = ConnectionRole.INVITER,
             theirLabel = null,
-            theirEndpointUrl = null,
+            theirEndpointUrl = inviterEndpointUrl,
             state = ConnectionState.INVITATION
         )
 

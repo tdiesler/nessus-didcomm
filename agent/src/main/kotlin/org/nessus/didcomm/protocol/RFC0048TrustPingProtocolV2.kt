@@ -22,9 +22,12 @@ package org.nessus.didcomm.protocol
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
 import org.didcommx.didcomm.common.Typ
+import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.message.MessageBuilder
 import org.didcommx.didcomm.model.PackEncryptedParams
+import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
@@ -72,28 +75,37 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)
         checkNotNull(sender) { "No sender wallet" }
 
-        // Use the Connection's MessageExchange
-        val myMex = MessageExchange.findByVerkey(pcon.myVerkey)
-        val rfc0048 = myMex.withProtocol(RFC0048_TRUST_PING_V2)
-
-        // Register the TrustPing Response future
-        myMex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
-
         val senderDid = pcon.myDid
         val recipientDid = pcon.theirDid
 
-        val trustPing = TrustPingMessageV2.Builder(
-                id = "${UUID.randomUUID()}",
-                type = RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V2)
+        val trustPingBuilder = TrustPingMessageV2.Builder(
+            id = "${UUID.randomUUID()}",
+            type = RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V2)
             .from(senderDid.qualified)
             .to(listOf(recipientDid.qualified))
             .createdTime(dateTimeNow())
             .expiresTime(dateTimeNow().plusHours(24))
             .comment("Ping from ${sender.name}")
-            .build()
 
-        val trustPingMsg = trustPing.toMessage()
-        myMex.addMessage(EndpointMessage(trustPingMsg))
+        // FIRST TRUST PING
+        // Attach our DID Document when this is the first time we do a Trust Ping
+
+        if (pcon.state == ConnectionState.INVITATION) {
+            val senderDidDoc = diddocV2Service.resolveDidDocument(senderDid.qualified)
+            val senderDidDocAttachment = diddocV2Service.createDidDocAttachment(senderDidDoc)
+            trustPingBuilder.attachments(listOf(senderDidDocAttachment))
+            pcon.state = ConnectionState.COMPLETED
+        }
+
+        // Use the Connection's MessageExchange
+        val senderMex = MessageExchange.findByVerkey(pcon.myVerkey)
+        val rfc0048 = senderMex.withProtocol(RFC0048_TRUST_PING_V2)
+
+        // Register the TrustPing Response future
+        senderMex.placeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
+
+        val trustPingMsg = trustPingBuilder.build().toMessage()
+        senderMex.addMessage(EndpointMessage(trustPingMsg))
         log.info { "Sender (${sender.name}) creates TrustPing: ${trustPingMsg.encodeJson(true)}" }
 
         val packResult = didComm.packEncrypted(
@@ -106,9 +118,7 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         val packedMessage = packResult.packedMessage
         val packedEpm = EndpointMessage(packedMessage, mapOf(
             EndpointMessage.MESSAGE_HEADER_ID to "${trustPingMsg.id}.packed",
-            EndpointMessage.MESSAGE_HEADER_THID to trustPingMsg.thid,
             EndpointMessage.MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
-            EndpointMessage.MESSAGE_HEADER_MEDIA_TYPE to Typ.Encrypted.typ
         ))
         log.info { "Sender (${sender.name}) sends TrustPing: ${packedEpm.prettyPrint()}" }
 
@@ -128,15 +138,41 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
      */
     private fun receiveTrustPing(receiver: Wallet): RFC0048TrustPingProtocolV2 {
 
-        val pcon = mex.getConnection()
-        val receiverDid = pcon.myDid
-        val senderDid = pcon.theirDid
-
         val trustPingEpm = mex.last
         val trustPingMsg = mex.last.body as Message
         trustPingEpm.checkMessageType(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V2)
-
         val trustPing = TrustPingMessageV2.fromMessage(trustPingMsg)
+
+        // FIRST TRUST PING
+        // Update the Inviter Did + Document + Connection
+
+        val pcon = mex.getConnection()
+        var fromPriorIssuerKid: String? = null
+
+        if (pcon.state == ConnectionState.INVITATION) {
+
+            val invitationDid = pcon.myDid
+            val invitationDidDoc = diddocV2Service.resolveDidDocument(invitationDid.qualified)
+            fromPriorIssuerKid = invitationDidDoc.authentications.first()
+
+            val senderDid = Did.fromSpec(trustPing.from as String)
+            val senderDidDoc = diddocV2Service.resolveDidDocument(senderDid.qualified)
+            val senderEndpointUrl = senderDidDoc.serviceEndpoint() as String
+
+            // Create and register the Did Document for this Invitation
+            val inviterDid = receiver.createDid(DidMethod.KEY)
+            val inviterEndpointUrl = receiver.endpointUrl
+            diddocV2Service.createDidDocument(inviterDid, inviterEndpointUrl)
+
+            pcon.myDid = inviterDid
+            pcon.myEndpointUrl = inviterEndpointUrl
+            pcon.theirDid = senderDid
+            pcon.theirEndpointUrl = senderEndpointUrl
+            pcon.state = ConnectionState.ACTIVE
+        }
+
+        val receiverDid = pcon.myDid
+        val senderDid = pcon.theirDid
 
         val trustPingResponse = TrustPingMessageV2.Builder(
             id = "${UUID.randomUUID()}",
@@ -154,16 +190,27 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         log.info { "Receiver (${receiver.name}) creates TrustPing Response: ${trustPingResponseMsg.encodeJson(true)}" }
 
         val packResult = didComm.packEncrypted(
-            PackEncryptedParams.builder(trustPingResponseMsg, senderDid.qualified)
-                .signFrom(receiverDid.qualified)
-                .from(receiverDid.qualified)
-                .build()
+            if (fromPriorIssuerKid != null) {
+                PackEncryptedParams.builder(trustPingResponseMsg, senderDid.qualified)
+                    .fromPriorIssuerKid(fromPriorIssuerKid)
+                    .signFrom(receiverDid.qualified)
+                    .from(receiverDid.qualified)
+                    .build()
+            } else {
+                PackEncryptedParams.builder(trustPingResponseMsg, senderDid.qualified)
+                    .signFrom(receiverDid.qualified)
+                    .from(receiverDid.qualified)
+                    .build()
+            }
         )
 
         val packedMessage = packResult.packedMessage
         val packedEpm = EndpointMessage(packedMessage, mapOf(
-            EndpointMessage.MESSAGE_HEADER_MEDIA_TYPE to Typ.Encrypted.typ
+            EndpointMessage.MESSAGE_HEADER_ID to "${trustPingResponseMsg.id}.packed",
+            EndpointMessage.MESSAGE_HEADER_THID to trustPing.id,
+            EndpointMessage.MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
         ))
+        log.info { "Receiver (${receiver.name}) sends TrustPing Response: ${packedEpm.prettyPrint()}" }
 
         pcon.state = ConnectionState.ACTIVE
 
@@ -181,10 +228,11 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         val trustPingResponseMsg = mex.last.body as Message
         trustPingResponseEpm.checkMessageType(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
 
-        TrustPingMessageV2.fromMessage(trustPingResponseMsg)
+        val trustPingResponse = TrustPingMessageV2.fromMessage(trustPingResponseMsg)
 
         val pcon = mex.getConnection()
         pcon.state = ConnectionState.ACTIVE
+        pcon.theirDid = Did.fromSpec(trustPingResponse.from as String)
         mex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2, mex.last)
 
         return this
@@ -201,6 +249,7 @@ class TrustPingMessageV2(
     val createdTime: OffsetDateTime?,
     val expiresTime: OffsetDateTime?,
     val comment: String?,
+    val attachments: List<Attachment>?,
 ) {
     internal constructor(builder: Builder): this(
         id = builder.id,
@@ -212,6 +261,7 @@ class TrustPingMessageV2(
         createdTime = builder.createdTime,
         expiresTime = builder.expiresTime,
         comment = builder.comment,
+        attachments = builder.attachments,
     )
 
     companion object {
@@ -228,6 +278,7 @@ class TrustPingMessageV2(
                 .createdTime(createdTime)
                 .expiresTime(expiresTime)
                 .comment(comment)
+                .attachments(msg.attachments)
                 .build()
         }
     }
@@ -242,6 +293,7 @@ class TrustPingMessageV2(
             .to(to)
             .createdTime(createdTime?.toInstant()?.epochSecond)
             .expiresTime(expiresTime?.toInstant()?.epochSecond)
+            .attachments(attachments)
             .build()
     }
 
@@ -270,6 +322,9 @@ class TrustPingMessageV2(
         internal var comment: String? = null
             private set
 
+        internal var attachments: List<Attachment>? = null
+            private set
+
         fun thid(thid: String?) = apply { this.thid = thid }
         fun pthid(pthid: String?) = apply { this.pthid = pthid }
         fun from(from: String?) = apply { this.from = from }
@@ -277,6 +332,8 @@ class TrustPingMessageV2(
         fun createdTime(createdTime: OffsetDateTime?) = apply { this.createdTime = createdTime }
         fun expiresTime(expiresTime: OffsetDateTime?) = apply { this.expiresTime = expiresTime }
         fun comment(comment: String?) = apply { this.comment = comment }
+        fun attachments(attachments: List<Attachment>?) = apply { this.attachments = attachments?.toList() }
+
 
         fun build(): TrustPingMessageV2 {
             return TrustPingMessageV2(this)

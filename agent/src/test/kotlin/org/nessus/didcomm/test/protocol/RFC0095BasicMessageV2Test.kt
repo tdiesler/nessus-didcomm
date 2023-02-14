@@ -26,7 +26,7 @@ import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocolV2.Companion.RFC0095_BASIC_MESSAGE_TYPE_V2
-import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V2
+import org.nessus.didcomm.service.RFC0048_TRUST_PING_V2
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_V2
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
 import org.nessus.didcomm.test.AbstractDidCommTest
@@ -73,62 +73,63 @@ class RFC0095BasicMessageV2Test : AbstractDidCommTest() {
                     .createOutOfBandInvitation(acme)
                     .receiveOutOfBandInvitation(alice)
 
-                    .withProtocol(RFC0023_DIDEXCHANGE_V2)
-                    .connect(alice)
+                    .withProtocol(RFC0048_TRUST_PING_V2)
+                    .sendTrustPing()
+                    .awaitTrustPingResponse()
 
                     .getMessageExchange()
 
-                val aliceFaber = mex.getConnection()
-                assertEquals(ACTIVE, aliceFaber.state)
+                val aliceAcme = mex.getConnection()
+                assertEquals(ACTIVE, aliceAcme.state)
 
                 // Find the reverse connection
-                val faberAlice = acme.findConnection{ it.myVerkey == aliceFaber.theirVerkey }
-                checkNotNull(faberAlice) { "No Faber/Alice connection" }
+                val acmeAlice = acme.findConnection{ it.myVerkey == aliceAcme.theirVerkey }
+                checkNotNull(acmeAlice) { "No Faber/Alice connection" }
 
                 val aliceMessage = "Your hovercraft is full of eels"
-                val faberMessage = "I have an Elk under my Sombrero"
+                val acmeMessage = "I have an Elk under my Sombrero"
 
                 /**
                  * Send a Plaintext Message
                  */
 
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE_V2)
-                    .sendPlaintextMessage(aliceMessage, aliceFaber)
+                    .sendPlaintextMessage(aliceMessage, aliceAcme)
 
                 assertEquals(aliceMessage, messageHolder.content!!.body["content"])
 
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE_V2)
-                    .sendPlaintextMessage(faberMessage, faberAlice)
+                    .sendPlaintextMessage(acmeMessage, acmeAlice)
 
-                assertEquals(faberMessage, messageHolder.content!!.body["content"])
+                assertEquals(acmeMessage, messageHolder.content!!.body["content"])
 
                 /**
                  * Send a Signed Message
                  */
 
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE_V2)
-                    .sendSignedMessage(aliceMessage, aliceFaber)
+                    .sendSignedMessage(aliceMessage, aliceAcme)
 
                 assertEquals(aliceMessage, messageHolder.content!!.body["content"])
 
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE_V2)
-                    .sendSignedMessage(faberMessage, faberAlice)
+                    .sendSignedMessage(acmeMessage, acmeAlice)
 
-                assertEquals(faberMessage, messageHolder.content!!.body["content"])
+                assertEquals(acmeMessage, messageHolder.content!!.body["content"])
 
                 /**
                  * Send an Encrypted Message
                  */
 
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE_V2)
-                    .sendEncryptedMessage(aliceMessage, aliceFaber)
+                    .sendEncryptedMessage(aliceMessage, aliceAcme)
 
                 assertEquals(aliceMessage, messageHolder.content!!.body["content"])
 
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE_V2)
-                    .sendEncryptedMessage(faberMessage, faberAlice)
+                    .sendEncryptedMessage(acmeMessage, acmeAlice)
 
-                assertEquals(faberMessage, messageHolder.content!!.body["content"])
+                assertEquals(acmeMessage, messageHolder.content!!.body["content"])
 
             } finally {
                 removeWallet(Alice.name)

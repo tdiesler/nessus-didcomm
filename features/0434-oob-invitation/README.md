@@ -3,6 +3,7 @@
 Related:
 * [Aries RFC0434: Out-of-Band Protocol 1.1][rfc0434]
 * [DIDComm V2: Out Of Band Messages][dcv2-oob]
+* [Support DID initialState query parameter][nghi67]
 
 ### Summary
 
@@ -18,39 +19,83 @@ Leaving out such details would work when the inviter uses a public DID for the i
 details be found in the associated DID Document.
 
 Here, we define a simple alternative that allows us to embed such connection details in the DIDComm Invitation message.
-Specifically, we borrow the content from the `services` section in [Aries RFC0434][rfc0434] and use it as attachments. 
+Specifically, we create a Did Document for the invitation key and attach that to the invitation message.
+
+Later, when we receive the first (Trust Ping) message from the Invitee, we rotate the Inviter Did and publish a new Did Document
+The first Trust Ping Response, will use `fromPrior` to maintain trust integrity. 
 
 ### Message Details
 
 ```json
 {
-    "id":"32e08e73-70a1-4d72-a569-bd40f427eb05",
-    "typ":"application/didcomm-plain+json",
-    "type":"https://didcomm.org/out-of-band/2.0/invitation",
-    "from":"did:key:z6MktCV3oT37A3GhPx36rXXEh6LJhL7dhH6eSfjwDk3YYwWZ",
-    "body":{
-        "accept":[
-            "didcomm/v2",
-            "didcomm/aip2;env\u003drfc587"
-        ]
-    },
-    "attachments":[
-        {
-            "id":"293034ff-5fc5-42a4-805a-122cecf08c76",
-            "data":{
-                "json":{
-                    "id":"#inline",
-                    "type":"did-communication",
-                    "recipientKeys":[
-                        "did:key:z6MktCV3oT37A3GhPx36rXXEh6LJhL7dhH6eSfjwDk3YYwWZ"
-                    ],
-                    "serviceEndpoint":"http://192.168.0.10:8130"
-                }
-            }
-        }
+  "id":"a1f1a14e-5b50-40fa-a1b2-05fef7a096ce",
+  "typ":"application/didcomm-plain+json",
+  "type":"https://didcomm.org/out-of-band/2.0-preview/invitation",
+  "from":"did:key:z6MksUtmw8WmEVzL7xiQF7PuMu4mC2cavyU9jbQ4VoBSA6EN",
+  "body":{
+    "accept":[
+      "didcomm/v2"
     ]
+  },
+  "attachments":[
+    {
+      "id":"f5621355-bc94-443a-9a90-ae635c6f0784",
+      "media_type":"application/did+json",
+      "data":{
+        "jws":null,
+        "hash":null,
+        "json":{
+          "did":"did:key:z6MksUtmw8WmEVzL7xiQF7PuMu4mC2cavyU9jbQ4VoBSA6EN",
+          "keyAgreements":[
+            "did:key:z6MksUtmw8WmEVzL7xiQF7PuMu4mC2cavyU9jbQ4VoBSA6EN#key-x25519-1"
+          ],
+          "authentications":[
+            "did:key:z6MksUtmw8WmEVzL7xiQF7PuMu4mC2cavyU9jbQ4VoBSA6EN#key-1"
+          ],
+          "verificationMethods":[
+            {
+              "id":"did:key:z6MksUtmw8WmEVzL7xiQF7PuMu4mC2cavyU9jbQ4VoBSA6EN#key-1",
+              "type":"JSON_WEB_KEY_2020",
+              "verificationMaterial":{
+                "format":"JWK",
+                "value":"{
+                \"kty\":\"OKP\",
+                \"crv\":\"Ed25519\",
+                \"x\":\"wZMKqZVWlVMpoMKCdMxj-zdjldgo4QPC6RYo7tHupXM\"
+              }"
+            },
+            "controller":"did:key:z6MksUtmw8WmEVzL7xiQF7PuMu4mC2cavyU9jbQ4VoBSA6EN#key-1"
+            },
+            {
+              "id":"did:key:z6MksUtmw8WmEVzL7xiQF7PuMu4mC2cavyU9jbQ4VoBSA6EN#key-x25519-1",
+              "type":"JSON_WEB_KEY_2020",
+              "verificationMaterial":{
+                "format":"JWK",
+                "value":"{
+                \"kty\":\"OKP\",
+                \"crv\":\"X25519\",
+                \"x\":\"SmoEUVqd9dfYEpwViLcRvdnhcu3b43huK2Kp1wKhcxY\"
+              }"
+            },
+            "controller":"did:key:z6MksUtmw8WmEVzL7xiQF7PuMu4mC2cavyU9jbQ4VoBSA6EN#key-x25519-1"
+            }
+          ],
+          "didCommServices":[
+            {
+              "id":"did:key:z6MksUtmw8WmEVzL7xiQF7PuMu4mC2cavyU9jbQ4VoBSA6EN#didcomm-1",
+              "serviceEndpoint":"http://192.168.0.10:8130",
+              "accept":[
+                "didcomm/v2"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
 }
 ```
 
-[dcv2-oob]: https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
+[dcv2-oob]: https://didcomm.org/out-of-band/2.0
 [rfc0434]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0434-outofband
+[nghi67]: https://github.com/tdiesler/nessus-didcomm/issues/67

@@ -29,6 +29,7 @@ import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import org.didcommx.didcomm.message.Message
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.service.HttpService.HttpClient.Companion.createHttpLoggingInterceptor
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
@@ -113,9 +114,12 @@ class HttpService: NessusBaseService() {
                 .forEach { (k, v) -> builder.header(k, v) }
 
             // The given Content-Type or JSON by default
-            val mediaType = (headers["Content-Type"]
-                ?: headers[MESSAGE_HEADER_MEDIA_TYPE]
-                ?: "application/json").toMediaType()
+            var contentType = headers["Content-Type"] ?: headers[MESSAGE_HEADER_MEDIA_TYPE]
+            if (contentType == null && headers[MESSAGE_HEADER_TYPE]?.startsWith("application/") == true) {
+                contentType = headers[MESSAGE_HEADER_TYPE]
+            }
+
+            val mediaType = contentType?.toMediaType() ?: "application/json".toMediaType()
 
             val reqBody = when (body) {
                 is String -> body.toRequestBody(mediaType)

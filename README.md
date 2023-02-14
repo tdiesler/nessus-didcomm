@@ -61,7 +61,6 @@ The above should have created the respective siera environment.
 | [RFC0048 Trust Ping Protocol 1.0][rfc0048]     |   x   |   x    |
 | [RFC0095 Basic Message Protocol 1.0][rfc0095]  |   x   |   x    |
 | [RFC0434 Out-of-Band Protocol 1.1][rfc0434]    |   x   |   x    |
-| [RFC0023 DID Exchange Protocol 2.0][rfc0023v2] |       |   x    |
 | [RFC0048 Trust Ping 2.0][rfc0048v2]            |       |   x    |
 | [RFC0095 Basic Message 2.0][rfc0095v2]         |       |   x    |
 | [RFC0434 Out-of-Band Protocol 2.0][rfc0434v2]  |       |   x    |
@@ -71,7 +70,6 @@ The above should have created the respective siera environment.
 [rfc0048]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0048-trust-ping
 [rfc0095]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0095-basic-message
 [rfc0434]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0434-outofband
-[rfc0023v2]: features/0023-did-exchange
 [rfc0048v2]: features/0048-trust-ping
 [rfc0095v2]: features/0095-basic-message
 [rfc0434v2]: features/0434-oob-invitation
