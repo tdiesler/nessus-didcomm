@@ -111,6 +111,7 @@ class NessusCli {
     }
 
     private fun runTerminal(): Int {
+        val version = javaClass.getResource("/version.txt")?.readText()
         AnsiConsole.systemInstall()
         try {
             TerminalBuilder.builder().build().use { terminal ->
@@ -126,7 +127,7 @@ class NessusCli {
 
                 val topSpec = cmdln.commandSpec
                 println(topSpec.usageMessage().description()[0])
-                println("Version: ${topSpec.version()[0]}")
+                println("Version: $version")
 
                 val parser = DefaultParser()
                 val systemRegistry = SystemRegistryImpl(parser, terminal, null, null)

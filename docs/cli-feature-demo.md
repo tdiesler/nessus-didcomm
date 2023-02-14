@@ -648,9 +648,3 @@ Here are some ideas on how to move on from here
 As always, please feel free to comment on code and file issues.
 
 Enjoy
---thomas
-
-
-
-
-
