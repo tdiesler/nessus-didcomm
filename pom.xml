@@ -15,7 +15,6 @@
         <!-- Other versions -->
         <version.acapy.client>0.7.33</version.acapy.client>
         <version.apache.camel>3.20.0</version.apache.camel>
-        <version.didcommx.didcomm>0.3.3-SNAPSHOT</version.didcommx.didcomm>
         <version.fasterxml.jackson>2.14.1</version.fasterxml.jackson>
         <version.fusesource.jansi>2.4.0</version.fusesource.jansi>
         <version.google.crypto.tink>1.7.0</version.google.crypto.tink>
@@ -26,7 +25,7 @@
         <version.nimbus.jose>9.28</version.nimbus.jose>
         <version.picocli>4.7.1</version.picocli>
         <version.waltid.servicematrix>1.1.2</version.waltid.servicematrix>
-        <version.waltid.ssikit>1.13.0-SNAPSHOT4</version.waltid.ssikit>
+        <version.waltid.ssikit>1.12.0</version.waltid.ssikit>
         <version.junit>5.9.1</version.junit>
         <version.logback>1.4.5</version.logback>
         <version.slf4j>2.0.6</version.slf4j>
@@ -51,6 +50,7 @@
 
     <modules>
         <module>agent</module>
+        <module>didcomm</module>
         <module>cli</module>
         <module>itests</module>
     </modules>
@@ -139,11 +139,13 @@
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
+            <!--
             <dependency>
                 <groupId>org.didcommx</groupId>
                 <artifactId>didcomm</artifactId>
                 <version>${version.didcommx.didcomm}</version>
             </dependency>
+            -->
             <dependency>
                 <groupId>org.fusesource.jansi</groupId>
                 <artifactId>jansi</artifactId>
@@ -210,8 +212,8 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <configuration>
-                        <source>11</source>
-                        <target>11</target>
+                        <source>18</source>
+                        <target>18</target>
                     </configuration>
                 </plugin>
                 <plugin>

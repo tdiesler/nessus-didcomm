@@ -31,7 +31,6 @@ import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
 import org.didcommx.didcomm.message.Message
 import org.json.JSONObject
-import org.web3j.utils.Numeric
 import java.lang.reflect.Type
 import java.util.*
 
@@ -149,9 +148,9 @@ fun String.decodeBase64UrlStr(): String = String(this.decodeBase64Url())
  * Hex
  */
 
-fun ByteArray.encodeHex(): String = Numeric.toHexString(this).substring(2)
+fun ByteArray.encodeHex(): String = HexFormat.of().formatHex(this)
 
-fun String.decodeHex(): ByteArray = Numeric.hexStringToByteArray(this)
+fun String.decodeHex(): ByteArray = HexFormat.of().parseHex(this)
 
 /***********************************************************************************************************************
  * MediaType
