@@ -21,17 +21,16 @@ package org.nessus.didcomm.test.wallet
 
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
-import org.junit.jupiter.api.Test
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
-class WalletTest: AbstractDidCommTest() {
+class WalletTest: AbstractAgentTest() {
 
     @Test
     fun createWalletWithDidKey() {
@@ -39,18 +38,18 @@ class WalletTest: AbstractDidCommTest() {
         val alice = Wallet.Builder(Alice.name)
             .build()
 
-        assertEquals(Alice.name, alice.name)
-        assertEquals(AgentType.NESSUS, alice.agentType)
-        assertEquals(StorageType.IN_MEMORY, alice.storageType)
+        alice.name shouldBe Alice.name
+        alice.agentType shouldBe AgentType.NESSUS
+        alice.storageType shouldBe StorageType.IN_MEMORY
 
         val faberDid = alice.createDid(seed= Faber.seed)
 
-        assertEquals(Faber.didkey, faberDid.qualified)
-        assertEquals(Faber.verkey, faberDid.verkey)
+        faberDid.qualified shouldBe Faber.didkey
+        faberDid.verkey shouldBe Faber.verkey
 
         val keyStore = KeyStoreService.getService()
-        assertNotNull(keyStore.load(faberDid.qualified, KeyType.PUBLIC))
-        assertNotNull(keyStore.load(faberDid.verkey, KeyType.PUBLIC))
+        keyStore.load(faberDid.qualified, KeyType.PUBLIC) shouldNotBe null
+        keyStore.load(faberDid.verkey, KeyType.PUBLIC) shouldNotBe null
 
         walletService.removeWallet(alice.id)
     }

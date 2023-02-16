@@ -21,12 +21,12 @@ package org.nessus.didcomm.test.did
 
 import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
+import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.did.DidDocV1
-import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.decodeBase64Url
 import org.nessus.didcomm.util.decodeBase64UrlStr
 import org.nessus.didcomm.util.decodeHex
@@ -34,10 +34,8 @@ import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.trimJson
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
-class RFC0023DidDocumentTest: AbstractDidCommTest() {
+class RFC0023DidDocumentTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
 
     @Test
@@ -96,20 +94,20 @@ class RFC0023DidDocumentTest: AbstractDidCommTest() {
             ]
         }
         """.trimJson()
-        assertEquals(expDidDocument, didDocument.trimJson())
+        didDocument.trimJson() shouldBe expDidDocument
 
         // Verify RFC0023DidDocument serialization
         val rfC0023DidDocument = gson.fromJson(didDocument, DidDocV1::class.java)
         val was = gson.toJson(rfC0023DidDocument)
-        assertEquals(expDidDocument, was)
+        was shouldBe expDidDocument
 
         // Verify Did
         val didSpec = didDocument.selectJson("publicKey[0].controller") as String
         val didVerkey = didDocument.selectJson("publicKey[0].publicKeyBase58") as String
         val didSov = Did.fromSpec(didSpec, didVerkey)
         val keyId = didService.registerWithKeyStore(didSov)
-        assertEquals("did:sov:DD3druQ4tFQHZjcwgn3KSc", didSov.qualified)
-        assertEquals("7euiJpCar5AZMoXGspdSBhJBKzj8QZM5U3QSSSh8LAA5", didSov.verkey)
+        didSov.qualified shouldBe "did:sov:DD3druQ4tFQHZjcwgn3KSc"
+        didSov.verkey shouldBe "7euiJpCar5AZMoXGspdSBhJBKzj8QZM5U3QSSSh8LAA5"
 
         val protected64 = didDocAttachment.selectJson("data.jws.protected") as String
         val protected = protected64.decodeBase64UrlStr() // Contains json whitespace
@@ -127,23 +125,23 @@ class RFC0023DidDocumentTest: AbstractDidCommTest() {
             }
         }            
         """.trimJson()
-        assertEquals(expJws, protected.trimJson())
+        protected.trimJson() shouldBe expJws
 
         // The did:key referenced in the jws section is just another representation of the DidDoc publicKey
         val didKey = Did.fromSpec("did:key:z6Mkm7Aku4T2Bcf2UJMyZPbH2nrB9ZzypSbSA4KNGif9FNwT")
-        assertEquals(didSov.verkey, didKey.verkey)
+        didKey.verkey shouldBe didSov.verkey
 
         // Verify the Jws signature
         val signature64 = didDocAttachment.selectJson("data.jws.signature") as String
         val signature = signature64.decodeBase64Url()
         val data = "$protected64.$didDocument64".toByteArray()
-        assertTrue(cryptoService.verify(keyId, signature, data))
+        cryptoService.verify(keyId, signature, data) shouldBe true
 
         // -------------------------------------------------------------------------------------------
         // Do all of the above in one API call
 
         val (extractedDocument, _) = diddocV1Service.extractDidDocAttachment(didDocAttachment, didSov.verkey)
-        assertEquals(expDidDocument, gson.toJson(extractedDocument))
+        gson.toJson(extractedDocument) shouldBe expDidDocument
     }
 
     @Test
@@ -163,6 +161,6 @@ class RFC0023DidDocumentTest: AbstractDidCommTest() {
         log.info { "Attachment: ${didDocAttach.encodeJson(true)}" }
 
         val (extractedDocument, _) = diddocV1Service.extractDidDocAttachment(didDocAttachJson, didSov.verkey)
-        assertEquals(didDocumentJson, gson.toJson(extractedDocument))
+        gson.toJson(extractedDocument) shouldBe didDocumentJson
     }
 }

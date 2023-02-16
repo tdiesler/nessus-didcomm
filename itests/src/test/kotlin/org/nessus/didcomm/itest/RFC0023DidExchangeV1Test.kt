@@ -20,8 +20,9 @@
 package org.nessus.didcomm.itest
 
 import id.walt.common.prettyPrint
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import mu.KotlinLogging
-import org.junit.jupiter.api.Test
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
@@ -30,8 +31,6 @@ import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V1
 import org.nessus.didcomm.service.RFC0048_TRUST_PING_V1
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
-import kotlin.test.assertEquals
-import kotlin.test.fail
 
 
 /**
@@ -44,7 +43,7 @@ import kotlin.test.fail
  * DIDComm - Out Of Band Messages
  * https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
  */
-class RFC0023DidExchangeV1Test : AbstractIntegrationTest() {
+class RFC0023DidExchangeV1Test : AbstractITest() {
     private val log = KotlinLogging.logger {}
 
     @Test
@@ -56,7 +55,8 @@ class RFC0023DidExchangeV1Test : AbstractIntegrationTest() {
              * Create the Wallets
              */
 
-            val faber = getWalletByAlias(Faber.name) ?: fail("No Inviter")
+            val faber = getWalletByAlias(Faber.name)
+            checkNotNull(faber) { "No Faber" }
 
             val alice = Wallet.Builder(Alice.name)
                 .options(NESSUS_OPTIONS_01)
@@ -172,15 +172,15 @@ class RFC0023DidExchangeV1Test : AbstractIntegrationTest() {
         aliceMex.showMessages(wallet.name)
 
         log.info { "${wallet.name}'s Connection: ${pcon.prettyPrint()}" }
-        assertEquals(ACTIVE, pcon.state)
+        pcon.state shouldBe ACTIVE
 
         val myModelInvi = wallet.findInvitation { i -> i.invitationKey() == pcon.invitationKey }
-        assertEquals(pcon.invitationKey, myModelInvi?.invitationKey())
+        myModelInvi?.invitationKey() shouldBe pcon.invitationKey
 
         val myModelCon = wallet.findConnection { c -> c.id == pcon.id }
-        assertEquals(pcon, myModelCon)
+        myModelCon shouldBe pcon
 
         val myModelDid = wallet.findDid { d -> d.verkey == pcon.myVerkey }
-        assertEquals(pcon.myDid, myModelDid)
+        myModelDid shouldBe pcon.myDid
     }
 }

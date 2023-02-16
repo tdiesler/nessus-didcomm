@@ -22,48 +22,45 @@ package org.nessus.didcomm.test.service
 import com.nimbusds.jose.jwk.OctetKeyPair
 import id.walt.common.prettyPrint
 import id.walt.crypto.KeyId
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import mu.KotlinLogging
 import org.didcommx.didcomm.common.VerificationMaterialFormat.JWK
 import org.didcommx.didcomm.common.VerificationMethodType.JSON_WEB_KEY_2020
 import org.didcommx.didcomm.secret.Secret
-import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.DidMethod
-import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.util.encodeBase58
 import org.nessus.didcomm.util.encodeHex
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
-class SecretResolverServiceTest: AbstractDidCommTest() {
+class SecretResolverServiceTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
 
     @Test
     fun resolve_EdDSA_Ed25519_Private() {
 
         val aliceDid = didService.createDid(DidMethod.KEY, seed= Alice.seed.toByteArray())
-        assertEquals(Alice.didkey, aliceDid.qualified)
+        aliceDid.qualified shouldBe Alice.didkey
 
         val secret: Secret = secretResolver.findKey(aliceDid.verkey).get()
         log.info { secret.prettyPrint() }
         val verificationMaterial = secret.verificationMaterial
-        assertEquals(JSON_WEB_KEY_2020, secret.type)
-        assertEquals(JWK, verificationMaterial.format)
+        secret.type shouldBe JSON_WEB_KEY_2020
+        verificationMaterial.format shouldBe JWK
 
         val okp = OctetKeyPair.parse(verificationMaterial.value)
-        assertEquals("Ed25519", "${okp.curve}")
-        assertEquals("EdDSA", "${okp.algorithm}")
-        assertEquals(Alice.verkey, okp.decodedX.encodeBase58())
-        assertEquals(Alice.seed.toByteArray().encodeHex(), okp.decodedD.encodeHex())
+        "${okp.curve}" shouldBe "Ed25519"
+        "${okp.algorithm}" shouldBe "EdDSA"
+        okp.decodedX.encodeBase58() shouldBe Alice.verkey
+        okp.decodedD.encodeHex() shouldBe Alice.seed.toByteArray().encodeHex()
     }
 
     @Test
     fun resolve_EdDSA_X25519_Private() {
 
         val aliceDid = didService.createDid(DidMethod.KEY, seed= Alice.seed.toByteArray())
-        assertEquals(Alice.didkey, aliceDid.qualified)
+        aliceDid.qualified shouldBe Alice.didkey
 
         val kidX25519 = "${aliceDid.qualified}#key-x25519-1"
         val keyId = KeyId(keyStore.getKeyId(aliceDid.qualified)!!)
@@ -72,28 +69,28 @@ class SecretResolverServiceTest: AbstractDidCommTest() {
         val secret: Secret = secretResolver.findKey(kidX25519).get()
         log.info { secret.prettyPrint() }
         val verificationMaterial = secret.verificationMaterial
-        assertEquals(JSON_WEB_KEY_2020, secret.type)
-        assertEquals(JWK, verificationMaterial.format)
+        secret.type shouldBe JSON_WEB_KEY_2020
+        verificationMaterial.format shouldBe JWK
 
         val okp = OctetKeyPair.parse(verificationMaterial.value)
-        assertEquals("X25519", "${okp.curve}")
+        "${okp.curve}" shouldBe "X25519"
     }
 
     @Test
     fun resolve_EdDSA_Ed25519_Public() {
 
         val aliceDid = didService.createDid(DidMethod.KEY, seed= Alice.seed.toByteArray())
-        assertEquals(Alice.didkey, aliceDid.qualified)
+        aliceDid.qualified shouldBe Alice.didkey
 
         // Delete the key from the store
         keyStore.getKeyId(aliceDid.verkey)?.also { keyStore.delete(it) }
-        assertFalse(secretResolver.findKey(aliceDid.verkey).isPresent)
+        secretResolver.findKey(aliceDid.verkey).isPresent shouldBe false
 
         didService.registerWithKeyStore(aliceDid)
         val key = keyStore.load(aliceDid.verkey)
-        assertNotNull(key.keyPair!!.public)
-        assertNull(key.keyPair!!.private)
+        key.keyPair!!.public shouldNotBe null
+        key.keyPair!!.private shouldBe null
 
-        assertFalse(secretResolver.findKey(aliceDid.verkey).isPresent)
+        secretResolver.findKey(aliceDid.verkey).isPresent shouldBe false
     }
 }

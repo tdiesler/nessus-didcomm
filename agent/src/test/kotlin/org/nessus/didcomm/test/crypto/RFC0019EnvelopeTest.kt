@@ -21,20 +21,19 @@ package org.nessus.didcomm.test.crypto
 
 import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyType
+import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocolV1.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1
-import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.trimJson
-import kotlin.test.assertEquals
 
-class RFC0019EnvelopeTest: AbstractDidCommTest() {
+class RFC0019EnvelopeTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
 
     @Test
@@ -56,7 +55,7 @@ class RFC0019EnvelopeTest: AbstractDidCommTest() {
         keyStore.addAlias(aliceKey.keyId, aliceDid.verkey)
 
         val message = rfc0019.unpackEncryptedEnvelope(envelope)?.message
-        assertEquals("Scheena Dog", message)
+        message shouldBe "Scheena Dog"
     }
 
     @Test
@@ -76,8 +75,8 @@ class RFC0019EnvelopeTest: AbstractDidCommTest() {
 
         val rfc0019 = RFC0019EncryptionEnvelope()
         val (message, _, recipientVerkey) = rfc0019.unpackEncryptedEnvelope(envelope)!!
-        assertEquals(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1, message.selectJson("@type"))
-        assertEquals(aliceDidSov.verkey, recipientVerkey)
+        message.selectJson("@type") shouldBe RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1
+        recipientVerkey shouldBe aliceDidSov.verkey
 
 
         val didDocAttachment = message.selectJson("did_doc~attach") as String

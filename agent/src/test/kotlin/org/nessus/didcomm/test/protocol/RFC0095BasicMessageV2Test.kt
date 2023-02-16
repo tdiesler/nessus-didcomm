@@ -19,8 +19,8 @@
  */
 package org.nessus.didcomm.test.protocol
 
+import io.kotest.matchers.shouldBe
 import org.didcommx.didcomm.message.Message
-import org.junit.jupiter.api.Test
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
@@ -29,18 +29,17 @@ import org.nessus.didcomm.protocol.RFC0095BasicMessageProtocolV2.Companion.RFC00
 import org.nessus.didcomm.service.RFC0048_TRUST_PING_V2
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_V2
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
-import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Acme
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.NESSUS_OPTIONS_01
 import org.nessus.didcomm.util.Holder
-import kotlin.test.assertEquals
 
 /**
  * Nessus DIDComm RFC0095: Basic Message 2.0
  * https://github.com/tdiesler/nessus-didcomm/tree/main/features/0095-basic-message
  */
-class RFC0095BasicMessageV2Test : AbstractDidCommTest() {
+class RFC0095BasicMessageV2Test : AbstractAgentTest() {
 
     @Test
     fun test_BasicMessages() {
@@ -80,7 +79,7 @@ class RFC0095BasicMessageV2Test : AbstractDidCommTest() {
                     .getMessageExchange()
 
                 val aliceAcme = mex.getConnection()
-                assertEquals(ACTIVE, aliceAcme.state)
+                aliceAcme.state shouldBe ACTIVE
 
                 // Find the reverse connection
                 val acmeAlice = acme.findConnection{ it.myVerkey == aliceAcme.theirVerkey }
@@ -96,12 +95,12 @@ class RFC0095BasicMessageV2Test : AbstractDidCommTest() {
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE_V2)
                     .sendPlaintextMessage(aliceMessage, aliceAcme)
 
-                assertEquals(aliceMessage, messageHolder.content!!.body["content"])
+                messageHolder.content!!.body["content"] shouldBe aliceMessage
 
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE_V2)
                     .sendPlaintextMessage(acmeMessage, acmeAlice)
 
-                assertEquals(acmeMessage, messageHolder.content!!.body["content"])
+                messageHolder.content!!.body["content"] shouldBe acmeMessage
 
                 /**
                  * Send a Signed Message
@@ -110,12 +109,12 @@ class RFC0095BasicMessageV2Test : AbstractDidCommTest() {
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE_V2)
                     .sendSignedMessage(aliceMessage, aliceAcme)
 
-                assertEquals(aliceMessage, messageHolder.content!!.body["content"])
+                messageHolder.content!!.body["content"] shouldBe aliceMessage
 
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE_V2)
                     .sendSignedMessage(acmeMessage, acmeAlice)
 
-                assertEquals(acmeMessage, messageHolder.content!!.body["content"])
+                messageHolder.content!!.body["content"] shouldBe acmeMessage
 
                 /**
                  * Send an Encrypted Message
@@ -124,12 +123,12 @@ class RFC0095BasicMessageV2Test : AbstractDidCommTest() {
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE_V2)
                     .sendEncryptedMessage(aliceMessage, aliceAcme)
 
-                assertEquals(aliceMessage, messageHolder.content!!.body["content"])
+                messageHolder.content!!.body["content"] shouldBe aliceMessage
 
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE_V2)
                     .sendEncryptedMessage(acmeMessage, acmeAlice)
 
-                assertEquals(acmeMessage, messageHolder.content!!.body["content"])
+                messageHolder.content!!.body["content"] shouldBe acmeMessage
 
             } finally {
                 removeWallet(Alice.name)

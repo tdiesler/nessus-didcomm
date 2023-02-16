@@ -29,13 +29,15 @@
         <version.fusesource.jansi>2.4.0</version.fusesource.jansi>
         <version.google.crypto.tink>1.7.0</version.google.crypto.tink>
         <version.hyperledger.indy>1.16.0</version.hyperledger.indy>
+        <version.kotest>5.5.5</version.kotest>
         <version.kotlin.logging>3.0.4</version.kotlin.logging>
         <version.kotlinx.coroutines>1.6.4</version.kotlinx.coroutines>
         <version.lazysodium>5.1.2</version.lazysodium>
         <version.nimbus.jose>9.28</version.nimbus.jose>
         <version.picocli>4.7.1</version.picocli>
         <version.waltid.servicematrix>1.1.2</version.waltid.servicematrix>
-        <version.waltid.ssikit>1.12.0</version.waltid.ssikit>
+        <version.waltid.ssikit>1.13.0-SNAPSHOT9</version.waltid.ssikit>
+        <version.waltid.vclib>1.24.4-SNAPSHOT</version.waltid.vclib>
         <version.junit>5.9.1</version.junit>
         <version.logback>1.4.5</version.logback>
         <version.slf4j>2.0.6</version.slf4j>
@@ -120,6 +122,17 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <groupId>id.walt</groupId>
+                <artifactId>waltid-ssikit-vclib</artifactId>
+                <version>${version.waltid.vclib}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-simple</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
                 <groupId>id.walt.servicematrix</groupId>
                 <artifactId>waltid-servicematrix</artifactId>
                 <version>${version.waltid.servicematrix}</version>
@@ -138,6 +151,11 @@
                 <groupId>io.github.microutils</groupId>
                 <artifactId>kotlin-logging-jvm</artifactId>
                 <version>${version.kotlin.logging}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kotest</groupId>
+                <artifactId>kotest-runner-junit5-jvm</artifactId>
+                <version>${version.kotest}</version>
             </dependency>
             <dependency>
                 <groupId>network.idu.acapy</groupId>

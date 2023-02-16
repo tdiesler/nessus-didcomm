@@ -19,19 +19,18 @@
  */
 package org.nessus.didcomm.itest
 
-import org.junit.jupiter.api.Test
+import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.wallet.AcapyWallet
 import org.nessus.didcomm.model.LedgerRole
-import kotlin.test.assertEquals
 
 /**
  * Onboard ENDORSER through TRUSTEE
  */
-class OnboardFaberTest : AbstractIntegrationTest() {
+class OnboardFaberTest : AbstractITest() {
 
     @Test
     fun testOnboardFaber() {
@@ -51,7 +50,7 @@ class OnboardFaberTest : AbstractIntegrationTest() {
         try {
 
             val pubDid = faber.getPublicDid()
-            assertEquals(DidMethod.SOV, pubDid?.method)
+            pubDid?.method shouldBe DidMethod.SOV
 
         } finally {
             if (maybeFaber == null) {

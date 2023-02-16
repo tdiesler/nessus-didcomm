@@ -25,20 +25,19 @@ import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
 import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyType
+import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.junit.jupiter.api.Test
 import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toCurve25519
 import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxEasyBytes
 import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxOpenEasyBytes
 import org.nessus.didcomm.crypto.LazySodiumService.lazySodium
-import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.util.decodeHex
 import org.nessus.didcomm.util.encodeHex
-import kotlin.test.assertEquals
 
-class LazySodiumTest: AbstractDidCommTest() {
+class LazySodiumTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
 
     @Test
@@ -56,7 +55,7 @@ class LazySodiumTest: AbstractDidCommTest() {
         val decryptKeys = KeyPair(faberKeys.publicKey, aliceKeys.secretKey)
         val cipherText = boxLazy.cryptoBoxEasy("Scheena Dog", nonce, encryptKeys)
         val message = boxLazy.cryptoBoxOpenEasy(cipherText, nonce, decryptKeys)
-        assertEquals("Scheena Dog", message)
+        message shouldBe "Scheena Dog"
     }
 
     @Test
@@ -81,7 +80,7 @@ class LazySodiumTest: AbstractDidCommTest() {
         val messageLen = AEAD.XCHACHA20POLY1305_IETF_KEYBYTES
         val cipherTextLazy = boxLazy.cryptoBoxEasyBytes(cek.asBytes, nonce, encryptKeys)
         val message = boxLazy.cryptoBoxOpenEasyBytes(cipherTextLazy.decodeHex(), messageLen, nonce, decryptKeys)
-        assertEquals(cek.asBytes.encodeHex(), message)
+        message shouldBe cek.asBytes.encodeHex()
     }
 
     @Test
@@ -94,7 +93,7 @@ class LazySodiumTest: AbstractDidCommTest() {
         val boxLazy = lazySodium as Box.Lazy
         val cipherText = boxLazy.cryptoBoxSealEasy("Scheena Dog", aliceCurve25519Keys.publicKey)
         val message = boxLazy.cryptoBoxSealOpenEasy(cipherText, aliceCurve25519Keys)
-        assertEquals("Scheena Dog", message)
+        message shouldBe "Scheena Dog"
     }
 
     @Test
@@ -107,7 +106,7 @@ class LazySodiumTest: AbstractDidCommTest() {
         val nonce = lazySodium.nonce(Box.NONCEBYTES)
         val ciphertext = aeadLazy.encryptDetached("Scheena Dog", null, null, nonce, cek, aeadMethod)
         val decrypted = aeadLazy.decryptDetached(ciphertext, null, null, nonce, cek, aeadMethod)
-        assertEquals("Scheena Dog", decrypted.message.decodeToString())
+        decrypted.message.decodeToString() shouldBe "Scheena Dog"
     }
 }
 

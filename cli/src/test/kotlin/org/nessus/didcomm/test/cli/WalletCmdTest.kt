@@ -19,29 +19,26 @@
  */
 package org.nessus.didcomm.test.cli
 
-import org.junit.jupiter.api.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import io.kotest.matchers.shouldBe
 
-
-class WalletCmdTest: AbstractCmdTest() {
+class WalletCmdTest: AbstractCliTest() {
 
     @Test
     fun walletCommands() {
 
-        assertTrue(cliService.execute("wallet --all").isSuccess)
-        assertEquals(2, modelService.wallets.size)
+        cliService.execute("wallet --all").isSuccess shouldBe true
+        modelService.wallets.size shouldBe 2
 
-        assertTrue(cliService.execute("wallet create --name Alice --agent Nessus").isSuccess)
+        cliService.execute("wallet create --name Alice --agent Nessus").isSuccess shouldBe true
 
-        assertEquals("Alice", cliService.findContextWallet()?.name)
+        cliService.findContextWallet()?.name shouldBe "Alice"
 
-        assertTrue(cliService.execute("wallet switch faber").isSuccess)
-        assertEquals("Faber", cliService.findContextWallet()?.name)
+        cliService.execute("wallet switch faber").isSuccess shouldBe true
+        cliService.findContextWallet()?.name shouldBe "Faber"
 
-        assertTrue(cliService.execute("wallet remove --alias Alice").isSuccess)
-        assertEquals(2, modelService.wallets.size)
+        cliService.execute("wallet remove --alias Alice").isSuccess shouldBe true
+        modelService.wallets.size shouldBe 2
 
-        assertEquals("Faber", cliService.findContextWallet()?.name)
+        cliService.findContextWallet()?.name shouldBe "Faber"
     }
 }

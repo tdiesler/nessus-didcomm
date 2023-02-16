@@ -66,6 +66,14 @@
             <artifactId>waltid-ssi-kit</artifactId>
         </dependency>
         <dependency>
+            <groupId>id.walt</groupId>
+            <artifactId>waltid-ssikit-vclib</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>id.walt</groupId>
+            <artifactId>waltid-ssikit-vclib</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.github.microutils</groupId>
             <artifactId>kotlin-logging-jvm</artifactId>
         </dependency>
@@ -100,13 +108,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-test-junit5</artifactId>
+            <groupId>io.kotest</groupId>
+            <artifactId>kotest-runner-junit5-jvm</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -19,18 +19,16 @@
  */
 package org.nessus.didcomm.itest
 
-import org.junit.jupiter.api.Test
+import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 /**
  * Onboard Alice in_memory with did:key
  */
-class OnboardAliceTest : AbstractIntegrationTest() {
+class OnboardAliceTest : AbstractITest() {
 
     @Test
     fun testOnboardAlice() {
@@ -42,10 +40,10 @@ class OnboardAliceTest : AbstractIntegrationTest() {
         try {
 
             val pubDid = alice.getPublicDid()
-            assertNull(pubDid)
+            pubDid shouldBe null
 
             val did = alice.createDid(DidMethod.KEY)
-            assertTrue(did.qualified.startsWith("did:key"))
+            did.qualified.startsWith("did:key") shouldBe true
 
         } finally {
             removeWallet(Alice.name)

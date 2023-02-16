@@ -19,24 +19,23 @@
  */
 package org.nessus.didcomm.test.protocol
 
-import org.junit.jupiter.api.Test
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0048_TRUST_PING_V2
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
-import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Acme
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.NESSUS_OPTIONS_01
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
 /**
  * Nessus DIDComm RFC0048: Trust Ping Protocol 2.0
  * https://github.com/tdiesler/nessus-didcomm/tree/main/features/0048-trust-ping
  */
-class RFC0048TrustPingV2Test : AbstractDidCommTest() {
+class RFC0048TrustPingV2Test : AbstractAgentTest() {
 
     @Test
     fun test_FaberAcapy_AliceNessus() {
@@ -64,7 +63,7 @@ class RFC0048TrustPingV2Test : AbstractDidCommTest() {
                     .getMessageExchange()
 
                 val aliceAcme = mex.getConnection()
-                assertEquals(ACTIVE, aliceAcme.state)
+                aliceAcme.state shouldBe ACTIVE
 
                 // Send an explicit trust ping
                 MessageExchange()
@@ -74,7 +73,7 @@ class RFC0048TrustPingV2Test : AbstractDidCommTest() {
 
                 // Send a reverse trust ping
                 val acmeAlice = acme.findConnection{ it.myVerkey == aliceAcme.theirVerkey }
-                assertNotNull(acmeAlice, "No Acme/Alice Connection")
+                acmeAlice shouldNotBe null
 
                 MessageExchange()
                     .withProtocol(RFC0048_TRUST_PING_V2)

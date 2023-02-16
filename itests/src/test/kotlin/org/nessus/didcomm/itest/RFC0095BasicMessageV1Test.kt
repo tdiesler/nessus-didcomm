@@ -19,7 +19,7 @@
  */
 package org.nessus.didcomm.itest
 
-import org.junit.jupiter.api.Test
+import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
 import org.nessus.didcomm.model.Wallet
@@ -34,15 +34,12 @@ import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
 import org.nessus.didcomm.util.selectJson
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.fail
 
 /**
  * Aries RFC 0095: Basic Message Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0095-basic-message
  */
-class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
+class RFC0095BasicMessageV1Test : AbstractITest() {
 
     @Test
     fun test_FaberAcapy_AliceNessus() {
@@ -62,7 +59,8 @@ class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
 
             /** Create the wallets */
 
-            val faber = getWalletByAlias(Faber.name) ?: fail("No Inviter")
+            val faber = getWalletByAlias(Faber.name)
+            checkNotNull(faber) { "No Faber" }
 
             val alice = Wallet.Builder(Alice.name)
                 .options(NESSUS_OPTIONS_01)
@@ -82,7 +80,7 @@ class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
                     .getMessageExchange()
 
                 val aliceFaber = mex.getConnection()
-                assertEquals(ACTIVE, aliceFaber.state)
+                aliceFaber.state shouldBe ACTIVE
 
                 val aliceMessage = "Your hovercraft is full of eels"
                 MessageExchange().withProtocol(RFC0095_BASIC_MESSAGE_V1)
@@ -97,7 +95,7 @@ class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
                     .sendMessage(faberMessage, faberAlice)
 
                 val receivedMessage = basicMessageFuture.get(5, TimeUnit.SECONDS)
-                assertEquals(faberMessage, receivedMessage.bodyAsJson.selectJson("content"))
+                receivedMessage.bodyAsJson.selectJson("content") shouldBe faberMessage
 
             } finally {
                 faber.removeConnections()
@@ -115,7 +113,8 @@ class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
 
             /** Create the wallets */
 
-            val faber = getWalletByAlias(Faber.name) ?: fail("No Faber")
+            val faber = getWalletByAlias(Faber.name)
+            checkNotNull(faber) { "No Faber" }
 
             val alice = Wallet.Builder(Alice.name)
                 .agentType(AgentType.NESSUS)
@@ -144,9 +143,7 @@ class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
                 /** Verify connection state */
 
                 val peerConnection = mex.getConnection()
-
-                assertNotNull(peerConnection, "No peer connection")
-                assertEquals(ACTIVE, peerConnection.state)
+                peerConnection.state shouldBe ACTIVE
 
                 /** Send a basic message */
                 val userMessage = "Your hovercraft is full of eels."
@@ -157,8 +154,8 @@ class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
                 /** Verify message exchange state */
 
                 val epm: EndpointMessage = mex.last
-                assertEquals(RFC0095_BASIC_MESSAGE_TYPE_V1, epm.type)
-                assertEquals(userMessage, epm.bodyAsJson.selectJson("content"))
+                epm.type shouldBe RFC0095_BASIC_MESSAGE_TYPE_V1
+                epm.bodyAsJson.selectJson("content") shouldBe userMessage
 
             } finally {
                 faber.removeConnections()

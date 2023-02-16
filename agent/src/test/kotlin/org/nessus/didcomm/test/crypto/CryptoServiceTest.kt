@@ -21,14 +21,13 @@ package org.nessus.didcomm.test.crypto
 
 import id.walt.crypto.KeyAlgorithm
 import id.walt.services.crypto.CryptoService
-import org.junit.jupiter.api.Test
+import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.crypto.NessusCryptoService
-import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.util.decodeHex
-import kotlin.test.assertTrue
 
-class CryptoServiceTest: AbstractDidCommTest() {
+class CryptoServiceTest: AbstractAgentTest() {
 
     @Test
     fun signVerifySeedMessage() {
@@ -38,6 +37,6 @@ class CryptoServiceTest: AbstractDidCommTest() {
 
         val data = "Hello".toByteArray()
         val signature = cryptoService.sign(keyId, data)
-        assertTrue(cryptoService.verify(keyId, signature, data))
+        cryptoService.verify(keyId, signature, data) shouldBe true
     }
 }

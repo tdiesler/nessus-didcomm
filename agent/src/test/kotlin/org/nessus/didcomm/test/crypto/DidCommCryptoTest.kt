@@ -21,22 +21,21 @@ package org.nessus.didcomm.test.crypto
 
 import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
+import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.service.toOctetKeyPair
-import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.decodeHex
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.trimJson
-import kotlin.test.assertEquals
 
 /**
  * did:key test vectors
  * https://w3c-ccg.github.io/did-method-key/#test-vectors
  * https://github.com/w3c-ccg/did-method-key/tree/main/test-vectors
  */
-class DidCommCryptoTest: AbstractDidCommTest() {
+class DidCommCryptoTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
 
     @Test
@@ -45,7 +44,7 @@ class DidCommCryptoTest: AbstractDidCommTest() {
         // ed25519-x25519.json
         val seed = "0000000000000000000000000000000000000000000000000000000000000005".decodeHex()
         val did = didService.createDid(DidMethod.KEY, KeyAlgorithm.EdDSA_Ed25519, seed)
-        assertEquals("did:key:z6MkwYMhwTvsq376YBAcJHy3vyRWzBgn5vKfVqqDCgm7XVKU", did.qualified)
+        did.qualified shouldBe "did:key:z6MkwYMhwTvsq376YBAcJHy3vyRWzBgn5vKfVqqDCgm7XVKU"
 
         val octetKeyPair = did.toOctetKeyPair()
         val keyId = keyStore.getKeyId(did.qualified) as String
@@ -64,7 +63,7 @@ class DidCommCryptoTest: AbstractDidCommTest() {
             "x":"_eT7oDCtAC98L31MMx9J0T-w7HR-zuvsY08f9MvKne8"
         }            
         """.trimJson()
-        assertEquals(exp, jwk)
+        jwk shouldBe exp
     }
 
     @Test
@@ -73,7 +72,7 @@ class DidCommCryptoTest: AbstractDidCommTest() {
         // ed25519-x25519.json
         val seed = "0000000000000000000000000000000000000000000000000000000000000005".decodeHex()
         val did = didService.createDid(DidMethod.KEY, KeyAlgorithm.EdDSA_Ed25519, seed)
-        assertEquals("did:key:z6MkwYMhwTvsq376YBAcJHy3vyRWzBgn5vKfVqqDCgm7XVKU", did.qualified)
+        did.qualified shouldBe "did:key:z6MkwYMhwTvsq376YBAcJHy3vyRWzBgn5vKfVqqDCgm7XVKU"
 
         val octetKeyPair = did.toOctetKeyPair()
         val keyId = keyStore.getKeyId(did.qualified) as String
@@ -92,6 +91,6 @@ class DidCommCryptoTest: AbstractDidCommTest() {
             "x":"_eT7oDCtAC98L31MMx9J0T-w7HR-zuvsY08f9MvKne8"
         }            
         """.trimJson()
-        assertEquals(exp, jwk)
+        jwk shouldBe exp
     }
 }

@@ -20,17 +20,15 @@
 package org.nessus.didcomm.test.service
 
 import id.walt.common.prettyPrint
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import mu.KotlinLogging
-import org.junit.jupiter.api.Test
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
 
-class ModelServiceTest: AbstractDidCommTest() {
+class ModelServiceTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
 
     @Test
@@ -43,12 +41,12 @@ class ModelServiceTest: AbstractDidCommTest() {
             .agentType(AgentType.NESSUS)
             .build()
 
-        assertEquals(3, modelService.wallets.size)
-        assertNotNull(modelService.findWalletByName(Alice.name))
+        modelService.wallets.size shouldBe 3
+        modelService.findWalletByName(Alice.name) shouldNotBe null
         log.info { modelService.modelAsJson.prettyPrint() }
 
         removeWallet(Alice.name)
-        assertEquals(2, modelService.wallets.size)
-        assertNull(modelService.findWalletByName(Alice.name))
+        modelService.wallets.size shouldBe 2
+        modelService.findWalletByName(Alice.name) shouldBe null
     }
 }

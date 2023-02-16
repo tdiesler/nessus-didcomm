@@ -21,9 +21,9 @@ package org.nessus.didcomm.test.crypto
 
 import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
+import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
 import org.hyperledger.indy.sdk.crypto.Crypto
-import org.junit.jupiter.api.Test
 import org.nessus.didcomm.crypto.LibIndyService.closeAndDeleteWallet
 import org.nessus.didcomm.crypto.LibIndyService.createAnOpenWallet
 import org.nessus.didcomm.crypto.LibIndyService.createAndStoreDid
@@ -32,13 +32,12 @@ import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
-import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.test.NESSUS_OPTIONS_01
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.gson
-import kotlin.test.assertEquals
 
 /**
  * Start a local indy pool
@@ -50,7 +49,7 @@ import kotlin.test.assertEquals
  *
  * rm -rf ~/.indy_client
  */
-class LibIndyTest: AbstractDidCommTest() {
+class LibIndyTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
 
     @Test
@@ -71,8 +70,8 @@ class LibIndyTest: AbstractDidCommTest() {
             val encryptedMessage = Crypto.authCrypt(faber, faberDid.verkey, aliceDid.verkey, msg.toByteArray()).get()
             val authDecryptResult = Crypto.authDecrypt(alice, aliceDid.verkey, encryptedMessage).get()
 
-            assertEquals(msg, String(authDecryptResult.decryptedMessage))
-            assertEquals(faberDid.verkey, authDecryptResult.verkey)
+            String(authDecryptResult.decryptedMessage) shouldBe msg
+            authDecryptResult.verkey shouldBe faberDid.verkey
 
         } finally {
             closeAndDeleteWallet(Alice.name)
@@ -93,7 +92,7 @@ class LibIndyTest: AbstractDidCommTest() {
             val alice = createAnOpenWallet(Alice.name)
             val aliceDid = createAndStoreDid(alice, Alice.seed)
             log.info { "Alice Did: ${aliceDid.qualified}" }
-            assertEquals("did:sov:RfoA7oboFMiFuJPEtPdvKP", aliceDid.qualified)
+            aliceDid.qualified shouldBe "did:sov:RfoA7oboFMiFuJPEtPdvKP"
 
             val message = "Your hovercraft is full of eels."
             val receivers = gson.toJson(listOf(aliceDid.verkey))
@@ -103,9 +102,9 @@ class LibIndyTest: AbstractDidCommTest() {
             val unpackedJson = String(Crypto.unpackMessage(alice, packed.toByteArray()).get())
             val unpacked = unpackedJson.decodeJson()
             log.info { "Unpacked: $unpacked"}
-            assertEquals(message, unpacked["message"])
-            assertEquals(aliceDid.verkey, unpacked["recipient_verkey"])
-            assertEquals(faberDid.verkey, unpacked["sender_verkey"])
+            unpacked["message"] shouldBe message
+            unpacked["recipient_verkey"] shouldBe aliceDid.verkey
+            unpacked["sender_verkey"] shouldBe faberDid.verkey
 
         } finally {
             closeAndDeleteWallet(Alice.name)
@@ -138,7 +137,7 @@ class LibIndyTest: AbstractDidCommTest() {
             val unpacked = RFC0019EncryptionEnvelope()
                 .unpackEncryptedEnvelope(packed)
             log.info { "Unpacked: $unpacked"}
-            assertEquals(aliceDid.verkey, unpacked?.recipientVerkey)
+            unpacked?.recipientVerkey shouldBe aliceDid.verkey
 
         } finally {
             closeAndDeleteWallet(Faber.name)
@@ -171,9 +170,9 @@ class LibIndyTest: AbstractDidCommTest() {
             val unpackedJson = String(Crypto.unpackMessage(faber, packed.toByteArray()).get())
             val unpacked = unpackedJson.decodeJson()
             log.info { "Unpacked: $unpacked"}
-            assertEquals(message, unpacked["message"])
-            assertEquals(faberDid.verkey, unpacked["recipient_verkey"])
-            assertEquals(aliceDid.verkey, unpacked["sender_verkey"])
+            unpacked["message"] shouldBe message
+            unpacked["recipient_verkey"] shouldBe faberDid.verkey
+            unpacked["sender_verkey"] shouldBe aliceDid.verkey
 
         } finally {
             closeAndDeleteWallet(Faber.name)

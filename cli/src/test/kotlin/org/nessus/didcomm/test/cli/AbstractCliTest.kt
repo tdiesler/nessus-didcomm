@@ -19,8 +19,8 @@
  */
 package org.nessus.didcomm.test.cli
 
+import io.kotest.core.spec.style.AnnotationSpec
 import mu.KotlinLogging
-import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.cli.service.CLIService
 import org.nessus.didcomm.cli.NessusCli
 import org.nessus.didcomm.service.ModelService
@@ -29,15 +29,12 @@ import picocli.CommandLine
 import picocli.CommandLine.IExecutionExceptionHandler
 
 
-abstract class AbstractCmdTest {
+abstract class AbstractCliTest: AnnotationSpec() {
 
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        internal fun beforeAll() {
-            val filePath = "etc/config/service-matrix.properties"
-            ServiceMatrixLoader.loadServiceDefinitions(filePath)
-        }
+    @BeforeAll
+    fun beforeAll() {
+        val filePath = "etc/config/service-matrix.properties"
+        ServiceMatrixLoader.loadServiceDefinitions(filePath)
     }
 
     val cliService get() = CLIService.getService()

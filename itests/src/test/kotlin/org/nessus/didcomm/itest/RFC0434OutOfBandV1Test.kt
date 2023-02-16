@@ -19,16 +19,13 @@
  */
 package org.nessus.didcomm.itest
 
-import org.junit.jupiter.api.Test
+import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.InvitationV1
 import org.nessus.didcomm.model.InvitationState
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
-import kotlin.test.assertEquals
-import kotlin.test.fail
-
 
 /**
  * Aries RFC 0434: Out-of-Band Protocol 1.1
@@ -40,7 +37,7 @@ import kotlin.test.fail
  * DIDComm - Out Of Band Messages
  * https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
  */
-class RFC0434OutOfBandV1Test : AbstractIntegrationTest() {
+class RFC0434OutOfBandV1Test : AbstractITest() {
 
     @Test
     fun test_FaberAcapy_invites_AliceNessus() {
@@ -49,7 +46,8 @@ class RFC0434OutOfBandV1Test : AbstractIntegrationTest() {
          * Create the Wallets
          */
 
-        val faber = getWalletByAlias(Faber.name) ?: fail("No Inviter")
+        val faber = getWalletByAlias(Faber.name)
+        checkNotNull(faber) { "No Faber" }
 
         val alice = Wallet.Builder(Alice.name)
             .options(NESSUS_OPTIONS_01)
@@ -69,10 +67,10 @@ class RFC0434OutOfBandV1Test : AbstractIntegrationTest() {
                 .receiveOutOfBandInvitation(alice)
                 .getMessageExchange()
 
-            assertEquals(1, mex.messages.size)
+            mex.messages.size shouldBe 1
 
             val invitation = mex.last.body as? InvitationV1
-            assertEquals(InvitationState.DONE, invitation?.state)
+            invitation?.state shouldBe InvitationState.DONE
 
         } finally {
             faber.removeConnections()
@@ -87,7 +85,8 @@ class RFC0434OutOfBandV1Test : AbstractIntegrationTest() {
          * Create the Wallets
          */
 
-        val faber = getWalletByAlias(Faber.name) ?: fail("No Inviter")
+        val faber = getWalletByAlias(Faber.name)
+        checkNotNull(faber) { "No Faber" }
 
         val alice = Wallet.Builder(Alice.name)
             .options(NESSUS_OPTIONS_01)
@@ -107,10 +106,10 @@ class RFC0434OutOfBandV1Test : AbstractIntegrationTest() {
                 .receiveOutOfBandInvitation(faber)
                 .getMessageExchange()
 
-            assertEquals(1, mex.messages.size)
+            mex.messages.size shouldBe 1
 
             val invitation = mex.last.body as? InvitationV1
-            assertEquals(InvitationState.DONE, invitation?.state)
+            invitation?.state shouldBe InvitationState.DONE
 
         } finally {
             faber.removeConnections()

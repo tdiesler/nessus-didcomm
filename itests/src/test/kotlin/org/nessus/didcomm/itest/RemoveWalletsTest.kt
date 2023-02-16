@@ -21,7 +21,7 @@ package org.nessus.didcomm.itest
 
 import org.junit.jupiter.api.Test
 
-class RemoveWalletsTest : AbstractIntegrationTest() {
+class RemoveWalletsTest : AbstractITest() {
 
     @Test
     fun removeWallets() {

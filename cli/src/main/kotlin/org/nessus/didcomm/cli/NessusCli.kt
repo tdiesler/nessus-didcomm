@@ -45,7 +45,7 @@ import picocli.shell.jline3.PicocliCommands
 import kotlin.system.exitProcess
 
 @Command(
-    name = "didcomm", description = ["Nessus DIDComm CLI"], version = ["0.23.0"],
+    name = "didcomm", description = ["Nessus DIDComm CLI"],
     mixinStandardHelpOptions = false,
     usageHelpWidth = 160,
     subcommands = [

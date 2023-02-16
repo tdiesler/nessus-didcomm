@@ -19,18 +19,17 @@
  */
 package org.nessus.didcomm.test
 
+import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
 import org.didcommx.didcomm.protocols.routing.PROFILE_DIDCOMM_V2
-import org.junit.jupiter.api.Test
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.gsonPretty
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.toDeeplySortedMap
-import kotlin.test.assertEquals
 
-class UtilsTest: AbstractDidCommTest() {
+class UtilsTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
 
     @Test
@@ -67,8 +66,8 @@ class UtilsTest: AbstractDidCommTest() {
         }
         """.trimIndent()
 
-        assertEquals("f3ea944d-ad92-42d8-b6e2-d14f2d6cee10", fixture.selectJson("invitation.@id"))
-        assertEquals(PROFILE_DIDCOMM_V2, fixture.selectJson("invitation.accept[0]"))
+        fixture.selectJson("invitation.@id") shouldBe "f3ea944d-ad92-42d8-b6e2-d14f2d6cee10"
+        fixture.selectJson("invitation.accept[0]") shouldBe PROFILE_DIDCOMM_V2
 
         val exp = """
         {
@@ -108,7 +107,7 @@ class UtilsTest: AbstractDidCommTest() {
         val was = gsonPretty.toJson(sortedMap)
         log.info { was }
 
-        assertEquals(exp, was)
+        was shouldBe exp
     }
 
     @Test
@@ -121,9 +120,9 @@ class UtilsTest: AbstractDidCommTest() {
         val was = map.encodeJson()
 
         log.info { was }
-        assertEquals(exp, was)
+        was shouldBe exp
 
         val decoded = was.decodeJson()
-        assertEquals(map, decoded)
+        decoded shouldBe map
     }
 }

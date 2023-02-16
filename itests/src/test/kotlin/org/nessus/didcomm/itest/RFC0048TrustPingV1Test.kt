@@ -19,7 +19,7 @@
  */
 package org.nessus.didcomm.itest
 
-import org.junit.jupiter.api.Test
+import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
 import org.nessus.didcomm.model.Wallet
@@ -27,15 +27,12 @@ import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V1
 import org.nessus.didcomm.service.RFC0048_TRUST_PING_V1
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.fail
 
 /**
  * Aries RFC 0048: Trust Ping Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0048-trust-ping
  */
-class RFC0048TrustPingV1Test : AbstractIntegrationTest() {
+class RFC0048TrustPingV1Test : AbstractITest() {
 
     @Test
     fun test_FaberAcapy_AliceNessus() {
@@ -44,7 +41,8 @@ class RFC0048TrustPingV1Test : AbstractIntegrationTest() {
 
             /** Create the wallets */
 
-            val faber = getWalletByAlias(Faber.name) ?: fail("No Faber")
+            val faber = getWalletByAlias(Faber.name)
+            checkNotNull(faber) { "No Faber" }
 
             val alice = Wallet.Builder(Alice.name)
                 .options(NESSUS_OPTIONS_01)
@@ -63,8 +61,8 @@ class RFC0048TrustPingV1Test : AbstractIntegrationTest() {
                     .getMessageExchange()
 
                 val aliceFaber = mex.getConnection()
-                assertEquals(ACTIVE, aliceFaber.state)
-                assertEquals(AgentType.NESSUS, aliceFaber.agent)
+                aliceFaber.state shouldBe ACTIVE
+                aliceFaber.agent shouldBe AgentType.NESSUS
 
                 // Send an explicit trust ping
                 MessageExchange()
@@ -74,8 +72,7 @@ class RFC0048TrustPingV1Test : AbstractIntegrationTest() {
 
                 // Send a reverse trust ping
                 val faberAlice = faber.findConnection{ it.myVerkey == aliceFaber.theirVerkey }
-                assertNotNull(faberAlice, "No Faber/Alice Connection")
-                assertEquals(AgentType.ACAPY, faberAlice.agent)
+                faberAlice?.agent shouldBe AgentType.ACAPY
 
                 MessageExchange()
                     .withProtocol(RFC0048_TRUST_PING_V1)

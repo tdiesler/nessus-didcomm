@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.itest
 
+import io.kotest.core.spec.style.AnnotationSpec
 import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageListener
@@ -85,15 +86,12 @@ object Acme {
 }
 
 @Suppress("MemberVisibilityCanBePrivate")
-abstract class AbstractIntegrationTest {
+abstract class AbstractITest: AnnotationSpec() {
 
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        internal fun beforeAll() {
-            val matrixProperties = "src/test/resources/service-matrix.properties"
-            ServiceMatrixLoader.loadServiceDefinitions(matrixProperties)
-        }
+    @BeforeAll
+    fun beforeAll() {
+        val matrixProperties = "src/test/resources/service-matrix.properties"
+        ServiceMatrixLoader.loadServiceDefinitions(matrixProperties)
     }
 
     val dispatchService = MessageDispatchService.getService()

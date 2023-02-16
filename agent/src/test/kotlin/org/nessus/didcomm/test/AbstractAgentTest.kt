@@ -21,6 +21,7 @@ package org.nessus.didcomm.test
 
 import id.walt.services.crypto.CryptoService
 import id.walt.services.keystore.KeyStoreService
+import io.kotest.core.spec.style.AnnotationSpec
 import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.crypto.NessusCryptoService
 import org.nessus.didcomm.protocol.MessageListener
@@ -93,15 +94,12 @@ object Acme {
 }
 
 @Suppress("MemberVisibilityCanBePrivate")
-abstract class AbstractDidCommTest {
+abstract class AbstractAgentTest: AnnotationSpec() {
 
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        internal fun beforeAll() {
-            val matrixProperties = "src/test/resources/service-matrix.properties"
-            ServiceMatrixLoader.loadServiceDefinitions(matrixProperties)
-        }
+    @BeforeAll
+    fun beforeAll() {
+        val matrixProperties = "src/test/resources/service-matrix.properties"
+        ServiceMatrixLoader.loadServiceDefinitions(matrixProperties)
     }
 
     val cryptoService get() = CryptoService.getService().implementation as NessusCryptoService
@@ -115,6 +113,12 @@ abstract class AbstractDidCommTest {
     val modelService get() = ModelService.getService()
     val secretResolver = SecretResolverService.getService()
     val walletService get() = WalletService.getService()
+
+    fun readResource(path: String): String {
+        val url = javaClass.getResource(path)
+        checkNotNull(url) { "No resource: $path" }
+        return url.readText()
+    }
 
     fun startNessusEndpoint(options: Map<String, Any>, listener: MessageListener? = null): AutoCloseable {
         val endpointUrl = getNessusEndpointUrl(options)

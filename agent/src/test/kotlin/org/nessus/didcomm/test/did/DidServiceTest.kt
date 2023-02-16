@@ -34,12 +34,12 @@ import id.walt.services.CryptoProvider
 import id.walt.services.key.Keys
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
+import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.junit.jupiter.api.Test
 import org.nessus.didcomm.crypto.LazySodiumService.lazySodium
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.service.toOctetKeyPair
-import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.util.decodeHex
@@ -48,9 +48,6 @@ import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.trimJson
 import java.security.PublicKey
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 /**
  * Ed25519 Online Tool - Sign or Verify
@@ -60,7 +57,7 @@ import kotlin.test.assertTrue
  * https://w3c-ccg.github.io/did-method-key/#test-vectors
  * https://github.com/w3c-ccg/did-method-key/tree/main/test-vectors
  */
-class DidServiceTest: AbstractDidCommTest() {
+class DidServiceTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
 
     @Test
@@ -75,27 +72,27 @@ class DidServiceTest: AbstractDidCommTest() {
         // Build PublicKey from pubkey raw bytes
         // Then verify that we can get the raw bytes from the X.509 encoded PublicKey
         val pubKey: PublicKey = buildEd25519PubKey(encBase64(pkRaw))
-        assertEquals("X.509", pubKey.format)
+        pubKey.format shouldBe "X.509"
         val pubKeyX509 = pubKey.encoded
         log.info { "pk509: ${pubKeyX509.encodeHex()}" }
 
         // We assume/verify that the last 32 bytes are equal to the pubkey raw bytes
         val pubKeyRaw = pubKeyX509.sliceArray(pubKeyX509.size - 32 until pubKeyX509.size)
         log.info { "pkRaw: ${pubKeyRaw.encodeHex()}" }
-        assertTrue(pkRaw.contentEquals(pubKeyRaw))
+        pkRaw.contentEquals(pubKeyRaw) shouldBe true
 
         // Construct did from the 32 pubkey raw bytes
         val keyAlgorithm = KeyAlgorithm.EdDSA_Ed25519
         check(pubKeyRaw.size == 32) { "Expect 32 pubkey bytes" }
         val did = convertRawKeyToMultiBase58Btc(pubKeyRaw, getMulticodecKeyCode(keyAlgorithm))
-        assertEquals("did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp", "did:key:$did")
+        "did:key:$did" shouldBe "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp"
     }
 
     @Test
     fun test_DidKey_Seed00() {
         val seedBytes = ByteArray(32)
         val did = didService.createDid(DidMethod.KEY, seed=seedBytes)
-        assertEquals("did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp", did.qualified)
+        did.qualified shouldBe "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp"
     }
 
     @Test
@@ -103,7 +100,7 @@ class DidServiceTest: AbstractDidCommTest() {
 
         val seedBytes = "0000000000000000000000000000000000000000000000000000000000000005".decodeHex()
         val didKey05 = didService.createDid(DidMethod.KEY, seed=seedBytes)
-        assertEquals("did:key:z6MkwYMhwTvsq376YBAcJHy3vyRWzBgn5vKfVqqDCgm7XVKU", didKey05.qualified)
+        didKey05.qualified shouldBe "did:key:z6MkwYMhwTvsq376YBAcJHy3vyRWzBgn5vKfVqqDCgm7XVKU"
 
         // Test OKP Ed25519
         run {
@@ -113,9 +110,9 @@ class DidServiceTest: AbstractDidCommTest() {
             val octetKeyPair: OctetKeyPair = key.toOctetKeyPair()
             log.info { octetKeyPair.toJSONObject().encodeJson(true) }
 
-            assertEquals(CryptoProvider.SUN, key.cryptoProvider)
-            assertEquals(KeyAlgorithm.EdDSA_Ed25519, key.algorithm)
-            assertEquals("Ed25519", octetKeyPair.curve.name)
+            key.cryptoProvider shouldBe CryptoProvider.SUN
+            key.algorithm shouldBe KeyAlgorithm.EdDSA_Ed25519
+            octetKeyPair.curve.name shouldBe "Ed25519"
 
             // Get the public/private key bytes
             val keys = Keys(key.keyId.id, key.keyPair!!, "SunEC")
@@ -130,10 +127,10 @@ class DidServiceTest: AbstractDidCommTest() {
             log.info { "d: $d" }
 
             // Assert that we curve coordinates match
-            assertEquals("${octetKeyPair.x}", x)
-            assertEquals("${octetKeyPair.d}", d)
-            assertEquals("_eT7oDCtAC98L31MMx9J0T-w7HR-zuvsY08f9MvKne8", x)
-            assertEquals("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU", d)
+            x shouldBe "${octetKeyPair.x}"
+            d shouldBe "${octetKeyPair.d}"
+            x shouldBe "_eT7oDCtAC98L31MMx9J0T-w7HR-zuvsY08f9MvKne8"
+            d shouldBe "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU"
         }
 
         // Test OKP X25519
@@ -141,8 +138,8 @@ class DidServiceTest: AbstractDidCommTest() {
             // Load the key associated with the DID and get the OKP representation of it
             val key: Key = keyStore.load(didKey05.qualified, KeyType.PRIVATE)
 
-            assertEquals(CryptoProvider.SUN, key.cryptoProvider)
-            assertEquals(KeyAlgorithm.EdDSA_Ed25519, key.algorithm)
+            key.cryptoProvider shouldBe CryptoProvider.SUN
+            key.algorithm shouldBe KeyAlgorithm.EdDSA_Ed25519
 
             // Get the public/private key bytes
             val keys = Keys(key.keyId.id, key.keyPair!!, "SunEC")
@@ -178,28 +175,28 @@ class DidServiceTest: AbstractDidCommTest() {
             """.trimJson())
 
             // Assert that we curve coordinates match
-            assertEquals("jRIz3oriXDNZmnb35XQb7K1UIlz3ae1ao1YSqLeBXHs", x)
-            assertEquals("aEAAB3VBFPCQtgF3N__wRiXhMOgeiRGstpPC3gnJ1Eo", d)
+            x shouldBe "jRIz3oriXDNZmnb35XQb7K1UIlz3ae1ao1YSqLeBXHs"
+            d shouldBe "aEAAB3VBFPCQtgF3N__wRiXhMOgeiRGstpPC3gnJ1Eo"
         }
 
         // Do the above through the DidService
         run {
 
             val ed25519Prv = didService.toOctetKeyPair(didKey05.verkey, Curve.Ed25519, KeyType.PRIVATE)
-            assertEquals("_eT7oDCtAC98L31MMx9J0T-w7HR-zuvsY08f9MvKne8", "${ed25519Prv.x}")
-            assertEquals("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU", "${ed25519Prv.d}")
+            "${ed25519Prv.x}" shouldBe "_eT7oDCtAC98L31MMx9J0T-w7HR-zuvsY08f9MvKne8"
+            "${ed25519Prv.d}" shouldBe "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU"
 
             val x25519Prv = didService.toOctetKeyPair(didKey05.verkey, Curve.X25519, KeyType.PRIVATE)
-            assertEquals("jRIz3oriXDNZmnb35XQb7K1UIlz3ae1ao1YSqLeBXHs", "${x25519Prv.x}")
-            assertEquals("aEAAB3VBFPCQtgF3N__wRiXhMOgeiRGstpPC3gnJ1Eo", "${x25519Prv.d}")
+            "${x25519Prv.x}" shouldBe "jRIz3oriXDNZmnb35XQb7K1UIlz3ae1ao1YSqLeBXHs"
+            "${x25519Prv.d}" shouldBe "aEAAB3VBFPCQtgF3N__wRiXhMOgeiRGstpPC3gnJ1Eo"
 
             val ed25519Pub = didService.toOctetKeyPair(didKey05.verkey, Curve.Ed25519)
-            assertEquals("_eT7oDCtAC98L31MMx9J0T-w7HR-zuvsY08f9MvKne8", "${ed25519Pub.x}")
-            assertNull(ed25519Pub.d)
+            "${ed25519Pub.x}" shouldBe "_eT7oDCtAC98L31MMx9J0T-w7HR-zuvsY08f9MvKne8"
+            ed25519Pub.d shouldBe null
 
             val x25519Pub = didService.toOctetKeyPair(didKey05.verkey, Curve.X25519)
-            assertEquals("jRIz3oriXDNZmnb35XQb7K1UIlz3ae1ao1YSqLeBXHs", "${x25519Pub.x}")
-            assertNull(x25519Pub.d)
+            "${x25519Pub.x}" shouldBe "jRIz3oriXDNZmnb35XQb7K1UIlz3ae1ao1YSqLeBXHs"
+            x25519Pub.d shouldBe null
         }
     }
 
@@ -224,21 +221,21 @@ class DidServiceTest: AbstractDidCommTest() {
         log.info { "seedHex:   ${Faber.seed.toByteArray().encodeHex()}" }
         log.info { "pubkeyHex: ${pubKey?.format} ${pubkeyBytes?.encodeHex()}" }
         log.info { "prvkeyHex: ${prvKey?.format} ${prvkeyBytes?.encodeHex()}" }
-        assertEquals(Faber.verkey, faberKey.verkey)
-        assertEquals(Faber.didkey, faberKey.qualified)
+        faberKey.verkey shouldBe Faber.verkey
+        faberKey.qualified shouldBe Faber.didkey
 
         val faberSov = didService.createDid(DidMethod.SOV, seed=Faber.seed.toByteArray())
-        assertEquals(Faber.verkey, faberSov.verkey)
-        assertEquals(Faber.didsov, faberSov.qualified)
+        faberSov.verkey shouldBe Faber.verkey
+        faberSov.qualified shouldBe Faber.didsov
 
         // Alice -------------------------------------------------------------------------------------------------------
 
         val aliceKey = didService.createDid(DidMethod.KEY, seed=Alice.seed.toByteArray())
-        assertEquals(Alice.verkey, aliceKey.verkey)
-        assertEquals(Alice.didkey, aliceKey.qualified)
+        aliceKey.verkey shouldBe Alice.verkey
+        aliceKey.qualified shouldBe Alice.didkey
 
         val aliceSov = didService.createDid(DidMethod.SOV, seed=Alice.seed.toByteArray())
-        assertEquals(Alice.verkey, aliceSov.verkey)
-        assertEquals(Alice.didsov, aliceSov.qualified)
+        aliceSov.verkey shouldBe Alice.verkey
+        aliceSov.qualified shouldBe Alice.didsov
     }
 }

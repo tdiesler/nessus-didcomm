@@ -19,43 +19,41 @@
  */
 package org.nessus.didcomm.test.cli
 
-import org.junit.jupiter.api.Test
-import kotlin.test.assertTrue
+import io.kotest.matchers.shouldBe
 
-
-class AgentCmdTest: AbstractCmdTest() {
+class AgentCmdTest: AbstractCliTest() {
 
     @Test
     fun testInvalidUri() {
         val cmdln = safeExecutionCommandLine()
-        assertTrue(cliService.execute("agent start --uri foo", cmdln).isFailure)
+        cliService.execute("agent start --uri foo", cmdln).isFailure shouldBe true
     }
 
     @Test
     fun testValidUri() {
 
-        assertTrue(cliService.execute("agent start --uri 0.0.0.0:8130").isSuccess)
+        cliService.execute("agent start --uri 0.0.0.0:8130").isSuccess shouldBe true
 
         Thread.sleep(500)
 
-        assertTrue(cliService.execute("agent stop --uri 0.0.0.0:8130").isSuccess)
+        cliService.execute("agent stop --uri 0.0.0.0:8130").isSuccess shouldBe true
     }
 
     @Test
     fun testWalletAgent() {
 
-        assertTrue(cliService.execute("wallet create --name Alice").isSuccess)
+        cliService.execute("wallet create --name Alice").isSuccess shouldBe true
 
         try {
 
-            assertTrue(cliService.execute("agent start").isSuccess)
+            cliService.execute("agent start").isSuccess shouldBe true
 
             Thread.sleep(500)
 
-            assertTrue(cliService.execute("agent stop").isSuccess)
+            cliService.execute("agent stop").isSuccess shouldBe true
 
         } finally {
-            assertTrue(cliService.execute("wallet remove --alias alice").isSuccess)
+            cliService.execute("wallet remove --alias alice").isSuccess shouldBe true
         }
     }
 }

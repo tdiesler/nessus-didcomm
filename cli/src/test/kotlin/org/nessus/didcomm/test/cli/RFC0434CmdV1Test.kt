@@ -19,26 +19,24 @@
  */
 package org.nessus.didcomm.test.cli
 
-import org.junit.jupiter.api.Test
-import kotlin.test.assertTrue
+import io.kotest.matchers.shouldBe
 
-
-class RFC0434CmdV1Test: AbstractCmdTest() {
+class RFC0434CmdV1Test: AbstractCliTest() {
 
     @Test
     fun testRFC0434CommandsV1() {
 
-        assertTrue(cliService.execute("wallet create --name Alice").isSuccess)
-        assertTrue(cliService.execute("agent start").isSuccess)
+        cliService.execute("wallet create --name Alice").isSuccess shouldBe true
+        cliService.execute("agent start").isSuccess shouldBe true
 
         try {
 
-            assertTrue(cliService.execute("rfc0434 create-invitation --inviter Faber").isSuccess)
-            assertTrue(cliService.execute("rfc0434 receive-invitation --invitee Alice").isSuccess)
+            cliService.execute("rfc0434 create-invitation --inviter Faber").isSuccess shouldBe true
+            cliService.execute("rfc0434 receive-invitation --invitee Alice").isSuccess shouldBe true
 
         } finally {
-            assertTrue(cliService.execute("agent stop").isSuccess)
-            assertTrue(cliService.execute("wallet remove --alias Alice").isSuccess)
+            cliService.execute("agent stop").isSuccess shouldBe true
+            cliService.execute("wallet remove --alias Alice").isSuccess shouldBe true
         }
     }
 }

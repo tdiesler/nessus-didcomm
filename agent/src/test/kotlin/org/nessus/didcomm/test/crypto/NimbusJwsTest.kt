@@ -30,18 +30,16 @@ import com.nimbusds.jose.crypto.Ed25519Verifier
 import com.nimbusds.jose.jwk.Curve
 import com.nimbusds.jose.jwk.OctetKeyPair
 import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator
+import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.junit.jupiter.api.Test
-import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.encodeJson
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
  * Nimbus JOSE + JWT
  * https://connect2id.com/products/nimbus-jose-jwt
  */
-class NimbusJwsTest: AbstractDidCommTest() {
+class NimbusJwsTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
 
     /**
@@ -78,7 +76,7 @@ class NimbusJwsTest: AbstractDidCommTest() {
         // Verify the EdDSA signature
 
         // Verify the EdDSA signature
-        assertTrue(jwsObject.verify(verifier), "Ed25519 signature verified")
-        assertEquals(jwsObject.payload.toString(), "We are having a crypto party!")
+        jwsObject.verify(verifier) shouldBe true
+        jwsObject.payload.toString() shouldBe "We are having a crypto party!"
     }
 }

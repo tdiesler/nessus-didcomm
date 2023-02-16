@@ -19,8 +19,9 @@
  */
 package org.nessus.didcomm.test.protocol
 
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.didcommx.didcomm.message.Message
-import org.junit.jupiter.api.Test
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.InvitationV2
@@ -28,20 +29,17 @@ import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocolV2.Companion.RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
-import org.nessus.didcomm.test.AbstractDidCommTest
+import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Acme
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.util.decodeMessage
 import org.nessus.didcomm.util.trimJson
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 /**
  * Nessus DIDComm RFC0434: Out-of-Band Invitation 2.0
  * https://github.com/tdiesler/nessus-didcomm/tree/main/features/0434-oob-invitation
  */
-class RFC0434OutOfBandV2Test: AbstractDidCommTest() {
+class RFC0434OutOfBandV2Test: AbstractAgentTest() {
 
     @Test
     fun testRFC0434OutOfBandV2() {
@@ -61,21 +59,20 @@ class RFC0434OutOfBandV2Test: AbstractDidCommTest() {
                 .receiveOutOfBandInvitation(alice)
                 .getMessageExchange()
 
-            val invitation = mex.getInvitation()
-            assertTrue(invitation is Invitation)
-            assertEquals(RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2, invitation.type)
-            assertEquals("issue-vc", invitation.actV2.goalCode)
-            assertEquals("Employment credential with Acme", invitation.actV2.goal)
+            val invitation = mex.getInvitation() as Invitation
+            invitation.type shouldBe RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
+            invitation.actV2.goalCode shouldBe "issue-vc"
+            invitation.actV2.goal shouldBe "Employment credential with Acme"
 
-            assertNotNull(acme.findInvitation { it.id == invitation.id }, "Acme invitation")
-            assertNotNull(alice.findInvitation { it.id == invitation.id }, "Alice invitation")
+            acme.findInvitation { it.id == invitation.id } shouldNotBe null
+            alice.findInvitation { it.id == invitation.id } shouldNotBe null
 
             val aliceAcme = mex.getConnection()
-            assertEquals(ConnectionState.INVITATION, aliceAcme.state)
-            assertEquals("Invitee Alice on NESSUS", aliceAcme.myLabel)
+            aliceAcme.state shouldBe ConnectionState.INVITATION
+            aliceAcme.myLabel shouldBe "Invitee Alice on NESSUS"
 
-            assertNotNull(acme.findConnection { it.invitationKey == invitation.invitationKey() }, "Acme connection")
-            assertNotNull(alice.findConnection { it.invitationKey == invitation.invitationKey() }, "Alice connection")
+            acme.findConnection { it.invitationKey == invitation.invitationKey() } shouldNotBe null
+            alice.findConnection { it.invitationKey == invitation.invitationKey() } shouldNotBe null
 
         } finally {
             removeWallet(Alice.name)
@@ -115,6 +112,6 @@ class RFC0434OutOfBandV2Test: AbstractDidCommTest() {
         val inviV2: InvitationV2 = InvitationV2.fromMessage(expMsg)
 
         val wasMsg: Message = inviV2.toMessage()
-        assertEquals(expMsg.toJSONObject(), wasMsg.toJSONObject())
+        wasMsg.toJSONObject() shouldBe expMsg.toJSONObject()
     }
 }
