@@ -20,15 +20,14 @@
 package org.nessus.didcomm.test.crypto
 
 import id.walt.common.prettyPrint
-import id.walt.crypto.KeyAlgorithm
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
 import org.hyperledger.indy.sdk.crypto.Crypto
 import org.nessus.didcomm.crypto.LibIndyService.closeAndDeleteWallet
 import org.nessus.didcomm.crypto.LibIndyService.createAnOpenWallet
 import org.nessus.didcomm.crypto.LibIndyService.createAndStoreDid
-import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
@@ -127,7 +126,7 @@ class LibIndyTest: AbstractAgentTest() {
                 .agentType(AgentType.NESSUS)
                 .storageType(StorageType.IN_MEMORY)
                 .build()
-            val aliceDid = didService.createDid(DidMethod.SOV, KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
+            val aliceDid = didService.createDid(DidMethod.SOV)
 
             val message = "Your hovercraft is full of eels."
             val receivers = gson.toJson(listOf(aliceDid.verkey))
@@ -160,7 +159,7 @@ class LibIndyTest: AbstractAgentTest() {
                 .agentType(AgentType.NESSUS)
                 .storageType(StorageType.IN_MEMORY)
                 .build()
-            val aliceDid = didService.createDid(DidMethod.SOV, KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
+            val aliceDid = didService.createDid(DidMethod.SOV)
 
             val message = "Your hovercraft is full of eels."
             val packed = RFC0019EncryptionEnvelope()

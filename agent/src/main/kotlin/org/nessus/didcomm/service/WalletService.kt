@@ -22,7 +22,6 @@ package org.nessus.didcomm.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import id.walt.crypto.KeyAlgorithm
 import id.walt.servicematrix.BaseService
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
@@ -96,8 +95,8 @@ class WalletService : BaseService() {
      *
      * Nessus Dids are created locally and have their associated keys in the {@see KeyStoreService}
      */
-    fun createDid(wallet: Wallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
-        val did = wallet.walletPlugin.createDid(wallet, method, algorithm, seed)
+    fun createDid(wallet: Wallet, method: DidMethod? = null, keyAlias: String? = null): Did {
+        val did = wallet.walletPlugin.createDid(wallet, method, keyAlias)
         wallet.addDid(did)
         return did
     }
@@ -187,11 +186,7 @@ interface WalletPlugin {
 
     fun removeWallet(wallet: Wallet)
 
-    fun createDid(
-        wallet: Wallet,
-        method: DidMethod?,
-        algorithm: KeyAlgorithm? = null,
-        seed: String? = null): Did
+    fun createDid(wallet: Wallet, method: DidMethod?, keyAlias: String? = null): Did
 
     fun publicDid(wallet: Wallet): Did?
 

@@ -42,6 +42,10 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.beust</groupId>
+            <artifactId>klaxon</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
         </dependency>
@@ -58,10 +62,6 @@
             <artifactId>tink</artifactId>
         </dependency>
         <dependency>
-            <groupId>id.walt.servicematrix</groupId>
-            <artifactId>waltid-servicematrix</artifactId>
-        </dependency>
-        <dependency>
             <groupId>id.walt</groupId>
             <artifactId>waltid-ssi-kit</artifactId>
         </dependency>
@@ -70,8 +70,8 @@
             <artifactId>waltid-ssikit-vclib</artifactId>
         </dependency>
         <dependency>
-            <groupId>id.walt</groupId>
-            <artifactId>waltid-ssikit-vclib</artifactId>
+            <groupId>id.walt.servicematrix</groupId>
+            <artifactId>waltid-servicematrix</artifactId>
         </dependency>
         <dependency>
             <groupId>io.github.microutils</groupId>

@@ -52,6 +52,9 @@ class WalletCommands: AbstractBaseCommand() {
     @Option(names = ["--all"], description = ["Flag to show all wallets"])
     var all: Boolean = false
 
+    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
+
     /**
      * Show wallet details
      */
@@ -62,13 +65,12 @@ class WalletCommands: AbstractBaseCommand() {
             else -> listOf(getContextWallet(alias))
         }
         if (verbose)
-            printResult("", walletModels)
+            echo(walletModels)
         else
-            printResult("", walletModels.map { it.shortString() })
+            echo(walletModels.map { it.shortString() })
         return 0
     }
 }
-
 
 @Command(name = "create", description = ["Create a wallet for a given agent"])
 class WalletCreateCommand: AbstractBaseCommand() {
@@ -79,6 +81,9 @@ class WalletCreateCommand: AbstractBaseCommand() {
     @Option(names = ["-a", "--agent"], description = ["The agent type (default=Nessus)"], defaultValue = "Nessus")
     var agent: String? = null
 
+    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
+
     override fun call(): Int {
         val wallet = Wallet.Builder(name!!)
             .agentType(AgentType.fromValue(agent!!))
@@ -86,9 +91,9 @@ class WalletCreateCommand: AbstractBaseCommand() {
         cliService.putContextWallet(wallet)
         val header = "Wallet created: "
         if (verbose)
-            printResult(header, listOf(wallet))
+            echo(header, listOf(wallet))
         else
-            printResult(header, listOf(wallet.shortString()))
+            echo(header, listOf(wallet.shortString()))
         return 0
     }
 }
@@ -99,6 +104,9 @@ class WalletRemoveCommand: AbstractBaseCommand() {
     @Option(names = ["--alias"], description = ["Optional wallet alias"])
     var alias: String? = null
 
+    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
+
     override fun call(): Int {
         val ctxWallet = cliService.findContextWallet()
         getContextWallet(alias).also { wm ->
@@ -108,9 +116,9 @@ class WalletRemoveCommand: AbstractBaseCommand() {
             walletService.removeWallet(wm.id)
             val header = "Wallet removed: "
             if (verbose)
-                printResult(header, listOf(wm))
+                echo(header, listOf(wm))
             else
-                printResult(header, listOf(wm.shortString()))
+                echo(header, listOf(wm.shortString()))
             return 0
         }
     }
@@ -125,6 +133,9 @@ class WalletConnectionCommand: AbstractBaseCommand() {
     @Option(names = ["--wallet"], description = ["Optional wallet alias"])
     var walletAlias: String? = null
 
+    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
+
     override fun call(): Int {
         val ctxWallet = getContextWallet(walletAlias)
         val pcons: List<Connection> = if (alias != null) {
@@ -138,9 +149,9 @@ class WalletConnectionCommand: AbstractBaseCommand() {
         }
         val header = "Wallet connections:\n"
         if (verbose)
-            printResult(header, pcons)
+            echo(header, pcons)
         else
-            printResult(header, pcons.map { it.shortString() })
+            echo(header, pcons.map { it.shortString() })
         return 0
     }
 }
@@ -153,6 +164,9 @@ class WalletDidCommand: AbstractBaseCommand() {
 
     @Option(names = ["--wallet"], description = ["Optional wallet alias"])
     var walletAlias: String? = null
+
+    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
 
     override fun call(): Int {
         val ctxWallet = getContextWallet(walletAlias)
@@ -167,9 +181,9 @@ class WalletDidCommand: AbstractBaseCommand() {
         }
         val header = "Wallet dids:\n"
         if (verbose)
-            printResult(header, dids)
+            echo(header, dids)
         else
-            printResult(header, dids.map { it.shortString() })
+            echo(header, dids.map { it.shortString() })
         return 0
     }
 }
@@ -182,6 +196,9 @@ class WalletInvitationCommand: AbstractBaseCommand() {
 
     @Option(names = ["--wallet"], description = ["Optional wallet alias"])
     var walletAlias: String? = null
+
+    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
 
     override fun call(): Int {
         val ctxWallet = getContextWallet(walletAlias)
@@ -196,9 +213,9 @@ class WalletInvitationCommand: AbstractBaseCommand() {
         }
         val header = "Wallet invitations:\n"
         if (verbose)
-            printResult(header, invis)
+            echo(header, invis)
         else
-            printResult(header, invis.map { it.shortString() })
+            echo(header, invis.map { it.shortString() })
         return 0
     }
 }
@@ -219,6 +236,9 @@ class WalletMessagesCommand: AbstractBaseCommand() {
     @Option(names = ["-n", "--tail"], description = ["Optional number of (tail) messages"])
     var msgCount: Int = 12
 
+    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
+
     override fun call(): Int {
         val pcon = getContextConnection(walletAlias, conAlias)
         val mex = MessageExchange.findByVerkey(pcon.myVerkey)
@@ -234,9 +254,9 @@ class WalletMessagesCommand: AbstractBaseCommand() {
         }
         val header = "Messages:\n"
         if (verbose)
-            printResult(header, msgs)
+            echo(header, msgs)
         else
-            printResult(header, msgs.map { it.shortString() })
+            echo(header, msgs.map { it.shortString() })
         return 0
     }
 }

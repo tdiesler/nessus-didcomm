@@ -20,8 +20,8 @@
 package org.nessus.didcomm.itest
 
 import io.kotest.matchers.shouldBe
-import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 

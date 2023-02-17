@@ -23,6 +23,7 @@ import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.RFC0048_TRUST_PING_V1
 import org.nessus.didcomm.service.RFC0048_TRUST_PING_V2
+import picocli.CommandLine
 import picocli.CommandLine.Command
 
 @Command(
@@ -36,6 +37,9 @@ class RFC0048TrustPingCommand
 
 @Command(name="send-ping", description = ["Send a trust ping message"])
 class RFC0048SendPingCommand: DidCommV2Command() {
+
+    @CommandLine.Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
 
     override fun call(): Int {
         val pcon = getContextConnection()
@@ -63,9 +67,9 @@ class RFC0048SendPingCommand: DidCommV2Command() {
         val header = "${sender.name} received a Trust Ping response"
         if (verbose) {
             val pingMessages = mex.messages.takeLast(2)
-            printResult("${header}\n", pingMessages)
+            echo("${header}\n", pingMessages)
         } else {
-            printResult("${header}\n", listOf())
+            echo("${header}\n", listOf())
         }
         return 0
     }

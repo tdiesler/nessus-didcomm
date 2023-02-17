@@ -37,10 +37,10 @@ import org.nessus.didcomm.agent.AgentConfiguration.Companion.agentConfiguration
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
-import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
@@ -98,12 +98,7 @@ class AcapyWalletPlugin: WalletPlugin {
 
             // Create a local DID for the wallet
             val walletClient = AriesAgent.walletClient(auxWallet, agentConfig)
-            val didMethod = publicDidMethod ?: DidMethod.SOV
-            val didCreate = WalletDIDCreate.builder()
-                .method(DIDCreate.MethodEnum.valueOf(didMethod.name))
-                .build()
-
-            publicDid = walletClient.walletDidCreate(didCreate).get().toNessusDid()
+            publicDid = createDidInternal(walletClient, publicDidMethod ?: DidMethod.SOV)
 
             val trusteeClient = AriesAgent.walletClient(trusteeWallet, agentConfig)
             val trusteeName: String = trusteeWallet.name
@@ -151,19 +146,9 @@ class AcapyWalletPlugin: WalletPlugin {
         )
     }
 
-    override fun createDid(wallet: Wallet, method: DidMethod?, algorithm: KeyAlgorithm?, seed: String?): Did {
-        val walletClient = walletClient(wallet)
-        val didOptions = DIDCreateOptions.builder()
-            .keyType((algorithm ?: DEFAULT_KEY_ALGORITHM).toAriesKeyType())
-            .build()
-        val didCreate = WalletDIDCreate.builder()
-            .method(DIDCreate.MethodEnum.valueOf(method?.name ?: DidMethod.KEY.name))
-            .options(didOptions)
-            .build()
-        val ariesDid = walletClient.walletDidCreate(didCreate).get()
-        val nessusDid = ariesDid.toNessusDid()
-        DidService.getService().registerWithKeyStore(nessusDid)
-        return nessusDid
+    override fun createDid(wallet: Wallet, method: DidMethod?, keyAlias: String?): Did {
+        require(keyAlias == null) { "keyAlias not supported" }
+        return createDidInternal(walletClient(wallet), method)
     }
 
     override fun publicDid(wallet: Wallet): Did? {
@@ -173,7 +158,7 @@ class AcapyWalletPlugin: WalletPlugin {
         val publicDid = ariesDid.toNessusDid()
         val keyStore = KeyStoreService.getService()
         keyStore.getKeyId(publicDid.qualified) ?: run {
-            DidService.getService().registerWithKeyStore(publicDid)
+            DidService.getService().importDid(publicDid)
         }
         return publicDid
     }
@@ -185,7 +170,21 @@ class AcapyWalletPlugin: WalletPlugin {
         }
     }
 
-// Private ---------------------------------------------------------------------------------------------------------
+    // Private ---------------------------------------------------------------------------------------------------------
+
+    private fun createDidInternal(walletClient: AriesClient, method: DidMethod?): Did {
+        val didOptions = DIDCreateOptions.builder()
+            .keyType(DEFAULT_KEY_ALGORITHM.toAriesKeyType())
+            .build()
+        val didCreate = WalletDIDCreate.builder()
+            .method(DIDCreate.MethodEnum.valueOf(method?.name ?: DidMethod.KEY.name))
+            .options(didOptions)
+            .build()
+        val ariesDid = walletClient.walletDidCreate(didCreate).get()
+        val nessusDid = ariesDid.toNessusDid()
+        DidService.getService().importDid(nessusDid)
+        return nessusDid
+    }
 
     private fun walletClient(wallet: Wallet): AriesClient {
         require(wallet is AcapyWallet) { "Not an AcapyWallet" }

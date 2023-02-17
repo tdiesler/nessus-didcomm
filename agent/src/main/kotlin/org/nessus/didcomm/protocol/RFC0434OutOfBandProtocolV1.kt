@@ -159,7 +159,7 @@ class RFC0434OutOfBandProtocolV1(mex: MessageExchange): Protocol<RFC0434OutOfBan
         val invitationKey = invitationV1.invitationKey()
 
         // Register the Invitation did:key with the KeyStore
-        didService.registerWithKeyStore(invitationDid)
+        didService.importDid(invitationDid)
         inviter.addDid(invitationDid)
 
         // Fetch the AcaPy ConnectionRecord

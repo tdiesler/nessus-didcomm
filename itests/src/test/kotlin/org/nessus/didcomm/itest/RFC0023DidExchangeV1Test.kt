@@ -21,7 +21,6 @@ package org.nessus.didcomm.itest
 
 import id.walt.common.prettyPrint
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import mu.KotlinLogging
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
@@ -55,8 +54,10 @@ class RFC0023DidExchangeV1Test : AbstractITest() {
              * Create the Wallets
              */
 
-            val faber = getWalletByAlias(Faber.name)
-            checkNotNull(faber) { "No Faber" }
+            val faber = Wallet.Builder(Faber.name)
+                .options(ACAPY_OPTIONS_01)
+                .agentType(AgentType.ACAPY)
+                .build()
 
             val alice = Wallet.Builder(Alice.name)
                 .options(NESSUS_OPTIONS_01)
@@ -99,8 +100,8 @@ class RFC0023DidExchangeV1Test : AbstractITest() {
                 verifyConnection(faber, faberAlice)
 
             } finally {
-                faber.removeConnections()
                 removeWallet(Alice.name)
+                removeWallet(Faber.name)
             }
         }
     }

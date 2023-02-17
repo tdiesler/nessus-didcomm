@@ -26,6 +26,7 @@ class RFC0434CmdV1Test: AbstractCliTest() {
     @Test
     fun testRFC0434CommandsV1() {
 
+        cliService.execute("wallet create --name Faber --agent AcaPy").isSuccess shouldBe true
         cliService.execute("wallet create --name Alice").isSuccess shouldBe true
         cliService.execute("agent start").isSuccess shouldBe true
 
@@ -37,6 +38,7 @@ class RFC0434CmdV1Test: AbstractCliTest() {
         } finally {
             cliService.execute("agent stop").isSuccess shouldBe true
             cliService.execute("wallet remove --alias Alice").isSuccess shouldBe true
+            cliService.execute("wallet remove --alias Faber").isSuccess shouldBe true
         }
     }
 }

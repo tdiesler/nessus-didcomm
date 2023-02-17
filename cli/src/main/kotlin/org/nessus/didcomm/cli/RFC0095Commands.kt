@@ -49,6 +49,9 @@ class RFC0095SendMessageCommand: DidCommV2Command() {
     @Parameters(index = "0", scope = INHERIT, description = ["The message"])
     var message: String? = null
 
+    @CommandLine.Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
+
     override fun call(): Int {
         val pcon = getContextConnection()
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)
@@ -92,9 +95,9 @@ class RFC0095SendMessageCommand: DidCommV2Command() {
         }
         val header = "${sender.name} sent: $message"
         if (verbose)
-            printResult("${header}\n", listOf(mex.last))
+            echo("${header}\n", listOf(mex.last))
         else
-            printResult("${header}\n", listOf())
+            echo("${header}\n", listOf())
         return 0
     }
 }

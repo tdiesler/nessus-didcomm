@@ -43,21 +43,24 @@ class RFC0434Commands
 
 open class AbstractRFC0434Command: DidCommV2Command() {
 
+    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
+
     protected fun printCreateInvitation(name: String, invitation: Invitation) {
         val header = "$name created an RFC0434 Invitation: "
         if (verbose) {
-            printResult("${header}\n", listOf(invitation))
+            echo("${header}\n", listOf(invitation))
         } else {
-            printResult(header, listOf(invitation.shortString()))
+            echo(header, listOf(invitation.shortString()))
         }
     }
 
     protected fun printReceiveInvitation(name: String, invitation: Invitation) {
         val header = "$name received an RFC0434 Invitation: "
         if (verbose)
-            printResult("${header}\n", listOf(invitation))
+            echo("${header}\n", listOf(invitation))
         else
-            printResult(header, listOf(invitation.shortString()))
+            echo(header, listOf(invitation.shortString()))
     }
 }
 
@@ -196,9 +199,9 @@ class RFC0434InviteAndConnect: AbstractRFC0434Command() {
         cliService.putAttachment(INVITATION_ATTACHMENT_KEY, null)
 
         if (verbose)
-            printResult("", listOf(pcon))
+            echo(listOf(pcon))
         else
-            printResult("", listOf(pcon.shortString()))
+            echo(listOf(pcon.shortString()))
         return 0
     }
 }

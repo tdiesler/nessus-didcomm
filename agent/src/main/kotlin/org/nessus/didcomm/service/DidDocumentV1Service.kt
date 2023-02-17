@@ -20,22 +20,36 @@
 package org.nessus.didcomm.service
 
 import id.walt.common.prettyPrint
+import id.walt.crypto.Key
+import id.walt.crypto.KeyAlgorithm
+import id.walt.crypto.convertRawKeyToMultiBase58Btc
+import id.walt.crypto.getMulticodecKeyCode
 import id.walt.servicematrix.ServiceProvider
 import id.walt.services.crypto.CryptoService
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import mu.KotlinLogging
 import org.didcommx.didcomm.message.Attachment
+import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toRaw
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidDocV1
+import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.util.decodeBase64Url
 import org.nessus.didcomm.util.decodeBase64UrlStr
 import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.encodeBase58
 import org.nessus.didcomm.util.encodeBase64Url
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.trimJson
 import java.util.UUID
+
+fun Key.toDidKey(): Did {
+    check(algorithm == KeyAlgorithm.EdDSA_Ed25519)
+    val pubkeyBytes = getPublicKey().convertEd25519toRaw()
+    val id = convertRawKeyToMultiBase58Btc(pubkeyBytes, getMulticodecKeyCode(algorithm))
+    return Did(id, DidMethod.KEY, algorithm, pubkeyBytes.encodeBase58())
+}
 
 class DidDocumentV1Service: NessusBaseService() {
     override val implementation get() = serviceImplementation<DidService>()
@@ -188,7 +202,7 @@ class DidDocumentV1Service: NessusBaseService() {
             // The signatoryDid is already registered when the DidEx Request
             // received here was also created by this agent instance
             if (keyStore.getKeyId(jwsHeaderDid.verkey) == null) {
-                didService.registerWithKeyStore(jwsHeaderDid)
+                didService.importDid(jwsHeaderDid)
             }
 
             val keyId = keyStore.load(jwsHeaderDid.verkey, KeyType.PUBLIC).keyId

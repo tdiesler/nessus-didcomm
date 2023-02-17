@@ -41,8 +41,10 @@ class RFC0048TrustPingV1Test : AbstractITest() {
 
             /** Create the wallets */
 
-            val faber = getWalletByAlias(Faber.name)
-            checkNotNull(faber) { "No Faber" }
+            val faber = Wallet.Builder(Faber.name)
+                .options(ACAPY_OPTIONS_01)
+                .agentType(AgentType.ACAPY)
+                .build()
 
             val alice = Wallet.Builder(Alice.name)
                 .options(NESSUS_OPTIONS_01)
@@ -80,8 +82,8 @@ class RFC0048TrustPingV1Test : AbstractITest() {
                     .awaitTrustPingResponse()
 
             } finally {
-                faber.removeConnections()
                 removeWallet(Alice.name)
+                removeWallet(Faber.name)
             }
         }
     }

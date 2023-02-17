@@ -32,7 +32,6 @@ import id.walt.crypto.encBase64
 import id.walt.crypto.getMulticodecKeyCode
 import id.walt.services.CryptoProvider
 import id.walt.services.key.Keys
-import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
@@ -46,7 +45,6 @@ import org.nessus.didcomm.util.decodeHex
 import org.nessus.didcomm.util.encodeBase64Url
 import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.util.encodeJson
-import org.nessus.didcomm.util.trimJson
 import java.security.PublicKey
 
 /**
@@ -91,7 +89,8 @@ class DidServiceTest: AbstractAgentTest() {
     @Test
     fun test_DidKey_Seed00() {
         val seedBytes = ByteArray(32)
-        val did = didService.createDid(DidMethod.KEY, seed=seedBytes)
+        val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, seedBytes)
+        val did = didService.createDid(DidMethod.KEY, keyId.id)
         did.qualified shouldBe "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp"
     }
 
@@ -99,7 +98,8 @@ class DidServiceTest: AbstractAgentTest() {
     fun test_OKP_Ed25519_X25519() {
 
         val seedBytes = "0000000000000000000000000000000000000000000000000000000000000005".decodeHex()
-        val didKey05 = didService.createDid(DidMethod.KEY, seed=seedBytes)
+        val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, seedBytes)
+        val didKey05 = didService.createDid(DidMethod.KEY, keyId.id)
         didKey05.qualified shouldBe "did:key:z6MkwYMhwTvsq376YBAcJHy3vyRWzBgn5vKfVqqDCgm7XVKU"
 
         // Test OKP Ed25519
@@ -165,15 +165,6 @@ class DidServiceTest: AbstractAgentTest() {
             log.info { "x: $x" }
             log.info { "d: $d" }
 
-            val octetKeyPair = OctetKeyPair.parse("""
-            {
-                "kty": "OKP",
-                "crv": "X25519",
-                "x": "$x",
-                "d": "$d"
-            }                
-            """.trimJson())
-
             // Assert that we curve coordinates match
             x shouldBe "jRIz3oriXDNZmnb35XQb7K1UIlz3ae1ao1YSqLeBXHs"
             d shouldBe "aEAAB3VBFPCQtgF3N__wRiXhMOgeiRGstpPC3gnJ1Eo"
@@ -203,38 +194,38 @@ class DidServiceTest: AbstractAgentTest() {
     @Test
     fun test_Did_Fixture() {
 
-        val keyStore = KeyStoreService.getService()
+        val faberKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Faber.seed.toByteArray())
+        val faberDid = didService.createDid(DidMethod.KEY, faberKeyId.id)
+        val faberKey = keyStore.load(faberDid.qualified, KeyType.PRIVATE)
 
-        val faberKey = didService.createDid(DidMethod.KEY, seed=Faber.seed.toByteArray())
-        val key = keyStore.load(faberKey.qualified, KeyType.PRIVATE)
-
-        val pubKey = key.keyPair?.public
-        val prvKey = key.keyPair?.private
+        val pubKey = faberKey.keyPair?.public
+        val prvKey = faberKey.keyPair?.private
         val pubkeyBytes = pubKey?.encoded
         val prvkeyBytes = prvKey?.encoded
-        val verkey58 = faberKey.verkey
+        val verkey58 = faberDid.verkey
         val verkeyBytes = verkey58.decodeBase58()
-        log.info { faberKey.qualified }
+        log.info { faberDid.qualified }
         log.info { "seed:      ${Faber.seed}" }
-        log.info { "verkey58:  ${faberKey.verkey}" }
+        log.info { "verkey58:  ${faberDid.verkey}" }
         log.info { "verkeyHex: ${verkeyBytes.encodeHex()}" }
         log.info { "seedHex:   ${Faber.seed.toByteArray().encodeHex()}" }
         log.info { "pubkeyHex: ${pubKey?.format} ${pubkeyBytes?.encodeHex()}" }
         log.info { "prvkeyHex: ${prvKey?.format} ${prvkeyBytes?.encodeHex()}" }
-        faberKey.verkey shouldBe Faber.verkey
-        faberKey.qualified shouldBe Faber.didkey
+        faberDid.verkey shouldBe Faber.verkey
+        faberDid.qualified shouldBe Faber.didkey
 
-        val faberSov = didService.createDid(DidMethod.SOV, seed=Faber.seed.toByteArray())
+        val faberSov = didService.createDid(DidMethod.SOV, faberKeyId.id)
         faberSov.verkey shouldBe Faber.verkey
         faberSov.qualified shouldBe Faber.didsov
 
         // Alice -------------------------------------------------------------------------------------------------------
 
-        val aliceKey = didService.createDid(DidMethod.KEY, seed=Alice.seed.toByteArray())
-        aliceKey.verkey shouldBe Alice.verkey
-        aliceKey.qualified shouldBe Alice.didkey
+        val aliceKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
+        val aliceDid = didService.createDid(DidMethod.KEY, aliceKeyId.id)
+        aliceDid.verkey shouldBe Alice.verkey
+        aliceDid.qualified shouldBe Alice.didkey
 
-        val aliceSov = didService.createDid(DidMethod.SOV, seed=Alice.seed.toByteArray())
+        val aliceSov = didService.createDid(DidMethod.SOV, aliceKeyId.id)
         aliceSov.verkey shouldBe Alice.verkey
         aliceSov.qualified shouldBe Alice.didsov
     }

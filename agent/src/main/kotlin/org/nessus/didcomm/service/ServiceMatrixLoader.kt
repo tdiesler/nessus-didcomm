@@ -20,6 +20,8 @@
 package org.nessus.didcomm.service
 
 import id.walt.servicematrix.ServiceMatrix
+import java.nio.file.Paths
+import kotlin.io.path.absolutePathString
 
 const val NESSUS_DIDCOMM_HOME = "NESSUS_DIDCOMM_HOME"
 const val SERVICE_MATRIX_PROPERTIES = "SERVICE_MATRIX_PROPERTIES"
@@ -36,14 +38,14 @@ class ServiceMatrixLoader {
          * 3. Fallback to NESSUS_DIDCOMM_HOME/config/service-matrix.properties
          */
         fun loadServiceDefinitions() {
-            val filePath = System.getProperty("serviceMatrixProperties")
+            val filePath = Paths.get(System.getProperty("serviceMatrixProperties")
                 ?: System.getenv(SERVICE_MATRIX_PROPERTIES)
                 ?: run {
                     val nessusHome = System.getenv(NESSUS_DIDCOMM_HOME)
                     checkNotNull(nessusHome) { "No $NESSUS_DIDCOMM_HOME" }
                     "$nessusHome/config/service-matrix.properties"
-                }
-            loadServiceDefinitions(filePath)
+                })
+            loadServiceDefinitions(filePath.absolutePathString())
         }
 
         fun loadServiceDefinitions(filePath: String) {

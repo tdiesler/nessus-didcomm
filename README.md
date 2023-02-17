@@ -47,7 +47,6 @@ siera configuration add -e default -a aca-py -k adminkey -u http://localhost:803
 
 ```
 ./wallet-bootstrap --create Government --ledger-role TRUSTEE
-./wallet-bootstrap --create Faber --ledger-role ENDORSER
 ```
 
 The above should have created the respective siera environment.
@@ -119,7 +118,3 @@ The above should have created the respective siera environment.
     assertEquals("https://didcomm.org/basicmessage/1.0/message", epm.type)
     assertEquals(userMessage, epm.bodyAsJson.selectJson("content"))
 ```
-
-### Install LibIndy
-
-https://github.com/hyperledger/indy-sdk/blob/main/docs/build-guides/mac-build.md

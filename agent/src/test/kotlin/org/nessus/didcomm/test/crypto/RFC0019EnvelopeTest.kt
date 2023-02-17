@@ -39,8 +39,8 @@ class RFC0019EnvelopeTest: AbstractAgentTest() {
     @Test
     fun pack_unpack_envelope() {
 
-        val faberDid = didService.createDid(DidMethod.KEY, KeyAlgorithm.EdDSA_Ed25519)
-        val aliceDid = didService.createDid(DidMethod.KEY, KeyAlgorithm.EdDSA_Ed25519)
+        val faberDid = didService.createDid(DidMethod.KEY)
+        val aliceDid = didService.createDid(DidMethod.KEY)
 
         // Delete the key from store (i.e. Alice's Did is external for pack)
         val aliceKey = keyStore.load(aliceDid.verkey, KeyType.PRIVATE)
@@ -61,7 +61,8 @@ class RFC0019EnvelopeTest: AbstractAgentTest() {
     @Test
     fun unpack_pack_DidEx_Request() {
 
-        val aliceDidSov = didService.createDid(DidMethod.SOV, KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
+        val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
+        val aliceDidSov = didService.createDid(DidMethod.SOV, keyAlias = keyId.id)
 
         // This is an actual DidEx Request from AcaPy sent to Alice
         val envelope = """

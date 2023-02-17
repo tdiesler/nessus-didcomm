@@ -26,19 +26,19 @@ class RFC0434CmdV2Test: AbstractCliTest() {
     @Test
     fun testRFC0434CommandsV2() {
 
-        cliService.execute("wallet create --name Acme").isSuccess shouldBe true
+        cliService.execute("wallet create --name Faber").isSuccess shouldBe true
         cliService.execute("wallet create --name Alice").isSuccess shouldBe true
         cliService.execute("agent start").isSuccess shouldBe true
 
         try {
 
-            cliService.execute("rfc0434 create-invitation --inviter Acme --dcv2").isSuccess shouldBe true
+            cliService.execute("rfc0434 create-invitation --inviter Faber --dcv2").isSuccess shouldBe true
             cliService.execute("rfc0434 receive-invitation --invitee Alice --dcv2").isSuccess shouldBe true
 
         } finally {
             cliService.execute("agent stop").isSuccess shouldBe true
             cliService.execute("wallet remove --alias Alice").isSuccess shouldBe true
-            cliService.execute("wallet remove --alias Acme").isSuccess shouldBe true
+            cliService.execute("wallet remove --alias Faber").isSuccess shouldBe true
         }
     }
 }

@@ -43,7 +43,7 @@ class AgentCommands: AbstractBaseCommand() {
         val eps = getEndpointSpec(uri)
         check(eps.type.lowercase() == "camel") { "Unsupported endpoint type: $eps" }
         val context = endpointService.startEndpoint("http://${eps.host}:${eps.port}")
-        println("Started ${eps.type} endpoint on ${eps.host}:${eps.port}")
+        echo("Started ${eps.type} endpoint on ${eps.host}:${eps.port}")
         val key = AttachmentKey("$eps", CamelContext::class)
         cliService.putAttachment(key, context)
         return 0
@@ -56,7 +56,7 @@ class AgentCommands: AbstractBaseCommand() {
         val context = cliService.removeAttachment(key)
         checkNotNull(context) { "No endpoint context" }
         context.stop()
-        println("Stopped ${eps.type} endpoint on ${eps.host}:${eps.port}")
+        echo("Stopped ${eps.type} endpoint on ${eps.host}:${eps.port}")
         return 0
     }
 

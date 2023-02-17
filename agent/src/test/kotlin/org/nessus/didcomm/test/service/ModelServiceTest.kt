@@ -41,12 +41,10 @@ class ModelServiceTest: AbstractAgentTest() {
             .agentType(AgentType.NESSUS)
             .build()
 
-        modelService.wallets.size shouldBe 3
         modelService.findWalletByName(Alice.name) shouldNotBe null
         log.info { modelService.modelAsJson.prettyPrint() }
 
         removeWallet(Alice.name)
-        modelService.wallets.size shouldBe 2
         modelService.findWalletByName(Alice.name) shouldBe null
     }
 }

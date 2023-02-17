@@ -250,6 +250,6 @@ class RFC0048TrustPingProtocolV1(mex: MessageExchange): Protocol<RFC0048TrustPin
             theirWallet.addDid(theirDid)
 
         if (keyStore.getKeyId(theirDid.verkey) == null)
-            didService.registerWithKeyStore(theirDid)
+            didService.importDid(theirDid)
     }
 }

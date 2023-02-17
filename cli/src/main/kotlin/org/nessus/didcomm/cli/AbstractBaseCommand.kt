@@ -19,7 +19,7 @@
  */
 package org.nessus.didcomm.cli
 
-import id.walt.common.prettyPrint
+import mu.KotlinLogging
 import org.nessus.didcomm.cli.service.CLIService
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
@@ -27,40 +27,45 @@ import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.CamelEndpointService
 import org.nessus.didcomm.service.ModelService
+import org.nessus.didcomm.service.VerificationPolicyService
 import org.nessus.didcomm.service.WalletService
 import picocli.CommandLine
-import picocli.CommandLine.Option
+import java.io.PrintStream
 import java.net.URL
 import java.util.concurrent.Callable
 
 abstract class AbstractBaseCommand: Callable<Int> {
+    val log = KotlinLogging.logger {  }
+
+    companion object {
+        // Can be set to redirect output
+        var out: PrintStream = System.out
+    }
 
     val cliService get() = CLIService.getService()
     val endpointService get() = CamelEndpointService.getService()
     val modelService get() = ModelService.getService()
+    val policyService get() = VerificationPolicyService.getService()
     val walletService get() = WalletService.getService()
 
-    @Option(names = ["-q", "--quiet"], description = ["Suppress terminal output"])
-    var quiet: Boolean = false
-
-    @Option(names = ["-v", "--verbose"], description = ["More verbose terminal output"])
-    var verbose: Boolean = false
-
     override fun call(): Int {
-        CommandLine.usage(this, System.out)
+        CommandLine.usage(this, out)
         return 0
     }
 
-    fun printResult(message: String, result: List<Any>) {
-        if (!quiet) {
-            print(message)
-            result.forEach {
-                when {
-                    verbose -> println(it.prettyPrint())
-                    else -> println(it)
-                }
-            }
-        }
+    fun echo(msg: Any = "") {
+        log.info { msg }
+        out.println(msg)
+    }
+
+    fun echo(result: List<Any>) {
+        result.forEach { echo(it) }
+    }
+
+    fun echo(message: String, result: List<Any>) {
+        log.info { message }
+        out.print(message)
+        result.forEach { echo(it) }
     }
 
     fun checkWalletEndpoint(vararg wallets: Wallet) {

@@ -56,6 +56,7 @@ import kotlin.system.exitProcess
         RFC0048TrustPingCommand::class,
         RFC0095BasicMessageCommand::class,
         RFC0434Commands::class,
+        VCCommands::class,
         WalletCommands::class,
     ]
 )
@@ -86,7 +87,8 @@ class NessusCli {
         }
         val execResult = runCatching {
             val pres = parseResult.getOrNull()
-            cmdln.executionStrategy.execute(pres)
+            val exitCode = cmdln.executionStrategy.execute(pres)
+            check(exitCode == 0) { "Unexpected exit code: $exitCode" }
         }
         execResult.onFailure {
             when(it) {
@@ -170,7 +172,7 @@ class NessusCli {
                         systemRegistry.execute(line)
                     } catch (e: Exception) {
                         when(e) {
-                            is UnknownCommandException -> {}
+                            is UnknownCommandException -> { println(e.message) }
                             is UserInterruptException -> {}
                             is EndOfFileException -> return 0
                         }

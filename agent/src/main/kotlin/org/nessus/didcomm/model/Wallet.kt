@@ -22,6 +22,7 @@ package org.nessus.didcomm.model
 import com.google.gson.annotations.SerializedName
 import id.walt.crypto.KeyAlgorithm
 import mu.KotlinLogging
+import org.bouncycastle.internal.asn1.bsi.BSIObjectIdentifiers.algorithm
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.ConnectionState.*
@@ -91,8 +92,8 @@ abstract class Wallet(
     val connections get() = connectionsInternal.toList()
 
     @Synchronized
-    fun createDid(method: DidMethod? = null, algorithm: KeyAlgorithm? = null, seed: String? = null): Did {
-        return walletService.createDid(this, method, algorithm, seed)
+    fun createDid(method: DidMethod? = null, keyAlias: String? = null): Did {
+        return walletService.createDid(this, method, keyAlias)
     }
 
     @Synchronized

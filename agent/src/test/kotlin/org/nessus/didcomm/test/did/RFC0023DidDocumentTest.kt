@@ -24,8 +24,8 @@ import id.walt.crypto.KeyAlgorithm
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.did.DidDocV1
+import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.decodeBase64Url
 import org.nessus.didcomm.util.decodeBase64UrlStr
@@ -105,7 +105,7 @@ class RFC0023DidDocumentTest: AbstractAgentTest() {
         val didSpec = didDocument.selectJson("publicKey[0].controller") as String
         val didVerkey = didDocument.selectJson("publicKey[0].publicKeyBase58") as String
         val didSov = Did.fromSpec(didSpec, didVerkey)
-        val keyId = didService.registerWithKeyStore(didSov)
+        val keyId = didService.importDid(didSov)
         didSov.qualified shouldBe "did:sov:DD3druQ4tFQHZjcwgn3KSc"
         didSov.verkey shouldBe "7euiJpCar5AZMoXGspdSBhJBKzj8QZM5U3QSSSh8LAA5"
 
@@ -148,7 +148,8 @@ class RFC0023DidDocumentTest: AbstractAgentTest() {
     fun diddoc_create_verify() {
 
         val seedSov = "0000000000000000000000000000000000000000000000000000000000000005".decodeHex()
-        val didSov = didService.createDid(DidMethod.SOV, KeyAlgorithm.EdDSA_Ed25519, seedSov)
+        val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, seedSov)
+        val didSov = didService.createDid(DidMethod.SOV, keyId.id)
 
         val didDocument = diddocV1Service.createDidDocument(didSov, "http://host.docker.internal:9030")
         val didDocumentJson = gson.toJson(didDocument)

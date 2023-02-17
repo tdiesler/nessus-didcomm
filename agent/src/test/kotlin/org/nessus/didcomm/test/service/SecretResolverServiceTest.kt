@@ -21,6 +21,7 @@ package org.nessus.didcomm.test.service
 
 import com.nimbusds.jose.jwk.OctetKeyPair
 import id.walt.common.prettyPrint
+import id.walt.crypto.KeyAlgorithm
 import id.walt.crypto.KeyId
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -40,7 +41,8 @@ class SecretResolverServiceTest: AbstractAgentTest() {
     @Test
     fun resolve_EdDSA_Ed25519_Private() {
 
-        val aliceDid = didService.createDid(DidMethod.KEY, seed= Alice.seed.toByteArray())
+        val aliceKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
+        val aliceDid = didService.createDid(DidMethod.KEY, aliceKeyId.id)
         aliceDid.qualified shouldBe Alice.didkey
 
         val secret: Secret = secretResolver.findKey(aliceDid.verkey).get()
@@ -59,7 +61,8 @@ class SecretResolverServiceTest: AbstractAgentTest() {
     @Test
     fun resolve_EdDSA_X25519_Private() {
 
-        val aliceDid = didService.createDid(DidMethod.KEY, seed= Alice.seed.toByteArray())
+        val aliceKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
+        val aliceDid = didService.createDid(DidMethod.KEY, aliceKeyId.id)
         aliceDid.qualified shouldBe Alice.didkey
 
         val kidX25519 = "${aliceDid.qualified}#key-x25519-1"
@@ -79,14 +82,15 @@ class SecretResolverServiceTest: AbstractAgentTest() {
     @Test
     fun resolve_EdDSA_Ed25519_Public() {
 
-        val aliceDid = didService.createDid(DidMethod.KEY, seed= Alice.seed.toByteArray())
+        val aliceKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
+        val aliceDid = didService.createDid(DidMethod.KEY, aliceKeyId.id)
         aliceDid.qualified shouldBe Alice.didkey
 
         // Delete the key from the store
         keyStore.getKeyId(aliceDid.verkey)?.also { keyStore.delete(it) }
         secretResolver.findKey(aliceDid.verkey).isPresent shouldBe false
 
-        didService.registerWithKeyStore(aliceDid)
+        didService.importDid(aliceDid)
         val key = keyStore.load(aliceDid.verkey)
         key.keyPair!!.public shouldNotBe null
         key.keyPair!!.private shouldBe null

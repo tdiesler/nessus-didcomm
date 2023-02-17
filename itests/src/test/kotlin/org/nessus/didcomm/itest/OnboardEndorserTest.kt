@@ -20,17 +20,17 @@
 package org.nessus.didcomm.itest
 
 import io.kotest.matchers.shouldBe
-import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.AgentType
+import org.nessus.didcomm.model.LedgerRole
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.wallet.AcapyWallet
-import org.nessus.didcomm.model.LedgerRole
 
 /**
  * Onboard ENDORSER through TRUSTEE
  */
-class OnboardFaberTest : AbstractITest() {
+class OnboardEndorserTest : AbstractITest() {
 
     @Test
     fun testOnboardFaber() {
@@ -38,9 +38,7 @@ class OnboardFaberTest : AbstractITest() {
         // ./wallet-bootstrap --create Government --ledger-role TRUSTEE
         val gov = getWalletByAlias(Government.name) as AcapyWallet
 
-        // ./wallet-bootstrap --create Faber --ledger-role ENDORSER
-        val maybeFaber = getWalletByAlias(Faber.name)
-        val faber = maybeFaber ?: Wallet.Builder(Faber.name)
+        val endorser = Wallet.Builder("EndorserName")
             .agentType(AgentType.ACAPY)
             .ledgerRole(LedgerRole.ENDORSER)
             .storageType(StorageType.INDY)
@@ -49,13 +47,14 @@ class OnboardFaberTest : AbstractITest() {
 
         try {
 
-            val pubDid = faber.getPublicDid()
+            val pubDid = endorser.getPublicDid()
             pubDid?.method shouldBe DidMethod.SOV
 
+            val auxDid = endorser.createDid()
+            auxDid.method shouldBe DidMethod.KEY
+
         } finally {
-            if (maybeFaber == null) {
-                walletService.removeWallet(faber.id)
-            }
+            walletService.removeWallet(endorser.id)
         }
     }
 }

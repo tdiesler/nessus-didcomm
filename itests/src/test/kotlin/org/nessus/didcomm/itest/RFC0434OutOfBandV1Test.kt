@@ -21,8 +21,8 @@ package org.nessus.didcomm.itest
 
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.AgentType
-import org.nessus.didcomm.model.InvitationV1
 import org.nessus.didcomm.model.InvitationState
+import org.nessus.didcomm.model.InvitationV1
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
@@ -46,8 +46,10 @@ class RFC0434OutOfBandV1Test : AbstractITest() {
          * Create the Wallets
          */
 
-        val faber = getWalletByAlias(Faber.name)
-        checkNotNull(faber) { "No Faber" }
+        val faber = Wallet.Builder(Faber.name)
+            .options(ACAPY_OPTIONS_01)
+            .agentType(AgentType.ACAPY)
+            .build()
 
         val alice = Wallet.Builder(Alice.name)
             .options(NESSUS_OPTIONS_01)
@@ -73,8 +75,8 @@ class RFC0434OutOfBandV1Test : AbstractITest() {
             invitation?.state shouldBe InvitationState.DONE
 
         } finally {
-            faber.removeConnections()
             removeWallet(Alice.name)
+            removeWallet(Faber.name)
         }
     }
 
@@ -85,8 +87,10 @@ class RFC0434OutOfBandV1Test : AbstractITest() {
          * Create the Wallets
          */
 
-        val faber = getWalletByAlias(Faber.name)
-        checkNotNull(faber) { "No Faber" }
+        val faber = Wallet.Builder(Faber.name)
+            .options(ACAPY_OPTIONS_01)
+            .agentType(AgentType.ACAPY)
+            .build()
 
         val alice = Wallet.Builder(Alice.name)
             .options(NESSUS_OPTIONS_01)
@@ -112,8 +116,8 @@ class RFC0434OutOfBandV1Test : AbstractITest() {
             invitation?.state shouldBe InvitationState.DONE
 
         } finally {
-            faber.removeConnections()
             removeWallet(Alice.name)
+            removeWallet(Faber.name)
         }
     }
 }

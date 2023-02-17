@@ -19,16 +19,17 @@
  */
 package org.nessus.didcomm.test.wallet
 
+import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
-import org.nessus.didcomm.test.Faber
 
 class WalletTest: AbstractAgentTest() {
 
@@ -42,14 +43,15 @@ class WalletTest: AbstractAgentTest() {
         alice.agentType shouldBe AgentType.NESSUS
         alice.storageType shouldBe StorageType.IN_MEMORY
 
-        val faberDid = alice.createDid(seed= Faber.seed)
+        val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
+        val aliceDid = alice.createDid(DidMethod.KEY, keyId.id)
 
-        faberDid.qualified shouldBe Faber.didkey
-        faberDid.verkey shouldBe Faber.verkey
+        aliceDid.qualified shouldBe Alice.didkey
+        aliceDid.verkey shouldBe Alice.verkey
 
         val keyStore = KeyStoreService.getService()
-        keyStore.load(faberDid.qualified, KeyType.PUBLIC) shouldNotBe null
-        keyStore.load(faberDid.verkey, KeyType.PUBLIC) shouldNotBe null
+        keyStore.load(aliceDid.qualified, KeyType.PUBLIC) shouldNotBe null
+        keyStore.load(aliceDid.verkey, KeyType.PUBLIC) shouldNotBe null
 
         walletService.removeWallet(alice.id)
     }

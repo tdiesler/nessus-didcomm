@@ -29,6 +29,7 @@ import id.walt.crypto.convertRawKeyToMultiBase58Btc
 import id.walt.crypto.decodeRawPubKeyBase64
 import id.walt.crypto.getMulticodecKeyCode
 import id.walt.crypto.newKeyId
+import id.walt.model.DidUrl
 import id.walt.servicematrix.ServiceProvider
 import id.walt.services.CryptoProvider
 import id.walt.services.crypto.CryptoService
@@ -63,12 +64,9 @@ fun Key.toOctetKeyPair(): OctetKeyPair {
     return Keys(keyId.id, keyPair!!, "SunEC").toOctetKeyPair()
 }
 
-fun Key.toDidKey(): Did {
-    check(algorithm == KeyAlgorithm.EdDSA_Ed25519)
-    val pubkeyBytes = getPublicKey().convertEd25519toRaw()
-    val id = convertRawKeyToMultiBase58Btc(pubkeyBytes, getMulticodecKeyCode(algorithm))
-    return Did(id, DidMethod.KEY, algorithm, pubkeyBytes.encodeBase58())
-}
+typealias WaltIdDidService = id.walt.services.did.DidService
+typealias WaltIdDidMethod = id.walt.model.DidMethod
+typealias WaltIdDidDoc = id.walt.model.Did
 
 class DidService: NessusBaseService() {
     override val implementation get() = serviceImplementation<DidService>()
@@ -79,56 +77,50 @@ class DidService: NessusBaseService() {
         override fun getService() = implementation
     }
 
-    val keyStore get() = KeyStoreService.getService()
+    private val cryptoService get() = CryptoService.getService().implementation as NessusCryptoService
+    private val keyStore get() = KeyStoreService.getService()
 
-    fun createDid(method: DidMethod, algorithm: KeyAlgorithm? = null, seed: ByteArray? = null): Did {
-
-        val cryptoService = CryptoService.getService().implementation as NessusCryptoService
-        val keyAlgorithm = algorithm ?: DEFAULT_KEY_ALGORITHM
-        val keyId = cryptoService.generateKey(keyAlgorithm, seed)
-
-        val key = keyStore.load(keyId.id, KeyType.PUBLIC)
-
-        val pubkeyBytes = key.getPublicKey().convertEd25519toRaw()
-        val verkey = pubkeyBytes.encodeBase58()
-        val id = when(method) {
-            DidMethod.KEY -> {
-                convertRawKeyToMultiBase58Btc(pubkeyBytes, getMulticodecKeyCode(keyAlgorithm))
-            }
-            DidMethod.SOV -> {
-                pubkeyBytes.dropLast(16).toByteArray().encodeBase58()
-            }
+    fun createDid(method: DidMethod, keyAlias: String? = null): Did {
+        
+        val did = when(method) {
+            DidMethod.KEY -> createDidKey(keyAlias)
+            DidMethod.SOV -> createDidSov(keyAlias)
         }
+        
+        val didUrl = did.qualified
+        val keyId = keyStore.load(didUrl).keyId
 
-        // Add verkey and did as alias
-        val did = Did(id, method, keyAlgorithm, verkey)
-        keyStore.addAlias(keyId, did.qualified)
-        keyStore.addAlias(keyId, did.verkey)
+        if (method in listOf(DidMethod.KEY)) {
+            val didDoc = WaltIdDidService.resolve(didUrl)
+            didDoc.verificationMethod?.forEach { (id) ->
+                keyStore.addAlias(keyId, id)
+            }
+            WaltIdDidService.storeDid(didUrl, didDoc.encodePretty())
+        }
 
         return did
     }
 
-    fun registerWithKeyStore(did: Did): KeyId {
-        check(did.algorithm == KeyAlgorithm.EdDSA_Ed25519) { "Unsupported key algorithm: $did" }
+    fun loadDid(did: String): Did {
+        // TODO: This should be the other way around i.e. Did.fromSpec delegating to here
+        return Did.fromSpec(loadDidDocument(did).id)
+    }
+
+    fun loadDidDocument(did: String): DidDoc {
+        return DidDoc(WaltIdDidService.load(did))
+    }
+
+    fun importDid(did: Did): KeyId {
         check(keyStore.getKeyId(did.verkey) == null) { "Did already registered: $did" }
-        val algorithm = did.algorithm
-        val rawBytes = did.verkey.decodeBase58()
-        val keyFactory = KeyFactory.getInstance("Ed25519")
-        val publicKey = decodeRawPubKeyBase64(rawBytes.encodeBase64(), keyFactory)
-        val key = Key(newKeyId(), algorithm, CryptoProvider.SUN, KeyPair(publicKey, null))
-        val keyId = key.keyId
 
-        keyStore.store(key)
+        if (did.method in listOf(DidMethod.KEY))
+            WaltIdDidService.importDid(did.qualified)
 
-        // Add verkey and did as alias
-        keyStore.addAlias(keyId, did.qualified)
-        keyStore.addAlias(keyId, did.verkey)
+        val key = importDidKey(did)
+        check(keyStore.getKeyId(did.verkey) != null)
+        check(did.verkey == key.getPublicKeyBytes().encodeBase58())
 
-        // Verify stored public key bytes
-        val storedKey = keyStore.load(did.verkey, KeyType.PUBLIC)
-        check(did.verkey == storedKey.getPublicKeyBytes().encodeBase58())
-
-        return keyId
+        return key.keyId
     }
 
     fun toOctetKeyPair(kid: String, crv: Curve, keyType: KeyType = KeyType.PUBLIC): OctetKeyPair {
@@ -204,4 +196,85 @@ class DidService: NessusBaseService() {
             else -> throw IllegalArgumentException("Unsupported curve: $crv")
         }
     }
+
+    // Private ---------------------------------------------------------------------------------------------------------
+
+    private fun createDidKey(keyAlias: String?): Did {
+        val keyAlgorithm = DEFAULT_KEY_ALGORITHM
+        val keyId = keyAlias?.let { KeyId(it) } ?: cryptoService.generateKey(keyAlgorithm)
+        val key = keyStore.load(keyId.id)
+
+        val pubkeyBytes = key.getPublicKey().convertEd25519toRaw()
+        val identifier = convertRawKeyToMultiBase58Btc(pubkeyBytes, getMulticodecKeyCode(keyAlgorithm))
+        val verkey = pubkeyBytes.encodeBase58()
+
+        // Add verkey and did as alias
+        val did = Did(identifier, DidMethod.KEY, keyAlgorithm, verkey)
+        keyStore.addAlias(keyId, did.qualified)
+        keyStore.addAlias(keyId, did.verkey)
+
+        return did
+    }
+
+    private fun createDidSov(keyAlias: String?): Did {
+        val keyAlgorithm = DEFAULT_KEY_ALGORITHM
+        val keyId = keyAlias?.let { KeyId(it) } ?: cryptoService.generateKey(keyAlgorithm)
+        val key = keyStore.load(keyId.id)
+
+        val pubkeyBytes = key.getPublicKey().convertEd25519toRaw()
+        val identifier =  pubkeyBytes.dropLast(16).toByteArray().encodeBase58()
+        val verkey = pubkeyBytes.encodeBase58()
+
+        // Add verkey and did as alias
+        val did = Did(identifier, DidMethod.SOV, keyAlgorithm, verkey)
+        keyStore.addAlias(keyId, did.qualified)
+        keyStore.addAlias(keyId, did.verkey)
+
+        return did
+    }
+
+    private fun importDidKey(did: Did): Key {
+
+        check(did.algorithm == KeyAlgorithm.EdDSA_Ed25519) { "Unsupported key algorithm: $did" }
+        val algorithm = did.algorithm
+        val rawBytes = did.verkey.decodeBase58()
+        val keyFactory = KeyFactory.getInstance("Ed25519")
+        val publicKey = decodeRawPubKeyBase64(rawBytes.encodeBase64(), keyFactory)
+        val key = Key(newKeyId(), algorithm, CryptoProvider.SUN, KeyPair(publicKey, null))
+
+        keyStore.store(key)
+        keyStore.addAlias(key.keyId, did.qualified)
+        keyStore.addAlias(key.keyId, did.verkey)
+        return key
+    }
+}
+
+class DidDoc internal constructor(didDoc: WaltIdDidDoc) {
+    private val _delegate = didDoc
+
+    val context = didDoc.context
+    val id = didDoc.id
+    val verificationMethod = didDoc.verificationMethod
+    val authentication = didDoc.authentication
+    val assertionMethod = didDoc.assertionMethod
+    val capabilityDelegation = didDoc.capabilityDelegation
+    val capabilityInvocation = didDoc.capabilityInvocation
+    val keyAgreement = didDoc.keyAgreement
+    val serviceEndpoint = didDoc.serviceEndpoint
+
+    companion object {
+        fun decode(didDoc: String): DidDoc? {
+            val waltDid = WaltIdDidDoc.decode(didDoc)
+            return waltDid?.run { DidDoc(this) }
+        }
+    }
+
+    val url: DidUrl
+        get() = DidUrl.from(id)
+
+    val method: DidMethod
+        get() = DidMethod.fromValue(url.method)
+
+    fun encode() = _delegate.encode()
+    fun encodePretty() = _delegate.encodePretty()
 }

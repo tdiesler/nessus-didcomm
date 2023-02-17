@@ -40,6 +40,9 @@ class RFC0023ConnectCommand: AbstractBaseCommand() {
     @Option(names = ["--requester" ], description = ["Optional requester alias"])
     var requesterAlias: String? = null
 
+    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
+
     override fun call(): Int {
 
         val requester = getContextWallet(requesterAlias)
@@ -67,9 +70,9 @@ class RFC0023ConnectCommand: AbstractBaseCommand() {
 
         val pcon = mex.getConnection()
         if (verbose)
-            printResult("", listOf(pcon))
+            echo(listOf(pcon))
         else
-            printResult("", listOf(pcon.shortString()))
+            echo(listOf(pcon.shortString()))
         return 0
     }
 }

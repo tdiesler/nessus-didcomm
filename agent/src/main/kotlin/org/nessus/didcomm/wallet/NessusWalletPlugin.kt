@@ -19,17 +19,15 @@
  */
 package org.nessus.didcomm.wallet
 
-import id.walt.crypto.KeyAlgorithm
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.WalletPlugin
-import java.util.*
+import java.util.UUID
 
 class NessusWalletPlugin: WalletPlugin {
     val log = KotlinLogging.logger {}
@@ -55,17 +53,8 @@ class NessusWalletPlugin: WalletPlugin {
         // Nothing to do
     }
 
-    override fun createDid(
-        wallet: Wallet,
-        method: DidMethod?,
-        algorithm: KeyAlgorithm?,
-        seed: String?
-    ): Did {
-        return DidService.getService().createDid(
-            method ?: DidMethod.KEY,
-            algorithm ?: DEFAULT_KEY_ALGORITHM,
-            seed?.toByteArray()
-        )
+    override fun createDid(wallet: Wallet, method: DidMethod?, keyAlias: String?): Did {
+        return DidService.getService().createDid(method ?: DidMethod.KEY, keyAlias)
     }
 
     override fun publicDid(wallet: Wallet): Did? {

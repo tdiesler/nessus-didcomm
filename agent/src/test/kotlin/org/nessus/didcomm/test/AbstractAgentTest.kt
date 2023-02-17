@@ -21,6 +21,7 @@ package org.nessus.didcomm.test
 
 import id.walt.services.crypto.CryptoService
 import id.walt.services.keystore.KeyStoreService
+import id.walt.signatory.Signatory
 import io.kotest.core.spec.style.AnnotationSpec
 import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.crypto.NessusCryptoService
@@ -34,6 +35,7 @@ import org.nessus.didcomm.service.MessageDispatchService
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.SecretResolverService
 import org.nessus.didcomm.service.ServiceMatrixLoader
+import org.nessus.didcomm.service.VerificationPolicyService
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.wallet.NessusWalletPlugin.Companion.getNessusEndpointUrl
@@ -98,7 +100,7 @@ abstract class AbstractAgentTest: AnnotationSpec() {
 
     @BeforeAll
     fun beforeAll() {
-        val matrixProperties = "src/test/resources/service-matrix.properties"
+        val matrixProperties = "src/test/resources/config/service-matrix.properties"
         ServiceMatrixLoader.loadServiceDefinitions(matrixProperties)
     }
 
@@ -111,7 +113,9 @@ abstract class AbstractAgentTest: AnnotationSpec() {
     val endpointService get() = CamelEndpointService.getService()
     val keyStore get() = KeyStoreService.getService()
     val modelService get() = ModelService.getService()
+    val policyService get() = VerificationPolicyService.getService()
     val secretResolver = SecretResolverService.getService()
+    val signatory = Signatory.getService()
     val walletService get() = WalletService.getService()
 
     fun readResource(path: String): String {
