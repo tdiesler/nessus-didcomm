@@ -44,7 +44,7 @@ import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
-import org.nessus.didcomm.service.DidService
+import org.nessus.didcomm.service.NessusDidService
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.WalletPlugin
 
@@ -158,7 +158,7 @@ class AcapyWalletPlugin: WalletPlugin {
         val publicDid = ariesDid.toNessusDid()
         val keyStore = KeyStoreService.getService()
         keyStore.getKeyId(publicDid.qualified) ?: run {
-            DidService.getService().importDid(publicDid)
+            NessusDidService.getService().importDid(publicDid)
         }
         return publicDid
     }
@@ -182,7 +182,7 @@ class AcapyWalletPlugin: WalletPlugin {
             .build()
         val ariesDid = walletClient.walletDidCreate(didCreate).get()
         val nessusDid = ariesDid.toNessusDid()
-        DidService.getService().importDid(nessusDid)
+        NessusDidService.getService().importDid(nessusDid)
         return nessusDid
     }
 

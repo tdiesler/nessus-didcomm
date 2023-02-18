@@ -31,8 +31,8 @@ import org.didcommx.didcomm.model.PackSignedResult
 import org.didcommx.didcomm.model.UnpackParams
 import org.didcommx.didcomm.model.UnpackResult
 
-class DidCommService: NessusBaseService() {
-    override val implementation get() = serviceImplementation<DidService>()
+class DidCommService: AbstractBaseService() {
+    override val implementation get() = serviceImplementation<NessusDidService>()
     override val log = KotlinLogging.logger {}
 
     companion object: ServiceProvider {
@@ -40,9 +40,9 @@ class DidCommService: NessusBaseService() {
         override fun getService() = implementation
     }
 
-    val didDocResolver get() = DidDocumentV2Service.getService()
-    val secretResolver get() = SecretResolverService.getService()
-    val didComm get() = DIDComm(didDocResolver, secretResolver)
+    private val didDocResolver get() = DidDocumentV2Service.getService()
+    private val secretResolver get() = SecretResolverService.getService()
+    private val didComm get() = DIDComm(didDocResolver, secretResolver)
 
     fun packPlaintext(params: PackPlaintextParams): PackPlaintextResult {
         return didComm.packPlaintext(params)

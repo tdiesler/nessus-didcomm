@@ -111,7 +111,7 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
         // Create the Requester Did & Document
         val requesterEndpointUrl = requester.endpointUrl
         val requesterDidDoc = diddocV1Service.createDidDocument(pcon.myDid, requesterEndpointUrl)
-        log.info { "Requester (${requester.name}) created Did Document: ${requesterDidDoc.encodeJson(true)}" }
+        log.info { "Requester (${requester.name}) created Did Document: ${requesterDidDoc.encodePretty()}" }
 
         mex.putAttachment(INVITEE_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(requesterDidDoc))
 
@@ -278,7 +278,7 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
         val responderEndpointUrl = responder.endpointUrl
         val responderDid = responder.createDid(DidMethod.SOV)
         val responderDidDoc = diddocV1Service.createDidDocument(responderDid, responderEndpointUrl)
-        log.info { "Responder (${responder.name}) created Did Document: ${responderDidDoc.encodeJson(true)}" }
+        log.info { "Responder (${responder.name}) created Did Document: ${responderDidDoc.encodePretty()}" }
 
         mex.putAttachment(INVITER_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(responderDidDoc))
 

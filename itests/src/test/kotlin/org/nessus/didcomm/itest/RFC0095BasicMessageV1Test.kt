@@ -39,7 +39,7 @@ import java.util.concurrent.TimeUnit
  * Aries RFC 0095: Basic Message Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0095-basic-message
  */
-class RFC0095BasicMessageV1Test : AbstractITest() {
+class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
 
     @Test
     fun test_FaberAcapy_AliceNessus() {

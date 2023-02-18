@@ -24,7 +24,7 @@ import mu.KotlinLogging
 import org.nessus.didcomm.model.AgentModel
 import org.nessus.didcomm.model.Wallet
 
-class ModelService : NessusBaseService() {
+class ModelService : AbstractBaseService() {
     override val implementation get() = serviceImplementation<ModelService>()
     override val log = KotlinLogging.logger {}
 
@@ -53,6 +53,10 @@ class ModelService : NessusBaseService() {
 
     fun findWalletByName(name: String): Wallet? {
         return findWallet { it.name.lowercase() == name.lowercase() }
+    }
+
+    fun findWalletByDid(did: String): Wallet? {
+        return findWallet { it.findDid { d -> d.qualified == did } != null }
     }
 
     fun findWalletByVerkey(verkey: String): Wallet? {

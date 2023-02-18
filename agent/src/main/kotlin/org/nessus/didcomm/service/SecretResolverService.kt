@@ -8,12 +8,16 @@ import mu.KotlinLogging
 import org.didcommx.didcomm.common.VerificationMaterial
 import org.didcommx.didcomm.common.VerificationMaterialFormat
 import org.didcommx.didcomm.common.VerificationMethodType
+import org.didcommx.didcomm.common.VerificationMethodType.ED25519_VERIFICATION_KEY_2018
+import org.didcommx.didcomm.common.VerificationMethodType.ED25519_VERIFICATION_KEY_2020
+import org.didcommx.didcomm.common.VerificationMethodType.X25519_KEY_AGREEMENT_KEY_2019
+import org.didcommx.didcomm.common.VerificationMethodType.X25519_KEY_AGREEMENT_KEY_2020
 import org.didcommx.didcomm.secret.Secret
 import org.didcommx.didcomm.secret.SecretResolver
 import java.util.Optional
 
-class SecretResolverService: NessusBaseService(), SecretResolver {
-    override val implementation get() = serviceImplementation<DidService>()
+class SecretResolverService: AbstractBaseService(), SecretResolver {
+    override val implementation get() = serviceImplementation<NessusDidService>()
     override val log = KotlinLogging.logger {}
 
     companion object: ServiceProvider {
@@ -21,7 +25,8 @@ class SecretResolverService: NessusBaseService(), SecretResolver {
         override fun getService() = implementation
     }
 
-    private val didService get() = DidService.getService()
+    private val didService get() = NessusDidService.getService()
+    private val cryptoService get() = NessusCryptoService.getService()
     private val keyStore get() = KeyStoreService.getService()
 
     override fun findKey(kid: String): Optional<Secret> {
@@ -29,12 +34,20 @@ class SecretResolverService: NessusBaseService(), SecretResolver {
         if (!hasPrivateKey(kid))
             return Optional.ofNullable(null)
 
-        val crv = when {
-            kid.contains("#key-x25519-") -> Curve.X25519
-            else -> Curve.Ed25519
+        val didDoc = didService.loadDidDocument(kid)
+        val verificationMethod = didDoc.verificationMethods.first { it.id == kid }
+        val crv = when(verificationMethod.type) {
+            ED25519_VERIFICATION_KEY_2018,
+            ED25519_VERIFICATION_KEY_2020 -> Curve.Ed25519
+            X25519_KEY_AGREEMENT_KEY_2019,
+            X25519_KEY_AGREEMENT_KEY_2020 -> Curve.X25519
+            else -> {
+                log.warn { "Cannot find curve for: ${verificationMethod.type}" }
+                return Optional.ofNullable(null)
+            }
         }
 
-        val okp = didService.toOctetKeyPair(kid, crv, KeyType.PRIVATE)
+        val okp = cryptoService.toOctetKeyPair(kid, crv, KeyType.PRIVATE)
 
         return Optional.of(Secret(
             kid = kid,

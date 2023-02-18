@@ -28,7 +28,7 @@ import org.nessus.didcomm.model.Wallet
 /**
  * Onboard Alice in_memory with did:key
  */
-class OnboardAliceTest : AbstractITest() {
+class OnboardAliceTest : AbstractIntegrationTest() {
 
     @Test
     fun testOnboardAlice() {

@@ -25,7 +25,7 @@ import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.service.DidService
+import org.nessus.didcomm.service.NessusDidService
 import org.nessus.didcomm.service.WalletPlugin
 import java.util.UUID
 
@@ -54,7 +54,7 @@ class NessusWalletPlugin: WalletPlugin {
     }
 
     override fun createDid(wallet: Wallet, method: DidMethod?, keyAlias: String?): Did {
-        return DidService.getService().createDid(method ?: DidMethod.KEY, keyAlias)
+        return NessusDidService.getService().createDid(method ?: DidMethod.KEY, keyAlias)
     }
 
     override fun publicDid(wallet: Wallet): Did? {

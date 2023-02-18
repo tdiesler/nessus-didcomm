@@ -7,19 +7,12 @@ import id.walt.auditor.ChallengePolicyArg
 import id.walt.auditor.CredentialStatusPolicy
 import id.walt.auditor.DynamicPolicyFactory
 import id.walt.auditor.ExpirationDateAfterPolicy
-import id.walt.auditor.GaiaxSDPolicy
 import id.walt.auditor.IssuedDateBeforePolicy
 import id.walt.auditor.ParameterizedVerificationPolicy
 import id.walt.auditor.PolicyFactory
-import id.walt.auditor.PolicyRegistry
-import id.walt.auditor.PolicyRegistry.isMutable
 import id.walt.auditor.PresentationDefinitionPolicy
 import id.walt.auditor.SignaturePolicy
 import id.walt.auditor.SimpleVerificationPolicy
-import id.walt.auditor.TrustedIssuerDidPolicy
-import id.walt.auditor.TrustedIssuerRegistryPolicy
-import id.walt.auditor.TrustedSchemaRegistryPolicy
-import id.walt.auditor.TrustedSubjectDidPolicy
 import id.walt.auditor.ValidFromBeforePolicy
 import id.walt.auditor.VerificationPolicy
 import id.walt.auditor.VerificationPolicyMetadata
@@ -40,8 +33,8 @@ import kotlin.reflect.KClass
  * For the current set of policies in Walt.Id see
  * https://github.com/tdiesler/waltid-ssikit/blob/master/src/main/kotlin/id/walt/auditor/PolicyRegistry.kt
  */
-class VerificationPolicyService: NessusBaseService() {
-    override val implementation get() = serviceImplementation<DidService>()
+class VerificationPolicyService: AbstractBaseService() {
+    override val implementation get() = serviceImplementation<NessusDidService>()
     override val log = KotlinLogging.logger {}
 
     companion object: ServiceProvider {

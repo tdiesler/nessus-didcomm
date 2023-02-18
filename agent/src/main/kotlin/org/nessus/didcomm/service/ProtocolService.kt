@@ -39,7 +39,7 @@ class ProtocolKey<T: Protocol<T>>(uri: String, type: KClass<T>): AttachmentKey<T
     val uri get() = this.name
 }
 
-class ProtocolService : NessusBaseService() {
+class ProtocolService : AbstractBaseService() {
     override val implementation get() = serviceImplementation<ProtocolService>()
     override val log = KotlinLogging.logger {}
 

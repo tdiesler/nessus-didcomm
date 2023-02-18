@@ -37,7 +37,7 @@ import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
  * DIDComm - Out Of Band Messages
  * https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
  */
-class RFC0434OutOfBandV1Test : AbstractITest() {
+class RFC0434OutOfBandV1Test : AbstractIntegrationTest() {
 
     @Test
     fun test_FaberAcapy_invites_AliceNessus() {

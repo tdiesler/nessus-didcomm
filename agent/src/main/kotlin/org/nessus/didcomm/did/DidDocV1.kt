@@ -28,9 +28,14 @@ data class DidDocV1(
         return service[idx].serviceEndpoint
     }
 
-    fun encodeJson(pretty: Boolean = false): String {
+    fun encode(): String {
         val jsonMap = gson.toJson(this).decodeJson()
-        return jsonMap.encodeJson(pretty)
+        return jsonMap.encodeJson()
+    }
+
+    fun encodePretty(): String {
+        val jsonMap = gson.toJson(this).decodeJson()
+        return jsonMap.encodeJson(true)
     }
 
     data class PublicKey(

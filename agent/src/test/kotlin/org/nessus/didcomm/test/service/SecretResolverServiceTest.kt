@@ -22,13 +22,13 @@ package org.nessus.didcomm.test.service
 import com.nimbusds.jose.jwk.OctetKeyPair
 import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
-import id.walt.crypto.KeyId
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import mu.KotlinLogging
 import org.didcommx.didcomm.common.VerificationMaterialFormat.JWK
+import org.didcommx.didcomm.common.VerificationMethodType.ED25519_VERIFICATION_KEY_2018
 import org.didcommx.didcomm.common.VerificationMethodType.JSON_WEB_KEY_2020
-import org.didcommx.didcomm.secret.Secret
+import org.didcommx.didcomm.common.VerificationMethodType.X25519_KEY_AGREEMENT_KEY_2019
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
@@ -45,7 +45,11 @@ class SecretResolverServiceTest: AbstractAgentTest() {
         val aliceDid = didService.createDid(DidMethod.KEY, aliceKeyId.id)
         aliceDid.qualified shouldBe Alice.didkey
 
-        val secret: Secret = secretResolver.findKey(aliceDid.verkey).get()
+        val didDoc = didService.loadDidDocument(aliceDid.qualified)
+        val kid = didDoc.verificationMethods
+            .first { it.type == ED25519_VERIFICATION_KEY_2018 }.id
+
+        val secret = secretResolver.findKey(kid).get()
         log.info { secret.prettyPrint() }
         val verificationMaterial = secret.verificationMaterial
         secret.type shouldBe JSON_WEB_KEY_2020
@@ -65,11 +69,11 @@ class SecretResolverServiceTest: AbstractAgentTest() {
         val aliceDid = didService.createDid(DidMethod.KEY, aliceKeyId.id)
         aliceDid.qualified shouldBe Alice.didkey
 
-        val kidX25519 = "${aliceDid.qualified}#key-x25519-1"
-        val keyId = KeyId(keyStore.getKeyId(aliceDid.qualified)!!)
-        keyStore.addAlias(keyId, kidX25519)
+        val didDoc = didService.loadDidDocument(aliceDid.qualified)
+        val kid = didDoc.verificationMethods
+            .first { it.type == X25519_KEY_AGREEMENT_KEY_2019 }.id
 
-        val secret: Secret = secretResolver.findKey(kidX25519).get()
+        val secret = secretResolver.findKey(kid).get()
         log.info { secret.prettyPrint() }
         val verificationMaterial = secret.verificationMaterial
         secret.type shouldBe JSON_WEB_KEY_2020
@@ -86,15 +90,22 @@ class SecretResolverServiceTest: AbstractAgentTest() {
         val aliceDid = didService.createDid(DidMethod.KEY, aliceKeyId.id)
         aliceDid.qualified shouldBe Alice.didkey
 
+        val didDocA = didService.loadDidDocument(aliceDid.qualified)
+        val kid = didDocA.verificationMethods
+            .first { it.type == ED25519_VERIFICATION_KEY_2018 }.id
+
+        secretResolver.findKey(kid).isPresent shouldBe true
+
         // Delete the key from the store
         keyStore.getKeyId(aliceDid.verkey)?.also { keyStore.delete(it) }
-        secretResolver.findKey(aliceDid.verkey).isPresent shouldBe false
+        secretResolver.findKey(kid).isPresent shouldBe false
 
         didService.importDid(aliceDid)
+
         val key = keyStore.load(aliceDid.verkey)
         key.keyPair!!.public shouldNotBe null
         key.keyPair!!.private shouldBe null
 
-        secretResolver.findKey(aliceDid.verkey).isPresent shouldBe false
+        secretResolver.findKey(kid).isPresent shouldBe false
     }
 }

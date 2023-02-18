@@ -30,7 +30,7 @@ import org.nessus.didcomm.wallet.AcapyWallet
 /**
  * Onboard ENDORSER through TRUSTEE
  */
-class OnboardEndorserTest : AbstractITest() {
+class OnboardEndorserTest : AbstractIntegrationTest() {
 
     @Test
     fun testOnboardFaber() {

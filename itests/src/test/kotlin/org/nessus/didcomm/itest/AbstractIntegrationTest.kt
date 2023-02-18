@@ -20,7 +20,6 @@
 package org.nessus.didcomm.itest
 
 import io.kotest.core.spec.style.AnnotationSpec
-import org.junit.jupiter.api.BeforeAll
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.service.CamelEndpointService
@@ -86,7 +85,7 @@ object Acme {
 }
 
 @Suppress("MemberVisibilityCanBePrivate")
-abstract class AbstractITest: AnnotationSpec() {
+abstract class AbstractIntegrationTest: AnnotationSpec() {
 
     @BeforeAll
     fun beforeAll() {
@@ -99,7 +98,7 @@ abstract class AbstractITest: AnnotationSpec() {
     val walletService get() = WalletService.getService()
 
     fun getWalletByAlias(name: String): Wallet? {
-        return walletService.findByName(name)
+        return walletService.findWallet(name)
     }
 
     fun startNessusEndpoint(options: Map<String, Any>, listener: MessageListener? = null): AutoCloseable {
@@ -108,7 +107,7 @@ abstract class AbstractITest: AnnotationSpec() {
     }
 
     fun removeWallet(name: String) {
-        walletService.findByName(name)?.run {
+        walletService.findWallet(name)?.run {
             walletService.removeWallet(this.id)
         }
     }

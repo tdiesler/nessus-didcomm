@@ -42,7 +42,7 @@ import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
  * DIDComm - Out Of Band Messages
  * https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
  */
-class RFC0023DidExchangeV1Test : AbstractITest() {
+class RFC0023DidExchangeV1Test : AbstractIntegrationTest() {
     private val log = KotlinLogging.logger {}
 
     @Test

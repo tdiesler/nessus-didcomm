@@ -45,7 +45,7 @@ typealias MessageDispatcher = (msg: EndpointMessage) -> MessageExchange?
 /**
  * The MessageDispatchService is the entry point for all messages
  */
-class MessageDispatchService: NessusBaseService(), MessageDispatcher {
+class MessageDispatchService: AbstractBaseService(), MessageDispatcher {
     override val implementation get() = serviceImplementation<MessageDispatchService>()
     override val log = KotlinLogging.logger {}
 

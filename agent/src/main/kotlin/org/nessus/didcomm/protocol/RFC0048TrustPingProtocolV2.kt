@@ -162,7 +162,6 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
             // Create and register the Did Document for this Invitation
             val inviterDid = receiver.createDid(DidMethod.KEY)
             val inviterEndpointUrl = receiver.endpointUrl
-            diddocV2Service.createDidDocument(inviterDid, inviterEndpointUrl)
 
             pcon.myDid = inviterDid
             pcon.myEndpointUrl = inviterEndpointUrl

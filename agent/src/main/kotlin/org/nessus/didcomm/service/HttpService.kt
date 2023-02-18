@@ -37,7 +37,7 @@ import org.slf4j.event.Level
 import java.util.concurrent.TimeUnit
 
 
-class HttpService: NessusBaseService() {
+class HttpService: AbstractBaseService() {
     override val implementation get() = serviceImplementation<HttpService>()
     override val log = KotlinLogging.logger {}
 

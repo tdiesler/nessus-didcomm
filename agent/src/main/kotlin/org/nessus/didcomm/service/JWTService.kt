@@ -23,8 +23,8 @@ import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
 
 
-class JWTService: NessusBaseService() {
-    override val implementation get() = serviceImplementation<DidService>()
+class JWTService: AbstractBaseService() {
+    override val implementation get() = serviceImplementation<NessusDidService>()
     override val log = KotlinLogging.logger {}
 
     companion object: ServiceProvider {

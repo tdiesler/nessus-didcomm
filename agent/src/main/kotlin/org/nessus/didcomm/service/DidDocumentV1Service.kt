@@ -51,8 +51,8 @@ fun Key.toDidKey(): Did {
     return Did(id, DidMethod.KEY, algorithm, pubkeyBytes.encodeBase58())
 }
 
-class DidDocumentV1Service: NessusBaseService() {
-    override val implementation get() = serviceImplementation<DidService>()
+class DidDocumentV1Service: AbstractBaseService() {
+    override val implementation get() = serviceImplementation<NessusDidService>()
     override val log = KotlinLogging.logger {}
 
     companion object: ServiceProvider {
@@ -61,7 +61,7 @@ class DidDocumentV1Service: NessusBaseService() {
     }
 
     private val cryptoService get() = CryptoService.getService()
-    private val didService get() = DidService.getService()
+    private val didService get() = NessusDidService.getService()
     private val keyStore get() = KeyStoreService.getService()
 
     fun createDidDocument(did: Did, endpointUrl: String): DidDocV1 {

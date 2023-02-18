@@ -25,6 +25,7 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import id.walt.servicematrix.BaseService
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
+import org.bouncycastle.asn1.x500.style.RFC4519Style.name
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AgentConfiguration
 import org.nessus.didcomm.agent.AriesAgent
@@ -55,7 +56,7 @@ class WalletService : BaseService() {
     val wallets get() = modelService.wallets
 
     fun createWallet(config: WalletConfig): Wallet {
-        val maybeWallet = findByName(config.name)
+        val maybeWallet = findWallet(config.name)
         val agentType = config.agentType ?: AgentType.NESSUS
         val storageType = config.storageType ?: StorageType.IN_MEMORY
         if (config.mayExist && maybeWallet != null) {
@@ -86,8 +87,10 @@ class WalletService : BaseService() {
         return wallet
     }
 
-    fun findByName(name: String): Wallet? {
-        return modelService.findWallet { it.name.lowercase() == name.lowercase() }
+    fun findWallet(alias: String): Wallet? {
+        return modelService.findWallet {
+            it.id == alias || it.name.lowercase() == alias.lowercase()
+        }
     }
 
     /**

@@ -24,7 +24,7 @@ import mu.KotlinLogging
 import org.nessus.didcomm.protocol.MessageListener
 
 
-abstract class EndpointService<T: Any>: NessusBaseService() {
+abstract class EndpointService<T: Any>: AbstractBaseService() {
     override val implementation get() = serviceImplementation<EndpointService<Any>>()
     override val log = KotlinLogging.logger {}
 

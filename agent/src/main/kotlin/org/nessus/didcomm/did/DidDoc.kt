@@ -52,10 +52,17 @@ class DidDoc {
 
     val id get() = optV1?.id ?: actV2.did
 
-    fun encodeJson(pretty: Boolean = false): String {
+    fun encode(): String {
         return when {
-            isV1 -> actV1.encodeJson(pretty)
-            else -> actV2.encodeJson(pretty)
+            isV1 -> actV1.encode()
+            else -> actV2.encode()
+        }
+    }
+
+    fun encodePretty(): String {
+        return when {
+            isV1 -> actV1.encodePretty()
+            else -> actV2.encodePretty()
         }
     }
 

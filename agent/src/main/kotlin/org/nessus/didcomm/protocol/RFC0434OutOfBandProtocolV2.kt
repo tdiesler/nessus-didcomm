@@ -73,7 +73,7 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
         val inviterEndpointUrl = inviter.endpointUrl
 
         // Create and register the Did Document for this Invitation
-        val invitationDidDoc = diddocV2Service.createDidDocument(invitationDid, inviterEndpointUrl)
+        val invitationDidDoc = diddocV2Service.resolveDidDocument(invitationDid.qualified)
         val invitationDidDocAttachment = diddocV2Service.createDidDocAttachment(invitationDidDoc)
 
         val invitationV2 = InvitationV2.Builder(id, type, invitationDid.qualified)
@@ -142,7 +142,7 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
         // Create Invitee Did + Document
         val inviteeDid = invitee.createDid(DidMethod.KEY)
         val inviteeEndpointUrl = invitee.endpointUrl
-        val inviteeDidDoc = diddocV2Service.createDidDocument(inviteeDid, inviteeEndpointUrl)
+        val inviteeDidDoc = diddocV2Service.resolveDidDocument(inviteeDid.qualified)
         mex.putAttachment(INVITEE_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(inviteeDidDoc))
 
         // Start a new MessageExchange
