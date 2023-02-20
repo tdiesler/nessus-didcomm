@@ -81,7 +81,7 @@ Creating a peer connection between Faber (AcaPy) and Alice (Nessus)
 $ didcomm
 
 Nessus DIDComm CLI
-Version: 0.23.3
+Version: 23.2.1
 
 >> wallet list
 Government [agent=AcaPy, type=INDY, url=http://192.168.0.10:8031]

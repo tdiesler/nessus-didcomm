@@ -27,7 +27,7 @@
 	<parent>
         <groupId>org.nessus.didcomm</groupId>
         <artifactId>nessus-didcomm</artifactId>
-        <version>0.23.3-SNAPSHOT</version>
+        <version>23.2.1-SNAPSHOT</version>
     </parent>
 
     <name>Nessus DIDComm :: CLI</name>
