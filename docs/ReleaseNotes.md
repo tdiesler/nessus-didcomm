@@ -1,16 +1,19 @@
 Release Notes
 -------------------
 
-Nessus DIDComm 0.23.2 is our First Preview release
+Nessus DIDComm 23.2.1 is a minor update release in preparation for 
+today's [Aries DIDCommV2 Working Group meeting][awg-meeting].
 
-* Wallet abstraction for AcaPy + Nessus native
-* Camel Http Endpoint for Nessus agent
-* Support for RFC0434 Out-of-Band Invitation V1 & V2
-* support for RFC0023 Did Exchange V1
-* Support for RFC0048 Trust Ping V1 & V2
-* Support for RFC0095 Basic Message V1 & V2
-* CLI to work with supported protocols and model
+* [#78][ghi78] Add initial support for W3C credentials
+* [#84][ghi84] Unify Did Document creation and storage
+* [#85][ghi85] Promote wallet subtypes to top level CLI commands
 
-For details please see the [0.23.2 Milestone](https://github.com/tdiesler/nessus-didcomm/milestone/1?closed=1).
+For details please see the [changelog](../Changelog.md).
 
 Enjoy
+
+[awg-meeting]: https://wiki.hyperledger.org/display/ARIES/Aries+DIDCommV2+Working+Group+2023-02-20+meeting
+[ghi78]: https://github.com/tdiesler/nessus-didcomm/issues/78
+[ghi84]: https://github.com/tdiesler/nessus-didcomm/issues/84
+[ghi85]: https://github.com/tdiesler/nessus-didcomm/issues/85
+
