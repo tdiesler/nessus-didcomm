@@ -37,6 +37,7 @@ import org.jline.terminal.TerminalBuilder
 import org.jline.widget.TailTipWidgets
 import org.nessus.didcomm.cli.service.CLIService
 import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import picocli.CommandLine
 import picocli.CommandLine.Command
@@ -51,8 +52,11 @@ import kotlin.system.exitProcess
     subcommands = [
         AgentCommands::class,
         ClearScreenCommand::class,
+        ConnectionCommands::class,
+        DidCommands::class,
         CommandsCommand::class,
-        RFC0023Commands::class,
+        InvitationCommands::class,
+        MessageCommands::class,
         RFC0048TrustPingCommand::class,
         RFC0095BasicMessageCommand::class,
         RFC0434Commands::class,
@@ -155,11 +159,11 @@ class NessusCli {
                 fun rightPrompt(): String? {
                     val ctxConn = cliService.findContextConnection()
                     if (ctxConn?.state == ConnectionState.ACTIVE) {
-                        return "Conn:${ctxConn.id.substring(0..6)}"
+                        return "\n[Conn:${ctxConn.id.substring(0..6)}]"
                     }
-                    val ctxInvi = cliService.findContextInvitation()
+                    val ctxInvi = cliService.getAttachment(INVITATION_ATTACHMENT_KEY)
                     if (ctxInvi != null) {
-                        return "Invi:${ctxInvi.invitationKey().substring(0..6)}"
+                        return "\n[Invi:${ctxInvi.invitationKey().substring(0..6)}]"
                     }
                     return null
                 }

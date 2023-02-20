@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.cli
 
+import id.walt.common.prettyPrint
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.RFC0048_TRUST_PING_V1
@@ -67,9 +68,9 @@ class RFC0048SendPingCommand: DidCommV2Command() {
         val header = "${sender.name} received a Trust Ping response"
         if (verbose) {
             val pingMessages = mex.messages.takeLast(2)
-            echo("${header}\n", pingMessages)
+            echo("${header}\n", pingMessages.map { it.prettyPrint() })
         } else {
-            echo("${header}\n", listOf())
+            echo(header)
         }
         return 0
     }

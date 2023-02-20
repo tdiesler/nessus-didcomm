@@ -14,6 +14,7 @@ import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.test.AbstractAgentTest
+import org.nessus.didcomm.util.encodeJson
 import java.util.Collections.max
 
 class VerifiableCredentialTest: AbstractAgentTest() {
@@ -47,10 +48,10 @@ class VerifiableCredentialTest: AbstractAgentTest() {
         val subjectDidUrl = subjectDid.qualified
         
         val issuerDidDoc = didService.loadDidDocument(issuerDidUrl)
-        log.info { "Issuer DidDoc:\n${issuerDidDoc.encodePretty()}" }
+        log.info { "Issuer DidDoc:\n${issuerDidDoc.encodeJson(true)}" }
 
         val subjectDidDoc = didService.loadDidDocument(subjectDidUrl)
-        log.info { "Subject DidDoc:\n${subjectDidDoc.encodePretty()}" }
+        log.info { "Subject DidDoc:\n${subjectDidDoc.encodeJson(true)}" }
 
         log.info { "Issuing a verifiable credential (using template $template)..." }
         val vcStr: String = signatory.issue(

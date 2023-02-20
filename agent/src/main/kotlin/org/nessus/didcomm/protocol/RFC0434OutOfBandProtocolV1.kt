@@ -26,6 +26,7 @@ import org.hyperledger.aries.api.connection.ConnectionFilter
 import org.hyperledger.aries.api.out_of_band.CreateInvitationFilter
 import org.hyperledger.aries.api.out_of_band.InvitationCreateRequest
 import org.hyperledger.aries.api.out_of_band.InvitationMessage
+import org.hyperledger.aries.api.out_of_band.InvitationMessage.InvitationMessageService
 import org.hyperledger.aries.api.out_of_band.ReceiveInvitationFilter
 import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.did.DidMethod
@@ -49,7 +50,7 @@ import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.gsonPretty
 import org.nessus.didcomm.wallet.AcapyWallet
 import org.nessus.didcomm.wallet.NessusWallet
-import java.util.*
+import java.util.UUID
 
 /**
  * Aries RFC 0434: Out-of-Band Protocol 1.1
@@ -155,7 +156,7 @@ class RFC0434OutOfBandProtocolV1(mex: MessageExchange): Protocol<RFC0434OutOfBan
         val invitationRecord = inviterClient.outOfBandCreateInvitation(createInvRequest, createInvFilter).get()
         val invitationJson = gson.toJson(invitationRecord.invitation)
         val invitationV1 = InvitationV1.fromJson(invitationJson)
-        val invitationDid = invitationV1.recipientDidKey()
+        val invitationDid = invitationV1.recipientDid()
         val invitationKey = invitationV1.invitationKey()
 
         // Register the Invitation did:key with the KeyStore
@@ -239,14 +240,14 @@ class RFC0434OutOfBandProtocolV1(mex: MessageExchange): Protocol<RFC0434OutOfBan
 
         val autoAccept = options["autoAccept"] as? Boolean ?: true
 
-        val invitationMessage = InvitationMessage.builder<InvitationMessage.InvitationMessageService>()
+        val invitationMessage = InvitationMessage.builder<InvitationMessageService>()
             .atId(invitation.id)
             .atType(invitation.type)
-             .goalCode(invitation.label)
-             .accept(invitation.accept)
-             .handshakeProtocols(invitation.handshakeProtocols)
+            .goalCode(invitation.label)
+            .accept(invitation.accept)
+            .handshakeProtocols(invitation.handshakeProtocols)
             .services(invitation.services.map {
-                gson.fromJson(gson.toJson(it), InvitationMessage.InvitationMessageService::class.java)
+                gson.fromJson(gson.toJson(it), InvitationMessageService::class.java)
             }).build()
         val receiveInvFilter = ReceiveInvitationFilter.builder()
             .useExistingConnection(false)
@@ -295,6 +296,8 @@ class RFC0434OutOfBandProtocolV1(mex: MessageExchange): Protocol<RFC0434OutOfBan
             MESSAGE_HEADER_TYPE to invitation.type,
         )))
 
+        // Needs to be did:sov, otherwise
+        // ValidationError: {'did': ['Value did:key:z6... is not an indy decentralized identifier (DID)']}
         val myDid = invitee.createDid(DidMethod.SOV)
         val myLabel = "Invitee ${invitee.name} on ${invitee.agentType}"
         val myEndpointUrl = invitee.endpointUrl

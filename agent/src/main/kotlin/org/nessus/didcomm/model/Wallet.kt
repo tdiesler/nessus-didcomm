@@ -20,9 +20,7 @@
 package org.nessus.didcomm.model
 
 import com.google.gson.annotations.SerializedName
-import id.walt.crypto.KeyAlgorithm
 import mu.KotlinLogging
-import org.bouncycastle.internal.asn1.bsi.BSIObjectIdentifiers.algorithm
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.ConnectionState.*
@@ -180,7 +178,7 @@ abstract class Wallet(
     }
 
     fun shortString(): String {
-        return "$name [agent=${agentType.value}, url=$endpointUrl]"
+        return "$name [agent=${agentType.value}, type=$storageType, url=$endpointUrl]"
     }
 
     override fun toString(): String {
@@ -230,7 +228,6 @@ abstract class Wallet(
                 )
             )
         }
-
     }
 }
 

@@ -17,73 +17,69 @@ Here, a (possibly non-exhaustive) list of stuff you can do ...
 $ .../distro/bin/didcomm.sh
 
 Nessus DIDComm CLI
-Version: 1.0
+Version: 0.23.3-SNAPSHOT
 
 >> help
   System:
-    exit     exit from app/script
-    help     command help
+    exit       exit from app/script
+    help       command help
   Commands:
-    agent    Agent related commands
-    clear    Clear the terminal screen
-    commands Show tree of available commands
-    rfc0023  RFC0023 Did Exchange
-    rfc0048  RFC0048 Trust Ping
-    rfc0095  RFC0095 Basic Message
-    rfc0434  RFC0434 Out-of-Band Invitation
-    wallet   Multitenant wallet commands
+    agent      Agent related commands
+    clear      Clear the terminal screen
+    commands   Show tree of available commands
+    connection Connection related commands
+    did        Did related commands
+    invitation Invitation related commands
+    message    Message related commands
+    rfc0048    RFC0048 Trust Ping
+    rfc0095    RFC0095 Basic Message
+    rfc0434    RFC0434 Out-of-Band Invitation
+    vc         Verifiable credential commands
+    wallet     Multitenant wallet commands
 ```
 
 Help shows a number of top-level commands. 
-
-Help on Subcommands, Options and Parameters can be obtained like this ...
-
-```shell
->> wallet help
-Usage: didcomm wallet [-qv] [--all] [--alias=<alias>] [COMMAND]
-Multitenant wallet commands
-      --alias=<alias>   Optional wallet alias
-      --all             Flag to show all wallets
-  -q, --quiet           Suppress terminal output
-  -v, --verbose         More verbose terminal output
-Commands:
-  create      Create a wallet for a given agent
-  remove      Remove and delete a given wallet
-  connection  Show available connections and their details
-  did         Show available Dids and their details
-  invitation  Show available invitations and their details
-  messages    Show connection related messages
-  switch      Switch the current context wallet
-```
 
 ### Work with multitenant wallets  
 
 On startup, the CLI examines the current environment and loads the state of already existing wallets it can find
 
-Here we have two AcaPy wallets that are currently online 
+Here we have one AcaPy wallet that is currently online 
 
 ```shell
->> wallet
-Faber [agent=AcaPy, url=http://192.168.0.10:8031]
+>> wallet list
 Government [agent=AcaPy, url=http://192.168.0.10:8031]
+
+>> wallet list --verbose
+{
+  "authToken": "eyJ0eXA...14w4",
+  "id": "3f3d74f4-8f45-49a5-82ee-6117c49a05d9",
+  "name": "Government",
+  "agentType": "AcaPy",
+  "storageType": "INDY",
+  "endpointUrl": "http://192.168.0.10:8031"
+}
 ```
 
-#### Create Alice's wallet
+#### Creating wallets for Faber and Alice
 
-A wallet is associated with one of many supported agent types - above, we see two AcaPy wallets. 
-Lets now create a native Nessus wallet for Alice
+A wallet is associated with one of many supported agent types - above, we see an AcaPy wallet. 
+Let's now create a native Nessus wallet for Alice
 
 ```shell
->> wallet create --name Alice
-Wallet created: Alice [agent=Nessus, url=http://192.168.0.10:8130]
+>> wallet create --name Faber --agent=AcaPy
+Wallet created: Faber [agent=AcaPy, type=IN_MEMORY, url=http://192.168.0.10:8030]
+
+Faber>> wallet create --name Alice
+Wallet created: Alice [agent=Nessus, type=IN_MEMORY, url=http://192.168.0.10:8130]
 
 Alice>>
 ```
 
-The prompt now changes to indicate that the current context wallet is Alice's
+The prompt changes to indicate that the current context wallet.
 
-In case we want to issue multiple commands in the context of another wallet, we can switch to it.
-Alternatively, we can stay with Alice and explicitly name the wallet for a given command 
+In case we want to issue multiple commands in the context of another wallet, we can `switch` to it.
+Alternatively, we can stay with the current context wallet and explicitly name the wallet for a given command.
 
 ```shell
 >> wallet switch fab
@@ -92,14 +88,14 @@ Faber>>
 ```
 
 The CLI supports command/option completion with TAB and command history with UP/DOWN.
-An element selection alias (in this case for a wallet) can be abbreviated and case-ignorant
+An element selection (in this case an alias for a wallet) can be abbreviated and case-insensitive.
 
 ### Agent Endpoints
 
 Every wallet has a public HTTP endpoint - multiple wallets may share the same endpoint.
 
 For Nessus wallets, the CLI can start/stop these endpoints individually. This is useful, when 
-we want to simulate an agent becoming unreachable. Also, wallets may want to use different processes/memory
+we want to simulate an agent becoming unreachable. Also, wallets may want to use different processes.
 
 Lets now start Alice's HTTP endpoint
 
@@ -108,25 +104,59 @@ Alice>> agent start
 Started Camel endpoint on 192.168.0.10:8130
 ```
 
-As you can see, this starts an [Apache Camel](https://camel.apache.org) endpoint, and hence provides a plethora of routing 
+This starts an [Apache Camel](https://camel.apache.org) endpoint, and hence provides a plethora of routing 
 transformation and other processing possibilities for incoming DIDComm messages. 
 
 ### RFC0434: Out-of-Band Invitation
 
 The CLI can support many protocols in multiple versions. This is useful for scripting various interoperability scenarios.
 
-Let's start with the classic case of Faber College inviting Alice to have a peer connection to then exchange higher level 
-DIDComm messages.
+Let's start with the classic case of Faber College inviting Alice to a peer connection.
+We can then use this connection to then exchange messages from higher level protocols. 
+
+#### Faber creates an RFC0434 Out-of-Band Invitation V1
 
 ```shell
 Alice>> rfc0434 create-invitation --inviter faber
-Faber created an RFC0434 Invitation: [key=6sNdrxQsrYPpT4nZReAxDJViMA3PXcFeNpfS4hebpUFq, url=http://192.168.0.10:8030]
+Faber created an RFC0434 Invitation: did:key:z6MkojRLEgdnFTshDA9d6ZddWF53B2MqhczMJAe1izV2ZdxF [key=AHAHeSPLuvPE6fJvQzfnf9X3MT5zHjjzc9j5tiX1eRAs, url=http://192.168.0.10:8030]
 
 Alice>> rfc0434 receive-invitation 
-Alice received an RFC0434 Invitation: [key=6sNdrxQsrYPpT4nZReAxDJViMA3PXcFeNpfS4hebpUFq, url=http://192.168.0.10:8030] ... [Invi:6sNdrxQ]
+Alice received an RFC0434 Invitation: did:key:z6MkojRLEgdnFTshDA9d6ZddWF53B2MqhczMJAe1izV2ZdxF [key=AHAHeSPLuvPE6fJvQzfnf9X3MT5zHjjzc9j5tiX1eRAs, url=http://192.168.0.10:8030]
+Alice-Faber [id=355e157b-fcf1-4c7b-825e-0573881b422a, myDid=did:sov:Aozdv2kvCHQzuptTCKxmfT, theirDid=did:sov:A1q4LmpT4HfuBcLn3NmqRE, state=ACTIVE]
 ```
 
-On the right we see the current context invitation alias, which will be used in case we leave out the explicit command option for it. 
+Internally, this uses an implementation of the [RFC0023 DID Exchange](https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange) protocol, like this ...
+
+```kotlin
+    /**
+     * Inviter (Faber) creates an Out-of-Band Invitation
+     * Invitee (Alice) receives and accepts the Invitation
+     * Requester (Alice) send the DidEx Request
+     * Responder (Faber) accepts the DidEx Request and sends a Response
+     * Requester (Alice) sends the DidEx Complete message
+     * Requester (Alice) sends a Trust Ping
+     * Responder (Faber) sends a Trust Ping Response
+     */
+
+    val mex = MessageExchange()
+        .withProtocol(RFC0434_OUT_OF_BAND_V1)
+        .createOutOfBandInvitation(faber, "Faber invites Alice")
+        .receiveOutOfBandInvitation(alice)
+
+        .withProtocol(RFC0023_DIDEXCHANGE_V1)
+        .sendDidExchangeRequest(alice)
+        .awaitDidExchangeResponse()
+        .sendDidExchangeComplete()
+
+        .withProtocol(RFC0048_TRUST_PING_V1)
+        .sendTrustPing()
+        .awaitTrustPingResponse()
+
+        .getMessageExchange()
+```
+
+Alice has now an active connection with Faber. On the right we see the current context connection. 
+It works similar to the context wallet, and it used when not given explicitly. 
 
 Let's do this again with more geeky options ...
 
@@ -134,294 +164,223 @@ Let's do this again with more geeky options ...
 Alice>> rfc0434 create-invitation --inviter faber --verbose
 Faber created an RFC0434 Invitation: 
 {
-    "@id":"75ba9adc-d416-4d96-9955-cad456024ce3",
-    "@type":"https://didcomm.org/out-of-band/1.1/invitation",
-    "label":"Invitation from Faber",
-    "accept":[
-        "didcomm/v2"
-    ],
-    "handshake_protocols":[
-        "https://didcomm.org/didexchange/1.0"
-    ],
-    "services":[
-        {
-            "id":"#inline",
-            "type":"did-communication",
-            "recipientKeys":[
-                "did:key:z6MkhEpx5hfac5qR6CuwTvHVR6tBtBD8HGWPYVA2teP48yv8"
-            ],
-            "serviceEndpoint":"http://192.168.0.10:8030"
-        }
-    ],
-    "state":"initial"
+  "@id": "2105f530-8d33-44fc-8e82-b5f6ea0c1cc4",
+  "@type": "https://didcomm.org/out-of-band/1.1/invitation",
+  "label": "Invitation from Faber",
+  "accept": [
+    "didcomm/v2"
+  ],
+  "handshake_protocols": [
+    "https://didcomm.org/didexchange/1.0"
+  ],
+  "services": [
+    {
+      "id": "#inline",
+      "type": "did-communication",
+      "recipientKeys": [
+        "did:key:z6Mki6XeBToversGta6UXZR69MfKg5AGNt6DxBAZ4T6SB2vP"
+      ],
+      "serviceEndpoint": "http://192.168.0.10:8030"
+    }
+  ],
+  "state": "initial"
 }
 ```
 
-Even more interesting, Acme could invite Alice using DIDComm V2
+Even more interesting, Faber could invite Alice using DIDComm V2
+For this we need to switch Faber to an agent that supports DCV2, Nessus for example ;-) 
+
+#### Faber creates an RFC0434 Out-of-Band Invitation V2
 
 ```shell
-Alice>> wallet create --name Acme
-Wallet created: Acme [agent=Nessus, url=http://192.168.0.10:8130]
+Alice>> wallet remove faber                                                                                                                                                                                         [Conn:355e157]
+Wallet removed: Faber [agent=AcaPy, type=IN_MEMORY, url=http://192.168.0.10:8030]
 
-Acme>> rfc0434 create-invitation --verbose --dcv2
-Acme created an RFC0434 Invitation: 
+Alice>> wallet create --name Faber
+Wallet created: Faber [agent=Nessus, type=IN_MEMORY, url=http://192.168.0.10:8130]
+
+Alice>> rfc0434 create-invitation --inviter=Faber --verbose --dcv2
+Faber created an RFC0434 Invitation
+Faber created an RFC0434 Invitation
 {
-    "id":"8180da5f-043c-4d2c-b46a-425ea8b78af3",
-    "typ":"application/didcomm-plain+json",
-    "type":"https://didcomm.org/out-of-band/2.0-preview/invitation",
-    "from":"did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ",
-    "body":{
-        "accept":[
-            "didcomm/v2"
-        ]
-    },
-    "attachments":[
-        {
-            "id":"e4409e62-72ba-4ec2-ae58-e3d7cc347189",
-            "data":{
-                "json":{
-                    "did":"did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ",
-                    "keyAgreements":[
-                        "did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ#key-x25519-1"
-                    ],
-                    "authentications":[
-                        "did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ#key-1"
-                    ],
-                    "verificationMethods":[
-                        {
-                            "id":"did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ#key-1",
-                            "type":"JSON_WEB_KEY_2020",
-                            "verificationMaterial":{
-                                "format":"JWK",
-                                "value":"{
-                                    \"kty\":\"OKP\",
-                                    \"crv\":\"Ed25519\",
-                                    \"x\":\"-Gm6q189MdH-x2tg2kUCEPGN-DMDMpiPKqrlm-97ZcM\"
-                                }"
-                            },
-                            "controller":"did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ#key-1"
-                        },
-                        {
-                            "id":"did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ#key-x25519-1",
-                            "type":"JSON_WEB_KEY_2020",
-                            "verificationMaterial":{
-                                "format":"JWK",
-                                "value":"{
-                                    \"kty\":\"OKP\",
-                                    \"crv\":\"X25519\",
-                                    \"x\":\"nzr0w2G8L-EFcd5gjcc5hLBa1F-o5mlfJ1e6wbP1SSY\"
-                                }"
-                            },
-                            "controller":"did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ#key-x25519-1"
-                        }
-                    ],
-                    "didCommServices":[
-                        {
-                            "id":"did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ#didcomm-1",
-                            "serviceEndpoint":"http://192.168.0.10:8130",
-                            "accept":[
-                                "didcomm/v2"
-                            ]
-                        }
-                    ]
-                }
+  "id": "ff21a62c-a715-41a6-9fec-8b063123e9bc",
+  "type": "https://didcomm.org/out-of-band/2.0-preview/invitation",
+  "from": "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1",
+  "accept": [
+    "didcomm/v2"
+  ],
+  "attachments": [
+    {
+      "id": "6485a0ef-b55b-43da-bacb-d3c27ba26ebd",
+      "data": {
+        "json": {
+          "did": "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1",
+          "keyAgreements": [
+            "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1#z6LSkZEAFP6wgoLQ2aUFVUM1L7o85qvvjfRop3q6UXru1uZD"
+          ],
+          "authentications": [
+            "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1#z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1"
+          ],
+          "verificationMethods": [
+            {
+              "id": "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1#z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1",
+              "type": "ED25519_VERIFICATION_KEY_2018",
+              "verificationMaterial": {
+                "format": "BASE58",
+                "value": "71ooi1fXNf31S7EVu4MA5pKkX8bEMkDHCsvAmJmxYZQd"
+              },
+              "controller": "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1"
             },
-            "media_type":"application/did+json"
+            {
+              "id": "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1#z6LSkZEAFP6wgoLQ2aUFVUM1L7o85qvvjfRop3q6UXru1uZD",
+              "type": "X25519_KEY_AGREEMENT_KEY_2019",
+              "verificationMaterial": {
+                "format": "BASE58",
+                "value": "9t3zj5J5bLcewC6Uxpq41XaeEhPp34Few57Qz5DNJXnT"
+              },
+              "controller": "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1"
+            }
+          ],
+          "didCommServices": [
+            {
+              "id": "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1#didcomm-1",
+              "serviceEndpoint": "http://192.168.0.10:8130"
+            }
+          ]
         }
-    ]
+      },
+      "mediaType": "application/did+json"
+    }
+  ]
 }
 ```
 
 The message above follows the general layout for [DIDComm V2 Out-of-Band](https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages) messages.
-However, the spec unfortunately or purposefully leaves out the specifics of a DIDComm peer-to-peer Invitation.
+However, the spec (unfortunately or purposefully) leaves out the specifics of a DIDComm peer-to-peer Invitation.
 
 In such cases, Nessus makes a number of assumptions for this [POC](https://github.com/tdiesler/nessus-didcomm/blob/main/docs/proof-of-concept.md) implementation.
 These Nessus preview protocols are documented [here](https://github.com/tdiesler/nessus-didcomm/tree/main/features).
 
-Generally, everything we demonstrate with Faber-Alice (i.e. AcaPy/Nessus) is also available in it's DIDComm V2 variant for Acme-Alice
-In future, when DIDComm V2 becomes available in AcaPy, we expect message content and type URI to change and reflect official standards.
+Generally, everything we demonstrate with Faber-Alice (i.e. AcaPy/Nessus) also works in it's DIDComm V2 variant.
+In the future, when DIDComm V2 becomes available in AcaPy, we expect message content and type to change to reflect the respective DCV2 standards.
 
-In this case, a Nessus DidComm RFC0434 Invitation message has a Did Document attached that the Invitee can use to establish a peer connection with the Inviter
+For now, a [Nessus RFC0434 Invitation][rfc0434v2] message has a Did Document attached that the Invitee can use to establish a peer connection with the Inviter.
+This could also have been done in a number of other ways ...
 
-### RFC0023: DID Exchange
+* [did:peer method 1](https://identity.foundation/peer-did-method-spec/#generation-method)
+* [did:keri](https://identity.foundation/keri/did_methods/)
 
-After Alice received the Invitation from Faber, she can request a peer connection
+We expect the upcoming [Aries Interop Profile 3](https://hackmd.io/_Kkl9ClTRBu8W4UmZVGdUQ) to nail down such details. 
+
+#### Alice receives an RFC0434 Out-of-Band Invitation V2
+
+When Alice received the Invitation from Faber, she can establish the connection by sending her connection details. 
 
 ```shell
-Alice>> rfc0434 receive-invitation 
-Alice received an RFC0434 Invitation: [key=9W5hwWWGP3fqpbde6tcYuUGFWg6y1bHpt2TpamnVddib, url=http://192.168.0.10:8030]
+Alice>> rfc0434 receive-invitation
+Alice received an RFC0434 Invitation: did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1 [key=71ooi1fXNf31S7EVu4MA5pKkX8bEMkDHCsvAmJmxYZQd, url=http://192.168.0.10:8130]
+Alice-Faber [id=f4d04fe3-4ec6-4d96-aa1b-ac05b4dc0567, myDid=did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq, theirDid=did:key:z6MkouBRMBzQVef8c7dPCn4ueh8CZo5AiKJC8HDzs9bYvrgA, state=ACTIVE]
+```
 
-Alice>> rfc0023 connect -v
+Again, the connection is now established, and we can look at it like this ...
+
+```shell
+Alice>> connection show -v                                                                                                                                                                                          [Conn:f4d04fe]
 {
-    "id":"e257ce4f-ccfe-42af-9cd3-7fbd530538bf",
-    "agent":"Nessus",
-    "invitationKey":"9W5hwWWGP3fqpbde6tcYuUGFWg6y1bHpt2TpamnVddib",
-    "myRole":"REQUESTER",
-    "myLabel":"Invitee Alice on NESSUS",
-    "myEndpointUrl":"http://192.168.0.10:8130",
-    "theirRole":"RESPONDER",
-    "theirLabel":"Inviter Faber on ACAPY",
-    "theirEndpointUrl":"http://192.168.0.10:8030",
-    "state":"ACTIVE",
-    "myDid":{
-        "method":"SOV",
-        "algorithm":"EdDSA_Ed25519",
-        "verkey":"8CZ4e8VNhRh2YE3dfKH6TMeGWawz2H3Vw5Cjo1f6nua6",
-        "id":"ED73PijFhncYuLx3rHrUCC"
-    },
-    "theirDid":{
-        "method":"SOV",
-        "algorithm":"EdDSA_Ed25519",
-        "verkey":"9ZZXMZSXoT6q7DYHr8jVpDkwPuPHC84c6Wv2AhpAbUiq",
-        "id":"Gi4hghe8LzKCfHRFnSauL1"
-    }
+  "id": "f4d04fe3-4ec6-4d96-aa1b-ac05b4dc0567",
+  "agent": "Nessus",
+  "invitationKey": "71ooi1fXNf31S7EVu4MA5pKkX8bEMkDHCsvAmJmxYZQd",
+  "myRole": "INVITEE",
+  "myLabel": "Invitee Alice on NESSUS",
+  "myEndpointUrl": "http://192.168.0.10:8130",
+  "theirRole": "INVITER",
+  "theirEndpointUrl": "http://192.168.0.10:8130",
+  "state": "ACTIVE",
+  "myDid": {
+    "method": "KEY",
+    "algorithm": "EdDSA_Ed25519",
+    "verkey": "D25auQ7NMrFQpQTfr1eeXDpNzTY5Hk5S35F2dP6nDmwT",
+    "id": "z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq"
+  },
+  "theirDid": {
+    "method": "KEY",
+    "algorithm": "EdDSA_Ed25519",
+    "verkey": "ASvNkwjyA7AfVcngXD74obaCkDoKJS3qSGK52sdY1dtn",
+    "id": "z6MkouBRMBzQVef8c7dPCn4ueh8CZo5AiKJC8HDzs9bYvrgA"
+  }
 }
 ```
 
-Above, Alice uses the context invitation, which must also be found in her wallet. The --verbose flag indicates that
-we want to see the connection details.
-
-Nessus records the messages that are being exchanged, which we can now look at
+Nessus records the messages that are being exchanged for each connection.
 
 ```shell
-Alice>> wallet messages 
-Messages:
-[id=e2d8996f-6670-4205-83a6-c8b41a38885d, thid=e2d8996f-6670-4205-83a6-c8b41a38885d, type=https://didcomm.org/out-of-band/1.1/invitation]
-[id=80890d4c-c03a-400d-84ab-639fecaf40ff, thid=80890d4c-c03a-400d-84ab-639fecaf40ff, type=https://didcomm.org/didexchange/1.0/request]
-[id=ac3fb8f1-3e65-4c5b-9e0f-ee393a9ad83c, thid=80890d4c-c03a-400d-84ab-639fecaf40ff, type=https://didcomm.org/didexchange/1.0/response]
-[id=566c9916-e415-4fe3-8e8d-12b8e481f7ae, thid=80890d4c-c03a-400d-84ab-639fecaf40ff, type=https://didcomm.org/didexchange/1.0/complete]
-[id=4d653bf5-cfe6-4d85-8335-bf0ed3832e79, thid=4d653bf5-cfe6-4d85-8335-bf0ed3832e79, type=https://didcomm.org/trust_ping/1.0/ping]
-[id=a589fa85-10ec-45ef-b371-eaab47144941, thid=4d653bf5-cfe6-4d85-8335-bf0ed3832e79, type=https://didcomm.org/trust_ping/1.0/ping_response]
+Alice>> message list 
+[id=ff21a62c-a715-41a6-9fec-8b063123e9bc, thid=ff21a62c-a715-41a6-9fec-8b063123e9bc, type=https://didcomm.org/out-of-band/2.0-preview/invitation]
+[id=21930738-19c9-4f7c-939c-919d16a0cbce, thid=21930738-19c9-4f7c-939c-919d16a0cbce, type=https://didcomm.org/trust_ping/2.0-preview/ping]
+[id=4fb772b3-9a33-4ff6-8ad0-57982a91c208, thid=21930738-19c9-4f7c-939c-919d16a0cbce, type=https://didcomm.org/trust_ping/2.0-preview/ping_response]
 ```
 
-For example, Faber's response would look like this ...
+For example, Alice's ping request would look like this ...
 
 ```shell
-Alice>> wallet messages --msg=ac3fb --verbose
-Messages:
+Alice>> message show 21930738 -v                                                                                                                                                                            [Conn:f4d04fe]
 EndpointMessage(
     headers={
-        MessageId=ac3fb8f1-3e65-4c5b-9e0f-ee393a9ad83c,
-        MessageParentThid=e2d8996f-6670-4205-83a6-c8b41a38885d,
-        MessageProtocolUri=https://didcomm.org/didexchange/1.0,
-        MessageRecipientVerkey=8CZ4e8VNhRh2YE3dfKH6TMeGWawz2H3Vw5Cjo1f6nua6,
-        MessageSenderVerkey=9ZZXMZSXoT6q7DYHr8jVpDkwPuPHC84c6Wv2AhpAbUiq,
-        MessageThid=80890d4c-c03a-400d-84ab-639fecaf40ff,
-        MessageType=https://didcomm.org/didexchange/1.0/response
-    },
-    body={
-        "@type": "https://didcomm.org/didexchange/1.0/response",
-        "@id": "ac3fb8f1-3e65-4c5b-9e0f-ee393a9ad83c",
-        "~thread": {
-            "thid": "80890d4c-c03a-400d-84ab-639fecaf40ff",
-            "pthid": "e2d8996f-6670-4205-83a6-c8b41a38885d"
-        },
-        "did": "Gi4hghe8LzKCfHRFnSauL1",
-        "did_doc~attach": {
-            "@id": "90adc843-c534-4737-90de-a5d9e44415c0",
-            "mime-type": "application/json",
-            "data": {
-                "base64": "eyJAY29u...wMzAifV19",
-                "jws": {
-                    "header": {
-                        "kid": "did:key:z6MknxLkXkkhibAJw6ULnTaPkZpFLFNpRUYBa3NkR3kWYrVy"
-                    },
-                    "protected": "eyJhbGciO...clZ5In19",
-                    "signature": "QFuAY4YxaFqrjMYmeTiplARXDCu1JRwRXsPYXA_X_AFNs-vLLj7vf9MwUqezQAg5zYQGv4QJW9Q6jOxDaRycBA"
-                }
-            }
-        }
-    }
-)
-```
-
-Again, and perhaps more interestingly, we could also do this using DIDComm V2 preview protocols
-
-```shell
-Alice>> rfc0434 create-invitation --inviter acme --dcv2
-Acme created an RFC0434 Invitation: [key=D6LVaw3C2Y5xFVrePCerZBFWvSx6HWMuzhAqMWUqw4x2, url=http://192.168.0.10:8130]
-
-Alice>> rfc0434 receive-invitation --dcv2 
-Alice received an RFC0434 Invitation: [key=D6LVaw3C2Y5xFVrePCerZBFWvSx6HWMuzhAqMWUqw4x2, url=http://192.168.0.10:8130]
-                                                                                                                                                                                                                     Invi:D6LVaw3
-Alice>> rfc0048 send-ping --dcv2
-Alice received a Trust Ping response
-                                                                                                                                                                                                                     Conn:a898df7
-Alice>> wallet messages 
-Messages:
-[id=8180da5f-043c-4d2c-b46a-425ea8b78af3, thid=8180da5f-043c-4d2c-b46a-425ea8b78af3, type=https://didcomm.org/out-of-band/2.0-preview/invitation]
-[id=fc292f99-eb72-4443-a4e4-bb6f2f658f65, thid=fc292f99-eb72-4443-a4e4-bb6f2f658f65, type=https://didcomm.org/trust_ping/2.0-preview/ping]
-[id=67f18d32-dcbe-4459-a534-63af9e1cce5e, thid=fc292f99-eb72-4443-a4e4-bb6f2f658f65, type=https://didcomm.org/trust_ping/2.0-preview/ping_response]
-
-Alice>> wallet messages --msg=fc292f99 -v
-EndpointMessage(
-    headers={
-        MessageId=fc292f99-eb72-4443-a4e4-bb6f2f658f65,
+        MessageId=21930738-19c9-4f7c-939c-919d16a0cbce,
         MessageMediaType=application/didcomm-plain+json,
         MessageType=https://didcomm.org/trust_ping/2.0-preview/ping
     },
     body={
-        "id":"fc292f99-eb72-4443-a4e4-bb6f2f658f65",
+        "id":"21930738-19c9-4f7c-939c-919d16a0cbce",
         "typ":"application/didcomm-plain+json",
         "type":"https://didcomm.org/trust_ping/2.0-preview/ping",
-        "from":"did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm",
+        "from":"did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq",
         "to":[
-            "did:key:z6MkwAxfM32RTU5CJgFFgE38gznHSxjYZGsPuJ7xvGTzCmbQ"
+            "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1"
         ],
-        "created_time":1676366926,
-        "expires_time":1676453326,
+        "created_time":1676875627,
+        "expires_time":1676962027,
         "body":{
             "comment":"Ping from Alice"
         },
         "attachments":[
             {
-                "id":"4836047a-8ba4-4cab-a2d4-3e6af2e48859",
+                "id":"82a26d35-9c37-45dd-91ac-4c6a17015ce6",
                 "data":{
                     "jws":null,
                     "hash":null,
                     "json":{
-                        "did":"did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm",
+                        "did":"did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq",
                         "keyAgreements":[
-                            "did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm#key-x25519-1"
+                            "did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq#z6LSfSxT2g2cnnkmbarYY2edP2aLC77C6eY78BZ7nhXebjVQ"
                         ],
                         "authentications":[
-                            "did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm#key-1"
+                            "did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq#z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq"
                         ],
                         "verificationMethods":[
                             {
-                                "id":"did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm#key-1",
-                                "type":"JSON_WEB_KEY_2020",
+                                "id":"did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq#z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq",
+                                "type":"ED25519_VERIFICATION_KEY_2018",
                                 "verificationMaterial":{
-                                    "format":"JWK",
-                                    "value":"{
-                                        \"kty\":\"OKP\",
-                                        \"crv\":\"Ed25519\",
-                                        \"x\":\"n-8NCt6DcUrb2JZJBcGyjRVRP4AHH63u8zXMA7j5QoA\"
-                                    }"
+                                    "format":"BASE58",
+                                    "value":"D25auQ7NMrFQpQTfr1eeXDpNzTY5Hk5S35F2dP6nDmwT"
                                 },
-                                "controller":"did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm#key-1"
+                                "controller":"did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq"
                             },
                             {
-                                "id":"did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm#key-x25519-1",
-                                "type":"JSON_WEB_KEY_2020",
+                                "id":"did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq#z6LSfSxT2g2cnnkmbarYY2edP2aLC77C6eY78BZ7nhXebjVQ",
+                                "type":"X25519_KEY_AGREEMENT_KEY_2019",
                                 "verificationMaterial":{
-                                    "format":"JWK",
-                                    "value":"{
-                                        \"kty\":\"OKP\",
-                                        \"crv\":\"X25519\",
-                                        \"x\":\"qwmMMf08jZbpbV-jzAeepr7VLxoaUHN5TDZp0p13K28\"
-                                    }"
+                                    "format":"BASE58",
+                                    "value":"4mnHWNDkhL32WCUn1P8g4SMrLxa5Q3MxFCqSJEt7tMie"
                                 },
-                                "controller":"did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm#key-x25519-1"
+                                "controller":"did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq"
                             }
                         ],
                         "didCommServices":[
                             {
-                                "id":"did:key:z6MkqDaHchxszHLyhyAFG4guQdPmxv6jZpV1hH27JKCqBaZm#didcomm-1",
-                                "serviceEndpoint":"http://192.168.0.10:8130",
-                                "accept":[
-                                    "didcomm/v2"
-                                ]
+                                "id":"did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq#didcomm-1",
+                                "serviceEndpoint":"http://192.168.0.10:8130"
                             }
                         ]
                     }
@@ -433,67 +392,48 @@ EndpointMessage(
 )
 ```
 
-Here we see how the Invitee (Alice) communicates her DID Document as an attachment to a DIDComm V2 message. 
+Here we see how the Invitee (Alice) communicates her DID Document as an attachment to a DIDComm V2 Trust Ping. 
 As the message type suggests, this again isn't official protocol content - for details see 
-[Nessus DidComm RFC0048: Trust Ping 2.0](https://github.com/tdiesler/nessus-didcomm/tree/main/features/0048-trust-ping)
+[Nessus RFC0048: Trust Ping 2.0][rfc0048v2]
 
-#### RFC0434 Connect Shortcut
+Faber can now use the `fromPrior` message header that is built into DIDComm V2, to rotate the DID that it wants to use for this peer connection.
+This is another proprietary feature of [Nessus RFC0048: Trust Ping 2.0][rfc0048v2] 
+
+
+#### Nessus RFC0434 Connect Shortcut
 
 Because Out-of-Band Invitation followed by some sort of Did exchange is so common and the foundation for almost every other protocol, there
 is a shortcut available directly on the RFC0434 protocol
 
 ```shell
-Alice>> rfc0434 connect faber alice
-Faber created an RFC0434 Invitation: [key=3PViHhFjUMnEuLeucNaPxdoGFoq5XoyetWBhX1KH3nvt, url=http://192.168.0.10:8030]
-Alice received an RFC0434 Invitation: [key=3PViHhFjUMnEuLeucNaPxdoGFoq5XoyetWBhX1KH3nvt, url=http://192.168.0.10:8030]
-Alice-Faber [id=eaa366b7-233c-4f49-96b0-07b8a2d79f33, myDid=did:sov:KKfaxF828Butw7YhxrCwLg, theirDid=did:sov:SQER4xEDgZZ96SSuh8AoTq, state=ACTIVE]
-```
-
-or 
-
-```shell
-Alice>> rfc0434 connect acme alice --dcv2
-Acme created an RFC0434 Invitation: [key=EM3w7YdDCwzBLwKja3RToeeKvNpuRwnt74HLumG6RxQ5, url=http://192.168.0.10:8130]
-Alice received an RFC0434 Invitation: [key=EM3w7YdDCwzBLwKja3RToeeKvNpuRwnt74HLumG6RxQ5, url=http://192.168.0.10:8130]
-Alice-Acme [id=b302c1c3-a3e3-4cb7-993d-274599951c3f, myDid=did:sov:YH32aNN2QA2bJN7kUupxk5, theirDid=did:sov:RYrHMthsk5nFPF7QDFhBBa, state=ACTIVE]
+Alice>> rfc0434 connect --dcv2 faber alice                                                                                                                                                                          [Conn:9939eec]
+Faber created an RFC0434 Invitation: did:key:z6MkvAmFiRcVxaUo4MTN9DJfmcY1jgbqaorAc5ZLDNrF791Y [key=GiWD8BN4d2zKwrcfTeLpvWz1v7KzAvbov4eQP6tEBvEA, url=http://192.168.0.10:8130]
+Alice received an RFC0434 Invitation: did:key:z6MkvAmFiRcVxaUo4MTN9DJfmcY1jgbqaorAc5ZLDNrF791Y [key=GiWD8BN4d2zKwrcfTeLpvWz1v7KzAvbov4eQP6tEBvEA, url=http://192.168.0.10:8130]
+Alice-Faber [id=20e82029-ef64-4572-a6d2-7ac661435d32, myDid=did:key:z6MkvSHUgybJtTCGemvJgUvURZPGVFkZgfUKSam6Z7QcP3EX, theirDid=did:key:z6MkvMJwBXeykWgsCxkoJdJUVdSztFZMztt2qH3JCWK5NfwC, state=ACTIVE]
 ```
 
 Alice should now have multiple connections
 
 ```shell
-Alice>> wallet connection 
-Wallet connections:
-Alice-Acme [id=08c4a2ec-2f91-4b6e-82af-4e71f70be411, myDid=did:key:z6Mkh31vmcP83Hs5XJeaFR15vjdGB95bkhKs2YnrkiLmQe5Q, theirDid=did:key:z6MkqmwGzCNiQmzyn5N13aBwDJivatXQfs9Pp2WkBbntw9EN, state=ACTIVE]
-Alice-Faber [id=7c67f6e5-805e-41ae-b78d-d03f66efd257, myDid=did:sov:L8shpteP48VeEGn5XDyQoF, theirDid=did:sov:6c7cKA8aojYTBx39z2i9mM, state=ACTIVE]
+Alice>> connection list                                                                                                                                                                                             [Conn:20e8202
+Alice-Faber [id=f4d04fe3-4ec6-4d96-aa1b-ac05b4dc0567, myDid=did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq, theirDid=did:key:z6MkouBRMBzQVef8c7dPCn4ueh8CZo5AiKJC8HDzs9bYvrgA, state=ACTIVE]
+Alice-Faber [id=20e82029-ef64-4572-a6d2-7ac661435d32, myDid=did:key:z6MkvSHUgybJtTCGemvJgUvURZPGVFkZgfUKSam6Z7QcP3EX, theirDid=did:key:z6MkvMJwBXeykWgsCxkoJdJUVdSztFZMztt2qH3JCWK5NfwC, state=ACTIVE]
 ```
 
 and multiple DIDs
 
 ```shell
-Alice>> wallet did -v
-Wallet dids:
-Did(
-    id=z6Mkh31vmcP83Hs5XJeaFR15vjdGB95bkhKs2YnrkiLmQe5Q,
-    method=KEY,
-    algorithm=EdDSA_Ed25519,
-    verkey=3aktBN8ghkNcQoosZr3F5e5GMZokLp5WLXsvvSNkVRJ2
-)
-Did(
-    id=L8shpteP48VeEGn5XDyQoF,
-    method=SOV,
-    algorithm=EdDSA_Ed25519,
-    verkey=BRvK5GDiL1rNkcCxkjqp5JkxfkGwFZ2XAucUGM54g4M1
-)
+Alice>> did list                                                                                                                                                                                                    [Conn:20e8202]
+did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq [algorithm=EdDSA_Ed25519, verkey=D25auQ7NMrFQpQTfr1eeXDpNzTY5Hk5S35F2dP6nDmwT]
+did:key:z6MkvSHUgybJtTCGemvJgUvURZPGVFkZgfUKSam6Z7QcP3EX [algorithm=EdDSA_Ed25519, verkey=Gz2S6jLsYuhoYH5bzuxdaTqGfgUiGnDxkZrAiqSbTpT9]
 ```
-
-Notice, how she uses DID method `sov` with Faber and `key` with Acme
 
 ### RFC0048: Trust Ping
 
-Trust Ping is an integral of establishing a peer connection - we've seen it above already. 
+Trust Ping is an integral part of establishing a peer connection - we've seen it above already. 
 It is however also available as a separate protocol/command.
 
-Lets see, what it looks like in DIDComm V2 ...
+Let's see, what it looks like in DIDComm V2 ...
 
 ```shell
 Alice>> rfc0048 send-ping --dcv2
@@ -503,20 +443,20 @@ Alice>> rfc0048 send-ping --dcv2 -v
 Alice received a Trust Ping response
 EndpointMessage(
     headers={
-        MessageId=3a6b78e0-3768-4c9c-9616-5f3805d25ea4,
+        MessageId=85365fc0-7124-4ab9-aca5-2a711313f522,
         MessageMediaType=application/didcomm-plain+json,
         MessageType=https://didcomm.org/trust_ping/2.0-preview/ping
     },
     body={
-        "id":"3a6b78e0-3768-4c9c-9616-5f3805d25ea4",
+        "id":"85365fc0-7124-4ab9-aca5-2a711313f522",
         "typ":"application/didcomm-plain+json",
         "type":"https://didcomm.org/trust_ping/2.0-preview/ping",
-        "from":"did:key:z6Mkm8ezEDdR1Au4TxyW7UQejVduZsbhdGcc6pC7oNMKxhxs",
+        "from":"did:key:z6MkvSHUgybJtTCGemvJgUvURZPGVFkZgfUKSam6Z7QcP3EX",
         "to":[
-            "did:key:z6Mkit4ysNAR9YmUCnyti1Sp2yGF2AJEbwV92j2Ny5Yduwcp"
+            "did:key:z6MkvMJwBXeykWgsCxkoJdJUVdSztFZMztt2qH3JCWK5NfwC"
         ],
-        "created_time":1676292282,
-        "expires_time":1676378682,
+        "created_time":1676877204,
+        "expires_time":1676963604,
         "body":{
             "comment":"Ping from Alice"
         }
@@ -524,37 +464,34 @@ EndpointMessage(
 )
 EndpointMessage(
     headers={
-        MessageId=25ab0958-0764-4fe9-8f6b-b9f857c60bd5,
+        MessageId=5ddd1406-395d-4bda-9824-60bd841d96c2,
         MessageMediaType=application/didcomm-plain+json,
         MessageProtocolUri=https://didcomm.org/trust_ping/2.0-preview,
-        MessageRecipientVerkey=7gPwdyNyfdQbMU8oRuSotQ5ukJKrDPNFQoHBy6PK3VBV,
-        MessageSenderVerkey=5RowH7uyp1H16J9C2SUyBsiFCb2PC4EnLi7T8oacziqS,
-        MessageThid=3a6b78e0-3768-4c9c-9616-5f3805d25ea4,
+        MessageRecipientVerkey=Gz2S6jLsYuhoYH5bzuxdaTqGfgUiGnDxkZrAiqSbTpT9,
+        MessageSenderVerkey=Gu3tbHQYQyCQ6Tv6d4LdeXu14gHWb1dg9G8NNEM4TT9p,
+        MessageThid=85365fc0-7124-4ab9-aca5-2a711313f522,
         MessageType=https://didcomm.org/trust_ping/2.0-preview/ping_response
     },
     body={
-        "id":"25ab0958-0764-4fe9-8f6b-b9f857c60bd5",
+        "id":"5ddd1406-395d-4bda-9824-60bd841d96c2",
         "typ":"application/didcomm-plain+json",
         "type":"https://didcomm.org/trust_ping/2.0-preview/ping_response",
-        "from":"did:key:z6Mkit4ysNAR9YmUCnyti1Sp2yGF2AJEbwV92j2Ny5Yduwcp",
+        "from":"did:key:z6MkvMJwBXeykWgsCxkoJdJUVdSztFZMztt2qH3JCWK5NfwC",
         "to":[
-            "did:key:z6Mkm8ezEDdR1Au4TxyW7UQejVduZsbhdGcc6pC7oNMKxhxs"
+            "did:key:z6MkvSHUgybJtTCGemvJgUvURZPGVFkZgfUKSam6Z7QcP3EX"
         ],
-        "created_time":1676292282,
-        "expires_time":1676378682,
+        "created_time":1676877205,
+        "expires_time":1676963605,
         "body":{
-            "comment":"Pong from Acme"
+            "comment":"Pong from Faber"
         },
-        "thid":"3a6b78e0-3768-4c9c-9616-5f3805d25ea4"
+        "thid":"85365fc0-7124-4ab9-aca5-2a711313f522"
     }
 )
 ```
 
 Note, on the wire these messages will be signed+encrypted and not plain text.
 In the first Trust Ping, the Invitee may attach his/her peer Did Document   
-
-Currently, the DIDComm V2 [MessageBuilder](https://github.com/sicpa-dlab/didcomm-jvm/blob/main/lib/src/main/kotlin/org/didcommx/didcomm/message/Message.kt#L139)
-API does not provide write access to this field ... not sure if this is intentional
 
 ### RFC0095: Basic Message
 
@@ -564,8 +501,7 @@ With DIDComm V2, we have the choice of sending a message
 2. [Signed](https://identity.foundation/didcomm-messaging/spec/#didcomm-signed-messages)
 3. [Encrypted](https://identity.foundation/didcomm-messaging/spec/#didcomm-encrypted-messages)
 
-The Nessus [RFC0095 Basic Message 2.0](https://github.com/tdiesler/nessus-didcomm/tree/main/features/0095-basic-message) 
-preview also supports these variants.
+The Nessus [RFC0095 Basic Message 2.0][rfc0095v2] preview also supports these variants.
 
 ```shell
 Alice>> rfc0095 send 'Your hovercraft is full of eels' --dcv2 -v
@@ -648,3 +584,7 @@ Here are some ideas on how to move on from here
 As always, please feel free to comment on code and file issues.
 
 Enjoy
+
+[rfc0048v2]: https://github.com/tdiesler/nessus-didcomm/tree/main/features/0048-trust-ping
+[rfc0095v2]: https://github.com/tdiesler/nessus-didcomm/tree/main/features/0095-basic-message
+[rfc0434v2]: https://github.com/tdiesler/nessus-didcomm/tree/main/features/0434-oob-invitation

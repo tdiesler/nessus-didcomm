@@ -73,6 +73,44 @@ The above should have created the respective siera environment.
 [rfc0095v2]: features/0095-basic-message
 [rfc0434v2]: features/0434-oob-invitation
 
+### CLI Example
+
+Creating a peer connection between Faber (AcaPy) and Alice (Nessus)
+
+```shell
+$ didcomm
+
+Nessus DIDComm CLI
+Version: 0.23.3
+
+>> wallet list
+Government [agent=AcaPy, type=INDY, url=http://192.168.0.10:8031]
+
+>> wallet create --name=Faber --agent=AcaPy
+Wallet created: Faber [agent=AcaPy, type=IN_MEMORY, url=http://192.168.0.10:8030]
+
+Faber>> wallet create --name=Alice 
+Wallet created: Alice [agent=Nessus, type=IN_MEMORY, url=http://192.168.0.10:8130]
+
+Alice>> agent start
+Started Camel endpoint on 192.168.0.10:8130
+
+Alice>> rfc0434 create-invitation --inviter=Faber
+Faber created an RFC0434 Invitation: did:key:z6Mkk4KrPgeamSqtMN6UGvQrP2scL9nQmWEUXeEhgiSf8YCd [key=6c4ooSQ9RuMREsFmbMT1XwKcWaWZMcz7qdKmrSUeDKRF, url=http://192.168.0.10:8030]
+                                                                                                                                                                                                      Invi:6c4ooSQ
+Alice>> rfc0434 receive-invitation 
+Alice received an RFC0434 Invitation: did:key:z6Mkk4KrPgeamSqtMN6UGvQrP2scL9nQmWEUXeEhgiSf8YCd [key=6c4ooSQ9RuMREsFmbMT1XwKcWaWZMcz7qdKmrSUeDKRF, url=http://192.168.0.10:8030]
+Alice-Faber [id=a95f8a12-86ef-469e-8d2b-afb73b011899, myDid=did:sov:AyXqxQ6abuDojHKsomKMgQ, theirDid=did:sov:CN2tMFmDmd2KeUyQjxeJYU, state=ACTIVE]
+
+Alice>> message list 
+[id=72560e3f-abea-492f-b86e-f36976d8e3f7, thid=72560e3f-abea-492f-b86e-f36976d8e3f7, type=https://didcomm.org/out-of-band/1.1/invitation]
+[id=3169c72d-7c84-4018-9575-7f2a23ff0bb0, thid=3169c72d-7c84-4018-9575-7f2a23ff0bb0, type=https://didcomm.org/didexchange/1.0/request]
+[id=8d931533-28b2-4348-b68f-5626e907b8ca, thid=3169c72d-7c84-4018-9575-7f2a23ff0bb0, type=https://didcomm.org/didexchange/1.0/response]
+[id=f70cb005-4efe-45b4-bc3e-c4ba8b39c2fa, thid=3169c72d-7c84-4018-9575-7f2a23ff0bb0, type=https://didcomm.org/didexchange/1.0/complete]
+[id=e02e0cd5-63db-4dde-aa73-ace8cb3a0c66, thid=e02e0cd5-63db-4dde-aa73-ace8cb3a0c66, type=https://didcomm.org/trust_ping/1.0/ping]
+[id=f7a7be95-e8be-4535-8d47-047ef0e7e9f1, thid=e02e0cd5-63db-4dde-aa73-ace8cb3a0c66, type=https://didcomm.org/trust_ping/1.0/ping_response]
+```
+
 ### Code Sample
 
 ```kotlin

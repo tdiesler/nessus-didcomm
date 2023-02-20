@@ -41,10 +41,13 @@ class AcapyWallet(
     val authToken: String? = null,
 ): Wallet(id, name, agentType, storageType, endpointUrl, options) {
 
-    override val walletPlugin get() = AcapyWalletPlugin()
-
+    @Transient
     private val interceptorLogLevel = Level.INFO
+
+    @Transient
     private var webSocketClient: WebSocketClient? = null
+
+    override val walletPlugin get() = AcapyWalletPlugin()
 
     // [TODO] Abstract the Agent client
     fun adminClient(): AriesClient? {
@@ -54,7 +57,7 @@ class AcapyWallet(
         } else null
     }
 
-    // [TODO] Abstract the Agent client
+    // [TODO] Abstract the Wallet client
     fun walletClient(): AriesClient? {
         return if (agentType == AgentType.ACAPY) {
             val config = agentConfiguration(options)

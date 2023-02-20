@@ -19,9 +19,10 @@
  */
 package org.nessus.didcomm.model
 
+import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.gson
 
-class AgentModel {
+class Model {
 
     internal val walletsMap: MutableMap<String, Wallet> = mutableMapOf()
 
@@ -41,6 +42,10 @@ class AgentModel {
     @Synchronized
     fun removeWallet(id: String): Wallet? {
         return walletsMap.remove(id)
+    }
+
+    fun encode(pretty: Boolean = false): String {
+        return mapOf("wallets" to wallets.sortedBy { it.name }).encodeJson(pretty)
     }
 }
 

@@ -21,7 +21,7 @@ package org.nessus.didcomm.service
 
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
-import org.nessus.didcomm.model.AgentModel
+import org.nessus.didcomm.model.Model
 import org.nessus.didcomm.model.Wallet
 
 class ModelService : AbstractBaseService() {
@@ -33,7 +33,7 @@ class ModelService : AbstractBaseService() {
         override fun getService() = implementation
     }
 
-    val model = AgentModel()
+    val model = Model()
     val modelAsJson: String get() = model.asJson
     val wallets get() = model.wallets
 

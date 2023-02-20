@@ -136,10 +136,10 @@ data class InvitationV2(
         }
 
     fun invitationKey(): String {
-        return recipientDidKey().verkey
+        return recipientDid().verkey
     }
 
-    fun recipientDidKey(): Did {
+    fun recipientDid(): Did {
         return Did.fromSpec(diddoc.did)
     }
 

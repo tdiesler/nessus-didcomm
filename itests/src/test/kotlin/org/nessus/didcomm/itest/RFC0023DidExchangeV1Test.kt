@@ -38,9 +38,6 @@ import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
  *
  * Aries RFC 0023: DID Exchange Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange
- *
- * DIDComm - Out Of Band Messages
- * https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
  */
 class RFC0023DidExchangeV1Test : AbstractIntegrationTest() {
     private val log = KotlinLogging.logger {}
@@ -107,7 +104,7 @@ class RFC0023DidExchangeV1Test : AbstractIntegrationTest() {
     }
 
     @Test
-    fun test_AcmeNessus_invites_AliceNessus() {
+    fun test_FaberNessus_invites_AliceNessus() {
 
         startNessusEndpoint(NESSUS_OPTIONS_01).use {
 
@@ -115,7 +112,7 @@ class RFC0023DidExchangeV1Test : AbstractIntegrationTest() {
              * Create the Wallets
              */
 
-            val acme = Wallet.Builder(Acme.name)
+            val acme = Wallet.Builder(Faber.name)
                 .options(NESSUS_OPTIONS_01)
                 .agentType(AgentType.NESSUS)
                 .build()
@@ -128,18 +125,18 @@ class RFC0023DidExchangeV1Test : AbstractIntegrationTest() {
             try {
 
                 /**
-                 * Inviter (Acme) creates an Out-of-Band Invitation
+                 * Inviter (Faber) creates an Out-of-Band Invitation
                  * Invitee (Alice) receives and accepts the Invitation
                  * Requester (Alice) send the DidEx Request
-                 * Responder (Acme) accepts the DidEx Request and sends a Response
+                 * Responder (Faber) accepts the DidEx Request and sends a Response
                  * Requester (Alice) sends the DidEx Complete message
                  * Requester (Alice) sends a Trust Ping
-                 * Responder (Acme) sends a Trust Ping Response
+                 * Responder (Faber) sends a Trust Ping Response
                  */
 
                 val mex = MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND_V1)
-                    .createOutOfBandInvitation(acme, "Acme invites Alice")
+                    .createOutOfBandInvitation(acme, "Faber invites Alice")
                     .receiveOutOfBandInvitation(alice)
 
                     .withProtocol(RFC0023_DIDEXCHANGE_V1)
@@ -153,15 +150,15 @@ class RFC0023DidExchangeV1Test : AbstractIntegrationTest() {
 
                     .getMessageExchange()
 
-                val aliceAcme = mex.getConnection()
-                val acmeAlice = acme.findConnection{ it.myVerkey == aliceAcme.theirVerkey }
+                val aliceFaber = mex.getConnection()
+                val acmeAlice = acme.findConnection{ it.myVerkey == aliceFaber.theirVerkey }
 
-                verifyConnection(alice, aliceAcme)
+                verifyConnection(alice, aliceFaber)
                 verifyConnection(acme, acmeAlice)
 
             } finally {
                 removeWallet(Alice.name)
-                removeWallet(Acme.name)
+                removeWallet(Faber.name)
             }
         }
     }

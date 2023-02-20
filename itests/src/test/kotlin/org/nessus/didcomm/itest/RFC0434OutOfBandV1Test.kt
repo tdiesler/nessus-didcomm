@@ -33,9 +33,6 @@ import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
  *
  * Aries RFC 0023: DID Exchange Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange
- *
- * DIDComm - Out Of Band Messages
- * https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
  */
 class RFC0434OutOfBandV1Test : AbstractIntegrationTest() {
 

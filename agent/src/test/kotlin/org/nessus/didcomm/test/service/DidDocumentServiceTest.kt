@@ -29,6 +29,7 @@ import org.nessus.didcomm.service.WaltIdDidDoc
 import org.nessus.didcomm.service.WaltIdDidService
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
+import org.nessus.didcomm.util.encodeJson
 
 class DidDocumentServiceTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
@@ -44,7 +45,7 @@ class DidDocumentServiceTest: AbstractAgentTest() {
             log.info { "WaltIdDidDoc: ${didDoc.encodePretty()}" }
 
             val didDocV2 = didService.loadDidDocument(didA.qualified)
-            log.info { "DidDocV2: ${didDocV2.encodePretty()}" }
+            log.info { "DidDocV2: ${didDocV2.encodeJson(true)}" }
             didDocV2.serviceEndpoint() shouldBe alice.endpointUrl
 
             val sicpaDidDoc = didDocV2.toSicpaDidDoc()

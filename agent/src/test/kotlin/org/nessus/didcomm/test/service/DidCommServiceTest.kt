@@ -36,6 +36,7 @@ import org.nessus.didcomm.service.WaltIdDidService
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
+import org.nessus.didcomm.util.encodeJson
 import java.util.UUID
 
 class DidCommServiceTest: AbstractAgentTest() {
@@ -77,7 +78,7 @@ class DidCommServiceTest: AbstractAgentTest() {
             log.info { "WaltIdDidDoc ${waltDidDoc.encodePretty()}" }
 
             val didDocV2: DidDocV2 = didService.loadDidDocument(faberDid.qualified)
-            log.info { "DidDocV2 ${didDocV2.encodePretty()}" }
+            log.info { "DidDocV2 ${didDocV2.encodeJson(true)}" }
 
             val message = MessageBuilder(
                     id = "${UUID.randomUUID()}",
@@ -121,7 +122,7 @@ class DidCommServiceTest: AbstractAgentTest() {
             log.info { "WaltIdDidDoc ${waltDidDoc.encodePretty()}" }
 
             val didDocV2: DidDocV2 = didService.loadDidDocument(faberDid.qualified)
-            log.info { "DidDocV2 ${didDocV2.encodePretty()}" }
+            log.info { "DidDocV2 ${didDocV2.encodeJson(true)}" }
 
             val message = MessageBuilder(
                 id = "${UUID.randomUUID()}",

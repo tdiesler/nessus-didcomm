@@ -10,9 +10,6 @@ import org.didcommx.didcomm.common.VerificationMethodType
 import org.didcommx.didcomm.diddoc.DIDCommService
 import org.didcommx.didcomm.diddoc.VerificationMethod
 import org.nessus.didcomm.service.WaltIdDidDoc
-import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.util.encodeJson
-import org.nessus.didcomm.util.gson
 
 typealias SicpaDidDoc = org.didcommx.didcomm.diddoc.DIDDoc
 typealias WaltIdVerificationMethod = id.walt.model.VerificationMethod
@@ -34,16 +31,6 @@ data class DidDocV2(
             authentications = doc.authentication?.map { it.id } ?: listOf(),
             verificationMethods = doc.verificationMethod?.map { it.toVerificationMethod() } ?: listOf(),
             didCommServices = doc.serviceEndpoint?.map { it.toDIDCommService() } ?: listOf())
-    }
-
-    fun encode(): String {
-        val jsonMap = gson.toJson(this).decodeJson()
-        return jsonMap.encodeJson()
-    }
-
-    fun encodePretty(): String {
-        val jsonMap = gson.toJson(this).decodeJson()
-        return jsonMap.encodeJson(true)
     }
 
     fun serviceEndpoint(): String? {

@@ -53,7 +53,7 @@ class AgentCmdTest: AbstractCliTest() {
             cliService.execute("agent stop").isSuccess shouldBe true
 
         } finally {
-            cliService.execute("wallet remove --alias alice").isSuccess shouldBe true
+            cliService.execute("wallet remove alice").isSuccess shouldBe true
         }
     }
 }

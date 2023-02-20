@@ -13,6 +13,9 @@
         <fileSet>
             <directory>target/distro</directory>
             <outputDirectory>nessus-didcomm-cli-${project.version}</outputDirectory>
+            <excludes>
+                <exclude>data/</exclude>
+            </excludes>
         </fileSet>
     </fileSets>
 </assembly>

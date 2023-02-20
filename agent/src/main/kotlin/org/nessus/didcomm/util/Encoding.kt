@@ -77,6 +77,10 @@ fun Map<String, Any?>.encodeJson(pretty: Boolean = false, sorted: Boolean = fals
     return if (pretty) gsonPretty.toJson(input) else gson.toJson(input)
 }
 
+fun Any.encodeJson(pretty: Boolean = false): String {
+    return if (pretty) gsonPretty.toJson(this) else gson.toJson(this)
+}
+
 fun String.isJson(): Boolean {
     return this.trim().startsWith('{')
 }

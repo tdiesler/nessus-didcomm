@@ -91,6 +91,14 @@ class EndpointMessage(
         check(type == expectedType) { "Unexpected message type: $type" }
     }
 
+    fun shortString(): String {
+        return "[id=$id, thid=$thid, type=$type]"
+    }
+
+    override fun toString(): String {
+        return "EndpointMessage(headers=$headers, body=$body)"
+    }
+
     class Builder(var body: Any) {
         private var headers: MutableMap<String, Any?> = mutableMapOf()
 
@@ -102,14 +110,6 @@ class EndpointMessage(
         fun header(k: String, v: Any?) = apply { if (v != null) this.headers[k] = v }
         fun headers(headers: Map<String, Any>) = apply { this.headers.putAll(headers) }
         fun build() = EndpointMessage(body, headers)
-    }
-
-    fun shortString(): String {
-        return "[id=$id, thid=$thid, type=$type]"
-    }
-
-    override fun toString(): String {
-        return "EndpointMessage(headers=$headers, body=$body)"
     }
 }
 

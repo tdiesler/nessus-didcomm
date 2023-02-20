@@ -60,10 +60,10 @@ class InvitationV1(
     }
 
     fun invitationKey(idx: Int = 0): String {
-        return recipientDidKey(idx).verkey
+        return recipientDid(idx).verkey
     }
 
-    fun recipientDidKey(idx: Int = 0): Did {
+    fun recipientDid(idx: Int = 0): Did {
         check(services.size > idx) { "No services[$idx].recipientKeys" }
         check(services[idx].recipientKeys.isNotEmpty()) { "No recipient keys" }
         check(services[idx].recipientKeys.size == 1) { "Multiple recipient keys" }

@@ -1,9 +1,6 @@
 package org.nessus.didcomm.did
 
 import com.google.gson.annotations.SerializedName
-import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.util.encodeJson
-import org.nessus.didcomm.util.gson
 
 data class DidDocV1(
     @SerializedName("@context")
@@ -26,16 +23,6 @@ data class DidDocV1(
     fun serviceEndpoint(idx: Int = 0): String {
         check(service.size > idx) { "No service[$idx]" }
         return service[idx].serviceEndpoint
-    }
-
-    fun encode(): String {
-        val jsonMap = gson.toJson(this).decodeJson()
-        return jsonMap.encodeJson()
-    }
-
-    fun encodePretty(): String {
-        val jsonMap = gson.toJson(this).decodeJson()
-        return jsonMap.encodeJson(true)
     }
 
     data class PublicKey(

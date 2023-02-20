@@ -84,7 +84,7 @@ class Did(id: String, val method: DidMethod, val algorithm: KeyAlgorithm, val ve
     }
 
     fun shortString(): String {
-        return "[$qualified, verkey=$verkey]"
+        return "$qualified [algorithm=$algorithm, verkey=$verkey]"
     }
 
     override fun toString(): String {

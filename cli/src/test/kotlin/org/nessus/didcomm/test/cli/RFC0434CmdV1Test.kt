@@ -37,8 +37,8 @@ class RFC0434CmdV1Test: AbstractCliTest() {
 
         } finally {
             cliService.execute("agent stop").isSuccess shouldBe true
-            cliService.execute("wallet remove --alias Alice").isSuccess shouldBe true
-            cliService.execute("wallet remove --alias Faber").isSuccess shouldBe true
+            cliService.execute("wallet remove Alice").isSuccess shouldBe true
+            cliService.execute("wallet remove Faber").isSuccess shouldBe true
         }
     }
 }

@@ -70,7 +70,6 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
         val id = "${UUID.randomUUID()}"
         val type = RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
         val invitationDid = inviter.createDid(DidMethod.KEY)
-        val inviterEndpointUrl = inviter.endpointUrl
 
         // Create and register the Did Document for this Invitation
         val invitationDidDoc = diddocV2Service.resolveDidDocument(invitationDid.qualified)

@@ -44,7 +44,6 @@ internal class CommandListRenderer : CommandLine.IHelpSectionRenderer {
 
         // prepare layout: two columns
         // the left column overflows, the right column wraps if text is too long
-        val columnWidth = 25
         val textTable: CommandLine.Help.TextTable = CommandLine.Help.TextTable.forColumns(
             help.colorScheme(),
             CommandLine.Help.Column(25, 2, CommandLine.Help.Column.Overflow.SPAN),
@@ -52,7 +51,6 @@ internal class CommandListRenderer : CommandLine.IHelpSectionRenderer {
         )
         textTable.isAdjustLineBreaksForWideCJKCharacters = spec.usageMessage().adjustLineBreaksForWideCJKCharacters()
         for (subcommand in spec.subcommands().values) {
-            val name = subcommand.commandSpec.names().first()
             addHierarchy(subcommand, textTable, "")
             textTable.addRowValues("")
         }
@@ -78,7 +76,7 @@ internal class CommandListRenderer : CommandLine.IHelpSectionRenderer {
 
     private fun description(usageMessage: CommandLine.Model.UsageMessageSpec): String {
         if (usageMessage.header().isNotEmpty()) {
-            return usageMessage.header().get(0)
+            return usageMessage.header()[0]
         }
         return if (usageMessage.description().isNotEmpty()) {
             usageMessage.description().get(0)

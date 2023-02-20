@@ -27,6 +27,7 @@ import org.nessus.didcomm.did.DidDocV2
 import org.nessus.didcomm.did.SicpaDidDoc
 import org.nessus.didcomm.did.toSicpaDidDoc
 import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.gson
 import java.util.Optional
 import java.util.UUID
@@ -57,7 +58,7 @@ class DidDocumentV2Service: AbstractBaseService(), DIDDocResolver {
     }
 
     fun createDidDocAttachment(didDoc: DidDocV2): Attachment {
-        val didDocAttachMap = didDoc.encode().decodeJson()
+        val didDocAttachMap = didDoc.encodeJson().decodeJson()
         val jsonData = Attachment.Data.Json.parse(mapOf("json" to didDocAttachMap))
         return Attachment.Builder("${UUID.randomUUID()}", jsonData)
             .mediaType(DID_DOCUMENT_MEDIA_TYPE)

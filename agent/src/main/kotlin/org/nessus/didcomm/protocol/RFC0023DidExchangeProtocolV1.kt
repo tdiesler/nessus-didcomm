@@ -105,13 +105,13 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
         mex.placeEndpointMessageFuture(RFC0023_DIDEXCHANGE_MESSAGE_TYPE_RESPONSE_V1)
 
         val pcon = mex.getConnection()
-        val recipientDidKey = invitation.recipientDidKey()
+        val recipientDidKey = invitation.recipientDid()
         val recipientServiceEndpoint = invitation.recipientServiceEndpoint()
 
         // Create the Requester Did & Document
         val requesterEndpointUrl = requester.endpointUrl
         val requesterDidDoc = diddocV1Service.createDidDocument(pcon.myDid, requesterEndpointUrl)
-        log.info { "Requester (${requester.name}) created Did Document: ${requesterDidDoc.encodePretty()}" }
+        log.info { "Requester (${requester.name}) created Did Document: ${requesterDidDoc.encodeJson(true)}" }
 
         mex.putAttachment(INVITEE_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(requesterDidDoc))
 
@@ -272,13 +272,13 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
         checkNotNull(requesterDidDoc) { "No requester Did Document" }
 
         val theirEndpointUrl = requesterDidDoc.serviceEndpoint()
-        val recipientDidKey = invitation.recipientDidKey()
+        val recipientDidKey = invitation.recipientDid()
 
         // Create the Responder Did & Document
         val responderEndpointUrl = responder.endpointUrl
         val responderDid = responder.createDid(DidMethod.SOV)
         val responderDidDoc = diddocV1Service.createDidDocument(responderDid, responderEndpointUrl)
-        log.info { "Responder (${responder.name}) created Did Document: ${responderDidDoc.encodePretty()}" }
+        log.info { "Responder (${responder.name}) created Did Document: ${responderDidDoc.encodeJson(true)}" }
 
         mex.putAttachment(INVITER_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(responderDidDoc))
 
@@ -329,7 +329,7 @@ class RFC0023DidExchangeProtocolV1(mex: MessageExchange): Protocol<RFC0023DidExc
 
         val invitation = mex.getInvitation()
         checkNotNull(invitation) { "No invitation attached" }
-        val invitationDid = invitation.recipientDidKey()
+        val invitationDid = invitation.recipientDid()
         val invitationKey = invitation.invitationKey()
 
         // Extract the Responder DIDDocument

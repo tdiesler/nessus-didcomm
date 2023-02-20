@@ -26,7 +26,7 @@ class WalletCmdTest: AbstractCliTest() {
     @Test
     fun walletCommands() {
 
-        cliService.execute("wallet --all").isSuccess shouldBe true
+        cliService.execute("wallet list").isSuccess shouldBe true
 
         cliService.execute("wallet create --name Faber --agent AcaPy").isSuccess shouldBe true
         cliService.findContextWallet()?.name shouldBe "Faber"
@@ -37,7 +37,7 @@ class WalletCmdTest: AbstractCliTest() {
         cliService.execute("wallet switch faber").isSuccess shouldBe true
         cliService.findContextWallet()?.name shouldBe "Faber"
 
-        cliService.execute("wallet remove --alias Alice").isSuccess shouldBe true
-        cliService.execute("wallet remove --alias Faber").isSuccess shouldBe true
+        cliService.execute("wallet remove Alice").isSuccess shouldBe true
+        cliService.execute("wallet remove Faber").isSuccess shouldBe true
     }
 }

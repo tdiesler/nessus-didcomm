@@ -21,7 +21,6 @@ package org.nessus.didcomm.model
 
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.util.encodeJson
-import org.nessus.didcomm.util.gson
 
 class Invitation {
 
@@ -54,13 +53,13 @@ class Invitation {
     val type get() = optV1?.type ?: actV2.type
 
     fun invitationKey(idx: Int = 0): String {
-        return recipientDidKey(idx).verkey
+        return recipientDid(idx).verkey
     }
 
-    fun recipientDidKey(idx: Int = 0): Did {
+    fun recipientDid(idx: Int = 0): Did {
         return when {
-            isV1 -> actV1.recipientDidKey(idx)
-            else -> actV2.recipientDidKey()
+            isV1 -> actV1.recipientDid(idx)
+            else -> actV2.recipientDid()
         }
     }
 
@@ -72,14 +71,18 @@ class Invitation {
     }
 
     fun shortString(): String {
-        return "[key=${invitationKey()}, url=${recipientServiceEndpoint()}]"
+        return "${recipientDid().qualified} [key=${invitationKey()}, url=${recipientServiceEndpoint()}]"
+    }
+
+    fun encodeJson(pretty: Boolean = false): String {
+        return when {
+            isV1 -> actV1.encodeJson(pretty)
+            else -> actV2.encodeJson(pretty)
+        }
     }
 
     override fun toString(): String {
-        return when {
-            isV1 -> gson.toJson(actV1)
-            else -> actV2.toMessage().encodeJson()
-        }
+        return encodeJson()
     }
 
     data class Service(

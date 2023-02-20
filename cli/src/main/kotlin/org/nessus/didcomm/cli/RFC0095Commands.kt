@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.cli
 
+import id.walt.common.prettyPrint
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_V1
@@ -95,9 +96,9 @@ class RFC0095SendMessageCommand: DidCommV2Command() {
         }
         val header = "${sender.name} sent: $message"
         if (verbose)
-            echo("${header}\n", listOf(mex.last))
+            echo("${header}\n${mex.last.prettyPrint()}")
         else
-            echo("${header}\n", listOf())
+            echo(header)
         return 0
     }
 }

@@ -19,55 +19,59 @@
  */
 package org.nessus.didcomm.cli
 
-import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.AgentType
-import org.nessus.didcomm.model.Connection
-import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
+import org.nessus.didcomm.util.encodeJson
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
-import kotlin.math.max
 
 @Command(
     name = "wallet",
     description = ["Multitenant wallet commands"],
     subcommands = [
         WalletCreateCommand::class,
+        WalletListCommand::class,
+        WalletShowCommand::class,
         WalletRemoveCommand::class,
-        WalletConnectionCommand::class,
-        WalletDidCommand::class,
-        WalletInvitationCommand::class,
-        WalletMessagesCommand::class,
         WalletSwitchCommand::class,
     ]
 )
-class WalletCommands: AbstractBaseCommand() {
+class WalletCommands
 
-    @Option(names = ["--alias"], description = ["Optional wallet alias"])
-    var alias: String? = null
-
-    @Option(names = ["--all"], description = ["Flag to show all wallets"])
-    var all: Boolean = false
+@Command(name = "list", description = ["List available wallets"])
+class WalletListCommand: AbstractBaseCommand() {
 
     @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
     var verbose: Boolean = false
 
-    /**
-     * Show wallet details
-     */
     override fun call(): Int {
-        val ctxWallet = cliService.findContextWallet()
-        val walletModels = when {
-            all || ctxWallet == null -> modelService.wallets
-            else -> listOf(getContextWallet(alias))
-        }
+        val walletModels = modelService.wallets
         if (verbose)
-            echo(walletModels)
+            echo(walletModels.map { it.encodeJson(true) })
         else
             echo(walletModels.map { it.shortString() })
+        return 0
+    }
+}
+
+@Command(name = "show", description = ["Show wallet details"])
+class WalletShowCommand: AbstractBaseCommand() {
+
+    @Option(names = ["--alias"], description = ["Optional wallet alias"])
+    var alias: String? = null
+
+    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
+
+    override fun call(): Int {
+        val wallet = getContextWallet(alias)
+        if (verbose)
+            echo(wallet.encodeJson(true))
+        else
+            echo(wallet.shortString())
         return 0
     }
 }
@@ -89,11 +93,10 @@ class WalletCreateCommand: AbstractBaseCommand() {
             .agentType(AgentType.fromValue(agent!!))
             .build()
         cliService.putContextWallet(wallet)
-        val header = "Wallet created: "
         if (verbose)
-            echo(header, listOf(wallet))
+            echo("Wallet created\n${wallet.encodeJson(true)}")
         else
-            echo(header, listOf(wallet.shortString()))
+            echo("Wallet created: ${wallet.shortString()}")
         return 0
     }
 }
@@ -101,165 +104,22 @@ class WalletCreateCommand: AbstractBaseCommand() {
 @Command(name = "remove", description = ["Remove and delete a given wallet"])
 class WalletRemoveCommand: AbstractBaseCommand() {
 
-    @Option(names = ["--alias"], description = ["Optional wallet alias"])
+    @Parameters(description = ["The wallet alias"])
     var alias: String? = null
 
-    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
-    var verbose: Boolean = false
-
     override fun call(): Int {
-        val ctxWallet = cliService.findContextWallet()
-        getContextWallet(alias).also { wm ->
-            if (ctxWallet?.id == wm.id) {
+        val walletAtt = cliService.getAttachment(WALLET_ATTACHMENT_KEY)
+        getContextWallet(alias).also { wallet ->
+            if (walletAtt?.id == wallet.id) {
                 cliService.putAttachment(WALLET_ATTACHMENT_KEY, null)
             }
-            walletService.removeWallet(wm.id)
-            val header = "Wallet removed: "
-            if (verbose)
-                echo(header, listOf(wm))
-            else
-                echo(header, listOf(wm.shortString()))
+            walletService.removeWallet(wallet.id)
+            echo("Wallet removed: ${wallet.shortString()}")
             return 0
         }
     }
 }
 
-@Command(name = "connection", description = ["Show available connections and their details"])
-class WalletConnectionCommand: AbstractBaseCommand() {
-
-    @Option(names = ["--alias"], description = ["Optional connection alias"])
-    var alias: String? = null
-
-    @Option(names = ["--wallet"], description = ["Optional wallet alias"])
-    var walletAlias: String? = null
-
-    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
-    var verbose: Boolean = false
-
-    override fun call(): Int {
-        val ctxWallet = getContextWallet(walletAlias)
-        val pcons: List<Connection> = if (alias != null) {
-            val found = ctxWallet.findConnection {
-                val candidates = listOf(it.id, it.alias).map { c -> c.lowercase() }
-                candidates.any { c -> c.startsWith(alias!!.lowercase()) }
-            }
-            found?.run { listOf(this) } ?: listOf()
-        } else {
-            ctxWallet.connections
-        }
-        val header = "Wallet connections:\n"
-        if (verbose)
-            echo(header, pcons)
-        else
-            echo(header, pcons.map { it.shortString() })
-        return 0
-    }
-}
-
-@Command(name = "did", description = ["Show available Dids and their details"])
-class WalletDidCommand: AbstractBaseCommand() {
-
-    @Option(names = ["--alias"], description = ["Optional did alias"])
-    var alias: String? = null
-
-    @Option(names = ["--wallet"], description = ["Optional wallet alias"])
-    var walletAlias: String? = null
-
-    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
-    var verbose: Boolean = false
-
-    override fun call(): Int {
-        val ctxWallet = getContextWallet(walletAlias)
-        val dids: List<Did> = if (alias != null) {
-            val found = ctxWallet.findDid {
-                val candidates = listOf(it.id, it.qualified, it.verkey).map { c -> c.lowercase() }
-                candidates.any { c -> c.startsWith(alias!!.lowercase()) }
-            }
-            found?.run { listOf(this) } ?: listOf()
-        } else {
-            ctxWallet.dids
-        }
-        val header = "Wallet dids:\n"
-        if (verbose)
-            echo(header, dids)
-        else
-            echo(header, dids.map { it.shortString() })
-        return 0
-    }
-}
-
-@Command(name = "invitation", description = ["Show available invitations and their details"])
-class WalletInvitationCommand: AbstractBaseCommand() {
-
-    @Option(names = ["--alias"], description = ["Optional invitation alias"])
-    var alias: String? = null
-
-    @Option(names = ["--wallet"], description = ["Optional wallet alias"])
-    var walletAlias: String? = null
-
-    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
-    var verbose: Boolean = false
-
-    override fun call(): Int {
-        val ctxWallet = getContextWallet(walletAlias)
-        val invis: List<Invitation> = if (alias != null) {
-            val found = ctxWallet.findInvitation {
-                val candidates = listOf(it.id, it.invitationKey()).map { c -> c.lowercase() }
-                candidates.any { c -> c.startsWith(alias!!.lowercase()) }
-            }
-            found?.run { listOf(this) } ?: listOf()
-        } else {
-            ctxWallet.invitations
-        }
-        val header = "Wallet invitations:\n"
-        if (verbose)
-            echo(header, invis)
-        else
-            echo(header, invis.map { it.shortString() })
-        return 0
-    }
-}
-
-
-@Command(name = "messages", description = ["Show connection related messages"])
-class WalletMessagesCommand: AbstractBaseCommand() {
-
-    @Option(names = ["--pcon"], description = ["Optional connection alias"])
-    var conAlias: String? = null
-
-    @Option(names = ["--wallet"], description = ["Optional wallet alias"])
-    var walletAlias: String? = null
-
-    @Option(names = ["--msg"], description = ["Optional message alias"])
-    var msgAlias: String? = null
-
-    @Option(names = ["-n", "--tail"], description = ["Optional number of (tail) messages"])
-    var msgCount: Int = 12
-
-    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
-    var verbose: Boolean = false
-
-    override fun call(): Int {
-        val pcon = getContextConnection(walletAlias, conAlias)
-        val mex = MessageExchange.findByVerkey(pcon.myVerkey)
-        val size = mex.messages.size
-        val msgs = if (msgAlias != null) {
-            mex.messages.find {
-                val candidates = listOf(it.id).map { c -> c.lowercase() }
-                candidates.any { c -> c.startsWith(msgAlias!!.lowercase()) }
-            }?.run { listOf(this) } ?: listOf()
-        } else {
-            val start = max(0, size - msgCount)
-            mex.messages.subList(start, size)
-        }
-        val header = "Messages:\n"
-        if (verbose)
-            echo(header, msgs)
-        else
-            echo(header, msgs.map { it.shortString() })
-        return 0
-    }
-}
 
 @Command(name = "switch", description = ["Switch the current context wallet"])
 class WalletSwitchCommand: AbstractBaseCommand() {
@@ -268,9 +128,12 @@ class WalletSwitchCommand: AbstractBaseCommand() {
     var alias: String? = null
 
     override fun call(): Int {
-        getContextWallet(alias as String).also {
+        val wallet = getContextWallet(alias).also {
             cliService.putContextWallet(it)
-            return 0
         }
+        wallet.connections.lastOrNull { it.state == ConnectionState.ACTIVE }?.also {
+            cliService.putContextConnection(it)
+        }
+        return 0
     }
 }

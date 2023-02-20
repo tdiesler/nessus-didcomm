@@ -26,6 +26,7 @@ import org.nessus.didcomm.service.RFC0023_DIDEXCHANGE_V1
 import org.nessus.didcomm.service.RFC0048_TRUST_PING_V2
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
+import org.nessus.didcomm.util.encodeJson
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
@@ -46,21 +47,22 @@ open class AbstractRFC0434Command: DidCommV2Command() {
     @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
     var verbose: Boolean = false
 
-    protected fun printCreateInvitation(name: String, invitation: Invitation) {
-        val header = "$name created an RFC0434 Invitation: "
+    fun echoCreateInvitation(name: String, invitation: Invitation) {
+        val header = "$name created an RFC0434 Invitation"
         if (verbose) {
-            echo("${header}\n", listOf(invitation))
+            echo("${header}\n${invitation.encodeJson(true)}")
         } else {
-            echo(header, listOf(invitation.shortString()))
+            echo("${header}: ${invitation.shortString()}")
         }
     }
 
-    protected fun printReceiveInvitation(name: String, invitation: Invitation) {
-        val header = "$name received an RFC0434 Invitation: "
-        if (verbose)
-            echo("${header}\n", listOf(invitation))
-        else
-            echo(header, listOf(invitation.shortString()))
+    fun echoReceiveInvitation(name: String, invitation: Invitation) {
+        val header = "$name received an RFC0434 Invitation"
+        if (verbose) {
+            echo("${header}\n${invitation.encodeJson(true)}")
+        } else {
+            echo("${header}: ${invitation.shortString()}")
+        }
     }
 }
 
@@ -71,27 +73,26 @@ class RFC0434CreateInvitation: AbstractRFC0434Command() {
     var inviterAlias: String? = null
 
     override fun call(): Int {
-        getContextWallet(inviterAlias).also {
-            checkWalletEndpoint(it)
-            val mex = when {
-                dcv2 -> {
-                    MessageExchange()
-                        .withProtocol(RFC0434_OUT_OF_BAND_V2)
-                        .createOutOfBandInvitation(it)
-                        .getMessageExchange()
-                }
-                else -> {
-                    MessageExchange()
-                        .withProtocol(RFC0434_OUT_OF_BAND_V1)
-                        .createOutOfBandInvitation(it)
-                        .getMessageExchange()
-                }
+        val inviter = getContextWallet(inviterAlias)
+        checkWalletEndpoint(inviter)
+        val mex = when {
+            dcv2 -> {
+                MessageExchange()
+                    .withProtocol(RFC0434_OUT_OF_BAND_V2)
+                    .createOutOfBandInvitation(inviter)
+                    .getMessageExchange()
             }
-            val invitation = mex.getInvitation() as Invitation
-            checkNotNull(it.getInvitation(invitation.id))
-            cliService.putContextInvitation(invitation)
-            printCreateInvitation(it.name, invitation)
+            else -> {
+                MessageExchange()
+                    .withProtocol(RFC0434_OUT_OF_BAND_V1)
+                    .createOutOfBandInvitation(inviter)
+                    .getMessageExchange()
+            }
         }
+        val invitation = mex.getInvitation() as Invitation
+        checkNotNull(inviter.getInvitation(invitation.id))
+        cliService.putContextInvitation(invitation)
+        echoCreateInvitation(inviter.name, invitation)
         return 0
     }
 }
@@ -106,38 +107,45 @@ class RFC0434ReceiveInvitation: AbstractRFC0434Command() {
     var invitationAlias: String? = null
 
     override fun call(): Int {
-        val ctxInvitation = cliService.getAttachment(INVITATION_ATTACHMENT_KEY)
-        checkNotNull(ctxInvitation) { "No invitation" }
+        val invitation = cliService.getAttachment(INVITATION_ATTACHMENT_KEY)
+        checkNotNull(invitation) { "No invitation" }
         if (invitationAlias != null) {
-            val candidates = listOf(ctxInvitation.id, ctxInvitation.invitationKey()).map { c -> c.lowercase() }
+            val candidates = listOf(invitation.id, invitation.invitationKey()).map { c -> c.lowercase() }
             check(candidates.any { c -> c.startsWith(invitationAlias!!.lowercase()) }) { "Invitation does not match" }
         }
-        getContextWallet(inviteeAlias).also {
-            val invitee = it
-            val mex = when {
-                dcv2 -> {
-                    MessageExchange()
-                        .withAttachment(INVITATION_ATTACHMENT_KEY, ctxInvitation)
-                        .withProtocol(RFC0434_OUT_OF_BAND_V2)
-                        .receiveOutOfBandInvitation(invitee)
-                        .getMessageExchange()
-                }
-                else -> {
-                    MessageExchange()
-                        .withAttachment(INVITATION_ATTACHMENT_KEY, ctxInvitation)
-                        .withProtocol(RFC0434_OUT_OF_BAND_V1)
-                        .receiveOutOfBandInvitation(invitee)
-                        .getMessageExchange()
-                }
+        val invitee = getContextWallet(inviteeAlias)
+        checkWalletEndpoint(invitee)
+        val mex = when {
+            invitation.isV2 -> {
+                MessageExchange()
+                    .withAttachment(INVITATION_ATTACHMENT_KEY, invitation)
+                    .withProtocol(RFC0434_OUT_OF_BAND_V2)
+                    .receiveOutOfBandInvitation(invitee)
+                    .withProtocol(RFC0048_TRUST_PING_V2)
+                    .sendTrustPing()
+                    .awaitTrustPingResponse()
+                    .getMessageExchange()
             }
-            val connection = mex.getConnection()
-            val invitation = mex.getInvitation() as Invitation
-            checkNotNull(it.getConnection(connection.id))
-            checkNotNull(it.getInvitation(invitation.id))
-            cliService.putContextConnection(connection)
-            cliService.putContextInvitation(invitation)
-            printReceiveInvitation(it.name, invitation)
+            else -> {
+                MessageExchange()
+                    .withAttachment(INVITATION_ATTACHMENT_KEY, invitation)
+                    .withProtocol(RFC0434_OUT_OF_BAND_V1)
+                    .receiveOutOfBandInvitation(invitee)
+                    .withProtocol(RFC0023_DIDEXCHANGE_V1)
+                    .connect(invitee)
+                    .getMessageExchange()
+            }
         }
+        check(invitation.id == mex.getInvitation()?.id)
+        val pcon = mex.getConnection()
+        checkNotNull(invitee.getConnection(pcon.id))
+        checkNotNull(invitee.getInvitation(invitation.id))
+        echoReceiveInvitation(invitee.name, invitation)
+        cliService.putContextConnection(pcon)
+        cliService.putAttachment(INVITATION_ATTACHMENT_KEY, null)
+        echo(pcon.shortString())
+        if (verbose)
+            echo(pcon.encodeJson(true))
         return 0
     }
 }
@@ -155,7 +163,6 @@ class RFC0434InviteAndConnect: AbstractRFC0434Command() {
         val inviter = getContextWallet(inviterAlias)
         val invitee = getContextWallet(inviteeAlias)
         checkWalletEndpoint(inviter, invitee)
-
         val mex = when {
             dcv2 -> {
                 MessageExchange()
@@ -163,12 +170,12 @@ class RFC0434InviteAndConnect: AbstractRFC0434Command() {
                     .createOutOfBandInvitation(inviter)
                     .also {
                         val invitation = it.getMessageExchange().getInvitation()
-                        printCreateInvitation(inviter.name, invitation!!)
+                        echoCreateInvitation(inviter.name, invitation!!)
                     }
                     .receiveOutOfBandInvitation(invitee)
                     .also {
                         val invitation = it.getMessageExchange().getInvitation()
-                        printReceiveInvitation(invitee.name, invitation!!)
+                        echoReceiveInvitation(invitee.name, invitation!!)
                     }
                     .withProtocol(RFC0048_TRUST_PING_V2)
                     .sendTrustPing()
@@ -181,27 +188,24 @@ class RFC0434InviteAndConnect: AbstractRFC0434Command() {
                     .createOutOfBandInvitation(inviter)
                     .also {
                         val invitation = it.getMessageExchange().getInvitation()
-                        printCreateInvitation(inviter.name, invitation!!)
+                        echoCreateInvitation(inviter.name, invitation!!)
                     }
                     .receiveOutOfBandInvitation(invitee)
                     .also {
                         val invitation = it.getMessageExchange().getInvitation()
-                        printReceiveInvitation(invitee.name, invitation!!)
+                        echoReceiveInvitation(invitee.name, invitation!!)
                     }
                     .withProtocol(RFC0023_DIDEXCHANGE_V1)
                     .connect(invitee)
                     .getMessageExchange()
             }
         }
-
         val pcon = mex.getConnection()
         cliService.putContextConnection(pcon)
         cliService.putAttachment(INVITATION_ATTACHMENT_KEY, null)
-
+        echo(pcon.shortString())
         if (verbose)
-            echo(listOf(pcon))
-        else
-            echo(listOf(pcon.shortString()))
+            echo(pcon.encodeJson(true))
         return 0
     }
 }
