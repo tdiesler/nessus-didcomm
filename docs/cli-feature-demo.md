@@ -17,7 +17,7 @@ Here, a (possibly non-exhaustive) list of stuff you can do ...
 $ .../distro/bin/didcomm.sh
 
 Nessus DIDComm CLI
-Version: 0.23.3-SNAPSHOT
+Version: 23.3.0
 
 >> help
   System:
@@ -201,49 +201,46 @@ Wallet created: Faber [agent=Nessus, type=IN_MEMORY, url=http://192.168.0.10:813
 
 Alice>> rfc0434 create-invitation --inviter=Faber --verbose --dcv2
 Faber created an RFC0434 Invitation
-Faber created an RFC0434 Invitation
 {
-  "id": "ff21a62c-a715-41a6-9fec-8b063123e9bc",
+  "id": "8d813c29-033b-445c-bb5a-1e452c5e922b",
   "type": "https://didcomm.org/out-of-band/2.0-preview/invitation",
-  "from": "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1",
+  "from": "did:key:z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam",
   "accept": [
     "didcomm/v2"
   ],
   "attachments": [
     {
-      "id": "6485a0ef-b55b-43da-bacb-d3c27ba26ebd",
+      "id": "f13fdfe2-3160-414d-9173-22d5e7d2a5aa",
       "data": {
         "json": {
-          "did": "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1",
-          "keyAgreements": [
-            "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1#z6LSkZEAFP6wgoLQ2aUFVUM1L7o85qvvjfRop3q6UXru1uZD"
+          "id": "did:key:z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam",
+          "authentication": [
+            "did:key:z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam#z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam"
           ],
-          "authentications": [
-            "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1#z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1"
+          "keyAgreement": [
+            "did:key:z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam#z6LSnzFWskr9bshHkD6VFMFDk7vpRVu8WbqnggphMY8LzLKX"
           ],
-          "verificationMethods": [
+          "verificationMethod": [
             {
-              "id": "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1#z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1",
-              "type": "ED25519_VERIFICATION_KEY_2018",
-              "verificationMaterial": {
-                "format": "BASE58",
-                "value": "71ooi1fXNf31S7EVu4MA5pKkX8bEMkDHCsvAmJmxYZQd"
-              },
-              "controller": "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1"
+              "id": "did:key:z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam#z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam",
+              "type": "Ed25519VerificationKey2018",
+              "controller": "did:key:z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam",
+              "publicKeyBase58": "FpNGJAxfonjpdaVbP7minTz5RhoqbKZ6iAA3vh5jLLoP"
             },
             {
-              "id": "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1#z6LSkZEAFP6wgoLQ2aUFVUM1L7o85qvvjfRop3q6UXru1uZD",
-              "type": "X25519_KEY_AGREEMENT_KEY_2019",
-              "verificationMaterial": {
-                "format": "BASE58",
-                "value": "9t3zj5J5bLcewC6Uxpq41XaeEhPp34Few57Qz5DNJXnT"
-              },
-              "controller": "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1"
+              "id": "did:key:z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam#z6LSnzFWskr9bshHkD6VFMFDk7vpRVu8WbqnggphMY8LzLKX",
+              "type": "X25519KeyAgreementKey2019",
+              "controller": "did:key:z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam",
+              "publicKeyBase58": "CK5MMT3HWQyYepiiihjGRXiLaMN1ozfdoi71s5UpGxYm"
             }
           ],
-          "didCommServices": [
+          "service": [
             {
-              "id": "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1#didcomm-1",
+              "id": "did:key:z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam#didcomm-1",
+              "type": "DIDCommMessaging",
+              "accept": [
+                "didcomm/v2"
+              ],
               "serviceEndpoint": "http://192.168.0.10:8130"
             }
           ]
@@ -278,8 +275,8 @@ When Alice received the Invitation from Faber, she can establish the connection 
 
 ```shell
 Alice>> rfc0434 receive-invitation
-Alice received an RFC0434 Invitation: did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1 [key=71ooi1fXNf31S7EVu4MA5pKkX8bEMkDHCsvAmJmxYZQd, url=http://192.168.0.10:8130]
-Alice-Faber [id=f4d04fe3-4ec6-4d96-aa1b-ac05b4dc0567, myDid=did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq, theirDid=did:key:z6MkouBRMBzQVef8c7dPCn4ueh8CZo5AiKJC8HDzs9bYvrgA, state=ACTIVE]
+Alice received an RFC0434 Invitation: did:key:z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam [key=FpNGJAxfonjpdaVbP7minTz5RhoqbKZ6iAA3vh5jLLoP, url=http://192.168.0.10:8130]
+Alice-Faber [id=3da3baa8-aac6-4ec2-a472-29f5c5435f7f, myDid=did:key:z6Mkpzrq3Pf6xPkBxppPCh7XE1NpfPTYqGbkodMdWcVaaMFQ, theirDid=did:key:z6MkngmjqN8hVSBwvz5KVEMSwhiLjqgP7VWNgMpVjegRJiMr, state=ACTIVE]
 ```
 
 Again, the connection is now established, and we can look at it like this ...
@@ -287,9 +284,9 @@ Again, the connection is now established, and we can look at it like this ...
 ```shell
 Alice>> connection show -v                                                                                                                                                                                          [Conn:f4d04fe]
 {
-  "id": "f4d04fe3-4ec6-4d96-aa1b-ac05b4dc0567",
+  "id": "3da3baa8-aac6-4ec2-a472-29f5c5435f7f",
   "agent": "Nessus",
-  "invitationKey": "71ooi1fXNf31S7EVu4MA5pKkX8bEMkDHCsvAmJmxYZQd",
+  "invitationKey": "FpNGJAxfonjpdaVbP7minTz5RhoqbKZ6iAA3vh5jLLoP",
   "myRole": "INVITEE",
   "myLabel": "Invitee Alice on NESSUS",
   "myEndpointUrl": "http://192.168.0.10:8130",
@@ -299,14 +296,14 @@ Alice>> connection show -v                                                      
   "myDid": {
     "method": "KEY",
     "algorithm": "EdDSA_Ed25519",
-    "verkey": "D25auQ7NMrFQpQTfr1eeXDpNzTY5Hk5S35F2dP6nDmwT",
-    "id": "z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq"
+    "verkey": "BYbnT9QfcrFirKygX89gNuppqpBhRPMQ7cShgLXZf8U2",
+    "id": "z6Mkpzrq3Pf6xPkBxppPCh7XE1NpfPTYqGbkodMdWcVaaMFQ"
   },
   "theirDid": {
     "method": "KEY",
     "algorithm": "EdDSA_Ed25519",
-    "verkey": "ASvNkwjyA7AfVcngXD74obaCkDoKJS3qSGK52sdY1dtn",
-    "id": "z6MkouBRMBzQVef8c7dPCn4ueh8CZo5AiKJC8HDzs9bYvrgA"
+    "verkey": "9EWhF7tG9thUpVEcofPc6cALvGQXhcG1zLuZuNiQPVaU",
+    "id": "z6MkngmjqN8hVSBwvz5KVEMSwhiLjqgP7VWNgMpVjegRJiMr"
   }
 }
 ```
@@ -315,71 +312,69 @@ Nessus records the messages that are being exchanged for each connection.
 
 ```shell
 Alice>> message list 
-[id=ff21a62c-a715-41a6-9fec-8b063123e9bc, thid=ff21a62c-a715-41a6-9fec-8b063123e9bc, type=https://didcomm.org/out-of-band/2.0-preview/invitation]
-[id=21930738-19c9-4f7c-939c-919d16a0cbce, thid=21930738-19c9-4f7c-939c-919d16a0cbce, type=https://didcomm.org/trust_ping/2.0-preview/ping]
-[id=4fb772b3-9a33-4ff6-8ad0-57982a91c208, thid=21930738-19c9-4f7c-939c-919d16a0cbce, type=https://didcomm.org/trust_ping/2.0-preview/ping_response]
+[id=8d813c29-033b-445c-bb5a-1e452c5e922b, thid=8d813c29-033b-445c-bb5a-1e452c5e922b, type=https://didcomm.org/out-of-band/2.0-preview/invitation]
+[id=5779aec8-deaa-4ac6-905c-fdc22f6a6f75, thid=5779aec8-deaa-4ac6-905c-fdc22f6a6f75, type=https://didcomm.org/trust_ping/2.0-preview/ping]
+[id=7de47310-0ca5-4e1b-a2da-c1c864576c18, thid=5779aec8-deaa-4ac6-905c-fdc22f6a6f75, type=https://didcomm.org/trust_ping/2.0-preview/ping_response]
 ```
 
 For example, Alice's ping request would look like this ...
 
 ```shell
-Alice>> message show 21930738 -v                                                                                                                                                                            [Conn:f4d04fe]
+Alice>> message show 5779aec8 -v                                                                                                                                                                            [Conn:f4d04fe]
 EndpointMessage(
     headers={
-        MessageId=21930738-19c9-4f7c-939c-919d16a0cbce,
+        MessageId=5779aec8-deaa-4ac6-905c-fdc22f6a6f75,
         MessageMediaType=application/didcomm-plain+json,
         MessageType=https://didcomm.org/trust_ping/2.0-preview/ping
     },
     body={
-        "id":"21930738-19c9-4f7c-939c-919d16a0cbce",
+        "id":"5779aec8-deaa-4ac6-905c-fdc22f6a6f75",
         "typ":"application/didcomm-plain+json",
         "type":"https://didcomm.org/trust_ping/2.0-preview/ping",
-        "from":"did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq",
+        "from":"did:key:z6Mkpzrq3Pf6xPkBxppPCh7XE1NpfPTYqGbkodMdWcVaaMFQ",
         "to":[
-            "did:key:z6MkkU4rJFuxiCXUYc5CadJzvuskLhs5mdTdttq6bajyTnC1"
+            "did:key:z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam"
         ],
-        "created_time":1676875627,
-        "expires_time":1676962027,
+        "created_time":1676896602,
+        "expires_time":1676983002,
         "body":{
             "comment":"Ping from Alice"
         },
         "attachments":[
             {
-                "id":"82a26d35-9c37-45dd-91ac-4c6a17015ce6",
+                "id":"71de6122-1073-4e74-9d72-d7511a263b1a",
                 "data":{
                     "jws":null,
                     "hash":null,
                     "json":{
-                        "did":"did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq",
-                        "keyAgreements":[
-                            "did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq#z6LSfSxT2g2cnnkmbarYY2edP2aLC77C6eY78BZ7nhXebjVQ"
+                        "id":"did:key:z6Mkpzrq3Pf6xPkBxppPCh7XE1NpfPTYqGbkodMdWcVaaMFQ",
+                        "authentication":[
+                            "did:key:z6Mkpzrq3Pf6xPkBxppPCh7XE1NpfPTYqGbkodMdWcVaaMFQ#z6Mkpzrq3Pf6xPkBxppPCh7XE1NpfPTYqGbkodMdWcVaaMFQ"
                         ],
-                        "authentications":[
-                            "did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq#z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq"
+                        "keyAgreement":[
+                            "did:key:z6Mkpzrq3Pf6xPkBxppPCh7XE1NpfPTYqGbkodMdWcVaaMFQ#z6LSnVHyJWmBcJ9NG28nRWw44vm3KJxcUeYhHWk4m2RH5FFk"
                         ],
-                        "verificationMethods":[
+                        "verificationMethod":[
                             {
-                                "id":"did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq#z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq",
-                                "type":"ED25519_VERIFICATION_KEY_2018",
-                                "verificationMaterial":{
-                                    "format":"BASE58",
-                                    "value":"D25auQ7NMrFQpQTfr1eeXDpNzTY5Hk5S35F2dP6nDmwT"
-                                },
-                                "controller":"did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq"
+                                "id":"did:key:z6Mkpzrq3Pf6xPkBxppPCh7XE1NpfPTYqGbkodMdWcVaaMFQ#z6Mkpzrq3Pf6xPkBxppPCh7XE1NpfPTYqGbkodMdWcVaaMFQ",
+                                "type":"Ed25519VerificationKey2018",
+                                "controller":"did:key:z6Mkpzrq3Pf6xPkBxppPCh7XE1NpfPTYqGbkodMdWcVaaMFQ",
+                                "publicKeyBase58":"BYbnT9QfcrFirKygX89gNuppqpBhRPMQ7cShgLXZf8U2"
                             },
                             {
-                                "id":"did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq#z6LSfSxT2g2cnnkmbarYY2edP2aLC77C6eY78BZ7nhXebjVQ",
-                                "type":"X25519_KEY_AGREEMENT_KEY_2019",
-                                "verificationMaterial":{
-                                    "format":"BASE58",
-                                    "value":"4mnHWNDkhL32WCUn1P8g4SMrLxa5Q3MxFCqSJEt7tMie"
-                                },
-                                "controller":"did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq"
+                                "id":"did:key:z6Mkpzrq3Pf6xPkBxppPCh7XE1NpfPTYqGbkodMdWcVaaMFQ#z6LSnVHyJWmBcJ9NG28nRWw44vm3KJxcUeYhHWk4m2RH5FFk",
+                                "type":"X25519KeyAgreementKey2019",
+                                "controller":"did:key:z6Mkpzrq3Pf6xPkBxppPCh7XE1NpfPTYqGbkodMdWcVaaMFQ",
+                                "publicKeyBase58":"Bp7onCxKWqRdAdm1tsR6kLYZUARVn3NYQY2PGZmkMsUz"
                             }
                         ],
-                        "didCommServices":[
+                        "service":[
                             {
-                                "id":"did:key:z6MkrULdVeMohPjsvuJNXacVNKNNp2ovhdKnj69xTf4o8ziq#didcomm-1",
+                                "id":"did:key:z6Mkpzrq3Pf6xPkBxppPCh7XE1NpfPTYqGbkodMdWcVaaMFQ#didcomm-1",
+                                "type":"DIDCommMessaging",
+                                "accept":[
+                                    "didcomm/v2"
+                                ],
                                 "serviceEndpoint":"http://192.168.0.10:8130"
                             }
                         ]

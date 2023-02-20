@@ -23,11 +23,11 @@ import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
 import org.didcommx.didcomm.diddoc.DIDDocResolver
 import org.didcommx.didcomm.message.Attachment
+import org.nessus.didcomm.did.DIDDocDecoder
 import org.nessus.didcomm.did.DidDocV2
 import org.nessus.didcomm.did.SicpaDidDoc
 import org.nessus.didcomm.did.toSicpaDidDoc
 import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.gson
 import java.util.Optional
 import java.util.UUID
@@ -58,8 +58,8 @@ class DidDocumentV2Service: AbstractBaseService(), DIDDocResolver {
     }
 
     fun createDidDocAttachment(didDoc: DidDocV2): Attachment {
-        val didDocAttachMap = didDoc.encodeJson().decodeJson()
-        val jsonData = Attachment.Data.Json.parse(mapOf("json" to didDocAttachMap))
+        val didDocMap = didDoc.encodeJson().decodeJson()
+        val jsonData = Attachment.Data.Json.parse(mapOf("json" to didDocMap))
         return Attachment.Builder("${UUID.randomUUID()}", jsonData)
             .mediaType(DID_DOCUMENT_MEDIA_TYPE)
             .build()
@@ -70,8 +70,7 @@ class DidDocumentV2Service: AbstractBaseService(), DIDDocResolver {
 
         val didDocAttachment = gson.toJson(attachment.data.toJSONObject()["json"])
         checkNotNull(didDocAttachment) {"Cannot find attached did document"}
-
-        return gson.fromJson(didDocAttachment, DidDocV2::class.java)
+        return DidDocV2.fromSicpaDidDoc(DIDDocDecoder.decodeJson(didDocAttachment))
     }
 }
 

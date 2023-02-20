@@ -4,28 +4,39 @@ import id.walt.common.KlaxonWithConverters
 import id.walt.crypto.LdVerificationKeyType.Ed25519VerificationKey2018
 import id.walt.crypto.LdVerificationKeyType.Ed25519VerificationKey2019
 import id.walt.crypto.LdVerificationKeyType.Ed25519VerificationKey2020
+import id.walt.crypto.LdVerificationKeyType.JwsVerificationKey2020
 import org.didcommx.didcomm.common.VerificationMaterial
 import org.didcommx.didcomm.common.VerificationMaterialFormat
 import org.didcommx.didcomm.common.VerificationMethodType
 import org.didcommx.didcomm.diddoc.DIDCommService
 import org.didcommx.didcomm.diddoc.VerificationMethod
+import org.json.JSONObject
+import org.nessus.didcomm.did.DidDocV2.Companion.DEFAULT_ACCEPT
 import org.nessus.didcomm.service.WaltIdDidDoc
+import org.nessus.didcomm.util.encodeJson
+import org.nessus.didcomm.util.gson
 
 typealias SicpaDidDoc = org.didcommx.didcomm.diddoc.DIDDoc
 typealias WaltIdVerificationMethod = id.walt.model.VerificationMethod
 typealias WaltIdServiceEndpoint = id.walt.model.ServiceEndpoint
 
 fun DidDocV2.toSicpaDidDoc() =
-    SicpaDidDoc(did, keyAgreements, authentications, verificationMethods, didCommServices)
+    SicpaDidDoc(id, keyAgreements, authentications, verificationMethods, didCommServices)
 
 data class DidDocV2(
-    val did: String,
+    val id: String,
     val keyAgreements: List<String>,
     val authentications: List<String>,
     val verificationMethods: List<VerificationMethod>,
     val didCommServices: List<DIDCommService>
 ) {
     companion object {
+        val DEFAULT_ACCEPT = listOf("didcomm/v2") //, "didcomm/aip2;env=rfc587")
+        fun fromSicpaDidDoc(doc: SicpaDidDoc) = DidDocV2(doc.did,
+            keyAgreements = doc.keyAgreements,
+            authentications = doc.authentications,
+            verificationMethods = doc.verificationMethods,
+            didCommServices = doc.didCommServices)
         fun fromWaltIdDidDoc(doc: WaltIdDidDoc) = DidDocV2(doc.id,
             keyAgreements = doc.keyAgreement?.map { it.id } ?: listOf(),
             authentications = doc.authentication?.map { it.id } ?: listOf(),
@@ -35,6 +46,15 @@ data class DidDocV2(
 
     fun serviceEndpoint(): String? {
         return didCommServices.map { it.serviceEndpoint }.firstOrNull()
+    }
+
+    fun encodeJson(pretty: Boolean = false): String {
+        val encoded = DIDDocEncoder.encodeJson(toSicpaDidDoc())
+        return if (pretty) {
+            gson.fromJson(encoded, JSONObject::class.java).encodeJson(true)
+        } else {
+            encoded
+        }
     }
 }
 
@@ -47,6 +67,7 @@ fun WaltIdVerificationMethod.toVerificationMethod() = VerificationMethod(
         Ed25519VerificationKey2020.name -> VerificationMethodType.ED25519_VERIFICATION_KEY_2020
         // There is no constant in WaltId for this
         "X25519KeyAgreementKey2019" -> VerificationMethodType.X25519_KEY_AGREEMENT_KEY_2019
+        JwsVerificationKey2020.name -> VerificationMethodType.JSON_WEB_KEY_2020
         else -> throw IllegalArgumentException("Unsupported type: $type")
     },
     verificationMaterial = when {
@@ -80,9 +101,11 @@ fun WaltIdVerificationMethod.toVerificationMethod() = VerificationMethod(
     controller = controller
 )
 
-fun WaltIdServiceEndpoint.toDIDCommService() = DIDCommService(
-    id = id,
-    serviceEndpoint = serviceEndpoint.first(),
-    routingKeys = listOf(),
-    accept = listOf(),
-)
+fun WaltIdServiceEndpoint.toDIDCommService(): DIDCommService {
+    return DIDCommService(
+        id = id,
+        serviceEndpoint = serviceEndpoint.first(),
+        accept = DEFAULT_ACCEPT,
+        routingKeys = listOf(),
+    )
+}

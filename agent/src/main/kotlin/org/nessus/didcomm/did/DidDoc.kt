@@ -50,7 +50,7 @@ class DidDoc {
         return optV2
     }
 
-    val id get() = optV1?.id ?: actV2.did
+    val id get() = optV1?.id ?: actV2.id
 
     fun serviceEndpoint(): String? {
         return when {

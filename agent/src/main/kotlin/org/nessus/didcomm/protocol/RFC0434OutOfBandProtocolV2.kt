@@ -21,9 +21,9 @@ package org.nessus.didcomm.protocol
 
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
-import org.didcommx.didcomm.protocols.routing.PROFILE_DIDCOMM_V2
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidDoc
+import org.nessus.didcomm.did.DidDocV2
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
@@ -78,7 +78,7 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
         val invitationV2 = InvitationV2.Builder(id, type, invitationDid.qualified)
             .goalCode(options["goal_code"] as? String)
             .goal(options["goal"] as? String)
-            .accept(listOf(PROFILE_DIDCOMM_V2))
+            .accept(DidDocV2.DEFAULT_ACCEPT)
             .attachments(listOf(invitationDidDocAttachment))
             .build()
 
@@ -135,7 +135,7 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
         val inviterDidDoc = diddocV2Service.extractDidDocAttachment(inviterDidDocAttachment)
         mex.putAttachment(INVITER_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(inviterDidDoc))
 
-        val inviterDid = Did.fromSpec(inviterDidDoc.did)
+        val inviterDid = Did.fromSpec(inviterDidDoc.id)
         val inviterEndpointUrl = inviterDidDoc.serviceEndpoint()
 
         // Create Invitee Did + Document

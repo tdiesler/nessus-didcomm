@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.test.did
+package org.nessus.didcomm.test.diddoc
 
 import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
@@ -35,7 +35,7 @@ import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.trimJson
 
-class RFC0023DidDocumentTest: AbstractAgentTest() {
+class DidDocV1Test: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
 
     @Test

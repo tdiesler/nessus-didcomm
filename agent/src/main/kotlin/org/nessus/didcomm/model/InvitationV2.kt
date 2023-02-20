@@ -140,7 +140,7 @@ data class InvitationV2(
     }
 
     fun recipientDid(): Did {
-        return Did.fromSpec(diddoc.did)
+        return Did.fromSpec(diddoc.id)
     }
 
     fun recipientServiceEndpoint(): String {
