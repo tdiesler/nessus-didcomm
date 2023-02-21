@@ -19,22 +19,16 @@
  */
 package org.nessus.didcomm.service
 
-import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
 import org.nessus.didcomm.model.Model
 import org.nessus.didcomm.model.Wallet
 
-class ModelService : AbstractBaseService() {
-    override val implementation get() = serviceImplementation<ModelService>()
-    override val log = KotlinLogging.logger {}
+object ModelService: ObjectService<ModelService>() {
+    private val log = KotlinLogging.logger {}
 
-    companion object: ServiceProvider {
-        private val implementation = ModelService()
-        override fun getService() = implementation
-    }
+    override fun getService() = apply { }
 
     val model = Model()
-    val modelAsJson: String get() = model.asJson
     val wallets get() = model.wallets
 
     fun addWallet(wallet: Wallet) {

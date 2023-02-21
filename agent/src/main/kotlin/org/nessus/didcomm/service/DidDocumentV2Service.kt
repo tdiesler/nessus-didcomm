@@ -19,8 +19,6 @@
  */
 package org.nessus.didcomm.service
 
-import id.walt.servicematrix.ServiceProvider
-import mu.KotlinLogging
 import org.didcommx.didcomm.diddoc.DIDDocResolver
 import org.didcommx.didcomm.message.Attachment
 import org.nessus.didcomm.did.DIDDocDecoder
@@ -37,14 +35,9 @@ import java.util.UUID
  */
 const val DID_DOCUMENT_MEDIA_TYPE = "application/did+json"
 
-class DidDocumentV2Service: AbstractBaseService(), DIDDocResolver {
-    override val implementation get() = serviceImplementation<NessusDidService>()
-    override val log = KotlinLogging.logger {}
+object DidDocumentV2Service: ObjectService<DidDocumentV2Service>(), DIDDocResolver {
 
-    companion object: ServiceProvider {
-        private val implementation = DidDocumentV2Service()
-        override fun getService() = implementation
-    }
+    override fun getService() = apply { }
 
     private val didService get() = NessusDidService.getService()
 

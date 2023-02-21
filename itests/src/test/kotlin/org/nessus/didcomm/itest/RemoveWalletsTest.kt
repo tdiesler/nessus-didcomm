@@ -25,7 +25,6 @@ class RemoveWalletsTest : AbstractIntegrationTest() {
     fun removeWallets() {
         walletService.wallets
             .filter { it.name != Government.name }
-            .filter { it.name != Faber.name }
             .forEach { walletService.removeWallet(it.id) }
     }
 }

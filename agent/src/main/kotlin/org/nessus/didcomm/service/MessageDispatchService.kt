@@ -45,14 +45,10 @@ typealias MessageDispatcher = (msg: EndpointMessage) -> MessageExchange?
 /**
  * The MessageDispatchService is the entry point for all messages
  */
-class MessageDispatchService: AbstractBaseService(), MessageDispatcher {
-    override val implementation get() = serviceImplementation<MessageDispatchService>()
-    override val log = KotlinLogging.logger {}
+object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageDispatcher {
+    private val log = KotlinLogging.logger {}
 
-    companion object: ServiceProvider {
-        private val implementation = MessageDispatchService()
-        override fun getService() = implementation
-    }
+    override fun getService() = apply { }
 
     private val httpService get() = HttpService.getService()
     private val modelService get() = ModelService.getService()

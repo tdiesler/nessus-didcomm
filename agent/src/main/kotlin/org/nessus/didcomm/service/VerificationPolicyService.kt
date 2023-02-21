@@ -20,10 +20,8 @@ import id.walt.auditor.dynamic.DynamicPolicy
 import id.walt.auditor.dynamic.DynamicPolicyArg
 import id.walt.common.resolveContent
 import id.walt.model.dif.PresentationDefinition
-import id.walt.servicematrix.ServiceProvider
 import id.walt.services.context.ContextManager
 import id.walt.services.hkvstore.HKVKey
-import mu.KotlinLogging
 import java.io.StringReader
 import kotlin.reflect.KClass
 
@@ -33,15 +31,11 @@ import kotlin.reflect.KClass
  * For the current set of policies in Walt.Id see
  * https://github.com/tdiesler/waltid-ssikit/blob/master/src/main/kotlin/id/walt/auditor/PolicyRegistry.kt
  */
-class VerificationPolicyService: AbstractBaseService() {
-    override val implementation get() = serviceImplementation<NessusDidService>()
-    override val log = KotlinLogging.logger {}
+object VerificationPolicyService: ObjectService<VerificationPolicyService>() {
 
-    companion object: ServiceProvider {
-        private val implementation = VerificationPolicyService()
-        override fun getService() = implementation
-        const val SAVED_POLICY_ROOT_KEY = "policies"
-    }
+    const val SAVED_POLICY_ROOT_KEY = "policies"
+
+    override fun getService() = apply { }
 
     private val policies = mutableMapOf<String, PolicyFactory<*, *>>()
     init {

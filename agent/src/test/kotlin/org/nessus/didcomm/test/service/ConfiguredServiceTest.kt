@@ -20,50 +20,75 @@
 package org.nessus.didcomm.test.service
 
 import id.walt.servicematrix.BaseService
+import id.walt.servicematrix.ServiceMatrix
 import id.walt.servicematrix.ServiceProvider
 import id.walt.servicematrix.ServiceRegistry
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
+import org.nessus.didcomm.service.ObjectService
 import org.nessus.didcomm.test.AbstractAgentTest
+import java.util.concurrent.atomic.AtomicInteger
 
 class ConfiguredServiceTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
 
     @Test
     fun testConcreteTestService() {
-        ServiceRegistry.registerService<ConcreteTestService>(ConcreteTestService("FooConfig"))
-        val testService = ServiceRegistry.getService(ConcreteTestService::class)
-        testService.doStuff() shouldBe "FooConfig"
+        ServiceMatrix("src/test/resources/config/service-matrix-test.properties")
+        val testServiceA = ServiceRegistry.getService(SimpleTestService::class)
+        testServiceA.doStuff() shouldBe "FooConfig 1"
+
+        val testServiceB = SimpleTestService.getService()
+        testServiceB.doStuff() shouldBe "FooConfig 1"
+
+        val objectService = SimpleObjectService.getService()
+        objectService.doStuff() shouldBe "FooConfig 1"
     }
 
     @Test
     fun testSubServiceImpl() {
-        ServiceRegistry.registerService<TestService>(TestServiceImpl("FooConfig"))
-        val testService: TestService = ServiceRegistry.getService()
-        testService.doStuff() shouldBe "FooConfig"
+        ServiceMatrix("src/test/resources/config/service-matrix-test.properties")
+
+        // [TODO] file a bug with service matrix about double instantiation
+        ServiceRegistry.getService(TestService::class).doStuff() shouldBe "FooConfig 2"
+        TestService.getService().doStuff() shouldBe "FooConfig 2"
     }
 }
 
-open class ConcreteTestService(val config: String = "BarConfig") : BaseService() {
-    override val implementation: ConcreteTestService get() = serviceImplementation()
+object SimpleObjectService: ObjectService<SimpleObjectService>() {
 
-    open fun doStuff(): String = config
+    override fun getService() = apply { }
 
-    companion object : ServiceProvider {
-        override fun getService() = object : ConcreteTestService() {}
+    private val atomicCount = AtomicInteger()
+    init { atomicCount.incrementAndGet() }
+
+    fun doStuff() = "FooConfig ${atomicCount.get()}"
+}
+
+open class SimpleTestService(private val config: String = "BarConfig") : BaseService() {
+    override val implementation: SimpleTestService get() = serviceImplementation()
+
+    companion object: ServiceProvider {
+        private val atomicCount = AtomicInteger()
+        override fun getService(): SimpleTestService = ServiceRegistry.getService()
     }
+    init { atomicCount.incrementAndGet() }
+
+    open fun doStuff() = "$config ${atomicCount.get()}"
 }
 
 abstract class TestService(val config: String = "BarConfig") : BaseService() {
     override val implementation: TestService get() = serviceImplementation()
 
-    open fun doStuff(): String = implementation.doStuff()
-
-    companion object : ServiceProvider {
-        override fun getService() = object : TestService() {}
+    companion object: ServiceProvider {
+        val atomicCount = AtomicInteger()
+        override fun getService() = ServiceRegistry.getService(TestService::class)
     }
+    init { atomicCount.incrementAndGet() }
+
+    open fun doStuff(): String = implementation.doStuff()
 }
 
 class TestServiceImpl(configParam: String) : TestService(configParam) {
-    override fun doStuff() = config
+    override fun doStuff() = "$config ${atomicCount.get()}"
 }

@@ -24,7 +24,6 @@ import id.walt.crypto.Key
 import id.walt.crypto.KeyAlgorithm
 import id.walt.crypto.convertRawKeyToMultiBase58Btc
 import id.walt.crypto.getMulticodecKeyCode
-import id.walt.servicematrix.ServiceProvider
 import id.walt.services.crypto.CryptoService
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
@@ -51,14 +50,10 @@ fun Key.toDidKey(): Did {
     return Did(id, DidMethod.KEY, algorithm, pubkeyBytes.encodeBase58())
 }
 
-class DidDocumentV1Service: AbstractBaseService() {
-    override val implementation get() = serviceImplementation<NessusDidService>()
-    override val log = KotlinLogging.logger {}
+object DidDocumentV1Service: ObjectService<DidDocumentV1Service>() {
+    private val log = KotlinLogging.logger {}
 
-    companion object: ServiceProvider {
-        private val implementation = DidDocumentV1Service()
-        override fun getService() = implementation
-    }
+    override fun getService() = apply { }
 
     private val cryptoService get() = CryptoService.getService()
     private val didService get() = NessusDidService.getService()

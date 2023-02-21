@@ -1,7 +1,6 @@
 package org.nessus.didcomm.service
 
 import com.nimbusds.jose.jwk.Curve
-import id.walt.servicematrix.ServiceProvider
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import mu.KotlinLogging
@@ -16,14 +15,10 @@ import org.didcommx.didcomm.secret.Secret
 import org.didcommx.didcomm.secret.SecretResolver
 import java.util.Optional
 
-class SecretResolverService: AbstractBaseService(), SecretResolver {
-    override val implementation get() = serviceImplementation<NessusDidService>()
-    override val log = KotlinLogging.logger {}
+object SecretResolverService: ObjectService<SecretResolverService>(), SecretResolver {
+    private val log = KotlinLogging.logger {}
 
-    companion object: ServiceProvider {
-        private val implementation = SecretResolverService()
-        override fun getService() = implementation
-    }
+    override fun getService() = apply { }
 
     private val didService get() = NessusDidService.getService()
     private val cryptoService get() = NessusCryptoService.getService()

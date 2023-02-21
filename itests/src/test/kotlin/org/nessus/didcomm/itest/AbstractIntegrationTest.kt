@@ -22,7 +22,7 @@ package org.nessus.didcomm.itest
 import io.kotest.core.spec.style.AnnotationSpec
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageListener
-import org.nessus.didcomm.service.CamelEndpointService
+import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.MessageDispatchService
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import org.nessus.didcomm.service.WalletService
@@ -93,8 +93,8 @@ abstract class AbstractIntegrationTest: AnnotationSpec() {
         ServiceMatrixLoader.loadServiceDefinitions(matrixProperties)
     }
 
-    val dispatchService = MessageDispatchService.getService()
-    val endpointService get() = CamelEndpointService.getService()
+    val dispatchService get() = MessageDispatchService.getService()
+    val endpointService get() = EndpointService.getService()
     val walletService get() = WalletService.getService()
 
     fun getWalletByAlias(name: String): Wallet? {

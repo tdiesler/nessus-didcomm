@@ -19,17 +19,12 @@
  */
 package org.nessus.didcomm.service
 
-import id.walt.servicematrix.ServiceProvider
-import mu.KotlinLogging
-
-
-class JWTService: AbstractBaseService() {
-    override val implementation get() = serviceImplementation<NessusDidService>()
-    override val log = KotlinLogging.logger {}
-
-    companion object: ServiceProvider {
-        private val implementation = JWTService()
-        override fun getService() = implementation
-    }
-
+/**
+ * A service that extends ObjectService is a simple object singleton.
+ *
+ * It also has the getService() API for symmetry with WaltId services.
+ * This should make it possible to migrate easily to a more complex service impl.
+ */
+abstract class ObjectService<T> {
+    abstract fun getService(): T
 }

@@ -22,7 +22,6 @@ package org.nessus.didcomm.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AgentConfiguration
@@ -37,14 +36,10 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import kotlin.io.path.isReadable
 
-class WalletService : AbstractBaseService() {
-    override val implementation get() = serviceImplementation<WalletService>()
-    override val log = KotlinLogging.logger {}
+object WalletService: ObjectService<WalletService>() {
+    private val log = KotlinLogging.logger {}
 
-    companion object: ServiceProvider {
-        private val implementation = WalletService()
-        override fun getService() = implementation
-    }
+    override fun getService() = apply { }
 
     init {
         initAcaPyWallets()

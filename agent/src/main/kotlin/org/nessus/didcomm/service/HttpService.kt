@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.service
 
-import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -37,15 +36,11 @@ import org.slf4j.event.Level
 import java.util.concurrent.TimeUnit
 
 
-class HttpService: AbstractBaseService() {
-    override val implementation get() = serviceImplementation<HttpService>()
-    override val log = KotlinLogging.logger {}
+object HttpService: ObjectService<HttpService>() {
 
-    companion object: ServiceProvider {
-        val DEFAULT_HTTP_LOGGING_LEVEL = Level.INFO
-        private val implementation = HttpService()
-        override fun getService() = implementation
-    }
+    val DEFAULT_HTTP_LOGGING_LEVEL = Level.INFO
+
+    override fun getService() = apply { }
 
     fun httpClient(level: Level? = null): HttpClient {
         return HttpClient(createHttpLoggingInterceptor(level), null)

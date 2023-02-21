@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.test.service
 
-import id.walt.common.prettyPrint
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import mu.KotlinLogging
@@ -27,6 +26,7 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
+import org.nessus.didcomm.util.encodeJson
 
 class ModelServiceTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
@@ -35,14 +35,14 @@ class ModelServiceTest: AbstractAgentTest() {
     fun testModelService() {
 
         // Show empty state
-        log.info { modelService.modelAsJson.prettyPrint() }
+        log.info { modelService.model.encodeJson(true) }
 
         Wallet.Builder(Alice.name)
             .agentType(AgentType.NESSUS)
             .build()
 
         modelService.findWalletByName(Alice.name) shouldNotBe null
-        log.info { modelService.modelAsJson.prettyPrint() }
+        log.info { modelService.model.encodeJson(true) }
 
         removeWallet(Alice.name)
         modelService.findWalletByName(Alice.name) shouldBe null

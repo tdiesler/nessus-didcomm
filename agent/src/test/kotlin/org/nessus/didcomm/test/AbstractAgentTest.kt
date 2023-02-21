@@ -23,10 +23,10 @@ import id.walt.services.keystore.KeyStoreService
 import id.walt.signatory.Signatory
 import io.kotest.core.spec.style.AnnotationSpec
 import org.nessus.didcomm.protocol.MessageListener
-import org.nessus.didcomm.service.CamelEndpointService
 import org.nessus.didcomm.service.DidCommService
 import org.nessus.didcomm.service.DidDocumentV1Service
 import org.nessus.didcomm.service.DidDocumentV2Service
+import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.MessageDispatchService
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.NessusCryptoService
@@ -108,7 +108,7 @@ abstract class AbstractAgentTest: AnnotationSpec() {
     val diddocV2Service get() = DidDocumentV2Service.getService()
     val didService get() = NessusDidService.getService()
     val dispatchService = MessageDispatchService.getService()
-    val endpointService get() = CamelEndpointService.getService()
+    val endpointService get() = EndpointService.getService()
     val keyStore get() = KeyStoreService.getService()
     val modelService get() = ModelService.getService()
     val policyService get() = VerificationPolicyService.getService()

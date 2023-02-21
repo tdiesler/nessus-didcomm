@@ -35,7 +35,6 @@ import org.jline.reader.impl.DefaultParser
 import org.jline.terminal.Terminal
 import org.jline.terminal.TerminalBuilder
 import org.jline.widget.TailTipWidgets
-import org.nessus.didcomm.cli.service.CLIService
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.ServiceMatrixLoader

@@ -19,8 +19,6 @@
  */
 package org.nessus.didcomm.service
 
-import id.walt.servicematrix.ServiceProvider
-import mu.KotlinLogging
 import org.didcommx.didcomm.DIDComm
 import org.didcommx.didcomm.model.PackEncryptedParams
 import org.didcommx.didcomm.model.PackEncryptedResult
@@ -31,14 +29,9 @@ import org.didcommx.didcomm.model.PackSignedResult
 import org.didcommx.didcomm.model.UnpackParams
 import org.didcommx.didcomm.model.UnpackResult
 
-class DidCommService: AbstractBaseService() {
-    override val implementation get() = serviceImplementation<NessusDidService>()
-    override val log = KotlinLogging.logger {}
+object DidCommService: ObjectService<DidCommService>() {
 
-    companion object: ServiceProvider {
-        private val implementation = DidCommService()
-        override fun getService() = implementation
-    }
+    override fun getService() = apply { }
 
     private val didDocResolver get() = DidDocumentV2Service.getService()
     private val secretResolver get() = SecretResolverService.getService()

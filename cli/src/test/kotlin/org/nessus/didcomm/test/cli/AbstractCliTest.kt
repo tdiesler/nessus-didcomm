@@ -23,7 +23,7 @@ import io.kotest.core.spec.style.AnnotationSpec
 import mu.KotlinLogging
 import org.nessus.didcomm.cli.AbstractBaseCommand
 import org.nessus.didcomm.cli.NessusCli
-import org.nessus.didcomm.cli.service.CLIService
+import org.nessus.didcomm.cli.CLIService
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import picocli.CommandLine

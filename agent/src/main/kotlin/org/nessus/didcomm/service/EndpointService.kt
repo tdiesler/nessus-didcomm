@@ -19,17 +19,16 @@
  */
 package org.nessus.didcomm.service
 
+import id.walt.servicematrix.BaseService
 import id.walt.servicematrix.ServiceProvider
-import mu.KotlinLogging
+import id.walt.servicematrix.ServiceRegistry
 import org.nessus.didcomm.protocol.MessageListener
 
-
-abstract class EndpointService<T: Any>: AbstractBaseService() {
-    override val implementation get() = serviceImplementation<EndpointService<Any>>()
-    override val log = KotlinLogging.logger {}
+abstract class EndpointService<T: AutoCloseable>: BaseService() {
+    override val implementation get() = serviceImplementation<EndpointService<T>>()
 
     companion object: ServiceProvider {
-        override fun getService() = object : EndpointService<Any>() {}
+        override fun getService(): EndpointService<out AutoCloseable> = ServiceRegistry.getService()
         override fun defaultImplementation() = CamelEndpointService()
     }
 
@@ -38,14 +37,14 @@ abstract class EndpointService<T: Any>: AbstractBaseService() {
      *
      * @return A handle specific to the endpoint implementation
      */
-    open fun startEndpoint(endpointUrl: String, listener: MessageListener? = null): T? {
-        return null
+    open fun startEndpoint(endpointUrl: String, listener: MessageListener? = null): T {
+        throw IllegalStateException("Override startEndpoint")
     }
 
     /**
      * Stops the endpoint service represented by the given handle
      */
-    open fun stopEndpoint(handle: T? = null) {
-        // Do nothing
+    open fun stopEndpoint(handle: T) {
+        handle.close()
     }
 }

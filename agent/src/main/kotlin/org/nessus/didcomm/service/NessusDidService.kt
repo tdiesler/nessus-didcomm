@@ -27,10 +27,8 @@ import id.walt.crypto.decodeRawPubKeyBase64
 import id.walt.crypto.getMulticodecKeyCode
 import id.walt.crypto.newKeyId
 import id.walt.model.ServiceEndpoint
-import id.walt.servicematrix.ServiceProvider
 import id.walt.services.CryptoProvider
 import id.walt.services.keystore.KeyStoreService
-import mu.KotlinLogging
 import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toRaw
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidDocV2
@@ -48,14 +46,9 @@ typealias WaltIdDidService = id.walt.services.did.DidService
 typealias WaltIdDidMethod = id.walt.model.DidMethod
 typealias WaltIdDidDoc = id.walt.model.Did
 
-class NessusDidService: AbstractBaseService() {
-    override val implementation get() = serviceImplementation<NessusDidService>()
-    override val log = KotlinLogging.logger {}
+object NessusDidService: ObjectService<NessusDidService>() {
 
-    companion object: ServiceProvider {
-        private val implementation = NessusDidService()
-        override fun getService() = implementation
-    }
+    override fun getService() = apply { }
 
     private val modelService get() = ModelService.getService()
     private val cryptoService get() = NessusCryptoService.getService()

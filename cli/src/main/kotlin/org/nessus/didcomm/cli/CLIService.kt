@@ -17,36 +17,28 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.cli.service
+package org.nessus.didcomm.cli
 
-import id.walt.servicematrix.ServiceProvider
-import mu.KotlinLogging
-import org.nessus.didcomm.cli.NessusCli
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
-import org.nessus.didcomm.service.AbstractAttachmentsService
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.WalletService
+import org.nessus.didcomm.util.AttachmentSupport
 import picocli.CommandLine
 
 
-class CLIService: AbstractAttachmentsService() {
-    override val implementation get() = serviceImplementation<CLIService>()
-    override val log = KotlinLogging.logger {}
+object CLIService: AttachmentSupport() {
 
-    companion object: ServiceProvider {
-        private val implementation = CLIService()
-        override fun getService() = implementation
-    }
-
+    // Fetch the wallet state from external agents
     init {
-        // Fetch the wallet state from external agents
         WalletService.getService()
     }
+
+    fun getService() = apply {}
 
     private val modelService get() = ModelService.getService()
 

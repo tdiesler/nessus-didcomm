@@ -19,8 +19,6 @@
  */
 package org.nessus.didcomm.service
 
-import id.walt.servicematrix.ServiceProvider
-import mu.KotlinLogging
 import org.nessus.didcomm.protocol.*
 import org.nessus.didcomm.util.AttachmentKey
 import kotlin.reflect.KClass
@@ -39,27 +37,22 @@ class ProtocolKey<T: Protocol<T>>(uri: String, type: KClass<T>): AttachmentKey<T
     val uri get() = this.name
 }
 
-class ProtocolService : AbstractBaseService() {
-    override val implementation get() = serviceImplementation<ProtocolService>()
-    override val log = KotlinLogging.logger {}
+object ProtocolService : ObjectService<ProtocolService>() {
 
-    companion object: ServiceProvider {
-        private val implementation = ProtocolService()
-        override fun getService() = implementation
+    override fun getService() = apply { }
 
-        val supportedProtocols: List<ProtocolKey<*>> get() = listOf(
+    private val supportedProtocols: List<ProtocolKey<*>> get() = listOf(
 
-            RFC0019_ENCRYPTED_ENVELOPE,
-            RFC0023_DIDEXCHANGE_V1,
-            RFC0048_TRUST_PING_V1,
-            RFC0095_BASIC_MESSAGE_V1,
-            RFC0434_OUT_OF_BAND_V1,
+        RFC0019_ENCRYPTED_ENVELOPE,
+        RFC0023_DIDEXCHANGE_V1,
+        RFC0048_TRUST_PING_V1,
+        RFC0095_BASIC_MESSAGE_V1,
+        RFC0434_OUT_OF_BAND_V1,
 
-            RFC0048_TRUST_PING_V2,
-            RFC0095_BASIC_MESSAGE_V2,
-            RFC0434_OUT_OF_BAND_V2,
-            )
-    }
+        RFC0048_TRUST_PING_V2,
+        RFC0095_BASIC_MESSAGE_V2,
+        RFC0434_OUT_OF_BAND_V2,
+    )
 
     fun findProtocolKey(uri: String): ProtocolKey<*> {
         val keyPair = supportedProtocols.find { it.uri == uri }
