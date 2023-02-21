@@ -33,22 +33,22 @@ open class AbstractDidCommand: AbstractBaseCommand() {
 
     fun findDids(wallet: Wallet, alias: String?): List<Did> {
         return wallet.dids.filter {
-            val candidates = listOf(it.id, it.qualified, it.verkey).map { c -> c.lowercase() }
+            val candidates = listOf(it.id, it.uri, it.verkey).map { c -> c.lowercase() }
             candidates.any { c -> alias == null || c.startsWith(alias.lowercase()) }
         }
     }
 
     fun echoDid(did: Did, showDoc: Boolean = false) {
         if (verbose) {
-            echo(did.qualified)
+            echo(did.uri)
             echo(did.encodeJson(true))
             if (showDoc && did.method in listOf(DidMethod.KEY)) {
                 echo()
-                val didDoc = didService.loadDidDocument(did.qualified)
+                val didDoc = didService.loadDidDocument(did.uri)
                 echo("Did Document ...\n${didDoc.encodeJson(true)}")
             }
         } else {
-            echo(did.qualified)
+            echo(did.uri)
         }
     }
 }

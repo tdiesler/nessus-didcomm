@@ -10,11 +10,8 @@ import org.didcommx.didcomm.common.VerificationMaterialFormat
 import org.didcommx.didcomm.common.VerificationMethodType
 import org.didcommx.didcomm.diddoc.DIDCommService
 import org.didcommx.didcomm.diddoc.VerificationMethod
-import org.json.JSONObject
 import org.nessus.didcomm.did.DidDocV2.Companion.DEFAULT_ACCEPT
 import org.nessus.didcomm.service.WaltIdDidDoc
-import org.nessus.didcomm.util.encodeJson
-import org.nessus.didcomm.util.gson
 
 typealias SicpaDidDoc = org.didcommx.didcomm.diddoc.DIDDoc
 typealias WaltIdVerificationMethod = id.walt.model.VerificationMethod
@@ -49,12 +46,7 @@ data class DidDocV2(
     }
 
     fun encodeJson(pretty: Boolean = false): String {
-        val encoded = DIDDocEncoder.encodeJson(toSicpaDidDoc())
-        return if (pretty) {
-            gson.fromJson(encoded, JSONObject::class.java).encodeJson(true)
-        } else {
-            encoded
-        }
+        return DIDDocEncoder.encodeJson(toSicpaDidDoc(), pretty)
     }
 }
 

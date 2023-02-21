@@ -27,6 +27,7 @@ import org.didcommx.didcomm.common.VerificationMethodType
 import org.didcommx.didcomm.diddoc.DIDCommService
 import org.didcommx.didcomm.diddoc.DIDDoc
 import org.didcommx.didcomm.diddoc.VerificationMethod
+import org.nessus.didcomm.util.gsonPretty
 
 object DIDDocEncoder {
 
@@ -36,7 +37,7 @@ object DIDDocEncoder {
      * Encode according to
      * https://www.w3.org/TR/did-core/#did-document-properties
      */
-    fun encodeJson(doc: DIDDoc): String {
+    fun encodeJson(doc: DIDDoc, pretty: Boolean = false): String {
         val jsonObj = JsonObject()
 
         // id
@@ -66,7 +67,10 @@ object DIDDocEncoder {
             jsonObj.add("service", service)
         }
 
-        return jsonObj.toString()
+        return if (pretty)
+            gsonPretty.toJson(jsonObj)
+        else
+            gson.toJson(jsonObj)
     }
 
     private fun encodeVerificationMethod(vm: VerificationMethod): JsonObject {

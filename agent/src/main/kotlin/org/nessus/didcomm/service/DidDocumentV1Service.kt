@@ -69,24 +69,24 @@ class DidDocumentV1Service: AbstractBaseService() {
         val template = """
         {
             "@context": "https://w3id.org/did/v1",
-            "id": "${did.qualified}",
+            "id": "${did.uri}",
             "publicKey": [
                 {
-                    "id": "${did.qualified}#1",
+                    "id": "${did.uri}#1",
                     "type": "Ed25519VerificationKey2018",
-                    "controller": "${did.qualified}",
+                    "controller": "${did.uri}",
                     "publicKeyBase58": "${did.verkey}"
                 }
             ],
             "authentication": [
                 {
                     "type": "Ed25519SignatureAuthentication2018",
-                    "publicKey": "${did.qualified}#1"
+                    "publicKey": "${did.uri}#1"
                 }
             ],
             "service": [
                 {
-                    "id": "${did.qualified};srv",
+                    "id": "${did.uri};srv",
                     "type": "NessusAgent",
                     "priority": 0,
                     "recipientKeys": [
@@ -119,12 +119,12 @@ class DidDocumentV1Service: AbstractBaseService() {
         val protectedTemplate = """
         {
             "alg": "${octetKeyPair.algorithm}",
-            "kid": "${didKey.qualified}",
+            "kid": "${didKey.uri}",
             "jwk": {
                 "kty": "${octetKeyPair.keyType}",
                 "crv": "${octetKeyPair.curve}",
                 "x": "${octetKeyPair.x}",
-                "kid": "${didKey.qualified}"
+                "kid": "${didKey.uri}"
             }
         }            
         """.trimJson()
@@ -143,7 +143,7 @@ class DidDocumentV1Service: AbstractBaseService() {
               "base64": "$didDocument64",
               "jws": {
                 "header": {
-                  "kid": "${didKey.qualified}"
+                  "kid": "${didKey.uri}"
                 },
                 "protected": "$protected64",
                 "signature": "$signature64"
@@ -206,7 +206,7 @@ class DidDocumentV1Service: AbstractBaseService() {
             }
 
             val keyId = keyStore.load(jwsHeaderDid.verkey, KeyType.PUBLIC).keyId
-            check(cryptoService.verify(keyId, signature, data)) { "Did Document signature verification failed with: ${jwsHeaderDid.qualified}" }
+            check(cryptoService.verify(keyId, signature, data)) { "Did Document signature verification failed with: ${jwsHeaderDid.uri}" }
             jwsHeaderDid
         }
 

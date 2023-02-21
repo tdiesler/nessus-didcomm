@@ -59,13 +59,13 @@ class CryptoServiceTest: AbstractAgentTest() {
         val seedBytes = "0000000000000000000000000000000000000000000000000000000000000005".decodeHex()
         val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, seedBytes)
         val didKey05 = didService.createDid(DidMethod.KEY, keyId.id)
-        didKey05.qualified shouldBe "did:key:z6MkwYMhwTvsq376YBAcJHy3vyRWzBgn5vKfVqqDCgm7XVKU"
+        didKey05.uri shouldBe "did:key:z6MkwYMhwTvsq376YBAcJHy3vyRWzBgn5vKfVqqDCgm7XVKU"
 
         // Test OKP Ed25519
         run {
 
             // Load the key associated with the DID and get the OKP representation of it
-            val key: Key = keyStore.load(didKey05.qualified, KeyType.PRIVATE)
+            val key: Key = keyStore.load(didKey05.uri, KeyType.PRIVATE)
             val octetKeyPair: OctetKeyPair = key.toOctetKeyPair()
             log.info { octetKeyPair.toJSONObject().encodeJson(true) }
 
@@ -95,7 +95,7 @@ class CryptoServiceTest: AbstractAgentTest() {
         // Test OKP X25519
         run {
             // Load the key associated with the DID and get the OKP representation of it
-            val key: Key = keyStore.load(didKey05.qualified, KeyType.PRIVATE)
+            val key: Key = keyStore.load(didKey05.uri, KeyType.PRIVATE)
 
             key.cryptoProvider shouldBe CryptoProvider.SUN
             key.algorithm shouldBe KeyAlgorithm.EdDSA_Ed25519

@@ -36,7 +36,7 @@ enum class DidMethod(val value: String) {
 class Did(id: String, val method: DidMethod, val algorithm: KeyAlgorithm, val verkey: String) {
 
     val id: String
-    val qualified get() = "did:${method.value}:${id}"
+    val uri get() = "did:${method.value}:${id}"
 
     init {
         this.id = id.substring(id.lastIndexOf(':') + 1)
@@ -72,7 +72,7 @@ class Did(id: String, val method: DidMethod, val algorithm: KeyAlgorithm, val ve
 
 
     @Transient
-    private val fingerprint = "$qualified.${algorithm.name}.$verkey"
+    private val fingerprint = "$uri.${algorithm.name}.$verkey"
 
     override fun equals(other: Any?): Boolean {
         if (other !is Did) return false
@@ -84,7 +84,7 @@ class Did(id: String, val method: DidMethod, val algorithm: KeyAlgorithm, val ve
     }
 
     fun shortString(): String {
-        return "$qualified [algorithm=$algorithm, verkey=$verkey]"
+        return "$uri [algorithm=$algorithm, verkey=$verkey]"
     }
 
     override fun toString(): String {

@@ -45,9 +45,9 @@ class DidCommCryptoTest: AbstractAgentTest() {
         val seed = "0000000000000000000000000000000000000000000000000000000000000005".decodeHex()
         val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, seed)
         val did = didService.createDid(DidMethod.KEY, keyAlias = keyId.id)
-        did.qualified shouldBe "did:key:z6MkwYMhwTvsq376YBAcJHy3vyRWzBgn5vKfVqqDCgm7XVKU"
+        did.uri shouldBe "did:key:z6MkwYMhwTvsq376YBAcJHy3vyRWzBgn5vKfVqqDCgm7XVKU"
 
-        val octetKeyPair = didService.loadDid(did.qualified).toOctetKeyPair()
+        val octetKeyPair = didService.loadDid(did.uri).toOctetKeyPair()
 
         val jwk = octetKeyPair.toJSONObject().encodeJson(sorted = true)
         log.info { jwk.prettyPrint() }
@@ -73,9 +73,9 @@ class DidCommCryptoTest: AbstractAgentTest() {
         val seed = "0000000000000000000000000000000000000000000000000000000000000005".decodeHex()
         val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, seed)
         val did = didService.createDid(DidMethod.KEY, keyAlias = keyId.id)
-        did.qualified shouldBe "did:key:z6MkwYMhwTvsq376YBAcJHy3vyRWzBgn5vKfVqqDCgm7XVKU"
+        did.uri shouldBe "did:key:z6MkwYMhwTvsq376YBAcJHy3vyRWzBgn5vKfVqqDCgm7XVKU"
 
-        val octetKeyPair = didService.loadDid(did.qualified).toOctetKeyPair()
+        val octetKeyPair = didService.loadDid(did.uri).toOctetKeyPair()
 
         val jwk = octetKeyPair.toJSONObject().encodeJson(sorted = true)
         log.info { jwk.prettyPrint() }

@@ -58,12 +58,12 @@ class LibIndyTest: AbstractAgentTest() {
             log.info("Create wallet - Faber")
             val faber = createAnOpenWallet(Faber.name)
             val faberDid = createAndStoreDid(faber, Faber.seed)
-            log.info { "Faber Did: ${faberDid.qualified}" }
+            log.info { "Faber Did: ${faberDid.uri}" }
 
             log.info("Create wallet - Alice")
             val alice = createAnOpenWallet(Alice.name)
             val aliceDid = createAndStoreDid(alice, Alice.seed)
-            log.info { "Alice Did: ${aliceDid.qualified}" }
+            log.info { "Alice Did: ${aliceDid.uri}" }
 
             val msg = "Your hovercraft is full of eels."
             val encryptedMessage = Crypto.authCrypt(faber, faberDid.verkey, aliceDid.verkey, msg.toByteArray()).get()
@@ -85,13 +85,13 @@ class LibIndyTest: AbstractAgentTest() {
             log.info("Create wallet - Faber")
             val faber = createAnOpenWallet(Faber.name)
             val faberDid = createAndStoreDid(faber, Faber.seed)
-            log.info { "Faber Did: ${faberDid.qualified}" }
+            log.info { "Faber Did: ${faberDid.uri}" }
 
             log.info("Create wallet - Alice")
             val alice = createAnOpenWallet(Alice.name)
             val aliceDid = createAndStoreDid(alice, Alice.seed)
-            log.info { "Alice Did: ${aliceDid.qualified}" }
-            aliceDid.qualified shouldBe "did:sov:RfoA7oboFMiFuJPEtPdvKP"
+            log.info { "Alice Did: ${aliceDid.uri}" }
+            aliceDid.uri shouldBe "did:sov:RfoA7oboFMiFuJPEtPdvKP"
 
             val message = "Your hovercraft is full of eels."
             val receivers = gson.toJson(listOf(aliceDid.verkey))
@@ -118,7 +118,7 @@ class LibIndyTest: AbstractAgentTest() {
             log.info("Create wallet - Faber")
             val faber = createAnOpenWallet(Faber.name)
             val faberDid = createAndStoreDid(faber, Faber.seed)
-            log.info { "Faber Did: ${faberDid.qualified}" }
+            log.info { "Faber Did: ${faberDid.uri}" }
 
             log.info("Create wallet - Alice")
             Wallet.Builder(Alice.name)
@@ -151,7 +151,7 @@ class LibIndyTest: AbstractAgentTest() {
             log.info("Create wallet - Faber")
             val faber = createAnOpenWallet(Faber.name)
             val faberDid = createAndStoreDid(faber, Faber.seed)
-            log.info { "Faber Did: ${faberDid.qualified}" }
+            log.info { "Faber Did: ${faberDid.uri}" }
 
             log.info("Create wallet - Alice")
             Wallet.Builder(Alice.name)

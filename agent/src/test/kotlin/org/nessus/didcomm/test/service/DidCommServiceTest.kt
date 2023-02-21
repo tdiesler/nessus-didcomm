@@ -36,7 +36,6 @@ import org.nessus.didcomm.service.WaltIdDidService
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
-import org.nessus.didcomm.util.encodeJson
 import java.util.UUID
 
 class DidCommServiceTest: AbstractAgentTest() {
@@ -74,21 +73,21 @@ class DidCommServiceTest: AbstractAgentTest() {
         try {
             val faberDid = faber.createDid(DidMethod.KEY)
 
-            val waltDidDoc: WaltIdDidDoc = WaltIdDidService.load(faberDid.qualified)
+            val waltDidDoc: WaltIdDidDoc = WaltIdDidService.load(faberDid.uri)
             log.info { "WaltIdDidDoc ${waltDidDoc.encodePretty()}" }
 
-            val didDocV2: DidDocV2 = didService.loadDidDocument(faberDid.qualified)
+            val didDocV2: DidDocV2 = didService.loadDidDocument(faberDid.uri)
             log.info { "DidDocV2 ${didDocV2.encodeJson(true)}" }
 
             val message = MessageBuilder(
                     id = "${UUID.randomUUID()}",
                     body = mapOf("content" to "Alice, you're smashing"),
                     type = Typ.Plaintext.typ)
-                .from(faberDid.qualified)
+                .from(faberDid.uri)
                 .build()
 
             val packResult = didComm.packSigned(
-                PackSignedParams.builder(message, faberDid.qualified)
+                PackSignedParams.builder(message, faberDid.uri)
                     .build()
             )
             log.info { packResult.packedMessage.prettyPrint() }
@@ -118,24 +117,24 @@ class DidCommServiceTest: AbstractAgentTest() {
             val faberDid = faber.createDid(DidMethod.KEY)
             val aliceDid = alice.createDid(DidMethod.KEY)
 
-            val waltDidDoc: WaltIdDidDoc = WaltIdDidService.load(faberDid.qualified)
+            val waltDidDoc: WaltIdDidDoc = WaltIdDidService.load(faberDid.uri)
             log.info { "WaltIdDidDoc ${waltDidDoc.encodePretty()}" }
 
-            val didDocV2: DidDocV2 = didService.loadDidDocument(faberDid.qualified)
+            val didDocV2: DidDocV2 = didService.loadDidDocument(faberDid.uri)
             log.info { "DidDocV2 ${didDocV2.encodeJson(true)}" }
 
             val message = MessageBuilder(
                 id = "${UUID.randomUUID()}",
                 body = mapOf("content" to "Alice, you're smashing"),
                 type = Typ.Plaintext.typ)
-                .from(faberDid.qualified)
-                .to(listOf(aliceDid.qualified))
+                .from(faberDid.uri)
+                .to(listOf(aliceDid.uri))
                 .build()
 
             val packResult = didComm.packEncrypted(
-                PackEncryptedParams.builder(message, aliceDid.qualified)
-                    .signFrom(faberDid.qualified)
-                    .from(faberDid.qualified)
+                PackEncryptedParams.builder(message, aliceDid.uri)
+                    .signFrom(faberDid.uri)
+                    .from(faberDid.uri)
                     .build()
             )
             log.info { packResult.packedMessage.prettyPrint() }

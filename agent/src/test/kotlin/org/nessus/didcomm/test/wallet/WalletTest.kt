@@ -46,11 +46,11 @@ class WalletTest: AbstractAgentTest() {
         val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
         val aliceDid = alice.createDid(DidMethod.KEY, keyId.id)
 
-        aliceDid.qualified shouldBe Alice.didkey
+        aliceDid.uri shouldBe Alice.didkey
         aliceDid.verkey shouldBe Alice.verkey
 
         val keyStore = KeyStoreService.getService()
-        keyStore.load(aliceDid.qualified, KeyType.PUBLIC) shouldNotBe null
+        keyStore.load(aliceDid.uri, KeyType.PUBLIC) shouldNotBe null
         keyStore.load(aliceDid.verkey, KeyType.PUBLIC) shouldNotBe null
 
         walletService.removeWallet(alice.id)

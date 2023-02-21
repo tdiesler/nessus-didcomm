@@ -51,7 +51,7 @@ class RFC0019EnvelopeTest: AbstractAgentTest() {
 
         // Restore the key to store (i.e. Alice's Did is internal for unpack)
         keyStore.store(aliceKey)
-        keyStore.addAlias(aliceKey.keyId, aliceDid.qualified)
+        keyStore.addAlias(aliceKey.keyId, aliceDid.uri)
         keyStore.addAlias(aliceKey.keyId, aliceDid.verkey)
 
         val message = rfc0019.unpackEncryptedEnvelope(envelope)?.message
@@ -100,7 +100,7 @@ class RFC0019EnvelopeTest: AbstractAgentTest() {
 
         val faberVerkey = didDocument.publicKey[0].publicKeyBase58
         val faberDid = Did.fromSpec(didDocument.publicKey[0].controller, faberVerkey)
-        log.info { "Faber Did: ${faberDid.qualified}" }
+        log.info { "Faber Did: ${faberDid.uri}" }
 
         rfc0019.packEncryptedEnvelope(didRequest, aliceDidSov, faberDid)
     }

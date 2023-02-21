@@ -56,7 +56,7 @@ class ModelService : AbstractBaseService() {
     }
 
     fun findWalletByDid(did: String): Wallet? {
-        return findWallet { it.findDid { d -> d.qualified == did } != null }
+        return findWallet { it.findDid { d -> d.uri == did } != null }
     }
 
     fun findWalletByVerkey(verkey: String): Wallet? {

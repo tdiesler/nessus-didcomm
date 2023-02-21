@@ -19,14 +19,11 @@
  */
 package org.nessus.didcomm.service
 
-import id.walt.servicematrix.BaseService
-import mu.KLogger
 import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.AttachmentSupport
 import org.nessus.didcomm.util.Attachments
 
-abstract class AbstractAttachmentsService: BaseService(), Attachments {
-    abstract val log: KLogger
+abstract class AbstractAttachmentsService: AbstractBaseService(), Attachments {
 
     private val attachments: Attachments = AttachmentSupport()
 

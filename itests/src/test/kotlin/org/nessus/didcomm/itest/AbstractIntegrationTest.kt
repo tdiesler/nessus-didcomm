@@ -89,7 +89,7 @@ abstract class AbstractIntegrationTest: AnnotationSpec() {
 
     @BeforeAll
     fun beforeAll() {
-        val matrixProperties = "src/test/resources/service-matrix.properties"
+        val matrixProperties = "src/test/resources/config/service-matrix.properties"
         ServiceMatrixLoader.loadServiceDefinitions(matrixProperties)
     }
 

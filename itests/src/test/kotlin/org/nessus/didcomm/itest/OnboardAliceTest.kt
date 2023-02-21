@@ -43,7 +43,7 @@ class OnboardAliceTest : AbstractIntegrationTest() {
             pubDid shouldBe null
 
             val did = alice.createDid(DidMethod.KEY)
-            did.qualified.startsWith("did:key") shouldBe true
+            did.uri.startsWith("did:key") shouldBe true
 
         } finally {
             removeWallet(Alice.name)

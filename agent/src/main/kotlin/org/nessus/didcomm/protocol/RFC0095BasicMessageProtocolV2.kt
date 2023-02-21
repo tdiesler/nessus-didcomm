@@ -85,8 +85,8 @@ class RFC0095BasicMessageProtocolV2(mex: MessageExchange): Protocol<RFC0095Basic
         val basicMessage = BasicMessageV2.Builder(
                 id = "${UUID.randomUUID()}",
                 type = RFC0095_BASIC_MESSAGE_TYPE_V2)
-            .from(senderDid.qualified)
-            .to(listOf(recipientDid.qualified))
+            .from(senderDid.uri)
+            .to(listOf(recipientDid.uri))
             .createdTime(dateTimeNow())
             .content(message)
             .build()
@@ -130,8 +130,8 @@ class RFC0095BasicMessageProtocolV2(mex: MessageExchange): Protocol<RFC0095Basic
         val basicMessage = BasicMessageV2.Builder(
                 id = "${UUID.randomUUID()}",
                 type = RFC0095_BASIC_MESSAGE_TYPE_V2)
-            .from(senderDid.qualified)
-            .to(listOf(recipientDid.qualified))
+            .from(senderDid.uri)
+            .to(listOf(recipientDid.uri))
             .createdTime(dateTimeNow())
             .content(message)
             .build()
@@ -141,7 +141,7 @@ class RFC0095BasicMessageProtocolV2(mex: MessageExchange): Protocol<RFC0095Basic
         log.info { "Sender (${sender.name}) creates Basic Message: ${basicMessageMsg.encodeJson(true)}" }
 
         val packResult = didComm.packSigned(
-            PackSignedParams.builder(basicMessageMsg, senderDid.qualified)
+            PackSignedParams.builder(basicMessageMsg, senderDid.uri)
                 .build()
         )
 
@@ -175,8 +175,8 @@ class RFC0095BasicMessageProtocolV2(mex: MessageExchange): Protocol<RFC0095Basic
         val basicMessage = BasicMessageV2.Builder(
                 id = "${UUID.randomUUID()}",
                 type = RFC0095_BASIC_MESSAGE_TYPE_V2)
-            .from(senderDid.qualified)
-            .to(listOf(recipientDid.qualified))
+            .from(senderDid.uri)
+            .to(listOf(recipientDid.uri))
             .createdTime(dateTimeNow())
             .content(message)
             .build()
@@ -186,9 +186,9 @@ class RFC0095BasicMessageProtocolV2(mex: MessageExchange): Protocol<RFC0095Basic
         log.info { "Sender (${sender.name}) creates Basic Message: ${basicMessageMsg.encodeJson(true)}" }
 
         val packResult = didComm.packEncrypted(
-            PackEncryptedParams.builder(basicMessageMsg, recipientDid.qualified)
-                .signFrom(senderDid.qualified)
-                .from(senderDid.qualified)
+            PackEncryptedParams.builder(basicMessageMsg, recipientDid.uri)
+                .signFrom(senderDid.uri)
+                .from(senderDid.uri)
                 .build()
         )
 

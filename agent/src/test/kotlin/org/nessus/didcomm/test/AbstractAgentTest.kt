@@ -103,17 +103,17 @@ abstract class AbstractAgentTest: AnnotationSpec() {
     }
 
     val cryptoService get() = NessusCryptoService.getService()
-    val didComm = DidCommService.getService()
-    val diddocV1Service = DidDocumentV1Service.getService()
-    val diddocV2Service = DidDocumentV2Service.getService()
+    val didComm get() = DidCommService.getService()
+    val diddocV1Service get() = DidDocumentV1Service.getService()
+    val diddocV2Service get() = DidDocumentV2Service.getService()
     val didService get() = NessusDidService.getService()
     val dispatchService = MessageDispatchService.getService()
     val endpointService get() = CamelEndpointService.getService()
     val keyStore get() = KeyStoreService.getService()
     val modelService get() = ModelService.getService()
     val policyService get() = VerificationPolicyService.getService()
-    val secretResolver = SecretResolverService.getService()
-    val signatory = Signatory.getService()
+    val secretResolver get() = SecretResolverService.getService()
+    val signatory get() = Signatory.getService()
     val walletService get() = WalletService.getService()
 
     fun readResource(path: String): String {

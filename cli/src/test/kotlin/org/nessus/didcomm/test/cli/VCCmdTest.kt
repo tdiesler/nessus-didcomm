@@ -47,9 +47,9 @@ class VCCmdTest: AbstractCliTest() {
 
         try {
 
-            val faberDid = faber.createDid().qualified
-            val aliceDid = alice.createDid().qualified
-            val acmeDid = acme.createDid().qualified
+            val faberDid = faber.createDid().uri
+            val aliceDid = alice.createDid().uri
+            val acmeDid = acme.createDid().uri
 
             cliService.execute("vc issue -t VerifiableId -i $faberDid -s $aliceDid target/VerifiableId.json").isSuccess shouldBe true
             cliService.execute("vc present -h $aliceDid -v $acmeDid -c 1234 target/VerifiableId.json target/VerifiablePresentation.json").isSuccess shouldBe true

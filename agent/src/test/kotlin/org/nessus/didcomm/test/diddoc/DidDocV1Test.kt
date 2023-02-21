@@ -106,7 +106,7 @@ class DidDocV1Test: AbstractAgentTest() {
         val didVerkey = didDocument.selectJson("publicKey[0].publicKeyBase58") as String
         val didSov = Did.fromSpec(didSpec, didVerkey)
         val keyId = didService.importDid(didSov)
-        didSov.qualified shouldBe "did:sov:DD3druQ4tFQHZjcwgn3KSc"
+        didSov.uri shouldBe "did:sov:DD3druQ4tFQHZjcwgn3KSc"
         didSov.verkey shouldBe "7euiJpCar5AZMoXGspdSBhJBKzj8QZM5U3QSSSh8LAA5"
 
         val protected64 = didDocAttachment.selectJson("data.jws.protected") as String

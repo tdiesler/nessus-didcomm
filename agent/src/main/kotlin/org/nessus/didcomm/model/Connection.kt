@@ -68,7 +68,7 @@ class Connection(
     @set:Synchronized
     var myDid: Did = myDid
         set(did) {
-            log.info { "Rotate myDid: ${field.qualified} => ${did.qualified}" }
+            log.info { "Rotate myDid: ${field.uri} => ${did.uri}" }
             field = did
         }
 
@@ -77,7 +77,7 @@ class Connection(
     var theirDid: Did = theirDid ?: dummyDid
         set(did) {
             if (field != dummyDid) {
-                log.info { "Rotate theirDid: ${field.qualified} => ${did.qualified}" }
+                log.info { "Rotate theirDid: ${field.uri} => ${did.uri}" }
             }
             field = did
         }
@@ -93,7 +93,7 @@ class Connection(
     }
 
     fun shortString(): String {
-        return "$alias [id=$id, myDid=${myDid.qualified}, theirDid=${theirDid.qualified}, state=$state]"
+        return "$alias [id=$id, myDid=${myDid.uri}, theirDid=${theirDid.uri}, state=$state]"
     }
 
     override fun toString(): String {

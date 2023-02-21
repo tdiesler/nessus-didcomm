@@ -22,10 +22,8 @@ package org.nessus.didcomm.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import id.walt.servicematrix.BaseService
 import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
-import org.bouncycastle.asn1.x500.style.RFC4519Style.name
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AgentConfiguration
 import org.nessus.didcomm.agent.AriesAgent
@@ -39,9 +37,9 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import kotlin.io.path.isReadable
 
-class WalletService : BaseService() {
-    private val log = KotlinLogging.logger {}
+class WalletService : AbstractBaseService() {
     override val implementation get() = serviceImplementation<WalletService>()
+    override val log = KotlinLogging.logger {}
 
     companion object: ServiceProvider {
         private val implementation = WalletService()

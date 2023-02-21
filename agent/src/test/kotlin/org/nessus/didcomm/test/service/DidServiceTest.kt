@@ -79,7 +79,7 @@ class DidServiceTest: AbstractAgentTest() {
         val seedBytes = ByteArray(32)
         val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, seedBytes)
         val did = didService.createDid(DidMethod.KEY, keyId.id)
-        did.qualified shouldBe "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp"
+        did.uri shouldBe "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp"
     }
 
     @Test
@@ -87,7 +87,7 @@ class DidServiceTest: AbstractAgentTest() {
 
         val faberKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Faber.seed.toByteArray())
         val faberDid = didService.createDid(DidMethod.KEY, faberKeyId.id)
-        val faberKey = keyStore.load(faberDid.qualified, KeyType.PRIVATE)
+        val faberKey = keyStore.load(faberDid.uri, KeyType.PRIVATE)
 
         val pubKey = faberKey.keyPair?.public
         val prvKey = faberKey.keyPair?.private
@@ -95,7 +95,7 @@ class DidServiceTest: AbstractAgentTest() {
         val prvkeyBytes = prvKey?.encoded
         val verkey58 = faberDid.verkey
         val verkeyBytes = verkey58.decodeBase58()
-        log.info { faberDid.qualified }
+        log.info { faberDid.uri }
         log.info { "seed:      ${Faber.seed}" }
         log.info { "verkey58:  ${faberDid.verkey}" }
         log.info { "verkeyHex: ${verkeyBytes.encodeHex()}" }
@@ -103,21 +103,21 @@ class DidServiceTest: AbstractAgentTest() {
         log.info { "pubkeyHex: ${pubKey?.format} ${pubkeyBytes?.encodeHex()}" }
         log.info { "prvkeyHex: ${prvKey?.format} ${prvkeyBytes?.encodeHex()}" }
         faberDid.verkey shouldBe Faber.verkey
-        faberDid.qualified shouldBe Faber.didkey
+        faberDid.uri shouldBe Faber.didkey
 
         val faberSov = didService.createDid(DidMethod.SOV, faberKeyId.id)
         faberSov.verkey shouldBe Faber.verkey
-        faberSov.qualified shouldBe Faber.didsov
+        faberSov.uri shouldBe Faber.didsov
 
         // Alice -------------------------------------------------------------------------------------------------------
 
         val aliceKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
         val aliceDid = didService.createDid(DidMethod.KEY, aliceKeyId.id)
         aliceDid.verkey shouldBe Alice.verkey
-        aliceDid.qualified shouldBe Alice.didkey
+        aliceDid.uri shouldBe Alice.didkey
 
         val aliceSov = didService.createDid(DidMethod.SOV, aliceKeyId.id)
         aliceSov.verkey shouldBe Alice.verkey
-        aliceSov.qualified shouldBe Alice.didsov
+        aliceSov.uri shouldBe Alice.didsov
     }
 }

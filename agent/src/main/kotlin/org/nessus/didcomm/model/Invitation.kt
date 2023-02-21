@@ -71,7 +71,7 @@ class Invitation {
     }
 
     fun shortString(): String {
-        return "${recipientDid().qualified} [key=${invitationKey()}, url=${recipientServiceEndpoint()}]"
+        return "${recipientDid().uri} [key=${invitationKey()}, url=${recipientServiceEndpoint()}]"
     }
 
     fun encodeJson(pretty: Boolean = false): String {

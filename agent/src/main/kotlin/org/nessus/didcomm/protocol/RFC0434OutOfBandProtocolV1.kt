@@ -206,7 +206,7 @@ class RFC0434OutOfBandProtocolV1(mex: MessageExchange): Protocol<RFC0434OutOfBan
                 Invitation.Service(
                     id = "#inline",
                     type = "did-communication",
-                    recipientKeys = listOf(invitationDid.qualified),
+                    recipientKeys = listOf(invitationDid.uri),
                     serviceEndpoint = inviter.endpointUrl
                 )
             )

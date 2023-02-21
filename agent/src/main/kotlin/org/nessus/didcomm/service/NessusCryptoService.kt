@@ -47,7 +47,7 @@ fun Key.toOctetKeyPair(): OctetKeyPair {
 
 fun Did.toOctetKeyPair(): OctetKeyPair {
     val keyStore = KeyStoreService.getService()
-    return keyStore.load(qualified, KeyType.PRIVATE).toOctetKeyPair()
+    return keyStore.load(uri, KeyType.PRIVATE).toOctetKeyPair()
 }
 
 class NessusCryptoService: SunCryptoService() {

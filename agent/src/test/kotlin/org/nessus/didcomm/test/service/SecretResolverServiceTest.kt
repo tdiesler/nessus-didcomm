@@ -43,9 +43,9 @@ class SecretResolverServiceTest: AbstractAgentTest() {
 
         val aliceKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
         val aliceDid = didService.createDid(DidMethod.KEY, aliceKeyId.id)
-        aliceDid.qualified shouldBe Alice.didkey
+        aliceDid.uri shouldBe Alice.didkey
 
-        val didDoc = didService.loadDidDocument(aliceDid.qualified)
+        val didDoc = didService.loadDidDocument(aliceDid.uri)
         val kid = didDoc.verificationMethods
             .first { it.type == ED25519_VERIFICATION_KEY_2018 }.id
 
@@ -67,9 +67,9 @@ class SecretResolverServiceTest: AbstractAgentTest() {
 
         val aliceKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
         val aliceDid = didService.createDid(DidMethod.KEY, aliceKeyId.id)
-        aliceDid.qualified shouldBe Alice.didkey
+        aliceDid.uri shouldBe Alice.didkey
 
-        val didDoc = didService.loadDidDocument(aliceDid.qualified)
+        val didDoc = didService.loadDidDocument(aliceDid.uri)
         val kid = didDoc.verificationMethods
             .first { it.type == X25519_KEY_AGREEMENT_KEY_2019 }.id
 
@@ -88,9 +88,9 @@ class SecretResolverServiceTest: AbstractAgentTest() {
 
         val aliceKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
         val aliceDid = didService.createDid(DidMethod.KEY, aliceKeyId.id)
-        aliceDid.qualified shouldBe Alice.didkey
+        aliceDid.uri shouldBe Alice.didkey
 
-        val didDocA = didService.loadDidDocument(aliceDid.qualified)
+        val didDocA = didService.loadDidDocument(aliceDid.uri)
         val kid = didDocA.verificationMethods
             .first { it.type == ED25519_VERIFICATION_KEY_2018 }.id
 

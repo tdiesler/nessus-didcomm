@@ -81,8 +81,8 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         val trustPingBuilder = TrustPingMessageV2.Builder(
             id = "${UUID.randomUUID()}",
             type = RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V2)
-            .from(senderDid.qualified)
-            .to(listOf(recipientDid.qualified))
+            .from(senderDid.uri)
+            .to(listOf(recipientDid.uri))
             .createdTime(dateTimeNow())
             .expiresTime(dateTimeNow().plusHours(24))
             .comment("Ping from ${sender.name}")
@@ -91,7 +91,7 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         // Attach our DID Document when this is the first time we do a Trust Ping
 
         if (pcon.state == ConnectionState.INVITATION) {
-            val senderDidDoc = diddocV2Service.resolveDidDocument(senderDid.qualified)
+            val senderDidDoc = diddocV2Service.resolveDidDocument(senderDid.uri)
             val senderDidDocAttachment = diddocV2Service.createDidDocAttachment(senderDidDoc)
             trustPingBuilder.attachments(listOf(senderDidDocAttachment))
             pcon.state = ConnectionState.COMPLETED
@@ -109,9 +109,9 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         log.info { "Sender (${sender.name}) creates TrustPing: ${trustPingMsg.encodeJson(true)}" }
 
         val packResult = didComm.packEncrypted(
-            PackEncryptedParams.builder(trustPingMsg, recipientDid.qualified)
-                .signFrom(senderDid.qualified)
-                .from(senderDid.qualified)
+            PackEncryptedParams.builder(trustPingMsg, recipientDid.uri)
+                .signFrom(senderDid.uri)
+                .from(senderDid.uri)
                 .build()
         )
 
@@ -152,11 +152,11 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         if (pcon.state == ConnectionState.INVITATION) {
 
             val invitationDid = pcon.myDid
-            val invitationDidDoc = diddocV2Service.resolveDidDocument(invitationDid.qualified)
+            val invitationDidDoc = diddocV2Service.resolveDidDocument(invitationDid.uri)
             fromPriorIssuerKid = invitationDidDoc.authentications.first()
 
             val senderDid = Did.fromSpec(trustPing.from as String)
-            val senderDidDoc = diddocV2Service.resolveDidDocument(senderDid.qualified)
+            val senderDidDoc = diddocV2Service.resolveDidDocument(senderDid.uri)
             val senderEndpointUrl = senderDidDoc.serviceEndpoint() as String
 
             // Create and register the Did Document for this Invitation
@@ -177,8 +177,8 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
             id = "${UUID.randomUUID()}",
             type = RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
             .thid(trustPing.id)
-            .from(receiverDid.qualified)
-            .to(listOf(senderDid.qualified))
+            .from(receiverDid.uri)
+            .to(listOf(senderDid.uri))
             .createdTime(dateTimeNow())
             .expiresTime(dateTimeNow().plusHours(24))
             .comment("Pong from ${receiver.name}")
@@ -190,15 +190,15 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
 
         val packResult = didComm.packEncrypted(
             if (fromPriorIssuerKid != null) {
-                PackEncryptedParams.builder(trustPingResponseMsg, senderDid.qualified)
+                PackEncryptedParams.builder(trustPingResponseMsg, senderDid.uri)
                     .fromPriorIssuerKid(fromPriorIssuerKid)
-                    .signFrom(receiverDid.qualified)
-                    .from(receiverDid.qualified)
+                    .signFrom(receiverDid.uri)
+                    .from(receiverDid.uri)
                     .build()
             } else {
-                PackEncryptedParams.builder(trustPingResponseMsg, senderDid.qualified)
-                    .signFrom(receiverDid.qualified)
-                    .from(receiverDid.qualified)
+                PackEncryptedParams.builder(trustPingResponseMsg, senderDid.uri)
+                    .signFrom(receiverDid.uri)
+                    .from(receiverDid.uri)
                     .build()
             }
         )

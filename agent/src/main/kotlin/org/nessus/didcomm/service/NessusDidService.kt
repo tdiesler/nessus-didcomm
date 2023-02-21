@@ -68,7 +68,7 @@ class NessusDidService: AbstractBaseService() {
             DidMethod.SOV -> createDidSov(keyAlias)
         }
         
-        val didUrl = did.qualified
+        val didUrl = did.uri
         val keyId = keyStore.load(didUrl).keyId
 
         if (method in listOf(DidMethod.KEY)) {
@@ -112,7 +112,7 @@ class NessusDidService: AbstractBaseService() {
         check(keyStore.getKeyId(did.verkey) == null) { "Did already registered: $did" }
 
         if (did.method in listOf(DidMethod.KEY))
-            WaltIdDidService.importDid(did.qualified)
+            WaltIdDidService.importDid(did.uri)
 
         val key = importDidKey(did)
         check(keyStore.getKeyId(did.verkey) != null)
@@ -134,7 +134,7 @@ class NessusDidService: AbstractBaseService() {
 
         // Add verkey and did as alias
         val did = Did(identifier, DidMethod.KEY, keyAlgorithm, verkey)
-        keyStore.addAlias(keyId, did.qualified)
+        keyStore.addAlias(keyId, did.uri)
         keyStore.addAlias(keyId, did.verkey)
 
         return did
@@ -151,7 +151,7 @@ class NessusDidService: AbstractBaseService() {
 
         // Add verkey and did as alias
         val did = Did(identifier, DidMethod.SOV, keyAlgorithm, verkey)
-        keyStore.addAlias(keyId, did.qualified)
+        keyStore.addAlias(keyId, did.uri)
         keyStore.addAlias(keyId, did.verkey)
 
         return did
@@ -167,7 +167,7 @@ class NessusDidService: AbstractBaseService() {
         val key = Key(newKeyId(), algorithm, CryptoProvider.SUN, KeyPair(publicKey, null))
 
         keyStore.store(key)
-        keyStore.addAlias(key.keyId, did.qualified)
+        keyStore.addAlias(key.keyId, did.uri)
         keyStore.addAlias(key.keyId, did.verkey)
         return key
     }

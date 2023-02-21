@@ -8,13 +8,15 @@ import id.walt.credentials.w3c.VerifiablePresentation
 import id.walt.credentials.w3c.toVerifiableCredential
 import id.walt.credentials.w3c.toVerifiablePresentation
 import id.walt.custodian.Custodian
+import id.walt.signatory.Ecosystem
 import id.walt.signatory.ProofConfig
+import id.walt.signatory.ProofType
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.test.AbstractAgentTest
-import org.nessus.didcomm.util.encodeJson
+import org.nessus.didcomm.util.dateTimeNow
 import java.util.Collections.max
 
 class VerifiableCredentialTest: AbstractAgentTest() {
@@ -44,26 +46,39 @@ class VerifiableCredentialTest: AbstractAgentTest() {
         subjectDid: Did
     ): VerifiableCredential {
 
-        val issuerDidUrl = issuerDid.qualified
-        val subjectDidUrl = subjectDid.qualified
-        
-        val issuerDidDoc = didService.loadDidDocument(issuerDidUrl)
-        log.info { "Issuer DidDoc:\n${issuerDidDoc.encodeJson(true)}" }
+        val issuerDidDoc = didService.loadDidDocument(issuerDid.uri)
+        log.debug { "Issuer DidDoc:\n${issuerDidDoc.encodeJson(true)}" }
 
-        val subjectDidDoc = didService.loadDidDocument(subjectDidUrl)
-        log.info { "Subject DidDoc:\n${subjectDidDoc.encodeJson(true)}" }
+        val subjectDidDoc = didService.loadDidDocument(subjectDid.uri)
+        log.debug { "Subject DidDoc:\n${subjectDidDoc.encodeJson(true)}" }
 
         log.info { "Issuing a verifiable credential (using template $template)..." }
         val vcStr: String = signatory.issue(
             template, ProofConfig(
-                issuerDid = issuerDidUrl,
-                subjectDid = subjectDidUrl,
-                creator = issuerDidUrl
+                issuerDid = issuerDid.uri,
+                subjectDid = subjectDid.uri,
+                verifierDid = null,
+                proofType = ProofType.LD_PROOF,
+
+                // [TODO] what are these
+                domain = null,
+                nonce = null,
+                proofPurpose = null,
+                credentialId = null,
+
+                issueDate = dateTimeNow().toInstant(),
+                validDate = null,
+                expirationDate = null,
+                // may be used for mapping data-sets from a custom data-provider
+                dataProviderIdentifier = null,
+                ldSignatureType = null,
+                creator = issuerDid.uri,
+                ecosystem = Ecosystem.DEFAULT
             )
         )
 
         log.info("Results: ...")
-        log.info("Issuer $issuerDidUrl issued a $template to Holder $subjectDidUrl")
+        log.info("Issuer $issuerDid.uri issued a $template to Holder ${subjectDid.uri}")
         log.info("Credential document (below, JSON):\n\n$vcStr")
 
         return vcStr.toVerifiableCredential()
@@ -81,8 +96,8 @@ class VerifiableCredentialTest: AbstractAgentTest() {
         val custodian = Custodian.getService()
         val vpStr = custodian.createPresentation(
             vcs=listOf(vc.toJson()),
-            holderDid=holderDid.qualified,
-            verifierDid=verifierDid.qualified,
+            holderDid=holderDid.uri,
+            verifierDid=verifierDid.uri,
             domain=domain,
             challenge=challenge)
 

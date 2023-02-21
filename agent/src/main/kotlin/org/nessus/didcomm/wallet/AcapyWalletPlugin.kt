@@ -126,7 +126,7 @@ class AcapyWalletPlugin: WalletPlugin {
             )
         } else auxWallet
 
-        log.info("{}: did={} endpoint={}", walletName, publicDid?.qualified, wallet.endpointUrl)
+        log.info("{}: did={} endpoint={}", walletName, publicDid?.uri, wallet.endpointUrl)
         return wallet
     }
 
@@ -157,7 +157,7 @@ class AcapyWalletPlugin: WalletPlugin {
             return null
         val publicDid = ariesDid.toNessusDid()
         val keyStore = KeyStoreService.getService()
-        keyStore.getKeyId(publicDid.qualified) ?: run {
+        keyStore.getKeyId(publicDid.uri) ?: run {
             NessusDidService.getService().importDid(publicDid)
         }
         return publicDid
