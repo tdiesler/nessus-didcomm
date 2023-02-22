@@ -45,8 +45,16 @@ data class DidDocV2(
         return didCommServices.map { it.serviceEndpoint }.firstOrNull()
     }
 
+    fun findVerificationMethod(predicate: (vm: VerificationMethod) -> Boolean): VerificationMethod? {
+        return verificationMethods.firstOrNull { predicate.invoke(it) }
+    }
+
     fun encodeJson(pretty: Boolean = false): String {
         return DIDDocEncoder.encodeJson(toSicpaDidDoc(), pretty)
+    }
+
+    override fun toString(): String {
+        return encodeJson()
     }
 }
 

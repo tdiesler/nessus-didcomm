@@ -37,7 +37,7 @@ class OnboardEndorserTest : AbstractIntegrationTest() {
     private val log = KotlinLogging.logger {}
 
     @Test
-    fun testOnboardFaber() {
+    fun testOnboardEndorser() {
 
         // ./wallet-bootstrap --create Government --ledger-role TRUSTEE
         val gov = getWalletByAlias(Government.name)

@@ -74,6 +74,21 @@ object NessusDidService: ObjectService<NessusDidService>() {
         return did
     }
 
+    fun removeDid(did: Did) {
+        if (did.method in listOf(DidMethod.KEY)) {
+            WaltIdDidService.deleteDid(did.uri)
+        }
+    }
+
+    fun hasDid(did: String): Boolean {
+        return try {
+            WaltIdDidService.load(did)
+            true
+        } catch (e: RuntimeException) {
+            false
+        }
+    }
+
     fun loadDid(did: String): Did {
         val didDoc = WaltIdDidService.load(did)
         val verificationMethod = didDoc.verificationMethod

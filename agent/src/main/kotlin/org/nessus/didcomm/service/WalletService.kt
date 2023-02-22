@@ -22,6 +22,7 @@ package org.nessus.didcomm.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import id.walt.services.keystore.KeyStoreService
 import mu.KotlinLogging
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AgentConfiguration
@@ -48,8 +49,11 @@ object WalletService: ObjectService<WalletService>() {
         initAcaPyWallets()
     }
 
-    val modelService get() = ModelService.getService()
     val wallets get() = modelService.wallets
+
+    private val modelService get() = ModelService.getService()
+    private val didService get() = NessusDidService.getService()
+    private val keyStore get() = KeyStoreService.getService()
 
     fun createWallet(config: WalletConfig): Wallet {
         val maybeWallet = findWallet(config.name)
@@ -77,6 +81,12 @@ object WalletService: ObjectService<WalletService>() {
     fun removeWallet(id: String): Wallet? {
         val wallet = modelService.getWallet(id)
         if (wallet != null) {
+            wallet.dids.forEach { did ->
+                didService.removeDid(did)
+                keyStore.getKeyId(did.uri)?.let {
+                    keyStore.delete(it)
+                }
+            }
             wallet.walletPlugin.removeWallet(wallet)
             modelService.removeWallet(id)
         }
@@ -126,7 +136,8 @@ object WalletService: ObjectService<WalletService>() {
         }
 
         // Initialize wallets from Siera config
-        readSieraConfig()?.filterKeys { k -> k != "default" }?.forEach {
+        val sieraConfig = readSieraConfig()
+        sieraConfig?.filterKeys { k -> k != "default" }?.forEach {
             val walletName = it.key
             val values = it.value as Map<String, String>
             val agent = values["agent"] ?: "aca-py"

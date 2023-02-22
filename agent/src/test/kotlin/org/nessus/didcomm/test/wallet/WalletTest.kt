@@ -20,10 +20,10 @@
 package org.nessus.didcomm.test.wallet
 
 import id.walt.crypto.KeyAlgorithm
-import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import org.didcommx.didcomm.common.VerificationMethodType.ED25519_VERIFICATION_KEY_2018
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.StorageType
@@ -49,10 +49,22 @@ class WalletTest: AbstractAgentTest() {
         aliceDid.uri shouldBe Alice.didkey
         aliceDid.verkey shouldBe Alice.verkey
 
-        val keyStore = KeyStoreService.getService()
-        keyStore.load(aliceDid.uri, KeyType.PUBLIC) shouldNotBe null
-        keyStore.load(aliceDid.verkey, KeyType.PUBLIC) shouldNotBe null
+        // Verify keys in KeyStore
+        keyStore.load(aliceDid.uri, KeyType.PRIVATE) shouldNotBe null
+        keyStore.load(aliceDid.verkey, KeyType.PRIVATE) shouldNotBe null
+
+        // Verify Did in DidService
+        val loadedDid = didService.loadDid(aliceDid.uri)
+        loadedDid shouldBe aliceDid
+
+        // Verify DidDoc in DidService
+        val didDoc = didService.loadDidDocument(aliceDid.uri)
+        val ed25519Method = didDoc.findVerificationMethod { it.type == ED25519_VERIFICATION_KEY_2018 }
+        ed25519Method?.controller shouldBe aliceDid.uri
 
         walletService.removeWallet(alice.id)
+
+        didService.hasDid(aliceDid.uri) shouldBe false
+        keyStore.getKeyId(aliceDid.uri) shouldBe null
     }
 }
