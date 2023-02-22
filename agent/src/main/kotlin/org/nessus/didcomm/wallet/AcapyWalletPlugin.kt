@@ -44,6 +44,7 @@ import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.model.Wallet.WalletConfig
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.NessusDidService
 import org.nessus.didcomm.service.WalletPlugin
@@ -70,10 +71,11 @@ class AcapyWalletPlugin: WalletPlugin {
         val publicDidMethod = config.publicDidMethod
         val ledgerRole = config.ledgerRole
         val trusteeWallet = config.trusteeWallet
-        val options = config.options
-        val indyLedgerRole = if (ledgerRole != null)
-            IndyLedgerRoles.valueOf(ledgerRole.name.uppercase())
-        else null
+        val options = config.options.toMutableMap()
+        val indyLedgerRole = when {
+            ledgerRole != null -> IndyLedgerRoles.valueOf(ledgerRole.name.uppercase())
+            else -> null
+        }
 
         val agentConfig = agentConfiguration(options)
         val adminClient = AriesAgent.adminClient(agentConfig)
@@ -85,10 +87,11 @@ class AcapyWalletPlugin: WalletPlugin {
             .walletType(storageType.toAriesWalletType())
             .build()
         val walletRecord = adminClient.multitenancyWalletCreate(walletRequest).get()
+        options["authToken"] = walletRecord.token
         val auxWallet = AcapyWallet(
             walletRecord.walletId, walletName, agentType,
             storageType, agentConfig.userUrl,
-            options=options, authToken=walletRecord.token
+            options = options
         )
 
         var publicDid: Did? = null
@@ -122,7 +125,6 @@ class AcapyWalletPlugin: WalletPlugin {
                 storageType,
                 endpointUrl,
                 auxWallet.options,
-                auxWallet.authToken
             )
         } else auxWallet
 
@@ -141,7 +143,7 @@ class AcapyWalletPlugin: WalletPlugin {
         val adminClient = wallet.adminClient() as AriesClient
         adminClient.multitenancyWalletRemove(
             walletId, RemoveWalletRequest.builder()
-                .walletKey(accessToken)
+                .walletKey(accessToken as String)
                 .build()
         )
     }

@@ -32,6 +32,7 @@ import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.model.Wallet.WalletConfig
 import org.nessus.didcomm.wallet.*
 import java.net.ConnectException
 import java.nio.file.Files
@@ -140,7 +141,7 @@ object WalletService: ObjectService<WalletService>() {
                         AgentType.ACAPY,
                         StorageType.INDY,
                         endpointUrl,
-                        authToken=authToken
+                        options = authToken?.let { mapOf("authToken" to authToken) } ?: mapOf()
                     )
                     addWallet(wallet)
             }
@@ -161,7 +162,7 @@ object WalletService: ObjectService<WalletService>() {
                     AgentType.ACAPY,
                     storageType,
                     agentConfig.userUrl,
-                    authToken=tokRes.token
+                    options = mapOf("authToken" to tokRes.token)
                 )
                 addWallet(wallet)
             }

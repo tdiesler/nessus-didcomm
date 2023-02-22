@@ -37,8 +37,7 @@ class AcapyWallet(
     agentType: AgentType,
     storageType: StorageType,
     endpointUrl: String,
-    options: Map<String, Any> = mapOf(),
-    val authToken: String? = null,
+    options: Map<String, String> = mapOf(),
 ): Wallet(id, name, agentType, storageType, endpointUrl, options) {
 
     @Transient
@@ -46,6 +45,9 @@ class AcapyWallet(
 
     @Transient
     private var webSocketClient: WebSocketClient? = null
+
+    @Transient
+    val authToken = options["authToken"]
 
     override val walletPlugin get() = AcapyWalletPlugin()
 
@@ -87,13 +89,6 @@ class AcapyWallet(
 
     override fun removeConnections() {
         return walletService.removeConnections(this)
-    }
-
-    override fun toString(): String {
-        var redactedToken: String? = null
-        if (authToken != null)
-            redactedToken = authToken.substring(0, 6) + "..." + authToken.substring(authToken.length - 6)
-        return "Wallet(id='$id', agent=$agentType, type=$storageType, alias=$name, endpointUrl=$endpointUrl, options=$options, authToken=$redactedToken)"
     }
 
     // Private ---------------------------------------------------------------------------------------------------------

@@ -25,6 +25,7 @@ import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.model.Wallet.WalletConfig
 import org.nessus.didcomm.service.NessusDidService
 import org.nessus.didcomm.service.WalletPlugin
 import java.util.UUID

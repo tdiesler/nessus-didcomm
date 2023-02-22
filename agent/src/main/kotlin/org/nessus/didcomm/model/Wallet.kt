@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.model
 
+import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
@@ -26,9 +27,10 @@ import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.ConnectionState.*
 import org.nessus.didcomm.service.WalletPlugin
 import org.nessus.didcomm.service.WalletService
+import org.nessus.didcomm.util.gson
+import org.nessus.didcomm.util.gsonPretty
 import org.nessus.didcomm.wallet.AcapyWallet
 import org.nessus.didcomm.wallet.NessusWallet
-import org.nessus.didcomm.wallet.WalletConfig
 
 enum class AgentType(val value: String) {
     @SerializedName("AcaPy")
@@ -68,7 +70,7 @@ abstract class Wallet(
     val agentType: AgentType,
     val storageType: StorageType,
     val endpointUrl: String,
-    val options: Map<String, Any> = mapOf(),
+    val options: Map<String, String> = mapOf(),
 
     @SerializedName("dids")
     private val didsInternal: MutableList<Did> = mutableListOf(),
@@ -89,6 +91,17 @@ abstract class Wallet(
     val dids get() = didsInternal.toList()
     val invitations get() = invitationsInternal.toList()
     val connections get() = connectionsInternal.toList()
+
+    @Transient
+    private val redactedOptions = options.mapValues { (k, v) ->
+        when(k) {
+            "authToken" -> {
+                val tok = v as String
+                tok.substring(0, 6) + "..." + tok.substring(tok.length - 6)
+            }
+            else -> v
+        }
+    }
 
     @Synchronized
     fun createDid(method: DidMethod? = null, keyAlias: String? = null): Did {
@@ -178,21 +191,40 @@ abstract class Wallet(
         getInvitation(id)?.run { invitationsInternal.remove(this) }
     }
 
+    fun encodeJson(pretty: Boolean = false, redacted: Boolean = true): String {
+        val encoded = gson.toJson(this)
+        val jsonObj = gson.fromJson(encoded, JsonObject::class.java)
+        if (redacted && options.isNotEmpty()) {
+            val redactedElement = redactedOptions.entries.fold(JsonObject()) { r, (k, v) -> r.addProperty(k, v); r }
+            jsonObj.add("options", redactedElement)
+        }
+        return if (pretty) gsonPretty.toJson(jsonObj) else gson.toJson(jsonObj)
+    }
+
     fun shortString(): String {
         return "$name [agent=${agentType.value}, type=$storageType, url=$endpointUrl]"
     }
 
     override fun toString(): String {
-        val redactedToken = (options["authToken"] as? String)?.run {
-            substring(0, 6) + "..." + substring(length - 6)
-        }
-        return "Wallet(id='$id', agent=$agentType, type=$storageType, alias=$name, endpointUrl=$endpointUrl, options=$options, authToken=$redactedToken)"
+        return "Wallet(id='$id', agent=$agentType, type=$storageType, alias=$name, endpointUrl=$endpointUrl, options=$redactedOptions)"
     }
+
+    data class WalletConfig(
+        val name: String,
+        val agentType: AgentType?,
+        val storageType: StorageType?,
+        val walletKey: String?,
+        val ledgerRole: LedgerRole?,
+        val trusteeWallet: AcapyWallet?,
+        val publicDidMethod: DidMethod?,
+        val options: Map<String, String>,
+        val mayExist: Boolean,
+    )
 
     data class Builder (var walletName: String) {
         var agentType: AgentType? = AgentType.NESSUS
         var storageType: StorageType? = null
-        var options: MutableMap<String, Any> = mutableMapOf()
+        var options: MutableMap<String, String> = mutableMapOf()
         var walletKey: String? = null
         var ledgerRole: LedgerRole? = null
         var trusteeWallet: AcapyWallet? = null
@@ -200,7 +232,7 @@ abstract class Wallet(
         var mayExist: Boolean = false
 
         fun agentType(agentType: AgentType?) = apply { this.agentType = agentType }
-        fun options(options: Map<String, Any>) = apply { this.options.putAll(options) }
+        fun options(options: Map<String, String>) = apply { this.options.putAll(options) }
         fun storageType(storageType: StorageType?) = apply { this.storageType = storageType }
         fun walletKey(walletKey: String?) = apply { this.walletKey = walletKey }
         fun publicDidMethod(didMethod: DidMethod?) = apply { this.publicDidMethod = didMethod }
@@ -231,4 +263,3 @@ abstract class Wallet(
         }
     }
 }
-

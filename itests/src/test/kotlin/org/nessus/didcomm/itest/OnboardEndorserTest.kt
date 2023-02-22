@@ -21,6 +21,7 @@ package org.nessus.didcomm.itest
 
 import io.kotest.core.annotation.EnabledIf
 import io.kotest.matchers.shouldBe
+import mu.KotlinLogging
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.LedgerRole
@@ -33,14 +34,16 @@ import org.nessus.didcomm.wallet.AcapyWallet
  */
 @EnabledIf(AcaPyOnlyCondition::class)
 class OnboardEndorserTest : AbstractIntegrationTest() {
+    private val log = KotlinLogging.logger {}
 
     @Test
     fun testOnboardFaber() {
 
         // ./wallet-bootstrap --create Government --ledger-role TRUSTEE
-        val gov = getWalletByAlias(Government.name) as AcapyWallet
+        val gov = getWalletByAlias(Government.name)
+        check(gov is AcapyWallet) { "No Government" }
 
-        val endorser = Wallet.Builder("EndorserName")
+        val endorser = Wallet.Builder("Endorser")
             .agentType(AgentType.ACAPY)
             .ledgerRole(LedgerRole.ENDORSER)
             .storageType(StorageType.INDY)
@@ -48,6 +51,11 @@ class OnboardEndorserTest : AbstractIntegrationTest() {
             .build()
 
         try {
+
+            log.info { "shortString: ${endorser.shortString()}" }
+            log.info { "toString: ${endorser.toString()}" }
+            log.info { "encoded: ${endorser.encodeJson(true)}" }
+            log.info { "!redacted: ${endorser.encodeJson(true, redacted = false)}" }
 
             val pubDid = endorser.getPublicDid()
             pubDid?.method shouldBe DidMethod.SOV

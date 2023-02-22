@@ -30,7 +30,7 @@ class NessusWallet(
     agentType: AgentType,
     storageType: StorageType,
     endpointUrl: String,
-    options: Map<String, Any> = mapOf(),
+    options: Map<String, String> = mapOf(),
 ): Wallet(id, name, agentType, storageType, endpointUrl, options) {
 
     override val walletPlugin get() = NessusWalletPlugin()
