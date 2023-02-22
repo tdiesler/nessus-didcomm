@@ -27,7 +27,7 @@ import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.NessusDidService
-import org.nessus.didcomm.service.VerificationPolicyService
+import org.nessus.didcomm.service.NessusPolicyRegistryService
 import org.nessus.didcomm.service.WalletService
 import picocli.CommandLine
 import java.io.PrintStream
@@ -46,7 +46,7 @@ abstract class AbstractBaseCommand: Callable<Int> {
     val didService get() = NessusDidService.getService()
     val endpointService get() = EndpointService.getService()
     val modelService get() = ModelService.getService()
-    val policyService get() = VerificationPolicyService.getService()
+    val policyService get() = NessusPolicyRegistryService.getService()
     val walletService get() = WalletService.getService()
 
     override fun call(): Int {

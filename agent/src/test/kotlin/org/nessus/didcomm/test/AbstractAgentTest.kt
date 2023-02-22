@@ -19,6 +19,8 @@
  */
 package org.nessus.didcomm.test
 
+import id.walt.auditor.PolicyRegistryService
+import id.walt.credentials.w3c.templates.VcTemplateService
 import id.walt.services.keystore.KeyStoreService
 import id.walt.signatory.Signatory
 import io.kotest.core.spec.style.AnnotationSpec
@@ -33,7 +35,6 @@ import org.nessus.didcomm.service.NessusCryptoService
 import org.nessus.didcomm.service.NessusDidService
 import org.nessus.didcomm.service.SecretResolverService
 import org.nessus.didcomm.service.ServiceMatrixLoader
-import org.nessus.didcomm.service.VerificationPolicyService
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.wallet.NessusWalletPlugin.Companion.getNessusEndpointUrl
@@ -111,9 +112,10 @@ abstract class AbstractAgentTest: AnnotationSpec() {
     val endpointService get() = EndpointService.getService()
     val keyStore get() = KeyStoreService.getService()
     val modelService get() = ModelService.getService()
-    val policyService get() = VerificationPolicyService.getService()
+    val policyService get() = PolicyRegistryService.getService()
     val secretResolver get() = SecretResolverService.getService()
     val signatory get() = Signatory.getService()
+    val templateService get() = VcTemplateService.getService()
     val walletService get() = WalletService.getService()
 
     fun readResource(path: String): String {

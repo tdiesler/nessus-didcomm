@@ -5,18 +5,21 @@ import id.walt.auditor.VerificationPolicy
 import id.walt.auditor.VerificationResult
 import id.walt.credentials.w3c.VerifiableCredential
 import id.walt.credentials.w3c.VerifiablePresentation
+import id.walt.credentials.w3c.W3CIssuer
 import id.walt.credentials.w3c.toVerifiableCredential
 import id.walt.credentials.w3c.toVerifiablePresentation
 import id.walt.custodian.Custodian
 import id.walt.signatory.Ecosystem
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
+import id.walt.signatory.SignatoryDataProvider
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.dateTimeNow
+import java.time.Instant
 import java.util.Collections.max
 
 class VerifiableCredentialTest: AbstractAgentTest() {
@@ -54,7 +57,8 @@ class VerifiableCredentialTest: AbstractAgentTest() {
 
         log.info { "Issuing a verifiable credential (using template $template)..." }
         val vcStr: String = signatory.issue(
-            template, ProofConfig(
+            templateIdOrFilename = template,
+            config = ProofConfig(
                 issuerDid = issuerDid.uri,
                 subjectDid = subjectDid.uri,
                 verifierDid = null,
@@ -74,7 +78,10 @@ class VerifiableCredentialTest: AbstractAgentTest() {
                 ldSignatureType = null,
                 creator = issuerDid.uri,
                 ecosystem = Ecosystem.DEFAULT
-            )
+            ),
+            dataProvider = null as SignatoryDataProvider?,
+            issuer = null as W3CIssuer?,
+            storeCredential = false
         )
 
         log.info("Results: ...")
@@ -95,11 +102,12 @@ class VerifiableCredentialTest: AbstractAgentTest() {
 
         val custodian = Custodian.getService()
         val vpStr = custodian.createPresentation(
-            vcs=listOf(vc.toJson()),
-            holderDid=holderDid.uri,
-            verifierDid=verifierDid.uri,
-            domain=domain,
-            challenge=challenge)
+            vcs = listOf(vc.toJson()),
+            holderDid = holderDid.uri,
+            verifierDid = verifierDid.uri,
+            domain = domain,
+            challenge = challenge,
+            expirationDate = null as Instant?)
 
         log.info("Results: ...")
         log.info("Verifiable presentation generated for holder DID: $holderDid")

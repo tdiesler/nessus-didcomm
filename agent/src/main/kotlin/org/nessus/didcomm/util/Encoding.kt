@@ -26,6 +26,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
+import id.walt.credentials.w3c.VerifiableCredential
 import io.ipfs.multibase.Base58
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
@@ -113,8 +114,10 @@ internal class MapAdapter : JsonSerializer<Map<String, *>> {
         if (src.isEmpty() && src !is EmptyBodyMap)
             return null
         val obj = JsonObject()
-        src.forEach {(k, v) ->
-            obj.add(k, ctx.serialize(v))
+        src.forEach {(k, v) -> when {
+                k == "_isObject" -> {} // In VerifiableCredential
+                else -> obj.add(k, ctx.serialize(v))
+            }
         }
         return obj
     }
@@ -167,3 +170,11 @@ fun MediaType.matches(contentType: String?): Boolean {
     } else false
 }
 
+/***********************************************************************************************************************
+ * VerifiableCredential
+ */
+
+fun VerifiableCredential.encodeJson(pretty: Boolean = false): String {
+    val mapEncoded = gson.fromJson(encode(), Map::class.java)
+    return mapEncoded.encodeJson(true)
+}

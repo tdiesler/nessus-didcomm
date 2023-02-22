@@ -1,19 +1,19 @@
 {
   "@context": ["https://www.w3.org/2018/credentials/v1"],
   "credentialSchema": {
-    "id": "https://raw.githubusercontent.com/walt-id/waltid-ssikit-vclib/master/src/test/resources/schemas/VerifiableId.json",
+    "id": "https://raw.githubusercontent.com/tdiesler/nessus-didcomm/main/agent/src/main/resources/nessus/vc-templates/VerifiableId.json",
     "type": "FullJsonSchemaValidator2021"
   },
   "credentialSubject": {
-    "currentAddress": ["1 Boulevard de la Liberté, 59800 Lille"],
-    "dateOfBirth": "1993-04-08",
-    "familyName": "DOE",
-    "firstName": "Jane",
-    "gender": "FEMALE",
+    "currentAddress": ["Sesame Street 123"],
+    "dateOfBirth": "1969-11-10",
+    "familyName": "Frog",
+    "firstName": "Kermit",
+    "gender": "Male",
     "id": "did:ebsi:2AEMAqXWKYMu1JHPAgGcga4dxu7ThgfgN95VyJBJGZbSJUtp",
-    "nameAndFamilyNameAtBirth": "Jane DOE",
+    "nameAndFamilyNameAtBirth": "Kermit the Frog",
     "personalIdentifier": "0904008084H",
-    "placeOfBirth": "LILLE, FRANCE"
+    "placeOfBirth": "Leland, Mississippi"
   },
   "evidence": [{
     "documentPresence": ["Physical"],
