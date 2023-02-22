@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.agent
 
-import mu.KotlinLogging
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
@@ -100,8 +99,6 @@ class AriesClient(
     private val loggingInterceptor: HttpLoggingInterceptor? = null,
     private val httpClient: OkHttpClient? = null):
     org.hyperledger.aries.AriesClient(adminUrl, apiKey, authToken, httpClient) {
-
-    val log = KotlinLogging.logger {}
 
     private val httpService get() = HttpService.getService()
 

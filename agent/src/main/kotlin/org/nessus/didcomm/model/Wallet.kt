@@ -79,8 +79,9 @@ abstract class Wallet(
     @SerializedName("connections")
     private val connectionsInternal: MutableList<Connection> = mutableListOf(),
 ) {
-    @Transient
-    private val log = KotlinLogging.logger {}
+    companion object {
+        private val log = KotlinLogging.logger {}
+    }
 
     internal val walletService get() = WalletService.getService()
     internal abstract val walletPlugin: WalletPlugin

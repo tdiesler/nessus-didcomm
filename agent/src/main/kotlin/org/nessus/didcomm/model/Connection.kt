@@ -61,8 +61,9 @@ class Connection(
     @set:Synchronized
     var state: ConnectionState,
 ) {
-    @Transient
-    private val log = KotlinLogging.logger {}
+    companion object {
+        private val log = KotlinLogging.logger {}
+    }
 
     @get:Synchronized
     @set:Synchronized

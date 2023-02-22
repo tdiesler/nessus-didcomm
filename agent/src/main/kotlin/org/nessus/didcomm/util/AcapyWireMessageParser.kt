@@ -22,7 +22,7 @@ package org.nessus.didcomm.util
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
 
-object WireMessageParser {
+object AcapyWireMessageParser {
     val log = KotlinLogging.logger {}
 
     /**
