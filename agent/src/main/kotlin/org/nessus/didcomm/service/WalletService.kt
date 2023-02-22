@@ -26,12 +26,14 @@ import mu.KotlinLogging
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AgentConfiguration
 import org.nessus.didcomm.agent.AriesAgent
+import org.nessus.didcomm.agent.AriesClient
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.wallet.*
+import java.net.ConnectException
 import java.nio.file.Files
 import java.nio.file.Paths
 import kotlin.io.path.isReadable
@@ -113,7 +115,14 @@ object WalletService: ObjectService<WalletService>() {
     @Suppress("UNCHECKED_CAST")
     private fun initAcaPyWallets() {
         val agentConfig = AgentConfiguration.defaultConfiguration
-        val adminClient = AriesAgent.adminClient(agentConfig)
+        val adminClient: AriesClient = AriesAgent.adminClient(agentConfig)
+
+        val walletRecords = try {
+            adminClient.multitenancyWallets(null).get()
+        } catch (e: ConnectException) {
+            log.debug { "No connection to AcaPy: ${agentConfig.adminUrl}" }
+            return
+        }
 
         // Initialize wallets from Siera config
         readSieraConfig()?.filterKeys { k -> k != "default" }?.forEach {
@@ -123,23 +132,22 @@ object WalletService: ObjectService<WalletService>() {
             check(agent == "aca-py") { "Unsupported agent: $agent" }
             val endpointUrl = values["endpoint"] as String
             val authToken = values["auth_token"]
-            val walletRecord = adminClient.multitenancyWallets(walletName).get().firstOrNull()
-            walletRecord?.run {
-                val walletId = walletRecord.walletId
-                val wallet = AcapyWallet(
-                    walletId,
-                    walletName,
-                    AgentType.ACAPY,
-                    StorageType.INDY,
-                    endpointUrl,
-                    authToken=authToken
-                )
-                addWallet(wallet)
+            walletRecords.firstOrNull { wr -> wr.settings.walletName == walletName }
+                ?.let { wr ->
+                    val wallet = AcapyWallet(
+                        wr.walletId,
+                        walletName,
+                        AgentType.ACAPY,
+                        StorageType.INDY,
+                        endpointUrl,
+                        authToken=authToken
+                    )
+                    addWallet(wallet)
             }
         }
 
         // Initialize wallets from AcaPy
-        adminClient.multitenancyWallets(null).get()
+        walletRecords
             .filter { modelService.getWallet(it.walletId) == null }
             .forEach {
                 val walletId = it.walletId

@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.itest
 
+import io.kotest.core.annotation.EnabledIf
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
@@ -30,6 +31,7 @@ import org.nessus.didcomm.wallet.AcapyWallet
 /**
  * Onboard ENDORSER through TRUSTEE
  */
+@EnabledIf(AcaPyOnlyCondition::class)
 class OnboardEndorserTest : AbstractIntegrationTest() {
 
     @Test

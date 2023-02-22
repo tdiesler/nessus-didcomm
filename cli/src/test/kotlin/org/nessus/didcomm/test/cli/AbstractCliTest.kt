@@ -19,17 +19,21 @@
  */
 package org.nessus.didcomm.test.cli
 
+import io.kotest.core.annotation.EnabledCondition
+import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.AnnotationSpec
 import mu.KotlinLogging
+import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.cli.AbstractBaseCommand
-import org.nessus.didcomm.cli.NessusCli
 import org.nessus.didcomm.cli.CLIService
+import org.nessus.didcomm.cli.NessusCli
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import picocli.CommandLine
 import picocli.CommandLine.IExecutionExceptionHandler
 import java.io.OutputStream
 import java.io.PrintStream
+import kotlin.reflect.KClass
 
 
 abstract class AbstractCliTest: AnnotationSpec() {
@@ -46,6 +50,7 @@ abstract class AbstractCliTest: AnnotationSpec() {
 
     val cliService get() = CLIService.getService()
     val modelService get() = ModelService.getService()
+    val adminClient get() = AriesAgent.adminClient()
 
     fun safeExecutionCommandLine(): CommandLine {
         val cmdln = NessusCli.defaultCommandLine
@@ -56,4 +61,8 @@ abstract class AbstractCliTest: AnnotationSpec() {
         }
         return cmdln
     }
+}
+
+class AcaPyOnlyCondition : EnabledCondition {
+    override fun enabled(kclass: KClass<out Spec>): Boolean = AriesAgent.adminClient().isLive
 }

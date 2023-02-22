@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.itest
 
+import io.kotest.core.annotation.EnabledIf
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.InvitationState
@@ -34,6 +35,7 @@ import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
  * Aries RFC 0023: DID Exchange Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange
  */
+@EnabledIf(AcaPyOnlyCondition::class)
 class RFC0434OutOfBandV1Test : AbstractIntegrationTest() {
 
     @Test

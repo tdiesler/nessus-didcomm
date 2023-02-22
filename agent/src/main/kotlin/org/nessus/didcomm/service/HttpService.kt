@@ -93,20 +93,19 @@ object HttpService: ObjectService<HttpService>() {
                 return interceptor
             }
         }
+        
+        fun get(reqUrl: String, params: Map<String, Any>? = null, headers: Map<String, String> = mapOf()): Response {
 
+            val builder = requestBuilder(reqUrl, params, headers)
+            val req = builder.get().build()
+            val res = httpClient.newCall(req).execute()
+            log.debug { "code=${res.code} message=${res.message}" }
+            return res
+        }
+        
         fun post(reqUrl: String, body: Any, params: Map<String, Any>? = null, headers: Map<String, String> = mapOf()): Response {
 
-            // Build the Request
-            var actUrl = reqUrl
-            if (params != null) {
-                actUrl += "?"
-                params.forEach { (k, v) -> actUrl += "$k=$v&"}
-                actUrl = actUrl.dropLast(1)
-            }
-            val builder = Request.Builder().url(actUrl)
-
-            headers.filterKeys { it !in listOf("Content-Type", MESSAGE_HEADER_MEDIA_TYPE) }
-                .forEach { (k, v) -> builder.header(k, v) }
+            val builder = requestBuilder(reqUrl, params, headers)
 
             // The given Content-Type or JSON by default
             var contentType = headers["Content-Type"] ?: headers[MESSAGE_HEADER_MEDIA_TYPE]
@@ -128,5 +127,21 @@ object HttpService: ObjectService<HttpService>() {
             log.debug { "code=${res.code} message=${res.message}" }
             return res
         }
+    }
+
+    private fun requestBuilder(reqUrl: String, params: Map<String, Any>?, headers: Map<String, String> ): Request.Builder {
+
+        var actUrl = reqUrl
+        if (params != null) {
+            actUrl += "?"
+            params.forEach { (k, v) -> actUrl += "$k=$v&" }
+            actUrl = actUrl.dropLast(1)
+        }
+        val builder = Request.Builder().url(actUrl)
+
+        headers.filterKeys { it !in listOf("Content-Type", MESSAGE_HEADER_MEDIA_TYPE) }
+            .forEach { (k, v) -> builder.header(k, v) }
+
+        return builder
     }
 }

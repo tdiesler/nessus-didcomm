@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.itest
 
+import io.kotest.core.annotation.EnabledIf
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
@@ -32,6 +33,7 @@ import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V1
  * Aries RFC 0048: Trust Ping Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0048-trust-ping
  */
+@EnabledIf(AcaPyOnlyCondition::class)
 class RFC0048TrustPingV1Test : AbstractIntegrationTest() {
 
     @Test

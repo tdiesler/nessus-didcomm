@@ -26,6 +26,7 @@ import org.nessus.didcomm.service.HttpService
 import org.nessus.didcomm.service.HttpService.HttpClient.Companion.createHttpLoggingInterceptor
 import org.nessus.didcomm.wallet.AcapyWallet
 import org.slf4j.event.Level
+import java.net.ConnectException
 
 data class AgentConfiguration(
     val hostname: String,
@@ -101,6 +102,17 @@ class AriesClient(
     org.hyperledger.aries.AriesClient(adminUrl, apiKey, authToken, httpClient) {
 
     private val httpService get() = HttpService.getService()
+
+    val isLive: Boolean get() = run {
+        try {
+            val headers = mapOf("X-API-KEY" to apiKey as String)
+            val httpClient = httpService.httpClient(loggingInterceptor, httpClient)
+            val res = httpClient.get("$adminUrl/status/live", headers = headers)
+            res.isSuccessful
+        } catch (e: ConnectException) {
+            false
+        }
+    }
 
     fun adminPost(path: String, body: Any, params: Map<String, Any>? = null, headers: Map<String, String> = mapOf()): Response {
         val mutableHeaders = headers.toMutableMap()

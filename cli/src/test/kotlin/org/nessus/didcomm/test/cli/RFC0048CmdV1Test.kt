@@ -19,8 +19,10 @@
  */
 package org.nessus.didcomm.test.cli
 
+import io.kotest.core.annotation.EnabledIf
 import io.kotest.matchers.shouldBe
 
+@EnabledIf(AcaPyOnlyCondition::class)
 class RFC0048CmdV1Test: AbstractCliTest() {
 
     @Test

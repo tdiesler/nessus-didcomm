@@ -61,6 +61,7 @@ class VerifiableCredentialTest: AbstractAgentTest() {
                 proofType = ProofType.LD_PROOF,
 
                 // [TODO] what are these
+                // https://github.com/tdiesler/nessus-didcomm/issues/89
                 domain = null,
                 nonce = null,
                 proofPurpose = null,
@@ -69,8 +70,7 @@ class VerifiableCredentialTest: AbstractAgentTest() {
                 issueDate = dateTimeNow().toInstant(),
                 validDate = null,
                 expirationDate = null,
-                // may be used for mapping data-sets from a custom data-provider
-                dataProviderIdentifier = null,
+                dataProviderIdentifier = null, // may be used for mapping data-sets from a custom data-provider
                 ldSignatureType = null,
                 creator = issuerDid.uri,
                 ecosystem = Ecosystem.DEFAULT

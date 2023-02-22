@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.itest
 
+import io.kotest.core.annotation.EnabledIf
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
@@ -39,6 +40,7 @@ import java.util.concurrent.TimeUnit
  * Aries RFC 0095: Basic Message Protocol 1.0
  * https://github.com/hyperledger/aries-rfcs/tree/main/features/0095-basic-message
  */
+@EnabledIf(AcaPyOnlyCondition::class)
 class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
 
     @Test

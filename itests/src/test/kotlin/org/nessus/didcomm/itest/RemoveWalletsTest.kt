@@ -19,6 +19,9 @@
  */
 package org.nessus.didcomm.itest
 
+import io.kotest.core.annotation.EnabledIf
+
+@EnabledIf(AcaPyOnlyCondition::class)
 class RemoveWalletsTest : AbstractIntegrationTest() {
 
     @Test

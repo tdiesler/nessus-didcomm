@@ -37,7 +37,8 @@ data class VerificationMaterial(
  * https://www.w3.org/TR/did-spec-registries/#verification-method-properties
  */
 enum class VerificationMaterialFormat {
-    @Deprecated("publicKeyBase58", ReplaceWith("publicKeyMultibase or publicKeyJwk"))
+    @Deprecated("publicKeyBase58 deprecated by spec - use publicKeyMultibase or publicKeyJwk",
+        ReplaceWith("publicKeyMultibase or publicKeyJwk"))
     BASE58,     // https://www.w3.org/TR/did-spec-registries/#publickeybase58
     MULTIBASE,
     JWK,

@@ -24,11 +24,25 @@ import io.kotest.matchers.shouldBe
 class WalletCmdTest: AbstractCliTest() {
 
     @Test
+    fun acapyWalletCommands() {
+
+        cliService.execute("wallet list").isSuccess shouldBe true
+
+        if (adminClient.isLive) {
+
+            cliService.execute("wallet create --name Faber --agent AcaPy").isSuccess shouldBe true
+            cliService.findContextWallet()?.name shouldBe "Faber"
+
+            cliService.execute("wallet remove Faber").isSuccess shouldBe true
+        }
+    }
+
+    @Test
     fun walletCommands() {
 
         cliService.execute("wallet list").isSuccess shouldBe true
 
-        cliService.execute("wallet create --name Faber --agent AcaPy").isSuccess shouldBe true
+        cliService.execute("wallet create --name Faber").isSuccess shouldBe true
         cliService.findContextWallet()?.name shouldBe "Faber"
 
         cliService.execute("wallet create --name Alice").isSuccess shouldBe true
