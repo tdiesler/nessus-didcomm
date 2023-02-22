@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.wallet
 
-import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyStoreService
 import mu.KotlinLogging
 import org.hyperledger.acy_py.generated.model.DID
@@ -36,16 +35,17 @@ import org.hyperledger.aries.api.wallet.WalletDIDCreate
 import org.nessus.didcomm.agent.AgentConfiguration.Companion.agentConfiguration
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.agent.AriesClient
+import org.nessus.didcomm.did.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.did.KeyAlgorithm
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
-import org.nessus.didcomm.service.NessusDidService
 import org.nessus.didcomm.service.ModelService
+import org.nessus.didcomm.service.NessusDidService
 import org.nessus.didcomm.service.WalletPlugin
 
 fun ConnectionTheirRole.toConnectionRole(): ConnectionRole {
@@ -204,7 +204,7 @@ class AcapyWalletPlugin: WalletPlugin {
 
     private fun KeyAlgorithm.toAriesKeyType() = when(this) {
         KeyAlgorithm.EdDSA_Ed25519 -> DIDCreateOptions.KeyTypeEnum.ED25519
-        else -> throw IllegalStateException("Key algorithm not supported: $this")
+        // else -> throw IllegalStateException("Key algorithm not supported: $this")
     }
 
     private fun StorageType.toAriesWalletType() = org.hyperledger.aries.api.multitenancy.WalletType.valueOf(this.name)

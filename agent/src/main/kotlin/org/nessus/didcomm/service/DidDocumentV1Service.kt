@@ -21,7 +21,6 @@ package org.nessus.didcomm.service
 
 import id.walt.common.prettyPrint
 import id.walt.crypto.Key
-import id.walt.crypto.KeyAlgorithm
 import id.walt.crypto.convertRawKeyToMultiBase58Btc
 import id.walt.crypto.getMulticodecKeyCode
 import id.walt.services.crypto.CryptoService
@@ -33,6 +32,8 @@ import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toRaw
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidDocV1
 import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.did.KeyAlgorithm
+import org.nessus.didcomm.did.WaltIdKeyAlgorithm
 import org.nessus.didcomm.util.decodeBase64Url
 import org.nessus.didcomm.util.decodeBase64UrlStr
 import org.nessus.didcomm.util.decodeJson
@@ -44,10 +45,11 @@ import org.nessus.didcomm.util.trimJson
 import java.util.UUID
 
 fun Key.toDidKey(): Did {
-    check(algorithm == KeyAlgorithm.EdDSA_Ed25519)
+    check(algorithm == WaltIdKeyAlgorithm.EdDSA_Ed25519)
     val pubkeyBytes = getPublicKey().convertEd25519toRaw()
+    val keyAlgorithm = KeyAlgorithm.fromWaltIdKeyAlgorithm(algorithm)
     val id = convertRawKeyToMultiBase58Btc(pubkeyBytes, getMulticodecKeyCode(algorithm))
-    return Did(id, DidMethod.KEY, algorithm, pubkeyBytes.encodeBase58())
+    return Did(id, DidMethod.KEY, keyAlgorithm, pubkeyBytes.encodeBase58())
 }
 
 object DidDocumentV1Service: ObjectService<DidDocumentV1Service>() {

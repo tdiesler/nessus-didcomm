@@ -20,7 +20,6 @@
 package org.nessus.didcomm.service
 
 import id.walt.crypto.Key
-import id.walt.crypto.KeyAlgorithm
 import id.walt.crypto.KeyId
 import id.walt.crypto.convertRawKeyToMultiBase58Btc
 import id.walt.crypto.decodeRawPubKeyBase64
@@ -30,17 +29,17 @@ import id.walt.model.ServiceEndpoint
 import id.walt.services.CryptoProvider
 import id.walt.services.keystore.KeyStoreService
 import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toRaw
+import org.nessus.didcomm.did.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidDocV2
 import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.did.KeyAlgorithm
 import org.nessus.didcomm.util.decodeBase58
 import org.nessus.didcomm.util.encodeBase58
 import org.nessus.didcomm.util.encodeBase64
 import java.security.KeyFactory
 import java.security.KeyPair
 
-
-val DEFAULT_KEY_ALGORITHM = KeyAlgorithm.EdDSA_Ed25519
 
 typealias WaltIdDidService = id.walt.services.did.DidService
 typealias WaltIdDidMethod = id.walt.model.DidMethod
@@ -118,11 +117,12 @@ object NessusDidService: ObjectService<NessusDidService>() {
 
     private fun createDidKey(keyAlias: String?): Did {
         val keyAlgorithm = DEFAULT_KEY_ALGORITHM
-        val keyId = keyAlias?.let { KeyId(it) } ?: cryptoService.generateKey(keyAlgorithm)
+        val waidKeyAlgorithm = keyAlgorithm.toWaltIdKeyAlgorithm()
+        val keyId = keyAlias?.let { KeyId(it) } ?: cryptoService.generateKey(waidKeyAlgorithm)
         val key = keyStore.load(keyId.id)
 
         val pubkeyBytes = key.getPublicKey().convertEd25519toRaw()
-        val identifier = convertRawKeyToMultiBase58Btc(pubkeyBytes, getMulticodecKeyCode(keyAlgorithm))
+        val identifier = convertRawKeyToMultiBase58Btc(pubkeyBytes, getMulticodecKeyCode(waidKeyAlgorithm))
         val verkey = pubkeyBytes.encodeBase58()
 
         // Add verkey and did as alias
@@ -135,7 +135,8 @@ object NessusDidService: ObjectService<NessusDidService>() {
 
     private fun createDidSov(keyAlias: String?): Did {
         val keyAlgorithm = DEFAULT_KEY_ALGORITHM
-        val keyId = keyAlias?.let { KeyId(it) } ?: cryptoService.generateKey(keyAlgorithm)
+        val waidKeyAlgorithm = keyAlgorithm.toWaltIdKeyAlgorithm()
+        val keyId = keyAlias?.let { KeyId(it) } ?: cryptoService.generateKey(waidKeyAlgorithm)
         val key = keyStore.load(keyId.id)
 
         val pubkeyBytes = key.getPublicKey().convertEd25519toRaw()
@@ -151,13 +152,14 @@ object NessusDidService: ObjectService<NessusDidService>() {
     }
 
     private fun importDidKey(did: Did): Key {
-
         check(did.algorithm == KeyAlgorithm.EdDSA_Ed25519) { "Unsupported key algorithm: $did" }
-        val algorithm = did.algorithm
+
+        val keyAlgorithm = did.algorithm
         val rawBytes = did.verkey.decodeBase58()
+        val waidKeyAlgorithm = keyAlgorithm.toWaltIdKeyAlgorithm()
         val keyFactory = KeyFactory.getInstance("Ed25519")
         val publicKey = decodeRawPubKeyBase64(rawBytes.encodeBase64(), keyFactory)
-        val key = Key(newKeyId(), algorithm, CryptoProvider.SUN, KeyPair(publicKey, null))
+        val key = Key(newKeyId(), waidKeyAlgorithm, CryptoProvider.SUN, KeyPair(publicKey, null))
 
         keyStore.store(key)
         keyStore.addAlias(key.keyId, did.uri)

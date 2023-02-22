@@ -19,9 +19,7 @@
  */
 package org.nessus.didcomm.did
 
-import id.walt.crypto.KeyAlgorithm
 import id.walt.crypto.convertMultiBase58BtcToRawKey
-import org.nessus.didcomm.service.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.util.decodeBase58
 import org.nessus.didcomm.util.encodeBase58
 
@@ -32,6 +30,22 @@ enum class DidMethod(val value: String) {
         fun fromValue(value: String) = DidMethod.valueOf(value.uppercase())
     }
 }
+
+typealias WaltIdKeyAlgorithm = id.walt.crypto.KeyAlgorithm
+
+enum class KeyAlgorithm {
+    EdDSA_Ed25519;
+    companion object {
+        fun fromString(algorithm: String): KeyAlgorithm = when (algorithm) {
+            "EdDSA", "Ed25519", "EdDSA_Ed25519" -> EdDSA_Ed25519
+            else -> throw IllegalArgumentException("Algorithm not supported")
+        }
+        fun fromWaltIdKeyAlgorithm(algorithm: WaltIdKeyAlgorithm) = KeyAlgorithm.fromString(algorithm.name)
+    }
+    fun toWaltIdKeyAlgorithm() = WaltIdKeyAlgorithm.fromString(name)
+}
+
+val DEFAULT_KEY_ALGORITHM = KeyAlgorithm.EdDSA_Ed25519
 
 class Did(id: String, val method: DidMethod, val algorithm: KeyAlgorithm, val verkey: String) {
 
