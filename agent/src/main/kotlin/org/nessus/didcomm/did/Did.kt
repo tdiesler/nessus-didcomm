@@ -20,11 +20,14 @@
 package org.nessus.didcomm.did
 
 import id.walt.crypto.convertMultiBase58BtcToRawKey
-import org.nessus.didcomm.util.decodeBase58
-import org.nessus.didcomm.util.encodeBase58
+import id.walt.crypto.decodeBase58
+import id.walt.crypto.encodeBase58
+import id.walt.model.DidUrl
+import org.nessus.didcomm.service.WaltIdDid
 
 enum class DidMethod(val value: String) {
     KEY("key"),
+    PEER("peer"),
     SOV("sov");
     companion object {
         fun fromValue(value: String) = DidMethod.valueOf(value.uppercase())
@@ -57,30 +60,55 @@ class Did(id: String, val method: DidMethod, val algorithm: KeyAlgorithm, val ve
     }
 
     companion object {
+        fun extractDidMethod(uri: String): DidMethod {
+            return DidMethod.fromValue(DidUrl.from(uri).method)
+        }
         fun fromSpec(spec: String, verkey: String? = null): Did {
-            val toks = spec.split(':')
-            require(toks.size == 3) { "Unexpected number of tokens: $spec" }
-            require(toks[0] == "did") { "Unexpected first token: $spec" }
-            val id = toks[2].split('#')[0]
-            return when(val method = DidMethod.fromValue(toks[1])) {
+            val didUrl = DidUrl.from(spec)
+            val identifier = didUrl.identifier
+            return when(val method = DidMethod.fromValue(didUrl.method)) {
                 DidMethod.KEY -> {
-                    val verkeyBytes = convertMultiBase58BtcToRawKey(toks[2])
+                    val verkeyBytes = convertMultiBase58BtcToRawKey(identifier)
                     check(verkeyBytes.size == 32) { "Invalid verkey: $verkey" }
                     val verkeyFromDid = verkeyBytes.encodeBase58()
                     check(verkey == null || verkey == verkeyFromDid) { "Non matching verkey" }
-                    Did(id, method, DEFAULT_KEY_ALGORITHM, verkeyFromDid)
+                    Did(identifier, method, DEFAULT_KEY_ALGORITHM, verkeyFromDid)
+                }
+                DidMethod.PEER -> {
+                    when(identifier[0]) {
+                        '0' -> {
+                            val verkeyBytes = convertMultiBase58BtcToRawKey(identifier.substring(1))
+                            check(verkeyBytes.size == 32) { "Invalid verkey: $verkey" }
+                            val verkeyFromDid = verkeyBytes.encodeBase58()
+                            check(verkey == null || verkey == verkeyFromDid) { "Non matching verkey" }
+                            Did(identifier, method, DEFAULT_KEY_ALGORITHM, verkeyFromDid)
+                        }
+                        else -> throw IllegalArgumentException( "Unsupported did:peer method: $identifier" )
+                    }
                 }
                 DidMethod.SOV -> {
                     // did:sov uses the first 16 bytes from a (32 byte) verkey
-                    check(id.decodeBase58().size == 16) { "Invalid did:sov spec: $spec" }
+                    check(identifier.decodeBase58().size == 16) { "Invalid did:sov spec: $spec" }
                     checkNotNull(verkey) { "No verkey for: $spec" }
                     val verkeyBytes = verkey.decodeBase58()
                     check(verkeyBytes.size == 32) { "Invalid verkey: $verkey" }
                     val idFromVerkey = verkeyBytes.dropLast(16).toByteArray().encodeBase58()
-                    check(id == idFromVerkey) { "Invalid verkey for: $spec" }
-                    Did(id, method, DEFAULT_KEY_ALGORITHM, verkey)
+                    check(identifier == idFromVerkey) { "Invalid verkey for: $spec" }
+                    Did(identifier, method, DEFAULT_KEY_ALGORITHM, verkey)
                 }
             }
+        }
+        fun fromWaltIdDid(did: WaltIdDid): Did {
+            val verificationMethod = did.verificationMethod?.firstOrNull { it.type.startsWith("Ed25519") }
+            checkNotNull(verificationMethod) {"No suitable verification method: ${did.encode()}"}
+            val verkey = verificationMethod.publicKeyBase58
+            checkNotNull(verkey) {"No verkey in: ${verificationMethod.id}"}
+            val didUrl = DidUrl.from(verificationMethod.controller)
+            return Did(
+                id = didUrl.identifier,
+                method = DidMethod.fromValue(didUrl.method),
+                algorithm = DEFAULT_KEY_ALGORITHM,
+                verkey = verkey)
         }
     }
 

@@ -79,8 +79,7 @@ object WalletService: ObjectService<WalletService>() {
     }
 
     fun removeWallet(id: String): Wallet? {
-        val wallet = modelService.getWallet(id)
-        if (wallet != null) {
+        return modelService.getWallet(id)?.also { wallet ->
             wallet.dids.forEach { did ->
                 didService.removeDid(did)
                 keyStore.getKeyId(did.uri)?.let {
@@ -88,9 +87,8 @@ object WalletService: ObjectService<WalletService>() {
                 }
             }
             wallet.walletPlugin.removeWallet(wallet)
-            modelService.removeWallet(id)
+            modelService.removeWallet(wallet.id)
         }
-        return wallet
     }
 
     fun findWallet(alias: String): Wallet? {

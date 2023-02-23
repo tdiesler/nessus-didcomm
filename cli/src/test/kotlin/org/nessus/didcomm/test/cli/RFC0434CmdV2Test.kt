@@ -24,13 +24,34 @@ import io.kotest.matchers.shouldBe
 class RFC0434CmdV2Test: AbstractCliTest() {
 
     @Test
-    fun testRFC0434CommandsV2() {
+    fun testRFC0434V2_DidKey() {
 
         cliService.execute("wallet create --name Faber").isSuccess shouldBe true
         cliService.execute("wallet create --name Alice").isSuccess shouldBe true
         cliService.execute("agent start").isSuccess shouldBe true
 
         try {
+
+            cliService.execute("rfc0434 create-invitation --inviter Faber --dcv2").isSuccess shouldBe true
+            cliService.execute("rfc0434 receive-invitation --invitee Alice --dcv2").isSuccess shouldBe true
+
+        } finally {
+            cliService.execute("agent stop").isSuccess shouldBe true
+            cliService.execute("wallet remove Alice").isSuccess shouldBe true
+            cliService.execute("wallet remove Faber").isSuccess shouldBe true
+        }
+    }
+
+    @Test
+    fun testRFC0434V2_DidPeer() {
+
+        cliService.execute("wallet create --name Faber").isSuccess shouldBe true
+        cliService.execute("wallet create --name Alice").isSuccess shouldBe true
+        cliService.execute("agent start").isSuccess shouldBe true
+
+        try {
+
+            cliService.execute("did create --wallet Faber --method=peer").isSuccess shouldBe true
 
             cliService.execute("rfc0434 create-invitation --inviter Faber --dcv2").isSuccess shouldBe true
             cliService.execute("rfc0434 receive-invitation --invitee Alice --dcv2").isSuccess shouldBe true

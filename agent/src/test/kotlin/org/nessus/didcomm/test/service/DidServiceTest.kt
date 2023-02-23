@@ -20,20 +20,18 @@
 package org.nessus.didcomm.test.service
 
 import id.walt.crypto.KeyAlgorithm
-import id.walt.crypto.buildEd25519PubKey
-import id.walt.crypto.convertRawKeyToMultiBase58Btc
 import id.walt.crypto.decodeBase58
-import id.walt.crypto.encBase64
-import id.walt.crypto.getMulticodecKeyCode
 import id.walt.services.keystore.KeyType
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import mu.KotlinLogging
+import org.nessus.didcomm.did.DidDocV2
 import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.util.encodeHex
-import java.security.PublicKey
 
 /**
  * Ed25519 Online Tool - Sign or Verify
@@ -47,35 +45,73 @@ class DidServiceTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
 
     @Test
-    fun test_RawPubKey_to_DidKey() {
+    fun testDidMethods() {
+        val alice = Wallet.Builder(Alice.name).build()
+        try {
 
-        // ed25519-x25519.json
-        // did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp
+            listOf(DidMethod.KEY, DidMethod.PEER, DidMethod.SOV).forEach { method ->
 
-        val pkRaw = "4zvwRjXUKGfvwnParsHAS3HuSVzV5cA4McphgmoCtajS".decodeBase58()
-        log.info { "pkRaw: ${pkRaw.encodeHex()}" }
+                val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
 
-        // Build PublicKey from pubkey raw bytes
-        // Then verify that we can get the raw bytes from the X.509 encoded PublicKey
-        val pubKey: PublicKey = buildEd25519PubKey(encBase64(pkRaw))
-        pubKey.format shouldBe "X.509"
-        val pubKeyX509 = pubKey.encoded
-        log.info { "pk509: ${pubKeyX509.encodeHex()}" }
+                val did = alice.createDid(method, keyId.id)
+                did.verkey shouldBe Alice.verkey
 
-        // We assume/verify that the last 32 bytes are equal to the pubkey raw bytes
-        val pubKeyRaw = pubKeyX509.sliceArray(pubKeyX509.size - 32 until pubKeyX509.size)
-        log.info { "pkRaw: ${pubKeyRaw.encodeHex()}" }
-        pkRaw.contentEquals(pubKeyRaw) shouldBe true
+                when(method) {
+                    DidMethod.KEY -> did.uri shouldBe Alice.didkey
+                    DidMethod.PEER -> did.uri shouldBe Alice.didpeer
+                    DidMethod.SOV -> did.uri shouldBe Alice.didsov
+                }
 
-        // Construct did from the 32 pubkey raw bytes
-        val keyAlgorithm = KeyAlgorithm.EdDSA_Ed25519
-        check(pubKeyRaw.size == 32) { "Expect 32 pubkey bytes" }
-        val did = convertRawKeyToMultiBase58Btc(pubKeyRaw, getMulticodecKeyCode(keyAlgorithm))
-        "did:key:$did" shouldBe "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp"
+                val key = keyStore.load(did.uri, KeyType.PUBLIC)
+                key shouldNotBe null
+
+                val loadedDid = didService.loadDid(did.uri)
+                loadedDid shouldBe did
+
+                var didDoc = didService.loadDidDocument(did.uri)
+                didDoc.serviceEndpoint() shouldNotBe null
+                log.info { "DidDocument: ${didDoc.encodeJson(true)}" }
+
+                didService.removeDid(did)
+
+                didService.hasDid(did.uri) shouldBe false
+                keyStore.getKeyId(did.uri) shouldBe null
+
+                // We can resolve the Did Document when we have the public key
+                if (method == DidMethod.SOV) {
+                    keyStore.store(key)
+                    keyStore.addAlias(key.keyId, did.uri)
+                }
+
+                didDoc = didService.resolveDidDocument(did.uri) as DidDocV2
+                log.info { "Resolved DidDocument: ${didDoc.encodeJson(true)}" }
+
+                val resolvedDid = didService.resolveDid(did.uri)
+                resolvedDid shouldBe did
+
+                // Resolving a Did/Document does NOT add it to the store
+                didService.hasDid(did.uri) shouldBe false
+
+                // Delete the public key
+                keyStore.delete(keyId.id)
+
+                didService.importDid(did) shouldNotBe null
+
+                didService.loadDid(did.uri) shouldBe did
+
+                didDoc = didService.loadDidDocument(did.uri)
+                didDoc.serviceEndpoint() shouldNotBe null
+
+                alice.removeDid(did)
+            }
+
+        } finally {
+            removeWallet(alice)
+        }
     }
 
     @Test
-    fun test_DidKey_Seed00() {
+    fun testDidKeySeed00() {
         val seedBytes = ByteArray(32)
         val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, seedBytes)
         val did = didService.createDid(DidMethod.KEY, keyId.id)

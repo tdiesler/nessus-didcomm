@@ -24,7 +24,6 @@ import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidDoc
 import org.nessus.didcomm.did.DidDocV2
-import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionRole
@@ -64,14 +63,14 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
      * goal: String
      * label: String
      */
-    fun createOutOfBandInvitation(inviter: Wallet, options: Map<String, Any> = mapOf()): RFC0434OutOfBandProtocolV2 {
+    fun createOutOfBandInvitation(inviter: Wallet, did: Did? = null, options: Map<String, Any> = mapOf()): RFC0434OutOfBandProtocolV2 {
         checkAgentType(inviter.agentType)
 
         val id = "${UUID.randomUUID()}"
         val type = RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
-        val invitationDid = inviter.createDid(DidMethod.KEY)
 
         // Create and register the Did Document for this Invitation
+        val invitationDid = did ?: inviter.createDid()
         val invitationDidDoc = diddocV2Service.resolveDidDocument(invitationDid.uri)
         val invitationDidDocAttachment = diddocV2Service.createDidDocAttachment(invitationDidDoc)
 
@@ -116,7 +115,7 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
         return this
     }
 
-    fun receiveOutOfBandInvitation(invitee: Wallet): RFC0434OutOfBandProtocolV2 {
+    fun receiveOutOfBandInvitation(invitee: Wallet, did: Did? = null): RFC0434OutOfBandProtocolV2 {
         checkAgentType(invitee.agentType)
 
         val invitation = mex.getInvitation()
@@ -139,8 +138,8 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
         val inviterEndpointUrl = inviterDidDoc.serviceEndpoint()
 
         // Create Invitee Did + Document
-        val inviteeDid = invitee.createDid(DidMethod.KEY)
         val inviteeEndpointUrl = invitee.endpointUrl
+        val inviteeDid = did ?: invitee.createDid(inviterDid.method)
         val inviteeDidDoc = diddocV2Service.resolveDidDocument(inviteeDid.uri)
         mex.putAttachment(INVITEE_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(inviteeDidDoc))
 

@@ -22,6 +22,7 @@ package org.nessus.didcomm.test.service
 import com.nimbusds.jose.jwk.OctetKeyPair
 import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
+import id.walt.crypto.encodeBase58
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import mu.KotlinLogging
@@ -32,7 +33,6 @@ import org.didcommx.didcomm.common.VerificationMethodType.X25519_KEY_AGREEMENT_K
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
-import org.nessus.didcomm.util.encodeBase58
 import org.nessus.didcomm.util.encodeHex
 
 class SecretResolverServiceTest: AbstractAgentTest() {

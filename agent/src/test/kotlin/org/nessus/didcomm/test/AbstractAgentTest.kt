@@ -24,6 +24,7 @@ import id.walt.credentials.w3c.templates.VcTemplateService
 import id.walt.services.keystore.KeyStoreService
 import id.walt.signatory.Signatory
 import io.kotest.core.spec.style.AnnotationSpec
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.service.DidCommService
 import org.nessus.didcomm.service.DidDocumentV1Service
@@ -67,6 +68,7 @@ object Government {
     val seedHex = seed.toByteArray().encodeHex()
     val verkey = "GJ1SzoWzavQYfNL9XkaJdrQejfztN4XqdsiV4ct3LXKL"
     val didkey = "did:key:z6MkukGVb3mRvTu1msArDKY9UwxeZFGjmwnCKtdQttr4Fk6i"
+    val didpeer = "did:peer:0z6MkukGVb3mRvTu1msArDKY9UwxeZFGjmwnCKtdQttr4Fk6i"
     val didsov = "did:sov:V4SGRU86Z58d6TV7PBUe6f"
 }
 object Faber {
@@ -75,6 +77,7 @@ object Faber {
     val seedHex = seed.toByteArray().encodeHex()
     val verkey = "CcokUqV7WkojBLxYm7gxRzsWk3q4SE8eVMmEXoYjyvKw"
     val didkey = "did:key:z6Mkr54o55jYrJJCHqoFSgeoH6RWZd6ur7P1BNgAN5Wku97K"
+    val didpeer = "did:peer:0z6Mkr54o55jYrJJCHqoFSgeoH6RWZd6ur7P1BNgAN5Wku97K"
     val didsov = "did:sov:NKGKtcNwssToP5f7uhsEs4"
 }
 object Alice {
@@ -83,6 +86,7 @@ object Alice {
     val seedHex = seed.toByteArray().encodeHex()
     val verkey = "ESqH2YuYRRXMMfg5qQh1A23nzBaUvAMCEXLtBr2uDHbY"
     val didkey = "did:key:z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv"
+    val didpeer = "did:peer:0z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv"
     val didsov = "did:sov:RfoA7oboFMiFuJPEtPdvKP"
 }
 object Acme {
@@ -91,6 +95,7 @@ object Acme {
     val seedHex = seed.toByteArray().encodeHex()
     val verkey = "4uGbbt1jJf69tjCfTiimoEtWsdCSuKndfEfFVYaw5ou4"
     val didkey = "did:key:z6MkiMXeC8GAeCad1E3N9HgceLSWhCUJKD2zMFaBKpYx12gS"
+    val didpeer = "did:peer:0z6MkiMXeC8GAeCad1E3N9HgceLSWhCUJKD2zMFaBKpYx12gS"
     val didsov = "did:sov:8A9VYDjAVEqWrsfjLA3VDc"
 }
 
@@ -129,9 +134,7 @@ abstract class AbstractAgentTest: AnnotationSpec() {
         return endpointService.startEndpoint(endpointUrl, listener)
     }
 
-    fun removeWallet(alias: String) {
-        walletService.findWallet(alias)?.run {
-            walletService.removeWallet(this.id)
-        }
+    fun removeWallet(wallet: Wallet) {
+        walletService.removeWallet(wallet.id)
     }
 }

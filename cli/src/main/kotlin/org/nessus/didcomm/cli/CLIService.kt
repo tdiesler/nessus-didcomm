@@ -19,10 +19,12 @@
  */
 package org.nessus.didcomm.cli
 
+import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
+import org.nessus.didcomm.protocol.MessageExchange.Companion.DID_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.service.ModelService
@@ -57,6 +59,19 @@ object CLIService: AttachmentSupport() {
 
     fun putContextConnection(pcon: Connection): Connection? {
         return putAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
+    }
+
+    fun findContextDid(walletAlias: String? = null, didAlias: String? = null): Did? {
+        val ctxWallet = findContextWallet(walletAlias) ?: return null
+        val effAlias = didAlias ?: getAttachment(DID_ATTACHMENT_KEY)?.id ?: return null
+        return ctxWallet.findDid {
+            val candidates = listOf(it.id, it.uri, it.verkey).map { c -> c.lowercase() }
+            candidates.any { c -> c.startsWith(effAlias.lowercase()) }
+        }
+    }
+
+    fun putContextDid(did: Did): Did? {
+        return putAttachment(DID_ATTACHMENT_KEY, did)
     }
 
     fun findContextInvitation(walletAlias: String? = null, invAlias: String? = null): Invitation? {

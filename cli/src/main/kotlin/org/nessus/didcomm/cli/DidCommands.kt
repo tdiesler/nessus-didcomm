@@ -42,7 +42,7 @@ open class AbstractDidCommand: AbstractBaseCommand() {
         if (verbose) {
             echo(did.uri)
             echo(did.encodeJson(true))
-            if (showDoc && did.method in listOf(DidMethod.KEY)) {
+            if (showDoc && did.method != DidMethod.SOV) {
                 echo()
                 val didDoc = didService.loadDidDocument(did.uri)
                 echo("Did Document ...\n${didDoc.encodeJson(true)}")
@@ -57,11 +57,14 @@ open class AbstractDidCommand: AbstractBaseCommand() {
 class DidCreateCommand: AbstractDidCommand() {
 
     @Option(names = ["-m", "--method"], description = ["The Did method"])
-    var method = DidMethod.KEY
+    var method = "key"
 
     override fun call(): Int {
         val ctxWallet = getContextWallet(walletAlias)
-        val did = ctxWallet.createDid(method)
+        val allowed = DidMethod.values().map { it.name.lowercase() }
+        require(method in allowed) { "Invalid value for option '--method': expected one of $allowed" }
+        val did = ctxWallet.createDid(DidMethod.fromValue(method))
+        cliService.putContextDid(did)
         echoDid(did, true)
         return 0
     }

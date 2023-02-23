@@ -25,6 +25,7 @@ import com.goterl.lazysodium.utils.DetachedEncrypt
 import com.goterl.lazysodium.utils.Key
 import com.goterl.lazysodium.utils.KeyPair
 import id.walt.common.prettyPrint
+import id.walt.crypto.decodeBase58
 import id.walt.services.keystore.KeyType
 import mu.KotlinLogging
 import okhttp3.MediaType.Companion.toMediaType
@@ -35,7 +36,14 @@ import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxOpenEasyBytes
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.service.RFC0019_ENCRYPTED_ENVELOPE
-import org.nessus.didcomm.util.*
+import org.nessus.didcomm.util.decodeBase64Url
+import org.nessus.didcomm.util.decodeBase64UrlStr
+import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.encodeBase64Url
+import org.nessus.didcomm.util.encodeHex
+import org.nessus.didcomm.util.decodeHex
+import org.nessus.didcomm.util.selectJson
+import org.nessus.didcomm.util.trimJson
 
 /**
  * Aries RFC 0019: Encryption Envelope

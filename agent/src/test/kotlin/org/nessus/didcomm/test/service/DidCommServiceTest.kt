@@ -31,7 +31,7 @@ import org.didcommx.didcomm.model.UnpackParams
 import org.nessus.didcomm.did.DidDocV2
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.service.WaltIdDidDoc
+import org.nessus.didcomm.service.WaltIdDid
 import org.nessus.didcomm.service.WaltIdDidService
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
@@ -73,8 +73,8 @@ class DidCommServiceTest: AbstractAgentTest() {
         try {
             val faberDid = faber.createDid(DidMethod.KEY)
 
-            val waltDidDoc: WaltIdDidDoc = WaltIdDidService.load(faberDid.uri)
-            log.info { "WaltIdDidDoc ${waltDidDoc.encodePretty()}" }
+            val waltDidDoc: WaltIdDid = WaltIdDidService.load(faberDid.uri)
+            log.info { "WaltIdDid ${waltDidDoc.encodePretty()}" }
 
             val didDocV2: DidDocV2 = didService.loadDidDocument(faberDid.uri)
             log.info { "DidDocV2 ${didDocV2.encodeJson(true)}" }
@@ -103,7 +103,7 @@ class DidCommServiceTest: AbstractAgentTest() {
             mdata.anonymousSender shouldBe false
 
         } finally {
-            removeWallet(faber.id)
+            removeWallet(faber)
         }
     }
 
@@ -117,8 +117,8 @@ class DidCommServiceTest: AbstractAgentTest() {
             val faberDid = faber.createDid(DidMethod.KEY)
             val aliceDid = alice.createDid(DidMethod.KEY)
 
-            val waltDidDoc: WaltIdDidDoc = WaltIdDidService.load(faberDid.uri)
-            log.info { "WaltIdDidDoc ${waltDidDoc.encodePretty()}" }
+            val waltDidDoc: WaltIdDid = WaltIdDidService.load(faberDid.uri)
+            log.info { "WaltIdDid ${waltDidDoc.encodePretty()}" }
 
             val didDocV2: DidDocV2 = didService.loadDidDocument(faberDid.uri)
             log.info { "DidDocV2 ${didDocV2.encodeJson(true)}" }
@@ -150,8 +150,8 @@ class DidCommServiceTest: AbstractAgentTest() {
             mdata.anonymousSender shouldBe false
 
         } finally {
-            removeWallet(alice.id)
-            removeWallet(faber.id)
+            removeWallet(alice)
+            removeWallet(faber)
         }
     }
 }

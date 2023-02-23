@@ -27,8 +27,8 @@ import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.service.RFC0048_TRUST_PING_V2
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
 import org.nessus.didcomm.test.AbstractAgentTest
-import org.nessus.didcomm.test.Acme
 import org.nessus.didcomm.test.Alice
+import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.test.NESSUS_OPTIONS_01
 
 /**
@@ -44,7 +44,7 @@ class RFC0048TrustPingV2Test : AbstractAgentTest() {
 
             /** Create the wallets */
 
-            val acme = Wallet.Builder(Acme.name)
+            val faber = Wallet.Builder(Faber.name)
                 .build()
 
             val alice = Wallet.Builder(Alice.name)
@@ -53,7 +53,7 @@ class RFC0048TrustPingV2Test : AbstractAgentTest() {
             try {
                 val mex = MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND_V2)
-                    .createOutOfBandInvitation(acme)
+                    .createOutOfBandInvitation(faber)
                     .receiveOutOfBandInvitation(alice)
 
                     .withProtocol(RFC0048_TRUST_PING_V2)
@@ -72,7 +72,7 @@ class RFC0048TrustPingV2Test : AbstractAgentTest() {
                     .awaitTrustPingResponse()
 
                 // Send a reverse trust ping
-                val acmeAlice = acme.findConnection{ it.myVerkey == aliceAcme.theirVerkey }
+                val acmeAlice = faber.findConnection{ it.myVerkey == aliceAcme.theirVerkey }
                 acmeAlice shouldNotBe null
 
                 MessageExchange()
@@ -81,8 +81,8 @@ class RFC0048TrustPingV2Test : AbstractAgentTest() {
                     .awaitTrustPingResponse()
 
             } finally {
-                removeWallet(Alice.name)
-                removeWallet(Acme.name)
+                removeWallet(alice)
+                removeWallet(faber)
             }
         }
     }

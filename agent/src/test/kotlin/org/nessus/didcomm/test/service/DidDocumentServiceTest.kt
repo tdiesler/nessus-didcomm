@@ -25,7 +25,7 @@ import mu.KotlinLogging
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.did.toSicpaDidDoc
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.service.WaltIdDidDoc
+import org.nessus.didcomm.service.WaltIdDid
 import org.nessus.didcomm.service.WaltIdDidService
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
@@ -40,8 +40,8 @@ class DidDocumentServiceTest: AbstractAgentTest() {
         try {
             val didA = alice.createDid(DidMethod.KEY)
 
-            val didDoc: WaltIdDidDoc = WaltIdDidService.load(didA.uri)
-            log.info { "WaltIdDidDoc: ${didDoc.encodePretty()}" }
+            val didDoc: WaltIdDid = WaltIdDidService.load(didA.uri)
+            log.info { "WaltIdDid: ${didDoc.encodePretty()}" }
 
             val didDocV2 = didService.loadDidDocument(didA.uri)
             log.info { "DidDocV2: ${didDocV2.encodeJson(true)}" }
@@ -54,7 +54,7 @@ class DidDocumentServiceTest: AbstractAgentTest() {
             didB shouldBe didA
 
         } finally {
-            removeWallet(alice.id)
+            removeWallet(alice)
         }
     }
 }

@@ -102,8 +102,8 @@ class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
                 receivedMessage.bodyAsJson.selectJson("content") shouldBe faberMessage
 
             } finally {
-                removeWallet(Alice.name)
-                removeWallet(Faber.name)
+                removeWallet(alice)
+                removeWallet(faber)
             }
         }
     }
@@ -164,8 +164,8 @@ class RFC0095BasicMessageV1Test : AbstractIntegrationTest() {
                 epm.bodyAsJson.selectJson("content") shouldBe userMessage
 
             } finally {
-                removeWallet(Alice.name)
-                removeWallet(Faber.name)
+                removeWallet(alice)
+                removeWallet(faber)
             }
         }
     }

@@ -74,8 +74,8 @@ class RFC0434OutOfBandV1Test : AbstractIntegrationTest() {
             invitation?.state shouldBe InvitationState.DONE
 
         } finally {
-            removeWallet(Alice.name)
-            removeWallet(Faber.name)
+            removeWallet(alice)
+            removeWallet(faber)
         }
     }
 
@@ -115,8 +115,8 @@ class RFC0434OutOfBandV1Test : AbstractIntegrationTest() {
             invitation?.state shouldBe InvitationState.DONE
 
         } finally {
-            removeWallet(Alice.name)
-            removeWallet(Faber.name)
+            removeWallet(alice)
+            removeWallet(faber)
         }
     }
 }

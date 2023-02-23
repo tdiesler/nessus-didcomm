@@ -37,14 +37,15 @@ class ModelServiceTest: AbstractAgentTest() {
         // Show empty state
         log.info { modelService.model.encodeJson(true) }
 
-        Wallet.Builder(Alice.name)
+        val alice = Wallet.Builder(Alice.name)
             .agentType(AgentType.NESSUS)
             .build()
 
         modelService.findWalletByName(Alice.name) shouldNotBe null
         log.info { modelService.model.encodeJson(true) }
 
-        removeWallet(Alice.name)
+        removeWallet(alice)
+
         modelService.findWalletByName(Alice.name) shouldBe null
     }
 }

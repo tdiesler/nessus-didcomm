@@ -30,8 +30,8 @@ import org.nessus.didcomm.service.RFC0048_TRUST_PING_V2
 import org.nessus.didcomm.service.RFC0095_BASIC_MESSAGE_V2
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
 import org.nessus.didcomm.test.AbstractAgentTest
-import org.nessus.didcomm.test.Acme
 import org.nessus.didcomm.test.Alice
+import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.test.NESSUS_OPTIONS_01
 import org.nessus.didcomm.util.Holder
 
@@ -59,7 +59,7 @@ class RFC0095BasicMessageV2Test : AbstractAgentTest() {
 
             /** Create the wallets */
 
-            val acme = Wallet.Builder(Acme.name)
+            val faber = Wallet.Builder(Faber.name)
                 .build()
 
             val alice = Wallet.Builder(Alice.name)
@@ -69,7 +69,7 @@ class RFC0095BasicMessageV2Test : AbstractAgentTest() {
 
                 val mex = MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND_V2)
-                    .createOutOfBandInvitation(acme)
+                    .createOutOfBandInvitation(faber)
                     .receiveOutOfBandInvitation(alice)
 
                     .withProtocol(RFC0048_TRUST_PING_V2)
@@ -82,7 +82,7 @@ class RFC0095BasicMessageV2Test : AbstractAgentTest() {
                 aliceAcme.state shouldBe ACTIVE
 
                 // Find the reverse connection
-                val acmeAlice = acme.findConnection{ it.myVerkey == aliceAcme.theirVerkey }
+                val acmeAlice = faber.findConnection{ it.myVerkey == aliceAcme.theirVerkey }
                 checkNotNull(acmeAlice) { "No Faber/Alice connection" }
 
                 val aliceMessage = "Your hovercraft is full of eels"
@@ -131,8 +131,8 @@ class RFC0095BasicMessageV2Test : AbstractAgentTest() {
                 messageHolder.content!!.body["content"] shouldBe acmeMessage
 
             } finally {
-                removeWallet(Alice.name)
-                removeWallet(Acme.name)
+                removeWallet(alice)
+                removeWallet(faber)
             }
         }
     }

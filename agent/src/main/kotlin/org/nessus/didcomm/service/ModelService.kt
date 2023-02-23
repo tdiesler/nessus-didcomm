@@ -58,10 +58,8 @@ object ModelService: ObjectService<ModelService>() {
     }
 
     fun removeWallet(id: String): Wallet? {
-        model.removeWallet(id)?.run {
-            log.info {"Removed Wallet: ${shortString()}" }
-            return this
+        return model.removeWallet(id)?.also {
+            log.info {"Removed Wallet: ${it.shortString()}" }
         }
-        return null
     }
 }

@@ -95,10 +95,7 @@ abstract class Wallet(
     @Transient
     private val redactedOptions = options.mapValues { (k, v) ->
         when(k) {
-            "authToken" -> {
-                val tok = v as String
-                tok.substring(0, 6) + "..." + tok.substring(tok.length - 6)
-            }
+            "authToken" -> v.substring(0, 6) + "..." + v.substring(v.length - 6)
             else -> v
         }
     }
@@ -137,8 +134,8 @@ abstract class Wallet(
     }
 
     @Synchronized
-    fun removeDid(verkey: String) {
-        getDid(verkey)?.run { didsInternal.remove(this) }
+    fun removeDid(did: Did) {
+        didsInternal.remove(did)
     }
 
     @Synchronized

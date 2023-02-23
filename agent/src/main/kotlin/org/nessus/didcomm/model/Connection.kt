@@ -1,9 +1,9 @@
 package org.nessus.didcomm.model
 
+import id.walt.crypto.encodeBase58
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.service.ModelService
-import org.nessus.didcomm.util.encodeBase58
 import org.nessus.didcomm.util.gson
 
 enum class ConnectionRole {

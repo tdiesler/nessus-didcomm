@@ -64,7 +64,7 @@ class OnboardEndorserTest : AbstractIntegrationTest() {
             auxDid.method shouldBe DidMethod.KEY
 
         } finally {
-            walletService.removeWallet(endorser.id)
+            removeWallet(endorser)
         }
     }
 }

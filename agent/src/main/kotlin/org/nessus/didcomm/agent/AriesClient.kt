@@ -88,8 +88,7 @@ object AriesClientFactory {
     ): AriesClient {
         val config = agentConfig ?: AgentConfiguration.defaultConfiguration
         checkNotNull(config.adminUrl) { "No admin url in $config" }
-        val authToken = wallet?.authToken as? String
-        return AriesClient(config.adminUrl, config.apiKey, authToken, loggingInterceptor, httpClient)
+        return AriesClient(config.adminUrl, config.apiKey, wallet?.authToken, loggingInterceptor, httpClient)
     }
 
 }

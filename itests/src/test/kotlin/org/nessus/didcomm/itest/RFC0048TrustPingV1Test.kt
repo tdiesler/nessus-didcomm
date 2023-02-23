@@ -84,8 +84,8 @@ class RFC0048TrustPingV1Test : AbstractIntegrationTest() {
                     .awaitTrustPingResponse()
 
             } finally {
-                removeWallet(Alice.name)
-                removeWallet(Faber.name)
+                removeWallet(alice)
+                removeWallet(faber)
             }
         }
     }

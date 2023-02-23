@@ -27,14 +27,11 @@ import org.nessus.didcomm.crypto.LibIndyService.closeAndDeleteWallet
 import org.nessus.didcomm.crypto.LibIndyService.createAnOpenWallet
 import org.nessus.didcomm.crypto.LibIndyService.createAndStoreDid
 import org.nessus.didcomm.did.DidMethod
-import org.nessus.didcomm.model.AgentType
-import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
-import org.nessus.didcomm.test.NESSUS_OPTIONS_01
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.gson
 
@@ -114,19 +111,16 @@ class LibIndyTest: AbstractAgentTest() {
     @Test
     fun packIndy_unpackNessus() {
 
+        log.info("Create wallet - Alice")
+        val alice = Wallet.Builder(Alice.name).build()
+
         try {
             log.info("Create wallet - Faber")
             val faber = createAnOpenWallet(Faber.name)
             val faberDid = createAndStoreDid(faber, Faber.seed)
             log.info { "Faber Did: ${faberDid.uri}" }
 
-            log.info("Create wallet - Alice")
-            Wallet.Builder(Alice.name)
-                .options(NESSUS_OPTIONS_01)
-                .agentType(AgentType.NESSUS)
-                .storageType(StorageType.IN_MEMORY)
-                .build()
-            val aliceDid = didService.createDid(DidMethod.SOV)
+            val aliceDid = alice.createDid(DidMethod.SOV)
 
             val message = "Your hovercraft is full of eels."
             val receivers = gson.toJson(listOf(aliceDid.verkey))
@@ -140,12 +134,15 @@ class LibIndyTest: AbstractAgentTest() {
 
         } finally {
             closeAndDeleteWallet(Faber.name)
-            removeWallet(Alice.name)
+            removeWallet(alice)
         }
     }
 
     @Test
     fun packNessus_unpackIndy() {
+
+        log.info("Create wallet - Alice")
+        val alice = Wallet.Builder(Alice.name).build()
 
         try {
             log.info("Create wallet - Faber")
@@ -154,12 +151,7 @@ class LibIndyTest: AbstractAgentTest() {
             log.info { "Faber Did: ${faberDid.uri}" }
 
             log.info("Create wallet - Alice")
-            Wallet.Builder(Alice.name)
-                .options(NESSUS_OPTIONS_01)
-                .agentType(AgentType.NESSUS)
-                .storageType(StorageType.IN_MEMORY)
-                .build()
-            val aliceDid = didService.createDid(DidMethod.SOV)
+            val aliceDid = alice.createDid(DidMethod.SOV)
 
             val message = "Your hovercraft is full of eels."
             val packed = RFC0019EncryptionEnvelope()
@@ -175,7 +167,7 @@ class LibIndyTest: AbstractAgentTest() {
 
         } finally {
             closeAndDeleteWallet(Faber.name)
-            removeWallet(Alice.name)
+            removeWallet(alice)
         }
     }
 

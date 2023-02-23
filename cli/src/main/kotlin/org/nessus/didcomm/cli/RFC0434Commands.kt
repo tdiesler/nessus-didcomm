@@ -74,12 +74,13 @@ class RFC0434CreateInvitation: AbstractRFC0434Command() {
 
     override fun call(): Int {
         val inviter = getContextWallet(inviterAlias)
+        val inviterDid = cliService.findContextDid(inviterAlias)
         checkWalletEndpoint(inviter)
         val mex = when {
             dcv2 -> {
                 MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND_V2)
-                    .createOutOfBandInvitation(inviter)
+                    .createOutOfBandInvitation(inviter, inviterDid)
                     .getMessageExchange()
             }
             else -> {
@@ -162,12 +163,13 @@ class RFC0434InviteAndConnect: AbstractRFC0434Command() {
     override fun call(): Int {
         val inviter = getContextWallet(inviterAlias)
         val invitee = getContextWallet(inviteeAlias)
+        val inviterDid = cliService.findContextDid(inviterAlias)
         checkWalletEndpoint(inviter, invitee)
         val mex = when {
             dcv2 -> {
                 MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND_V2)
-                    .createOutOfBandInvitation(inviter)
+                    .createOutOfBandInvitation(inviter, inviterDid)
                     .also {
                         val invitation = it.getMessageExchange().getInvitation()
                         echoCreateInvitation(inviter.name, invitation!!)

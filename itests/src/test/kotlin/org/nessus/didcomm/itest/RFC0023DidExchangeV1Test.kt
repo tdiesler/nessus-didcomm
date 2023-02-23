@@ -99,8 +99,8 @@ class RFC0023DidExchangeV1Test : AbstractIntegrationTest() {
                 verifyConnection(faber, faberAlice)
 
             } finally {
-                removeWallet(Alice.name)
-                removeWallet(Faber.name)
+                removeWallet(alice)
+                removeWallet(faber)
             }
         }
     }
@@ -159,8 +159,8 @@ class RFC0023DidExchangeV1Test : AbstractIntegrationTest() {
                 verifyConnection(acme, acmeAlice)
 
             } finally {
-                removeWallet(Alice.name)
-                removeWallet(Faber.name)
+                removeWallet(alice)
+                removeWallet(acme)
             }
         }
     }

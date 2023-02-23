@@ -11,7 +11,7 @@ import org.didcommx.didcomm.common.VerificationMethodType
 import org.didcommx.didcomm.diddoc.DIDCommService
 import org.didcommx.didcomm.diddoc.VerificationMethod
 import org.nessus.didcomm.did.DidDocV2.Companion.DEFAULT_ACCEPT
-import org.nessus.didcomm.service.WaltIdDidDoc
+import org.nessus.didcomm.service.WaltIdDid
 
 typealias SicpaDidDoc = org.didcommx.didcomm.diddoc.DIDDoc
 typealias WaltIdVerificationMethod = id.walt.model.VerificationMethod
@@ -34,7 +34,7 @@ data class DidDocV2(
             authentications = doc.authentications,
             verificationMethods = doc.verificationMethods,
             didCommServices = doc.didCommServices)
-        fun fromWaltIdDidDoc(doc: WaltIdDidDoc) = DidDocV2(doc.id,
+        fun fromWaltIdDid(doc: WaltIdDid) = DidDocV2(doc.id,
             keyAgreements = doc.keyAgreement?.map { it.id } ?: listOf(),
             authentications = doc.authentication?.map { it.id } ?: listOf(),
             verificationMethods = doc.verificationMethod?.map { it.toVerificationMethod() } ?: listOf(),

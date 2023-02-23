@@ -22,6 +22,7 @@ package org.nessus.didcomm.service
 import id.walt.common.prettyPrint
 import id.walt.crypto.Key
 import id.walt.crypto.convertRawKeyToMultiBase58Btc
+import id.walt.crypto.encodeBase58
 import id.walt.crypto.getMulticodecKeyCode
 import id.walt.services.crypto.CryptoService
 import id.walt.services.keystore.KeyStoreService
@@ -37,7 +38,6 @@ import org.nessus.didcomm.did.WaltIdKeyAlgorithm
 import org.nessus.didcomm.util.decodeBase64Url
 import org.nessus.didcomm.util.decodeBase64UrlStr
 import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.util.encodeBase58
 import org.nessus.didcomm.util.encodeBase64Url
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.selectJson

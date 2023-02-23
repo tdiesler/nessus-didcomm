@@ -22,6 +22,7 @@ package org.nessus.didcomm.test.protocol
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.didcommx.didcomm.message.Message
+import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.InvitationV2
@@ -30,8 +31,8 @@ import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocolV2.Companion.RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
 import org.nessus.didcomm.test.AbstractAgentTest
-import org.nessus.didcomm.test.Acme
 import org.nessus.didcomm.test.Alice
+import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.util.decodeMessage
 import org.nessus.didcomm.util.trimJson
 
@@ -42,21 +43,24 @@ import org.nessus.didcomm.util.trimJson
 class RFC0434OutOfBandV2Test: AbstractAgentTest() {
 
     @Test
-    fun testRFC0434OutOfBandV2() {
+    fun testRFC0434_DidKey() {
 
-        val acme = Wallet.Builder(Acme.name)
+        val faber = Wallet.Builder(Faber.name)
             .build()
 
         val alice = Wallet.Builder(Alice.name)
             .build()
 
         try {
+            val inviterDid = faber.createDid(DidMethod.KEY)
+            val inviteeDid = alice.createDid(DidMethod.KEY)
+
             val mex = MessageExchange()
                 .withProtocol(RFC0434_OUT_OF_BAND_V2)
-                .createOutOfBandInvitation(acme, mapOf(
+                .createOutOfBandInvitation(faber, inviterDid, mapOf(
                     "goal_code" to "issue-vc",
                     "goal" to "Employment credential with Acme"))
-                .receiveOutOfBandInvitation(alice)
+                .receiveOutOfBandInvitation(alice, inviteeDid)
                 .getMessageExchange()
 
             val invitation = mex.getInvitation() as Invitation
@@ -64,19 +68,61 @@ class RFC0434OutOfBandV2Test: AbstractAgentTest() {
             invitation.actV2.goalCode shouldBe "issue-vc"
             invitation.actV2.goal shouldBe "Employment credential with Acme"
 
-            acme.findInvitation { it.id == invitation.id } shouldNotBe null
+            faber.findInvitation { it.id == invitation.id } shouldNotBe null
             alice.findInvitation { it.id == invitation.id } shouldNotBe null
 
-            val aliceAcme = mex.getConnection()
-            aliceAcme.state shouldBe ConnectionState.INVITATION
-            aliceAcme.myLabel shouldBe "Invitee Alice on NESSUS"
+            val aliceFaber = mex.getConnection()
+            aliceFaber.state shouldBe ConnectionState.INVITATION
+            aliceFaber.myLabel shouldBe "Invitee Alice on NESSUS"
 
-            acme.findConnection { it.invitationKey == invitation.invitationKey() } shouldNotBe null
+            faber.findConnection { it.invitationKey == invitation.invitationKey() } shouldNotBe null
             alice.findConnection { it.invitationKey == invitation.invitationKey() } shouldNotBe null
 
         } finally {
-            removeWallet(Alice.name)
-            removeWallet(Acme.name)
+            removeWallet(alice)
+            removeWallet(faber)
+        }
+    }
+
+    @Test
+    fun testRFC0434_DidPeer() {
+
+        val faber = Wallet.Builder(Faber.name)
+            .build()
+
+        val alice = Wallet.Builder(Alice.name)
+            .build()
+
+        try {
+            val inviterDid = faber.createDid(DidMethod.PEER)
+            val inviteeDid = alice.createDid(DidMethod.PEER)
+
+            val mex = MessageExchange()
+                .withProtocol(RFC0434_OUT_OF_BAND_V2)
+                .createOutOfBandInvitation(faber, inviterDid, mapOf(
+                    "goal_code" to "issue-vc",
+                    "goal" to "Employment credential with Acme"))
+                .receiveOutOfBandInvitation(alice, inviteeDid)
+                .getMessageExchange()
+
+            val invitation = mex.getInvitation() as Invitation
+            invitation.type shouldBe RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
+            invitation.actV2.goalCode shouldBe "issue-vc"
+            invitation.actV2.goal shouldBe "Employment credential with Acme"
+
+            faber.findInvitation { it.id == invitation.id } shouldNotBe null
+            alice.findInvitation { it.id == invitation.id } shouldNotBe null
+
+            val aliceFaber = mex.getConnection()
+            aliceFaber.state shouldBe ConnectionState.INVITATION
+            aliceFaber.myLabel shouldBe "Invitee Alice on NESSUS"
+
+            faber.findConnection { it.invitationKey == invitation.invitationKey() } shouldNotBe null
+            alice.findConnection { it.invitationKey == invitation.invitationKey() } shouldNotBe null
+
+        } finally {
+            removeWallet(alice)
+            removeWallet(faber)
         }
     }
 

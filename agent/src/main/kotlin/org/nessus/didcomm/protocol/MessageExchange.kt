@@ -21,6 +21,7 @@ package org.nessus.didcomm.protocol
 
 import mu.KotlinLogging
 import org.didcommx.didcomm.message.Message
+import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidDoc
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation
@@ -58,8 +59,9 @@ class MessageExchange(): AttachmentSupport() {
     companion object {
         val log = KotlinLogging.logger {}
 
-        val INVITATION_ATTACHMENT_KEY = AttachmentKey(Invitation::class)
         val CONNECTION_ATTACHMENT_KEY = AttachmentKey(Connection::class)
+        val DID_ATTACHMENT_KEY = AttachmentKey(Did::class)
+        val INVITATION_ATTACHMENT_KEY = AttachmentKey(Invitation::class)
         val INVITEE_DID_DOCUMENT_ATTACHMENT_KEY = AttachmentKey("InviteeDidDoc", DidDoc::class)
         val INVITER_DID_DOCUMENT_ATTACHMENT_KEY = AttachmentKey("InviterDidDoc", DidDoc::class)
         val WALLET_ATTACHMENT_KEY = AttachmentKey(Wallet::class)

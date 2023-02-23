@@ -20,6 +20,7 @@
 package org.nessus.didcomm.cli
 
 import mu.KotlinLogging
+import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation
@@ -96,6 +97,12 @@ abstract class AbstractBaseCommand: Callable<Int> {
         return pcon
     }
 
+    fun getContextDid(walletAlias: String? = null, didAlias: String? = null): Did {
+        val did = cliService.findContextDid(walletAlias, didAlias)
+        checkNotNull(did) { "No did" }
+        return did
+    }
+
     fun getContextInvitation(walletAlias: String? = null, invAlias: String? = null): Invitation {
         val invitation = cliService.findContextInvitation(walletAlias, invAlias)
         checkNotNull(invitation) { "No invitation" }
@@ -104,7 +111,10 @@ abstract class AbstractBaseCommand: Callable<Int> {
 
     fun getContextWallet(alias: String? = null): Wallet {
         val wallet = cliService.findContextWallet(alias)
-        checkNotNull(wallet) { "Cannot find wallet: $alias" }
+        checkNotNull(wallet) { when (alias) {
+            null -> "No context wallet"
+            else -> "Cannot find wallet for: $alias"
+        }}
         return wallet
     }
 }

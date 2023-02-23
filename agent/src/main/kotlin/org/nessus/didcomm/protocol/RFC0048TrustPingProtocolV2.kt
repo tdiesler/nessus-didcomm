@@ -27,7 +27,6 @@ import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.message.MessageBuilder
 import org.didcommx.didcomm.model.PackEncryptedParams
 import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
@@ -160,7 +159,7 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
             val senderEndpointUrl = senderDidDoc.serviceEndpoint() as String
 
             // Create and register the Did Document for this Invitation
-            val inviterDid = receiver.createDid(DidMethod.KEY)
+            val inviterDid = receiver.createDid(invitationDid.method)
             val inviterEndpointUrl = receiver.endpointUrl
 
             pcon.myDid = inviterDid

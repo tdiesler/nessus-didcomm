@@ -110,10 +110,8 @@ abstract class AbstractIntegrationTest: AnnotationSpec() {
         return endpointService.startEndpoint(endpointUrl, listener)
     }
 
-    fun removeWallet(name: String) {
-        walletService.findWallet(name)?.run {
-            walletService.removeWallet(this.id)
-        }
+    fun removeWallet(wallet: Wallet) {
+        walletService.removeWallet(wallet.id)
     }
 }
 

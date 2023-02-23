@@ -36,6 +36,7 @@ import org.jline.terminal.Terminal
 import org.jline.terminal.TerminalBuilder
 import org.jline.widget.TailTipWidgets
 import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.protocol.MessageExchange.Companion.DID_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import picocli.CommandLine
@@ -160,9 +161,11 @@ class NessusCli {
                     if (ctxConn?.state == ConnectionState.ACTIVE) {
                         return "\n[Conn:${ctxConn.id.substring(0..6)}]"
                     }
-                    val ctxInvi = cliService.getAttachment(INVITATION_ATTACHMENT_KEY)
-                    if (ctxInvi != null) {
-                        return "\n[Invi:${ctxInvi.invitationKey().substring(0..6)}]"
+                    cliService.getAttachment(DID_ATTACHMENT_KEY)?.run {
+                        return "\n[${uri.substring(0.."did:$method:".length + 6)}]"
+                    }
+                    cliService.getAttachment(INVITATION_ATTACHMENT_KEY)?.run {
+                        return "\n[Invi:${invitationKey().substring(0..6)}]"
                     }
                     return null
                 }
