@@ -26,6 +26,7 @@
         <version.acapy.client>0.7.33</version.acapy.client>
         <version.apache.camel>3.20.0</version.apache.camel>
         <version.beust.klaxon>5.6</version.beust.klaxon>
+        <version.didcommx.didcomm>0.3.3-SNAPSHOT</version.didcommx.didcomm>
         <version.fasterxml.jackson>2.14.1</version.fasterxml.jackson>
         <version.fusesource.jansi>2.4.0</version.fusesource.jansi>
         <version.google.crypto.tink>1.7.0</version.google.crypto.tink>
@@ -65,7 +66,6 @@
 
     <modules>
         <module>agent</module>
-        <module>didcomm</module>
         <module>cli</module>
         <module>itests</module>
     </modules>
@@ -175,13 +175,11 @@
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
-            <!--
             <dependency>
                 <groupId>org.didcommx</groupId>
                 <artifactId>didcomm</artifactId>
                 <version>${version.didcommx.didcomm}</version>
             </dependency>
-            -->
             <dependency>
                 <groupId>org.fusesource.jansi</groupId>
                 <artifactId>jansi</artifactId>

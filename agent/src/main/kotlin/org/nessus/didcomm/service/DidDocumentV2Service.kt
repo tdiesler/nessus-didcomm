@@ -19,9 +19,9 @@
  */
 package org.nessus.didcomm.service
 
+import org.didcommx.didcomm.diddoc.DIDDocDecoder
 import org.didcommx.didcomm.diddoc.DIDDocResolver
 import org.didcommx.didcomm.message.Attachment
-import org.nessus.didcomm.did.DIDDocDecoder
 import org.nessus.didcomm.did.DidDocV2
 import org.nessus.didcomm.did.SicpaDidDoc
 import org.nessus.didcomm.did.toSicpaDidDoc

@@ -1,129 +1,129 @@
 package org.nessus.didcomm.test.vc
 
 import id.walt.auditor.Auditor
-import id.walt.auditor.VerificationPolicy
-import id.walt.auditor.VerificationResult
-import id.walt.credentials.w3c.VerifiableCredential
-import id.walt.credentials.w3c.VerifiablePresentation
-import id.walt.credentials.w3c.W3CIssuer
-import id.walt.credentials.w3c.toVerifiableCredential
-import id.walt.credentials.w3c.toVerifiablePresentation
+import id.walt.auditor.PolicyRegistry
 import id.walt.custodian.Custodian
-import id.walt.signatory.Ecosystem
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
-import id.walt.signatory.SignatoryDataProvider
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.test.AbstractAgentTest
-import org.nessus.didcomm.util.dateTimeNow
-import java.time.Instant
-import java.util.Collections.max
+import org.nessus.didcomm.util.trimJson
 
 class VerifiableCredentialTest: AbstractAgentTest() {
     private val log = KotlinLogging.logger {}
 
     @Test
-    fun issuePresentVerify_VerifiableId() {
+    fun issueVerifiableId_SignaturePolicy() {
 
         val issuerDid = didService.createDid(DidMethod.KEY)
         val holderDid = didService.createDid(DidMethod.KEY)
         val verifierDid = didService.createDid(DidMethod.KEY)
 
-        val vc = issueCredential("VerifiableId", issuerDid, holderDid)
-        val vp = createPresentation(holderDid, verifierDid, "proofDomain", "1234", vc)
-
-        val policies = listOf(
-            policyService.getPolicy("SignaturePolicy"),
-            policyService.getPolicyWithJsonArg("ChallengePolicy", """{"challenges": ["1234"], "applyToVC": false}"""))
-
-        val verificationResult = verifyPresentation(vp, policies)
-        verificationResult.valid shouldBe true
-    }
-
-    private fun issueCredential(
-        template: String,
-        issuerDid: Did,
-        subjectDid: Did
-    ): VerifiableCredential {
-
         val issuerDidDoc = didService.loadDidDocument(issuerDid.uri)
-        log.debug { "Issuer DidDoc:\n${issuerDidDoc.encodeJson(true)}" }
+        val issuerAssertionMethod = issuerDidDoc.assertionMethods.first()
 
-        val subjectDidDoc = didService.loadDidDocument(subjectDid.uri)
-        log.debug { "Subject DidDoc:\n${subjectDidDoc.encodeJson(true)}" }
-
-        log.info { "Issuing a verifiable credential (using template $template)..." }
-        val vcStr: String = signatory.issue(
-            templateIdOrFilename = template,
+        // issue VC
+        val vc = signatory.issue(
+            templateIdOrFilename = "VerifiableId",
             config = ProofConfig(
                 issuerDid = issuerDid.uri,
-                subjectDid = subjectDid.uri,
-                verifierDid = null,
-                proofType = ProofType.LD_PROOF,
-
-                // [TODO] what are these
-                // https://github.com/tdiesler/nessus-didcomm/issues/89
-                domain = null,
-                nonce = null,
-                proofPurpose = null,
-                credentialId = null,
-
-                issueDate = dateTimeNow().toInstant(),
-                validDate = null,
-                expirationDate = null,
-                dataProviderIdentifier = null, // may be used for mapping data-sets from a custom data-provider
-                ldSignatureType = null,
-                creator = issuerDid.uri,
-                ecosystem = Ecosystem.DEFAULT
-            ),
-            dataProvider = null as SignatoryDataProvider?,
-            issuer = null as W3CIssuer?,
-            storeCredential = false
+                subjectDid = holderDid.uri,
+                proofPurpose = "assertionMethod",
+                issuerVerificationMethod = issuerAssertionMethod,
+                proofType = ProofType.LD_PROOF)
         )
 
-        log.info("Results: ...")
-        log.info("Issuer $issuerDid.uri issued a $template to Holder ${subjectDid.uri}")
-        log.info("Credential document (below, JSON):\n\n$vcStr")
+        // create VP
+        val vp = Custodian.getService().createPresentation(
+            vcs = listOf(vc),
+            holderDid = holderDid.uri,
+            verifierDid = verifierDid.uri)
 
-        return vcStr.toVerifiableCredential()
+        // verification policies
+        val policy = PolicyRegistry.getPolicy("SignaturePolicy")
+
+        // verify VP
+        val vr = Auditor.getService().verify(vp, listOf(policy))
+        vr.valid shouldBe true
     }
 
-    private fun createPresentation(
-        holderDid: Did,
-        verifierDid: Did,
-        domain: String?,
-        challenge: String,
-        vc: VerifiableCredential
-    ): VerifiablePresentation {
-        log.info("Creating a verifiable presentation for DID $holderDid ...")
+    @Test
+    fun issueVerifiableId_ChallengePolicy() {
 
-        val custodian = Custodian.getService()
-        val vpStr = custodian.createPresentation(
-            vcs = listOf(vc.toJson()),
+        val issuerDid = didService.createDid(DidMethod.KEY)
+        val holderDid = didService.createDid(DidMethod.KEY)
+        val verifierDid = didService.createDid(DidMethod.KEY)
+
+        val issuerDidDoc = didService.loadDidDocument(issuerDid.uri)
+        val issuerAssertionMethod = issuerDidDoc.assertionMethods.first()
+
+        // issue VC
+        val vc = signatory.issue(
+            templateIdOrFilename = "VerifiableId",
+            config = ProofConfig(
+                issuerDid = issuerDid.uri,
+                subjectDid = holderDid.uri,
+                proofPurpose = "assertionMethod",
+                issuerVerificationMethod = issuerAssertionMethod,
+                proofType = ProofType.LD_PROOF)
+        )
+
+        // create VP
+        val vp = Custodian.getService().createPresentation(
+            vcs = listOf(vc),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri,
-            domain = domain,
-            challenge = challenge,
-            expirationDate = null as Instant?)
+            challenge = "1234",
+        )
 
-        log.info("Results: ...")
-        log.info("Verifiable presentation generated for holder DID: $holderDid")
-        log.info("Verifiable presentation document (below, JSON):\n\n$vpStr")
-        return vpStr.toVerifiablePresentation()
+        // verification policies
+        val policy = policyService.getPolicyWithJsonArg("ChallengePolicy",
+            """{ "challenges": ["1234"], "applyToVC": false }""".trimJson())
+
+        // verify VP
+        val vr = Auditor.getService().verify(vp, listOf(policy))
+        vr.valid shouldBe true
     }
 
-    private fun verifyPresentation(vp: VerifiablePresentation, policies: List<VerificationPolicy>): VerificationResult {
-        val verificationResult = Auditor.getService().verify(vp.toJson(), policies)
+    @Test
+    fun issueVerifiableId_DynamicPolicy() {
 
-        log.info("Results ...")
-        val maxIdLength = max(policies.map { it.id.length })
-        verificationResult.policyResults.forEach { (policy, result) ->
-            log.info("${policy.padEnd(maxIdLength)} - $result")
-        }
-        log.info("${"Verified".padEnd(maxIdLength)} - ${verificationResult.valid}")
-        return verificationResult
+        val issuerDid = didService.createDid(DidMethod.KEY)
+        val holderDid = didService.createDid(DidMethod.KEY)
+        val verifierDid = didService.createDid(DidMethod.KEY)
+
+        val issuerDidDoc = didService.loadDidDocument(issuerDid.uri)
+        val issuerAssertionMethod = issuerDidDoc.assertionMethods.first()
+
+        // issue VC
+        val vc = signatory.issue(
+            templateIdOrFilename = "VerifiableId",
+            config = ProofConfig(
+                issuerDid = issuerDid.uri,
+                subjectDid = holderDid.uri,
+                proofPurpose = "assertionMethod",
+                issuerVerificationMethod = issuerAssertionMethod,
+                proofType = ProofType.LD_PROOF)
+        )
+
+        // create VP
+        val vp = Custodian.getService().createPresentation(
+            vcs = listOf(vc),
+            holderDid = holderDid.uri,
+            verifierDid = verifierDid.uri,
+        )
+
+        // verification policies
+        val policy = policyService.getPolicyWithJsonArg("DynamicPolicy",
+            """{
+                "input": { "user": "${holderDid.uri}" },
+                "policy": "src/test/resources/rego/subject-policy.rego"
+            }""".trimJson())
+
+        // verify VP
+        val vr = Auditor.getService().verify(vp, listOf(policy))
+        vr.valid shouldBe true
     }
 }

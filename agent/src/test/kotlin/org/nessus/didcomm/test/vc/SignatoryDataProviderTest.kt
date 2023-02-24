@@ -14,7 +14,7 @@ import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.encodeJson
 
-class DataProviderTest: AbstractAgentTest() {
+class SignatoryDataProviderTest: AbstractAgentTest() {
     private val log = KotlinLogging.logger {}
 
     @Test

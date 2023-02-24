@@ -17,6 +17,8 @@
  * limitations under the License.
  * #L%
  */
+@file:Suppress("unused")
+
 package org.nessus.didcomm.service
 
 import id.walt.crypto.Key
@@ -196,7 +198,7 @@ object NessusDidService: ObjectService<NessusDidService>() {
             return WaltIdDidService.load(uri)
         }
 
-        override fun resolveDid(uri: String): Did? {
+        override fun resolveDid(uri: String): Did {
             return fromWaltIdDid(resolveDidDoc(uri))
         }
 
@@ -247,8 +249,8 @@ object NessusDidService: ObjectService<NessusDidService>() {
             return WaltIdDidService.load(uri)
         }
 
-        override fun resolveDid(uri: String): Did? {
-            return resolveDidDoc(uri)?.let { fromWaltIdDid(it) }
+        override fun resolveDid(uri: String): Did {
+            return fromWaltIdDid(resolveDidDoc(uri))
         }
 
         override fun resolveDidDoc(uri: String): WaltIdDid {

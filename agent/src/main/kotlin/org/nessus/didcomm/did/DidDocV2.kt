@@ -9,6 +9,7 @@ import org.didcommx.didcomm.common.VerificationMaterial
 import org.didcommx.didcomm.common.VerificationMaterialFormat
 import org.didcommx.didcomm.common.VerificationMethodType
 import org.didcommx.didcomm.diddoc.DIDCommService
+import org.didcommx.didcomm.diddoc.DIDDocEncoder
 import org.didcommx.didcomm.diddoc.VerificationMethod
 import org.nessus.didcomm.did.DidDocV2.Companion.DEFAULT_ACCEPT
 import org.nessus.didcomm.service.WaltIdDid
@@ -18,25 +19,36 @@ typealias WaltIdVerificationMethod = id.walt.model.VerificationMethod
 typealias WaltIdServiceEndpoint = id.walt.model.ServiceEndpoint
 
 fun DidDocV2.toSicpaDidDoc() =
-    SicpaDidDoc(id, keyAgreements, authentications, verificationMethods, didCommServices)
+    SicpaDidDoc(id, authentications, assertionMethods, keyAgreements, capabilityInvocations, capabilityDelegations, verificationMethods, didCommServices)
 
 data class DidDocV2(
     val id: String,
-    val keyAgreements: List<String>,
     val authentications: List<String>,
+    val assertionMethods: List<String>,
+    val keyAgreements: List<String>,
+    val capabilityInvocations: List<String>,
+    val capabilityDelegations: List<String>,
     val verificationMethods: List<VerificationMethod>,
     val didCommServices: List<DIDCommService>
 ) {
     companion object {
         val DEFAULT_ACCEPT = listOf("didcomm/v2") //, "didcomm/aip2;env=rfc587")
-        fun fromSicpaDidDoc(doc: SicpaDidDoc) = DidDocV2(doc.did,
-            keyAgreements = doc.keyAgreements,
+        fun fromSicpaDidDoc(doc: SicpaDidDoc) = DidDocV2(
+            doc.did,
             authentications = doc.authentications,
+            assertionMethods = doc.assertionMethods,
+            keyAgreements = doc.keyAgreements,
+            capabilityInvocations = doc.capabilityInvocations,
+            capabilityDelegations = doc.capabilityDelegations,
             verificationMethods = doc.verificationMethods,
-            didCommServices = doc.didCommServices)
+            didCommServices = doc.didCommServices
+        )
         fun fromWaltIdDid(doc: WaltIdDid) = DidDocV2(doc.id,
-            keyAgreements = doc.keyAgreement?.map { it.id } ?: listOf(),
             authentications = doc.authentication?.map { it.id } ?: listOf(),
+            assertionMethods = doc.assertionMethod?.map { it.id } ?: listOf(),
+            keyAgreements = doc.keyAgreement?.map { it.id } ?: listOf(),
+            capabilityInvocations = doc.capabilityInvocation?.map { it.id } ?: listOf(),
+            capabilityDelegations = doc.capabilityDelegation?.map { it.id } ?: listOf(),
             verificationMethods = doc.verificationMethod?.map { it.toVerificationMethod() } ?: listOf(),
             didCommServices = doc.serviceEndpoint?.map { it.toDIDCommService() } ?: listOf())
     }

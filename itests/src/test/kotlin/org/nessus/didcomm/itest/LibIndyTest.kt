@@ -17,9 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.test.crypto
+package org.nessus.didcomm.itest
 
 import id.walt.common.prettyPrint
+import io.kotest.core.annotation.EnabledIf
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
 import org.hyperledger.indy.sdk.crypto.Crypto
@@ -29,9 +30,6 @@ import org.nessus.didcomm.crypto.LibIndyService.createAndStoreDid
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
-import org.nessus.didcomm.test.AbstractAgentTest
-import org.nessus.didcomm.test.Alice
-import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.gson
 
@@ -45,8 +43,9 @@ import org.nessus.didcomm.util.gson
  *
  * rm -rf ~/.indy_client
  */
-class LibIndyTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
+@EnabledIf(AcaPyOnlyCondition::class)
+class LibIndyTest: AbstractIntegrationTest() {
+    private val log = KotlinLogging.logger {}
 
     @Test
     fun auth_crypt() {

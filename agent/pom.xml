@@ -37,11 +37,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.nessus.didcomm</groupId>
-            <artifactId>nessus-didcomm-jvm</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>com.beust</groupId>
             <artifactId>klaxon</artifactId>
         </dependency>
@@ -80,6 +75,10 @@
         <dependency>
             <groupId>network.idu.acapy</groupId>
             <artifactId>aries-client-python</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.didcommx</groupId>
+            <artifactId>didcomm</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.camel</groupId>

@@ -1,9 +1,5 @@
 {
   "@context": ["https://www.w3.org/2018/credentials/v1"],
-  "credentialSchema": {
-    "id": "https://raw.githubusercontent.com/tdiesler/nessus-didcomm/main/agent/src/main/resources/nessus/vc-templates/VerifiableId.json",
-    "type": "FullJsonSchemaValidator2021"
-  },
   "credentialSubject": {
     "currentAddress": ["Sesame Street 123"],
     "dateOfBirth": "1969-11-10",
