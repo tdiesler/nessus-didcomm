@@ -1,0 +1,30 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$ref": "#/definitions/Passport",
+    "definitions": {
+        "Passport": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "givenName": {
+                    "type": "string"
+                },
+                "familyName": {
+                    "type": "string"
+                },
+                "citizenship": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "givenName",
+                "familyName",
+                "citizenship"
+            ],
+            "additionalProperties": false
+        }
+    }
+}

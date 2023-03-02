@@ -22,13 +22,11 @@ package org.nessus.didcomm.test
 import id.walt.auditor.PolicyRegistryService
 import id.walt.credentials.w3c.templates.VcTemplateService
 import id.walt.services.keystore.KeyStoreService
-import id.walt.signatory.Signatory
 import io.kotest.core.spec.style.AnnotationSpec
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.service.DidCommService
 import org.nessus.didcomm.service.DidDocumentV1Service
-import org.nessus.didcomm.service.DidDocumentV2Service
 import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.MessageDispatchService
 import org.nessus.didcomm.service.ModelService
@@ -38,6 +36,9 @@ import org.nessus.didcomm.service.SecretResolverService
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
+import org.nessus.didcomm.w3c.NessusAuditorService
+import org.nessus.didcomm.w3c.NessusCustodianService
+import org.nessus.didcomm.w3c.NessusSignatoryService
 import org.nessus.didcomm.wallet.NessusWalletPlugin.Companion.getNessusEndpointUrl
 
 val ACAPY_OPTIONS_01 = mapOf(
@@ -108,10 +109,11 @@ abstract class AbstractAgentTest: AnnotationSpec() {
         ServiceMatrixLoader.loadServiceDefinitions(matrixProperties)
     }
 
+    val auditor = NessusAuditorService.getService()
     val cryptoService get() = NessusCryptoService.getService()
+    val custodian = NessusCustodianService.getService()
     val didComm get() = DidCommService.getService()
     val diddocV1Service get() = DidDocumentV1Service.getService()
-    val diddocV2Service get() = DidDocumentV2Service.getService()
     val didService get() = NessusDidService.getService()
     val dispatchService = MessageDispatchService.getService()
     val endpointService get() = EndpointService.getService()
@@ -119,7 +121,7 @@ abstract class AbstractAgentTest: AnnotationSpec() {
     val modelService get() = ModelService.getService()
     val policyService get() = PolicyRegistryService.getService()
     val secretResolver get() = SecretResolverService.getService()
-    val signatory get() = Signatory.getService()
+    val signatory = NessusSignatoryService.getService()
     val templateService get() = VcTemplateService.getService()
     val walletService get() = WalletService.getService()
 

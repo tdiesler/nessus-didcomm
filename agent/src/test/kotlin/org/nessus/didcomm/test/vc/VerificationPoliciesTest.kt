@@ -1,7 +1,6 @@
 package org.nessus.didcomm.test.vc
 
 import id.walt.auditor.Auditor
-import id.walt.auditor.PolicyRegistry
 import id.walt.custodian.Custodian
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
@@ -9,9 +8,12 @@ import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.test.AbstractAgentTest
+import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.trimJson
+import org.nessus.didcomm.w3c.W3CVerifiableCredential
+import org.nessus.didcomm.w3c.W3CVerifiableValidator
 
-class VerifiableCredentialTest: AbstractAgentTest() {
+class VerificationPoliciesTest: AbstractAgentTest() {
     private val log = KotlinLogging.logger {}
 
     @Test
@@ -21,31 +23,38 @@ class VerifiableCredentialTest: AbstractAgentTest() {
         val holderDid = didService.createDid(DidMethod.KEY)
         val verifierDid = didService.createDid(DidMethod.KEY)
 
-        val issuerDidDoc = didService.loadDidDocument(issuerDid.uri)
-        val issuerAssertionMethod = issuerDidDoc.assertionMethods.first()
-
         // issue VC
-        val vc = signatory.issue(
-            templateIdOrFilename = "VerifiableId",
-            config = ProofConfig(
-                issuerDid = issuerDid.uri,
-                subjectDid = holderDid.uri,
-                proofPurpose = "assertionMethod",
-                issuerVerificationMethod = issuerAssertionMethod,
-                proofType = ProofType.LD_PROOF)
-        )
+        val mergeData = """{
+          "issuer": "${issuerDid.uri}",
+          "credentialSubject": {
+            "id": "${holderDid.uri}"
+          }
+        }""".decodeJson()
+
+        val vc = W3CVerifiableCredential
+            .fromPath("/nessus/vc-templates/VerifiableId.json")
+            .merge(mergeData)
+
+        W3CVerifiableValidator.validateSubject(vc)
+
+        val config = ProofConfig(
+            issuerDid = issuerDid.uri,
+            subjectDid = holderDid.uri,
+            proofPurpose = "assertionMethod",
+            proofType = ProofType.LD_PROOF)
+
+        val signedVc = signatory.issue(vc, config, false)
 
         // create VP
-        val vp = Custodian.getService().createPresentation(
-            vcs = listOf(vc),
+        val vp = custodian.createPresentation(
+            vcs = listOf(signedVc),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri)
 
-        // verification policies
-        val policy = PolicyRegistry.getPolicy("SignaturePolicy")
-
         // verify VP
-        val vr = Auditor.getService().verify(vp, listOf(policy))
+        val vr = auditor.verify(vp, listOf(
+            policyService.getPolicy("SignaturePolicy")))
+
         vr.valid shouldBe true
     }
 
@@ -56,23 +65,23 @@ class VerifiableCredentialTest: AbstractAgentTest() {
         val holderDid = didService.createDid(DidMethod.KEY)
         val verifierDid = didService.createDid(DidMethod.KEY)
 
-        val issuerDidDoc = didService.loadDidDocument(issuerDid.uri)
-        val issuerAssertionMethod = issuerDidDoc.assertionMethods.first()
-
         // issue VC
-        val vc = signatory.issue(
-            templateIdOrFilename = "VerifiableId",
-            config = ProofConfig(
-                issuerDid = issuerDid.uri,
-                subjectDid = holderDid.uri,
-                proofPurpose = "assertionMethod",
-                issuerVerificationMethod = issuerAssertionMethod,
-                proofType = ProofType.LD_PROOF)
-        )
+        val vc = W3CVerifiableCredential
+            .fromPath("/nessus/vc-templates/VerifiableId.json")
+
+        W3CVerifiableValidator.validateSubject(vc)
+
+        val config = ProofConfig(
+            issuerDid = issuerDid.uri,
+            subjectDid = holderDid.uri,
+            proofPurpose = "assertionMethod",
+            proofType = ProofType.LD_PROOF)
+
+        val signedVc = signatory.issue(vc, config, false)
 
         // create VP
-        val vp = Custodian.getService().createPresentation(
-            vcs = listOf(vc),
+        val vp = custodian.createPresentation(
+            vcs = listOf(signedVc),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri,
             challenge = "1234",
@@ -94,23 +103,31 @@ class VerifiableCredentialTest: AbstractAgentTest() {
         val holderDid = didService.createDid(DidMethod.KEY)
         val verifierDid = didService.createDid(DidMethod.KEY)
 
-        val issuerDidDoc = didService.loadDidDocument(issuerDid.uri)
-        val issuerAssertionMethod = issuerDidDoc.assertionMethods.first()
-
         // issue VC
-        val vc = signatory.issue(
-            templateIdOrFilename = "VerifiableId",
-            config = ProofConfig(
-                issuerDid = issuerDid.uri,
-                subjectDid = holderDid.uri,
-                proofPurpose = "assertionMethod",
-                issuerVerificationMethod = issuerAssertionMethod,
-                proofType = ProofType.LD_PROOF)
-        )
+        val mergeData = """{
+          "issuer": "${issuerDid.uri}",
+          "credentialSubject": {
+            "id": "${holderDid.uri}"
+          }
+        }""".decodeJson()
+
+        val vc = W3CVerifiableCredential
+            .fromPath("/nessus/vc-templates/VerifiableId.json")
+            .merge(mergeData)
+
+        W3CVerifiableValidator.validateSubject(vc)
+
+        val config = ProofConfig(
+            issuerDid = issuerDid.uri,
+            subjectDid = holderDid.uri,
+            proofPurpose = "assertionMethod",
+            proofType = ProofType.LD_PROOF)
+
+        val signedVc = signatory.issue(vc, config, false)
 
         // create VP
         val vp = Custodian.getService().createPresentation(
-            vcs = listOf(vc),
+            vcs = listOf(signedVc),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri,
         )
