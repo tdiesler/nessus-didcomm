@@ -2,7 +2,6 @@ package org.nessus.didcomm.test.vc
 
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.junit.jupiter.api.Test
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.dateTimeNow

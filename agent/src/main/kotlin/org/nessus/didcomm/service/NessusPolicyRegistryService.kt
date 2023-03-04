@@ -3,6 +3,7 @@ package org.nessus.didcomm.service
 import id.walt.auditor.ChallengePolicy
 import id.walt.auditor.ChallengePolicyArg
 import id.walt.auditor.JsonSchemaPolicy
+import id.walt.auditor.JsonSchemaPolicyArg
 import id.walt.auditor.PolicyRegistryService
 import id.walt.auditor.SignaturePolicy
 import id.walt.auditor.dynamic.DynamicPolicy
@@ -21,7 +22,7 @@ class NessusPolicyRegistryService: PolicyRegistryService() {
 
     override fun initPolicies() {
         register(SignaturePolicy::class, "Verify by signature")
-        register(JsonSchemaPolicy::class, "Verify by JSON schema")
+        register(JsonSchemaPolicy::class, JsonSchemaPolicyArg::class, "Verify by JSON schema")
         register(ChallengePolicy::class, ChallengePolicyArg::class, "Verify challenge")
         register(DynamicPolicy::class, DynamicPolicyArg::class, "Verify credential by rego policy")
 

@@ -20,7 +20,7 @@ object SecretResolverService: ObjectService<SecretResolverService>(), SecretReso
 
     override fun getService() = apply { }
 
-    private val didService get() = NessusDidService.getService()
+    private val didService get() = DidService.getService()
     private val cryptoService get() = NessusCryptoService.getService()
     private val keyStore get() = KeyStoreService.getService()
 

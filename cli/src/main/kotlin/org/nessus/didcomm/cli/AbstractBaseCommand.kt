@@ -27,7 +27,7 @@ import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.ModelService
-import org.nessus.didcomm.service.NessusDidService
+import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.NessusPolicyRegistryService
 import org.nessus.didcomm.service.WalletService
 import picocli.CommandLine
@@ -44,7 +44,7 @@ abstract class AbstractBaseCommand: Callable<Int> {
     }
 
     val cliService get() = CLIService.getService()
-    val didService get() = NessusDidService.getService()
+    val didService get() = DidService.getService()
     val endpointService get() = EndpointService.getService()
     val modelService get() = ModelService.getService()
     val policyService get() = NessusPolicyRegistryService.getService()

@@ -22,6 +22,7 @@ package org.nessus.didcomm.crypto
 import org.hyperledger.indy.sdk.LibIndy
 import org.hyperledger.indy.sdk.wallet.Wallet
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.util.gson
 
 object LibIndyService {
@@ -45,7 +46,7 @@ object LibIndyService {
     fun createAndStoreDid(wallet: Wallet, seed: String): Did {
         val seedConfig = gson.toJson(mapOf("seed" to seed))
         val didResult = org.hyperledger.indy.sdk.did.Did.createAndStoreMyDid(wallet, seedConfig).get()
-        return Did.fromSpec("did:sov:${didResult.did}", didResult.verkey)
+        return Did(didResult.did, DidMethod.SOV, didResult.verkey)
     }
 
     fun closeAndDeleteWallet(alias: String) {

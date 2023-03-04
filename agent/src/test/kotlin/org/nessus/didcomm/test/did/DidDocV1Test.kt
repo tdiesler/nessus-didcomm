@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.test.diddoc
+package org.nessus.didcomm.test.did
 
 import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm

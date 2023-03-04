@@ -25,6 +25,7 @@ import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.ConnectionState.*
+import org.nessus.didcomm.service.DidCreateOptions
 import org.nessus.didcomm.service.WalletPlugin
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.gson
@@ -101,8 +102,8 @@ abstract class Wallet(
     }
 
     @Synchronized
-    fun createDid(method: DidMethod? = null, keyAlias: String? = null): Did {
-        return walletService.createDid(this, method, keyAlias)
+    fun createDid(method: DidMethod? = null, keyAlias: String? = null, options: DidCreateOptions? = null): Did {
+        return walletService.createDid(this, method, keyAlias, options)
     }
 
     @Synchronized

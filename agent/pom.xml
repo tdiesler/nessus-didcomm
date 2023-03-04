@@ -66,7 +66,7 @@
         </dependency>
         <dependency>
             <groupId>id.walt</groupId>
-            <artifactId>waltid-ssi-kit</artifactId>
+            <artifactId>waltid-ssikit</artifactId>
         </dependency>
         <dependency>
             <groupId>id.walt</groupId>
@@ -87,6 +87,10 @@
         <dependency>
             <groupId>org.didcommx</groupId>
             <artifactId>didcomm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.didcommx</groupId>
+            <artifactId>peerdid</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.camel</groupId>

@@ -49,8 +49,8 @@ object ModelService: ObjectService<ModelService>() {
         return findWallet { it.name.lowercase() == name.lowercase() }
     }
 
-    fun findWalletByDid(did: String): Wallet? {
-        return findWallet { it.findDid { d -> d.uri == did } != null }
+    fun findWalletByDid(uri: String): Wallet? {
+        return findWallet { it.findDid { d -> d.uri == uri } != null }
     }
 
     fun findWalletByVerkey(verkey: String): Wallet? {

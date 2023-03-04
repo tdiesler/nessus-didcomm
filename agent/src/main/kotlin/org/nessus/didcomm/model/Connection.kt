@@ -3,6 +3,7 @@ package org.nessus.didcomm.model
 import id.walt.crypto.encodeBase58
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.util.gson
 
@@ -22,7 +23,7 @@ enum class ConnectionState {
 }
 
 private val dummyBase58 = ByteArray(32).encodeBase58()
-private val dummyDid = Did.fromSpec("did:sov:${dummyBase58.drop(16)}", dummyBase58)
+private val dummyDid = Did(dummyBase58.drop(16), DidMethod.SOV, dummyBase58)
 
 class Connection(
     val id: String,

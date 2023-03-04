@@ -24,10 +24,15 @@ import id.walt.crypto.decodeBase58
 import id.walt.services.keystore.KeyType
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldStartWith
 import mu.KotlinLogging
 import org.nessus.didcomm.did.DidDocV2
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.service.DidCreateOptions
+import org.nessus.didcomm.service.DidPeerNumalgo.NUMALGO_0
+import org.nessus.didcomm.service.DidPeerNumalgo.NUMALGO_2
+import org.nessus.didcomm.service.DidPeerOptions
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
@@ -46,19 +51,33 @@ class DidServiceTest: AbstractAgentTest() {
 
     @Test
     fun testDidMethods() {
-        val alice = Wallet.Builder(Alice.name).build()
-        try {
 
-            listOf(DidMethod.KEY, DidMethod.PEER, DidMethod.SOV).forEach { method ->
+        val alice = Wallet.Builder(Alice.name).build()
+
+        val methodSpecs: List<Pair<DidMethod, DidCreateOptions?>> = listOf(
+            Pair(DidMethod.KEY, null),
+            Pair(DidMethod.PEER, DidPeerOptions(NUMALGO_0)),
+            Pair(DidMethod.PEER, DidPeerOptions(NUMALGO_2, alice.endpointUrl)),
+            Pair(DidMethod.SOV, null),
+        )
+
+        try {
+            methodSpecs.forEach { (method, options) ->
 
                 val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
 
-                val did = alice.createDid(method, keyId.id)
+                val did = alice.createDid(method, keyId.id, options)
                 did.verkey shouldBe Alice.verkey
+
+                val numalgo = (options as? DidPeerOptions)?.numalgo
 
                 when(method) {
                     DidMethod.KEY -> did.uri shouldBe Alice.didkey
-                    DidMethod.PEER -> did.uri shouldBe Alice.didpeer
+                    DidMethod.PEER -> when(numalgo) {
+                        NUMALGO_0 -> did.uri shouldBe Alice.didpeer0
+                        NUMALGO_2 -> did.uri shouldStartWith "did:peer:2"
+                        else -> throw IllegalStateException("Unknown numalgo: $numalgo")
+                    }
                     DidMethod.SOV -> did.uri shouldBe Alice.didsov
                 }
 
@@ -70,9 +89,8 @@ class DidServiceTest: AbstractAgentTest() {
 
                 var didDoc = didService.loadDidDocument(did.uri)
                 didDoc.serviceEndpoint() shouldNotBe null
-                log.info { "DidDocument: ${didDoc.encodeJson(true)}" }
 
-                didService.removeDid(did)
+                didService.deleteDid(did)
 
                 didService.hasDid(did.uri) shouldBe false
                 keyStore.getKeyId(did.uri) shouldBe null
@@ -111,15 +129,7 @@ class DidServiceTest: AbstractAgentTest() {
     }
 
     @Test
-    fun testDidKeySeed00() {
-        val seedBytes = ByteArray(32)
-        val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, seedBytes)
-        val did = didService.createDid(DidMethod.KEY, keyId.id)
-        did.uri shouldBe "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp"
-    }
-
-    @Test
-    fun test_Did_Fixture() {
+    fun testDidFixture() {
 
         val faberKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Faber.seed.toByteArray())
         val faberDid = didService.createDid(DidMethod.KEY, faberKeyId.id)
@@ -155,5 +165,13 @@ class DidServiceTest: AbstractAgentTest() {
         val aliceSov = didService.createDid(DidMethod.SOV, aliceKeyId.id)
         aliceSov.verkey shouldBe Alice.verkey
         aliceSov.uri shouldBe Alice.didsov
+    }
+
+    @Test
+    fun testDidKeySeed00() {
+        val seedBytes = ByteArray(32)
+        val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, seedBytes)
+        val did = didService.createDid(DidMethod.KEY, keyId.id)
+        did.uri shouldBe "did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp"
     }
 }

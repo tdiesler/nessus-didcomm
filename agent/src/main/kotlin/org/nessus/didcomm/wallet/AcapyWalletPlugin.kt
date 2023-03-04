@@ -45,8 +45,9 @@ import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.Wallet.WalletConfig
+import org.nessus.didcomm.service.DidCreateOptions
+import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.ModelService
-import org.nessus.didcomm.service.NessusDidService
 import org.nessus.didcomm.service.WalletPlugin
 
 fun ConnectionTheirRole.toConnectionRole(): ConnectionRole {
@@ -148,7 +149,7 @@ class AcapyWalletPlugin: WalletPlugin {
         )
     }
 
-    override fun createDid(wallet: Wallet, method: DidMethod?, keyAlias: String?): Did {
+    override fun createDid(wallet: Wallet, method: DidMethod?, keyAlias: String?, options: DidCreateOptions?): Did {
         require(keyAlias == null) { "keyAlias not supported" }
         return createDidInternal(walletClient(wallet), method)
     }
@@ -160,7 +161,7 @@ class AcapyWalletPlugin: WalletPlugin {
         val publicDid = ariesDid.toNessusDid()
         val keyStore = KeyStoreService.getService()
         keyStore.getKeyId(publicDid.uri) ?: run {
-            NessusDidService.getService().importDid(publicDid)
+            DidService.getService().importDid(publicDid)
         }
         return publicDid
     }
@@ -184,7 +185,7 @@ class AcapyWalletPlugin: WalletPlugin {
             .build()
         val ariesDid = walletClient.walletDidCreate(didCreate).get()
         val nessusDid = ariesDid.toNessusDid()
-        NessusDidService.getService().importDid(nessusDid)
+        DidService.getService().importDid(nessusDid)
         return nessusDid
     }
 
@@ -195,8 +196,7 @@ class AcapyWalletPlugin: WalletPlugin {
 
     private fun DID.toNessusDid(): Did = run {
         val method = DidMethod.valueOf(this.method.name)
-        val algorithm = this.keyType.toKeyAlgorithm()
-        Did(this.did, method, algorithm, this.verkey)
+        Did(this.did, method, this.verkey)
     }
 
     private fun KeyTypeEnum.toKeyAlgorithm() = when(this) {

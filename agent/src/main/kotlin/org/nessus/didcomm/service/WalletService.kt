@@ -52,7 +52,7 @@ object WalletService: ObjectService<WalletService>() {
     val wallets get() = modelService.wallets
 
     private val modelService get() = ModelService.getService()
-    private val didService get() = NessusDidService.getService()
+    private val didService get() = DidService.getService()
     private val keyStore get() = KeyStoreService.getService()
 
     fun createWallet(config: WalletConfig): Wallet {
@@ -81,7 +81,7 @@ object WalletService: ObjectService<WalletService>() {
     fun removeWallet(id: String): Wallet? {
         return modelService.getWallet(id)?.also { wallet ->
             wallet.dids.forEach { did ->
-                didService.removeDid(did)
+                didService.deleteDid(did)
                 keyStore.getKeyId(did.uri)?.let {
                     keyStore.delete(it)
                 }
@@ -102,8 +102,8 @@ object WalletService: ObjectService<WalletService>() {
      *
      * Nessus Dids are created locally and have their associated keys in the {@see KeyStoreService}
      */
-    fun createDid(wallet: Wallet, method: DidMethod? = null, keyAlias: String? = null): Did {
-        val did = wallet.walletPlugin.createDid(wallet, method, keyAlias)
+    fun createDid(wallet: Wallet, method: DidMethod? = null, keyAlias: String? = null, options: DidCreateOptions? = null): Did {
+        val did = wallet.walletPlugin.createDid(wallet, method, keyAlias, options)
         wallet.addDid(did)
         return did
     }
@@ -200,7 +200,7 @@ interface WalletPlugin {
 
     fun removeWallet(wallet: Wallet)
 
-    fun createDid(wallet: Wallet, method: DidMethod?, keyAlias: String? = null): Did
+    fun createDid(wallet: Wallet, method: DidMethod?, keyAlias: String? = null, options: DidCreateOptions? = null): Did
 
     fun publicDid(wallet: Wallet): Did?
 

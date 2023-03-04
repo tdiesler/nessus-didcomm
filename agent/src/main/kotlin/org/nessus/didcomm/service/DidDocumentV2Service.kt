@@ -39,7 +39,7 @@ object DidDocumentV2Service: ObjectService<DidDocumentV2Service>(), DIDDocResolv
 
     override fun getService() = apply { }
 
-    private val didService get() = NessusDidService.getService()
+    private val didService get() = DidService.getService()
 
     override fun resolve(did: String): Optional<SicpaDidDoc> {
         val didDoc = resolveDidDocument(did).toSicpaDidDoc()

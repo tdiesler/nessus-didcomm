@@ -12,17 +12,22 @@ import org.didcommx.didcomm.diddoc.DIDCommService
 import org.didcommx.didcomm.diddoc.DIDDocEncoder
 import org.didcommx.didcomm.diddoc.VerificationMethod
 import org.nessus.didcomm.did.DidDocV2.Companion.DEFAULT_ACCEPT
-import org.nessus.didcomm.service.WaltIdDid
+import org.nessus.didcomm.service.WaltIdDidDoc
 
 typealias SicpaDidDoc = org.didcommx.didcomm.diddoc.DIDDoc
 typealias WaltIdVerificationMethod = id.walt.model.VerificationMethod
 typealias WaltIdServiceEndpoint = id.walt.model.ServiceEndpoint
 
 fun DidDocV2.toSicpaDidDoc() =
-    SicpaDidDoc(id, authentications, assertionMethods, keyAgreements, capabilityInvocations, capabilityDelegations, verificationMethods, didCommServices)
+    SicpaDidDoc(id, context, alsoKnownAs, controller, authentications, assertionMethods, keyAgreements, capabilityInvocations, capabilityDelegations, verificationMethods, didCommServices)
+
+const val DID_CONTEXT_URL: String = "https://www.w3.org/ns/did/v1"
 
 data class DidDocV2(
     val id: String,
+    val context: List<String>,
+    val alsoKnownAs: List<String>,
+    val controller: List<String>,
     val authentications: List<String>,
     val assertionMethods: List<String>,
     val keyAgreements: List<String>,
@@ -33,8 +38,12 @@ data class DidDocV2(
 ) {
     companion object {
         val DEFAULT_ACCEPT = listOf("didcomm/v2") //, "didcomm/aip2;env=rfc587")
+
         fun fromSicpaDidDoc(doc: SicpaDidDoc) = DidDocV2(
             doc.did,
+            context = doc.context,
+            alsoKnownAs = doc.alsoKnownAs,
+            controller = doc.controller,
             authentications = doc.authentications,
             assertionMethods = doc.assertionMethods,
             keyAgreements = doc.keyAgreements,
@@ -43,14 +52,31 @@ data class DidDocV2(
             verificationMethods = doc.verificationMethods,
             didCommServices = doc.didCommServices
         )
-        fun fromWaltIdDid(doc: WaltIdDid) = DidDocV2(doc.id,
-            authentications = doc.authentication?.map { it.id } ?: listOf(),
-            assertionMethods = doc.assertionMethod?.map { it.id } ?: listOf(),
-            keyAgreements = doc.keyAgreement?.map { it.id } ?: listOf(),
-            capabilityInvocations = doc.capabilityInvocation?.map { it.id } ?: listOf(),
-            capabilityDelegations = doc.capabilityDelegation?.map { it.id } ?: listOf(),
-            verificationMethods = doc.verificationMethod?.map { it.toVerificationMethod() } ?: listOf(),
-            didCommServices = doc.serviceEndpoint?.map { it.toDIDCommService() } ?: listOf())
+
+        fun fromWaltIdDidDoc(doc: WaltIdDidDoc): DidDocV2 {
+
+            val verificationMethods = mutableListOf<WaltIdVerificationMethod>()
+            doc.verificationMethod?.also { verificationMethods.addAll(it) }
+
+            fun visitVerificationMethod(vm: WaltIdVerificationMethod): String {
+                if (!vm.isReference)
+                    verificationMethods.add(vm)
+                return vm.id
+            }
+
+            return DidDocV2(
+                doc.id,
+                context = doc.context?.let { doc.context } ?: listOf(),
+                alsoKnownAs = listOf(),
+                controller = listOf(),
+                authentications = doc.authentication?.map { visitVerificationMethod(it) } ?: listOf(),
+                assertionMethods = doc.assertionMethod?.map { visitVerificationMethod(it) } ?: listOf(),
+                keyAgreements = doc.keyAgreement?.map { visitVerificationMethod(it) } ?: listOf(),
+                capabilityInvocations = doc.capabilityInvocation?.map { visitVerificationMethod(it) } ?: listOf(),
+                capabilityDelegations = doc.capabilityDelegation?.map { visitVerificationMethod(it) } ?: listOf(),
+                verificationMethods = verificationMethods.map { it.toVerificationMethod() },
+                didCommServices = doc.service?.map { it.toDIDCommService() } ?: listOf())
+        }
     }
 
     fun serviceEndpoint(): String? {
@@ -79,6 +105,7 @@ fun WaltIdVerificationMethod.toVerificationMethod() = VerificationMethod(
         Ed25519VerificationKey2020.name -> VerificationMethodType.ED25519_VERIFICATION_KEY_2020
         // There is no constant in WaltId for this
         "X25519KeyAgreementKey2019" -> VerificationMethodType.X25519_KEY_AGREEMENT_KEY_2019
+        "X25519KeyAgreementKey2020" -> VerificationMethodType.X25519_KEY_AGREEMENT_KEY_2020
         JwsVerificationKey2020.name -> VerificationMethodType.JSON_WEB_KEY_2020
         else -> throw IllegalArgumentException("Unsupported type: $type")
     },

@@ -23,7 +23,6 @@ import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyType
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
 import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocolV1.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1
@@ -98,8 +97,7 @@ class RFC0019EnvelopeTest: AbstractAgentTest() {
         }
         """.trimJson()
 
-        val faberVerkey = didDocument.publicKey[0].publicKeyBase58
-        val faberDid = Did.fromSpec(didDocument.publicKey[0].controller, faberVerkey)
+        val faberDid = didDocument.publicKeyDid()
         log.info { "Faber Did: ${faberDid.uri}" }
 
         rfc0019.packEncryptedEnvelope(didRequest, aliceDidSov, faberDid)

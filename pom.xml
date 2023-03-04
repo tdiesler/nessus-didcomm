@@ -28,6 +28,7 @@
         <version.beust.klaxon>5.6</version.beust.klaxon>
         <version.danubtech.vcj>1.1-SNAPSHOT</version.danubtech.vcj>
         <version.didcommx.didcomm>0.3.3-SNAPSHOT</version.didcommx.didcomm>
+        <version.didcommx.peerdid>0.4.0-SNAPSHOT</version.didcommx.peerdid>
         <version.fasterxml.jackson>2.14.1</version.fasterxml.jackson>
         <version.fusesource.jansi>2.4.0</version.fusesource.jansi>
         <version.google.crypto.tink>1.7.0</version.google.crypto.tink>
@@ -40,7 +41,7 @@
         <version.nimbus.jose>9.28</version.nimbus.jose>
         <version.picocli>4.7.1</version.picocli>
         <version.waltid.servicematrix>1.1.3</version.waltid.servicematrix>
-        <version.waltid.ssikit>1.13.0-SNAPSHOT9</version.waltid.ssikit>
+        <version.waltid.ssikit>1.SNAPSHOT</version.waltid.ssikit>
         <version.waltid.vclib>1.24.3</version.waltid.vclib>
         <version.junit>5.9.1</version.junit>
         <version.logback>1.4.5</version.logback>
@@ -126,7 +127,7 @@
             </dependency>
             <dependency>
                 <groupId>id.walt</groupId>
-                <artifactId>waltid-ssi-kit</artifactId>
+                <artifactId>waltid-ssikit</artifactId>
                 <version>${version.waltid.ssikit}</version>
                 <exclusions>
                     <exclusion>
@@ -191,6 +192,11 @@
                 <groupId>org.didcommx</groupId>
                 <artifactId>didcomm</artifactId>
                 <version>${version.didcommx.didcomm}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.didcommx</groupId>
+                <artifactId>peerdid</artifactId>
+                <version>${version.didcommx.peerdid}</version>
             </dependency>
             <dependency>
                 <groupId>org.fusesource.jansi</groupId>

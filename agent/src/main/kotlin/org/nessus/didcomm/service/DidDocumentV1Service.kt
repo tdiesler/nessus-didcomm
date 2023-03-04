@@ -33,7 +33,6 @@ import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toRaw
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidDocV1
 import org.nessus.didcomm.did.DidMethod
-import org.nessus.didcomm.did.KeyAlgorithm
 import org.nessus.didcomm.did.WaltIdKeyAlgorithm
 import org.nessus.didcomm.util.decodeBase64Url
 import org.nessus.didcomm.util.decodeBase64UrlStr
@@ -44,12 +43,12 @@ import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.trimJson
 import java.util.UUID
 
+// [TODO] remove
 fun Key.toDidKey(): Did {
     check(algorithm == WaltIdKeyAlgorithm.EdDSA_Ed25519)
     val pubkeyBytes = getPublicKey().convertEd25519toRaw()
-    val keyAlgorithm = KeyAlgorithm.fromWaltIdKeyAlgorithm(algorithm)
     val id = convertRawKeyToMultiBase58Btc(pubkeyBytes, getMulticodecKeyCode(algorithm))
-    return Did(id, DidMethod.KEY, keyAlgorithm, pubkeyBytes.encodeBase58())
+    return Did(id, DidMethod.KEY, pubkeyBytes.encodeBase58())
 }
 
 object DidDocumentV1Service: ObjectService<DidDocumentV1Service>() {
@@ -58,7 +57,7 @@ object DidDocumentV1Service: ObjectService<DidDocumentV1Service>() {
     override fun getService() = apply { }
 
     private val cryptoService get() = CryptoService.getService()
-    private val didService get() = NessusDidService.getService()
+    private val didService get() = DidService.getService()
     private val keyStore get() = KeyStoreService.getService()
 
     fun createDidDocument(did: Did, endpointUrl: String): DidDocV1 {

@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.test
 
-import id.walt.auditor.PolicyRegistryService
 import id.walt.credentials.w3c.templates.VcTemplateService
 import id.walt.services.keystore.KeyStoreService
 import io.kotest.core.spec.style.AnnotationSpec
@@ -27,11 +26,12 @@ import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.service.DidCommService
 import org.nessus.didcomm.service.DidDocumentV1Service
+import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.MessageDispatchService
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.NessusCryptoService
-import org.nessus.didcomm.service.NessusDidService
+import org.nessus.didcomm.service.NessusPolicyRegistryService
 import org.nessus.didcomm.service.SecretResolverService
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import org.nessus.didcomm.service.WalletService
@@ -69,7 +69,6 @@ object Government {
     val seedHex = seed.toByteArray().encodeHex()
     val verkey = "GJ1SzoWzavQYfNL9XkaJdrQejfztN4XqdsiV4ct3LXKL"
     val didkey = "did:key:z6MkukGVb3mRvTu1msArDKY9UwxeZFGjmwnCKtdQttr4Fk6i"
-    val didpeer = "did:peer:0z6MkukGVb3mRvTu1msArDKY9UwxeZFGjmwnCKtdQttr4Fk6i"
     val didsov = "did:sov:V4SGRU86Z58d6TV7PBUe6f"
 }
 object Faber {
@@ -78,7 +77,6 @@ object Faber {
     val seedHex = seed.toByteArray().encodeHex()
     val verkey = "CcokUqV7WkojBLxYm7gxRzsWk3q4SE8eVMmEXoYjyvKw"
     val didkey = "did:key:z6Mkr54o55jYrJJCHqoFSgeoH6RWZd6ur7P1BNgAN5Wku97K"
-    val didpeer = "did:peer:0z6Mkr54o55jYrJJCHqoFSgeoH6RWZd6ur7P1BNgAN5Wku97K"
     val didsov = "did:sov:NKGKtcNwssToP5f7uhsEs4"
 }
 object Alice {
@@ -87,7 +85,7 @@ object Alice {
     val seedHex = seed.toByteArray().encodeHex()
     val verkey = "ESqH2YuYRRXMMfg5qQh1A23nzBaUvAMCEXLtBr2uDHbY"
     val didkey = "did:key:z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv"
-    val didpeer = "did:peer:0z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv"
+    val didpeer0 = "did:peer:0z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv"
     val didsov = "did:sov:RfoA7oboFMiFuJPEtPdvKP"
 }
 object Acme {
@@ -114,12 +112,12 @@ abstract class AbstractAgentTest: AnnotationSpec() {
     val custodian = NessusCustodianService.getService()
     val didComm get() = DidCommService.getService()
     val diddocV1Service get() = DidDocumentV1Service.getService()
-    val didService get() = NessusDidService.getService()
+    val didService get() = DidService.getService()
     val dispatchService = MessageDispatchService.getService()
     val endpointService get() = EndpointService.getService()
     val keyStore get() = KeyStoreService.getService()
     val modelService get() = ModelService.getService()
-    val policyService get() = PolicyRegistryService.getService()
+    val policyService get() = NessusPolicyRegistryService.getService()
     val secretResolver get() = SecretResolverService.getService()
     val signatory = NessusSignatoryService.getService()
     val templateService get() = VcTemplateService.getService()
