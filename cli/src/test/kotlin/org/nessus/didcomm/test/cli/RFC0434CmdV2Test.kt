@@ -32,8 +32,8 @@ class RFC0434CmdV2Test: AbstractCliTest() {
 
         try {
 
-            cliService.execute("rfc0434 create-invitation --inviter Faber --dcv2").isSuccess shouldBe true
-            cliService.execute("rfc0434 receive-invitation --invitee Alice --dcv2").isSuccess shouldBe true
+            cliService.execute("rfc0434 create-invitation --inviter Faber").isSuccess shouldBe true
+            cliService.execute("rfc0434 receive-invitation --invitee Alice").isSuccess shouldBe true
 
         } finally {
             cliService.execute("agent stop").isSuccess shouldBe true
@@ -53,8 +53,8 @@ class RFC0434CmdV2Test: AbstractCliTest() {
 
             cliService.execute("did create --wallet Faber --method=peer").isSuccess shouldBe true
 
-            cliService.execute("rfc0434 create-invitation --inviter Faber --dcv2").isSuccess shouldBe true
-            cliService.execute("rfc0434 receive-invitation --invitee Alice --dcv2").isSuccess shouldBe true
+            cliService.execute("rfc0434 create-invitation --inviter Faber").isSuccess shouldBe true
+            cliService.execute("rfc0434 receive-invitation --invitee Alice").isSuccess shouldBe true
 
         } finally {
             cliService.execute("agent stop").isSuccess shouldBe true

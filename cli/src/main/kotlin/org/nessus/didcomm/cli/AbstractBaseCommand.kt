@@ -25,9 +25,9 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.ModelService
-import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.NessusPolicyRegistryService
 import org.nessus.didcomm.service.WalletService
 import picocli.CommandLine
@@ -36,7 +36,7 @@ import java.net.URL
 import java.util.concurrent.Callable
 
 abstract class AbstractBaseCommand: Callable<Int> {
-    val log = KotlinLogging.logger {  }
+    private val log = KotlinLogging.logger {  }
 
     companion object {
         // Can be set to redirect output

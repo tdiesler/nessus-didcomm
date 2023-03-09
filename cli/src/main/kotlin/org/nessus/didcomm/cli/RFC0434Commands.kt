@@ -42,7 +42,7 @@ import picocli.CommandLine.Parameters
 )
 class RFC0434Commands
 
-open class AbstractRFC0434Command: DidCommV2Command() {
+open class AbstractRFC0434Command: AbstractBaseCommand() {
 
     @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
     var verbose: Boolean = false
@@ -77,7 +77,7 @@ class RFC0434CreateInvitation: AbstractRFC0434Command() {
         val inviterDid = cliService.findContextDid(inviterAlias)
         checkWalletEndpoint(inviter)
         val mex = when {
-            dcv2 -> {
+            inviter.useDidCommV2() -> {
                 MessageExchange()
                     .withProtocol(RFC0434_OUT_OF_BAND_V2)
                     .createOutOfBandInvitation(inviter, inviterDid)
@@ -164,6 +164,7 @@ class RFC0434InviteAndConnect: AbstractRFC0434Command() {
         val inviter = getContextWallet(inviterAlias)
         val invitee = getContextWallet(inviteeAlias)
         val inviterDid = cliService.findContextDid(inviterAlias)
+        val dcv2 = inviter.useDidCommV2() && invitee.useDidCommV2()
         checkWalletEndpoint(inviter, invitee)
         val mex = when {
             dcv2 -> {

@@ -199,6 +199,10 @@ abstract class Wallet(
         return if (pretty) gsonPretty.toJson(jsonObj) else gson.toJson(jsonObj)
     }
 
+    fun useDidCommV2(): Boolean {
+        return agentType != AgentType.ACAPY
+    }
+
     fun shortString(): String {
         return "$name [agent=${agentType.value}, type=$storageType, url=$endpointUrl]"
     }

@@ -37,7 +37,7 @@ import picocli.CommandLine.Command
 class RFC0048TrustPingCommand
 
 @Command(name="send-ping", description = ["Send a trust ping message"])
-class RFC0048SendPingCommand: DidCommV2Command() {
+class RFC0048SendPingCommand: AbstractBaseCommand() {
 
     @CommandLine.Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
     var verbose: Boolean = false
@@ -45,7 +45,10 @@ class RFC0048SendPingCommand: DidCommV2Command() {
     override fun call(): Int {
         val pcon = getContextConnection()
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)
+        val receiver = modelService.findWalletByVerkey(pcon.theirVerkey)
         checkNotNull(sender) { "No sender wallet for: ${pcon.myVerkey}" }
+
+        val dcv2 = sender.useDidCommV2() && receiver?.useDidCommV2() == true
 
         val mex = when {
             dcv2 -> {

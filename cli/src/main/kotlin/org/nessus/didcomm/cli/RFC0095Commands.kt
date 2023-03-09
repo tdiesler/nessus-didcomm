@@ -39,7 +39,7 @@ import picocli.CommandLine.ScopeType.INHERIT
 class RFC0095BasicMessageCommand
 
 @Command(name="send", description = ["Send a basic message"])
-class RFC0095SendMessageCommand: DidCommV2Command() {
+class RFC0095SendMessageCommand: AbstractBaseCommand() {
 
     @CommandLine.Option(names = ["--sign" ], description = ["Sign the DIDComm V2 messages"])
     var sign: Boolean = false
@@ -56,7 +56,11 @@ class RFC0095SendMessageCommand: DidCommV2Command() {
     override fun call(): Int {
         val pcon = getContextConnection()
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)
+        val receiver = modelService.findWalletByVerkey(pcon.theirVerkey)
         checkNotNull(sender) { "No sender wallet for: ${pcon.myVerkey}" }
+
+        val dcv2 = sender.useDidCommV2() && receiver?.useDidCommV2() == true
+
         val mex = when {
             dcv2 -> {
                 when {

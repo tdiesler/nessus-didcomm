@@ -32,11 +32,11 @@ class RFC0095CmdV2Test: AbstractCliTest() {
 
         try {
 
-            cliService.execute("rfc0434 connect acme alice --dcv2").isSuccess shouldBe true
+            cliService.execute("rfc0434 connect acme alice").isSuccess shouldBe true
 
-            cliService.execute("rfc0095 send 'Your hovercraft is full of eels' --dcv2").isSuccess shouldBe true
-            cliService.execute("rfc0095 send 'Your hovercraft is full of eels' --sign --dcv2").isSuccess shouldBe true
-            cliService.execute("rfc0095 send 'Your hovercraft is full of eels' --encrypt --dcv2").isSuccess shouldBe true
+            cliService.execute("rfc0095 send 'Your hovercraft is full of eels'").isSuccess shouldBe true
+            cliService.execute("rfc0095 send 'Your hovercraft is full of eels' --sign").isSuccess shouldBe true
+            cliService.execute("rfc0095 send 'Your hovercraft is full of eels' --encrypt").isSuccess shouldBe true
 
         } finally {
             cliService.execute("agent stop").isSuccess shouldBe true

@@ -32,9 +32,9 @@ class RFC0048CmdV2Test: AbstractCliTest() {
 
         try {
 
-            cliService.execute("rfc0434 connect acme alice --dcv2").isSuccess shouldBe true
+            cliService.execute("rfc0434 connect acme alice").isSuccess shouldBe true
 
-            cliService.execute("rfc0048 send-ping --dcv2").isSuccess shouldBe true
+            cliService.execute("rfc0048 send-ping").isSuccess shouldBe true
 
         } finally {
             cliService.execute("agent stop").isSuccess shouldBe true
