@@ -29,6 +29,8 @@ import org.nessus.didcomm.model.InvitationV2
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange
 import org.nessus.didcomm.protocol.RFC0434OutOfBandProtocolV2.Companion.RFC0434_OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
+import org.nessus.didcomm.service.DidPeerNumalgo.NUMALGO_2
+import org.nessus.didcomm.service.DidPeerOptions
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
@@ -94,8 +96,10 @@ class RFC0434OutOfBandV2Test: AbstractAgentTest() {
             .build()
 
         try {
-            val inviterDid = faber.createDid(DidMethod.PEER)
-            val inviteeDid = alice.createDid(DidMethod.PEER)
+            val inviterDidOptions = DidPeerOptions(numalgo = NUMALGO_2, serviceEndpoint = faber.endpointUrl)
+            val inviteeDidOptions = DidPeerOptions(numalgo = NUMALGO_2, serviceEndpoint = alice.endpointUrl)
+            val inviterDid = faber.createDid(DidMethod.PEER, options = inviterDidOptions)
+            val inviteeDid = alice.createDid(DidMethod.PEER, options = inviteeDidOptions)
 
             val mex = MessageExchange()
                 .withProtocol(RFC0434_OUT_OF_BAND_V2)

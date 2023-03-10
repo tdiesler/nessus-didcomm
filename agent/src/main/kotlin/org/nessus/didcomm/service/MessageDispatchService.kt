@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.service
 
-import id.walt.servicematrix.ServiceProvider
 import mu.KotlinLogging
 import okhttp3.MediaType.Companion.toMediaType
 import org.didcommx.didcomm.common.Typ.Encrypted
@@ -177,7 +176,7 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
          * Find the target Wallet and MessageExchange
          */
 
-        val recipientDids = msg.to!!.map { Did.fromSpec(it) }
+        val recipientDids = msg.to!!.map { Did.fromUri(it) }
             .filter { modelService.findWalletByVerkey(it.verkey) != null }
         check(recipientDids.size < 2) { "Multiple recipients not supported" }
         check(recipientDids.isNotEmpty()) { "No recipient wallet" }
@@ -194,7 +193,7 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
 
         val senderVerkey =
             if (msg.from?.startsWith("did:key") == true)
-                Did.fromSpec(msg.from!!).verkey
+                Did.fromUri(msg.from!!).verkey
             else null
 
         val mex = MessageExchange.findByVerkey(recipientVerkey)

@@ -67,7 +67,7 @@ class InvitationV1(
         check(services.size > idx) { "No services[$idx].recipientKeys" }
         check(services[idx].recipientKeys.isNotEmpty()) { "No recipient keys" }
         check(services[idx].recipientKeys.size == 1) { "Multiple recipient keys" }
-        return Did.fromSpec(services[idx].recipientKeys[0])
+        return Did.fromUri(services[idx].recipientKeys[0])
     }
 
     fun recipientServiceEndpoint(idx: Int = 0): String {

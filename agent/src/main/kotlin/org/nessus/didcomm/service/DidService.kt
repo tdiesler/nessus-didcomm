@@ -56,6 +56,7 @@ import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.Did.Companion.didMethod
 import org.nessus.didcomm.did.DidDocV2
 import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.did.DidPeer
 import org.nessus.didcomm.did.KeyAlgorithm
 import org.nessus.didcomm.util.encodeBase64
 import org.nessus.didcomm.util.trimJson
@@ -71,7 +72,14 @@ open class DidCreateOptions
 
 enum class DidPeerNumalgo(val algo: Int) {
     NUMALGO_0(0),
-    NUMALGO_2(2),
+    NUMALGO_2(2);
+    companion object {
+        fun fromValue(algo: Int) = when(algo) {
+            0 -> NUMALGO_0
+            2 -> NUMALGO_2
+            else -> throw IllegalArgumentException("Unsupported numalgo: $algo")
+        }
+    }
 }
 
 class DidPeerOptions(
@@ -287,7 +295,7 @@ object DidService: ObjectService<DidService>() {
             return did
         }
 
-        override fun loadDid(uri: String): Did {
+        override fun loadDid(uri: String): DidPeer {
             return didFromDidDoc(loadDidDoc(uri))
         }
 
@@ -470,7 +478,7 @@ object DidService: ObjectService<DidService>() {
             verificationMethods)
     }
 
-    private fun didFromDidDoc(didDoc: WaltIdDidDoc): Did {
+    private fun didFromDidDoc(didDoc: WaltIdDidDoc): DidPeer {
         val vmethod = didDoc.authentication?.firstOrNull { it.type.startsWith("Ed25519") }
             ?: didDoc.verificationMethod?.firstOrNull { it.type.startsWith("Ed25519") }
         checkNotNull(vmethod) {"No suitable verification method: ${didDoc.encode()}"}
@@ -485,7 +493,8 @@ object DidService: ObjectService<DidService>() {
             else -> throw IllegalStateException("Unsupported public key encoding")
         }
         checkNotNull(verkey) {"No verkey in: ${vmethod.id}"}
-        return Did.fromSpec(vmethod.controller, verkey)
+        val did = Did.fromUri(vmethod.controller, verkey)
+        return DidPeer(did.id, did.method, did.verkey)
     }
 
 }

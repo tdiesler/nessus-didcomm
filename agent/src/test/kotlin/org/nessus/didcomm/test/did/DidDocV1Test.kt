@@ -104,7 +104,7 @@ class DidDocV1Test: AbstractAgentTest() {
         // Verify Did
         val didSpec = didDocument.selectJson("publicKey[0].controller") as String
         val didVerkey = didDocument.selectJson("publicKey[0].publicKeyBase58") as String
-        val didSov = Did.fromSpec(didSpec, didVerkey)
+        val didSov = Did.fromUri(didSpec, didVerkey)
         val keyId = didService.importDid(didSov)
         didSov.uri shouldBe "did:sov:DD3druQ4tFQHZjcwgn3KSc"
         didSov.verkey shouldBe "7euiJpCar5AZMoXGspdSBhJBKzj8QZM5U3QSSSh8LAA5"
@@ -128,7 +128,7 @@ class DidDocV1Test: AbstractAgentTest() {
         protected.trimJson() shouldBe expJws
 
         // The did:key referenced in the jws section is just another representation of the DidDoc publicKey
-        val didKey = Did.fromSpec("did:key:z6Mkm7Aku4T2Bcf2UJMyZPbH2nrB9ZzypSbSA4KNGif9FNwT")
+        val didKey = Did.fromUri("did:key:z6Mkm7Aku4T2Bcf2UJMyZPbH2nrB9ZzypSbSA4KNGif9FNwT")
         didKey.verkey shouldBe didSov.verkey
 
         // Verify the Jws signature

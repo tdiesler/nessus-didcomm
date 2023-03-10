@@ -17,7 +17,7 @@ data class DidDocV1(
         val didVerkey = publicKey[idx].publicKeyBase58 as? String
         checkNotNull(didSpec) { "No 'publicKey[$idx].controller'" }
         checkNotNull(didVerkey) { "No 'publicKey[$idx].publicKeyBase58'" }
-        return Did.fromSpec(didSpec, didVerkey)
+        return Did.fromUri(didSpec, didVerkey)
     }
 
     fun serviceEndpoint(idx: Int = 0): String {

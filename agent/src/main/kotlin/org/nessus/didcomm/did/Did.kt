@@ -20,6 +20,7 @@
 package org.nessus.didcomm.did
 
 import id.walt.model.DidUrl
+import org.nessus.didcomm.service.DidPeerNumalgo
 import org.nessus.didcomm.service.DidService
 
 enum class DidMethod(val value: String) {
@@ -40,7 +41,7 @@ enum class KeyAlgorithm {
 
 val DEFAULT_KEY_ALGORITHM = KeyAlgorithm.EdDSA_Ed25519
 
-class Did(id: String, val method: DidMethod, val verkey: String) {
+open class Did(id: String, val method: DidMethod, val verkey: String) {
 
     val id: String
     val uri get() = "did:${method.value}:${id}"
@@ -53,16 +54,16 @@ class Did(id: String, val method: DidMethod, val verkey: String) {
         fun didMethod(uri: String): DidMethod {
             return DidMethod.fromValue(DidUrl.from(uri).method)
         }
-        fun fromSpec(spec: String, verkey: String? = null): Did {
+        fun fromUri(uri: String, verkey: String? = null): Did {
             val did = if (verkey != null) {
-                val didUrl = DidUrl.from(spec)
+                val didUrl = DidUrl.from(uri)
                 val didMethod = DidMethod.fromValue(didUrl.method)
                 Did(didUrl.identifier, didMethod, verkey)
             } else {
                 val didService = DidService.getService()
-                didService.loadOrResolveDid(spec)
+                didService.loadOrResolveDid(uri)
             }
-            checkNotNull(did) { "Cannot load/resolve: $spec" }
+            checkNotNull(did) { "Cannot load/resolve: $uri" }
             return did
         }
     }
@@ -86,5 +87,26 @@ class Did(id: String, val method: DidMethod, val verkey: String) {
 
     override fun toString(): String {
         return "Did(id=$id, method=$method, verkey=$verkey)"
+    }
+}
+
+class DidPeer(id: String, method: DidMethod, verkey: String): Did(id, method, verkey) {
+
+    companion object {
+        fun fromUri(uri: String): DidPeer? {
+            return when {
+                uri.startsWith("did:peer:") -> {
+                    val didService = DidService.getService()
+                    didService.loadOrResolveDid(uri) as? DidPeer
+                }
+                else -> null
+            }
+        }
+    }
+
+    val numalgo get() = when {
+        uri.startsWith("did:peer:0") -> DidPeerNumalgo.NUMALGO_0
+        uri.startsWith("did:peer:2") -> DidPeerNumalgo.NUMALGO_2
+        else -> throw IllegalStateException("Unsupported numalgo: $uri")
     }
 }

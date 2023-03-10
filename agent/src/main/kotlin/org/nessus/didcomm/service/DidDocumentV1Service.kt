@@ -183,7 +183,7 @@ object DidDocumentV1Service: ObjectService<DidDocumentV1Service>() {
             check(recipientKeys.contains(it.publicKeyBase58))
         }
 
-        val jwsHeaderDid = Did.fromSpec(jwsHeaderKid)
+        val jwsHeaderDid = Did.fromUri(jwsHeaderKid)
         val publicKeyDid = didDocument.publicKeyDid()
 
         val signatoryDid = if (verkey != null) {

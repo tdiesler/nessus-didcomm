@@ -60,7 +60,7 @@ class InvitationShowCommand: AbstractInvitationCommand() {
     override fun call(): Int {
         val ctxWallet = getContextWallet(walletAlias)
         if (alias == null) {
-            cliService.findContextInvitation(walletAlias)?.also { alias = it.id }
+            cliService.findContextInvitation()?.also { alias = it.id }
         }
         findInvitations(ctxWallet, alias).firstOrNull()?.also {
             if (verbose)

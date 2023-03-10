@@ -23,8 +23,10 @@ import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.message.MessageBuilder
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.did.DidDocV2
 import org.nessus.didcomm.service.DID_DOCUMENT_MEDIA_TYPE
 import org.nessus.didcomm.service.DidDocumentV2Service
+import org.nessus.didcomm.service.DidService
 
 /**
  * [Out of Band Invitation]https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
@@ -123,14 +125,18 @@ data class InvitationV2(
         }
     }
 
-    val diddoc get() = run {
-            checkNotNull(attachments) { "No attachments" }
-            val invitationDidDoc = attachments
-                .filter { it.mediaType == DID_DOCUMENT_MEDIA_TYPE }
-                .map {
-                    val diddocV2Service = DidDocumentV2Service.getService()
-                    diddocV2Service.extractDidDocAttachment(it)
-                }.firstOrNull()
+    private val didService get() = DidService.getService()
+
+    val diddoc: DidDocV2 get() = run {
+            val invitationDidDoc = didService.loadOrResolveDidDocument(from) ?: run {
+                checkNotNull(attachments) { "No attachments" }
+                attachments
+                    .filter { it.mediaType == DID_DOCUMENT_MEDIA_TYPE }
+                    .map {
+                        val diddocV2Service = DidDocumentV2Service.getService()
+                        diddocV2Service.extractDidDocAttachment(it)
+                    }.firstOrNull()
+            }
             checkNotNull(invitationDidDoc) { "No invitation DidDoc" }
             invitationDidDoc
         }
@@ -140,7 +146,9 @@ data class InvitationV2(
     }
 
     fun recipientDid(): Did {
-        return Did.fromSpec(diddoc.id)
+        val recipientDid = didService.loadOrResolveDid(from)
+        checkNotNull(recipientDid) { "Cannot resolve did: $from" }
+        return recipientDid
     }
 
     fun recipientServiceEndpoint(): String {

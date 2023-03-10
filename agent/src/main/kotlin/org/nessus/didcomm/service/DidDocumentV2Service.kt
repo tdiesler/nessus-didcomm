@@ -41,13 +41,15 @@ object DidDocumentV2Service: ObjectService<DidDocumentV2Service>(), DIDDocResolv
 
     private val didService get() = DidService.getService()
 
-    override fun resolve(did: String): Optional<SicpaDidDoc> {
-        val didDoc = resolveDidDocument(did).toSicpaDidDoc()
+    override fun resolve(uri: String): Optional<SicpaDidDoc> {
+        val didDoc = resolveDidDocument(uri).toSicpaDidDoc()
         return Optional.ofNullable(didDoc)
     }
 
-    fun resolveDidDocument(did: String): DidDocV2 {
-        return didService.loadDidDocument(did)
+    fun resolveDidDocument(uri: String): DidDocV2 {
+        val didDoc = didService.loadOrResolveDidDocument(uri)
+        checkNotNull(didDoc) { "Cannot resolve " }
+        return didDoc
     }
 
     fun createDidDocAttachment(didDoc: DidDocV2): Attachment {
@@ -60,7 +62,6 @@ object DidDocumentV2Service: ObjectService<DidDocumentV2Service>(), DIDDocResolv
 
     fun extractDidDocAttachment(attachment: Attachment): DidDocV2 {
         require(attachment.mediaType == DID_DOCUMENT_MEDIA_TYPE) { "Unexpected media_type: ${attachment.mediaType} "}
-
         val didDocAttachment = gson.toJson(attachment.data.toJSONObject()["json"])
         checkNotNull(didDocAttachment) {"Cannot find attached did document"}
         return DidDocV2.fromSicpaDidDoc(DIDDocDecoder.decodeJson(didDocAttachment))

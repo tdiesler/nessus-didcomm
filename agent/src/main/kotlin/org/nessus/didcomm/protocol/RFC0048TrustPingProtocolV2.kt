@@ -27,11 +27,13 @@ import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.message.MessageBuilder
 import org.didcommx.didcomm.model.PackEncryptedParams
 import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.did.DidPeer
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
+import org.nessus.didcomm.service.DidPeerNumalgo
 import org.nessus.didcomm.service.RFC0048_TRUST_PING_V2
 import org.nessus.didcomm.util.dateTimeInstant
 import org.nessus.didcomm.util.dateTimeNow
@@ -87,12 +89,15 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
             .comment("Ping from ${sender.name}")
 
         // FIRST TRUST PING
-        // Attach our DID Document when this is the first time we do a Trust Ping
+        // Add the DidDoc attachment when we don't have a did:peer:2
+        val maybeDidPeer = DidPeer.fromUri(senderDid.uri)
 
         if (pcon.state == ConnectionState.INVITATION) {
-            val senderDidDoc = diddocV2Service.resolveDidDocument(senderDid.uri)
-            val senderDidDocAttachment = diddocV2Service.createDidDocAttachment(senderDidDoc)
-            trustPingBuilder.attachments(listOf(senderDidDocAttachment))
+            if (maybeDidPeer?.numalgo != DidPeerNumalgo.NUMALGO_2) {
+                val senderDidDoc = diddocV2Service.resolveDidDocument(senderDid.uri)
+                val senderDidDocAttachment = diddocV2Service.createDidDocAttachment(senderDidDoc)
+                trustPingBuilder.attachments(listOf(senderDidDocAttachment))
+            }
             pcon.state = ConnectionState.COMPLETED
         }
 
@@ -154,7 +159,7 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
             val invitationDidDoc = diddocV2Service.resolveDidDocument(invitationDid.uri)
             fromPriorIssuerKid = invitationDidDoc.authentications.first()
 
-            val senderDid = Did.fromSpec(trustPing.from as String)
+            val senderDid = Did.fromUri(trustPing.from as String)
             val senderDidDoc = diddocV2Service.resolveDidDocument(senderDid.uri)
             val senderEndpointUrl = senderDidDoc.serviceEndpoint() as String
 
@@ -230,7 +235,7 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
 
         val pcon = mex.getConnection()
         pcon.state = ConnectionState.ACTIVE
-        pcon.theirDid = Did.fromSpec(trustPingResponse.from as String)
+        pcon.theirDid = Did.fromUri(trustPingResponse.from as String)
         mex.completeEndpointMessageFuture(RFC0048_TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2, mex.last)
 
         return this

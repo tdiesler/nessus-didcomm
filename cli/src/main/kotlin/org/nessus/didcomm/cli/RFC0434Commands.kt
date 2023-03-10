@@ -108,20 +108,17 @@ class RFC0434ReceiveInvitation: AbstractRFC0434Command() {
     var invitationAlias: String? = null
 
     override fun call(): Int {
-        val invitation = cliService.getAttachment(INVITATION_ATTACHMENT_KEY)
-        checkNotNull(invitation) { "No invitation" }
-        if (invitationAlias != null) {
-            val candidates = listOf(invitation.id, invitation.invitationKey()).map { c -> c.lowercase() }
-            check(candidates.any { c -> c.startsWith(invitationAlias!!.lowercase()) }) { "Invitation does not match" }
-        }
         val invitee = getContextWallet(inviteeAlias)
+        val inviteeDid = cliService.findContextDid(inviteeAlias)
+        val invitation = cliService.findContextInvitation()
+        checkNotNull(invitation) { "No such invitation: $invitationAlias" }
         checkWalletEndpoint(invitee)
         val mex = when {
             invitation.isV2 -> {
                 MessageExchange()
                     .withAttachment(INVITATION_ATTACHMENT_KEY, invitation)
                     .withProtocol(RFC0434_OUT_OF_BAND_V2)
-                    .receiveOutOfBandInvitation(invitee)
+                    .receiveOutOfBandInvitation(invitee, inviteeDid)
                     .withProtocol(RFC0048_TRUST_PING_V2)
                     .sendTrustPing()
                     .awaitTrustPingResponse()

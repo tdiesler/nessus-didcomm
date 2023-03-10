@@ -23,7 +23,6 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
-import org.nessus.didcomm.util.encodeJson
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
@@ -128,12 +127,10 @@ class WalletSwitchCommand: AbstractBaseCommand() {
     var alias: String? = null
 
     override fun call(): Int {
-        val wallet = getContextWallet(alias).also {
-            cliService.putContextWallet(it)
-        }
-        wallet.connections.lastOrNull { it.state == ConnectionState.ACTIVE }?.also {
-            cliService.putContextConnection(it)
-        }
+        val wallet = getContextWallet(alias)
+        cliService.putContextWallet(wallet)
+        cliService.putContextDid(wallet.dids.lastOrNull())
+        cliService.putContextConnection(wallet.connections.lastOrNull { it.state == ConnectionState.ACTIVE })
         return 0
     }
 }

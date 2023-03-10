@@ -24,6 +24,7 @@ import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidDoc
 import org.nessus.didcomm.did.DidDocV2
+import org.nessus.didcomm.did.DidPeer
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionRole
@@ -34,7 +35,7 @@ import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITEE_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITER_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
-import org.nessus.didcomm.service.DID_DOCUMENT_MEDIA_TYPE
+import org.nessus.didcomm.service.DidPeerNumalgo
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
 import java.util.UUID
 
@@ -71,15 +72,20 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
 
         // Create and register the Did Document for this Invitation
         val invitationDid = did ?: inviter.createDid()
-        val invitationDidDoc = diddocV2Service.resolveDidDocument(invitationDid.uri)
-        val invitationDidDocAttachment = diddocV2Service.createDidDocAttachment(invitationDidDoc)
 
-        val invitationV2 = InvitationV2.Builder(id, type, invitationDid.uri)
+        val invitationBuilder = InvitationV2.Builder(id, type, invitationDid.uri)
             .goalCode(options["goal_code"] as? String)
             .goal(options["goal"] as? String)
             .accept(DidDocV2.DEFAULT_ACCEPT)
-            .attachments(listOf(invitationDidDocAttachment))
-            .build()
+
+        // Add the DidDoc attachment when we don't have a did:peer:2
+        val maybeDidPeer = DidPeer.fromUri(invitationDid.uri)
+        if (maybeDidPeer?.numalgo != DidPeerNumalgo.NUMALGO_2) {
+            val invitationDidDoc = diddocV2Service.resolveDidDocument(invitationDid.uri)
+            val invitationDidDocAttachment = diddocV2Service.createDidDocAttachment(invitationDidDoc)
+            invitationBuilder.attachments(listOf(invitationDidDocAttachment))
+        }
+        val invitationV2 = invitationBuilder.build()
 
         val message = invitationV2.toMessage()
         log.info { "Inviter (${inviter.name}) created Invitation: ${message.prettyPrint()}" }
@@ -128,13 +134,10 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
 
         // Extract Inviter Did + Document
         val invitationV2 = invitation.actV2
-        val inviterDidDocAttachment = invitationV2.attachments?.firstOrNull { it.mediaType == DID_DOCUMENT_MEDIA_TYPE }
-        checkNotNull(inviterDidDocAttachment) {"Cannot find attached did document"}
-
-        val inviterDidDoc = diddocV2Service.extractDidDocAttachment(inviterDidDocAttachment)
+        val inviterDidDoc = invitationV2.diddoc
         mex.putAttachment(INVITER_DID_DOCUMENT_ATTACHMENT_KEY, DidDoc(inviterDidDoc))
 
-        val inviterDid = Did.fromSpec(inviterDidDoc.id)
+        val inviterDid = Did.fromUri(inviterDidDoc.id)
         val inviterEndpointUrl = inviterDidDoc.serviceEndpoint()
 
         // Create Invitee Did + Document

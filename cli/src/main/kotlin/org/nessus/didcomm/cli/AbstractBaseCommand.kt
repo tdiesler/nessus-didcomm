@@ -104,7 +104,7 @@ abstract class AbstractBaseCommand: Callable<Int> {
     }
 
     fun getContextInvitation(walletAlias: String? = null, invAlias: String? = null): Invitation {
-        val invitation = cliService.findContextInvitation(walletAlias, invAlias)
+        val invitation = cliService.findContextInvitation(invAlias)
         checkNotNull(invitation) { "No invitation" }
         return invitation
     }

@@ -57,8 +57,8 @@ object CLIService: AttachmentSupport() {
         }
     }
 
-    fun putContextConnection(pcon: Connection): Connection? {
-        return putAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
+    fun putContextConnection(pcon: Connection?) {
+        putAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
     }
 
     fun findContextDid(walletAlias: String? = null, didAlias: String? = null): Did? {
@@ -70,21 +70,22 @@ object CLIService: AttachmentSupport() {
         }
     }
 
-    fun putContextDid(did: Did): Did? {
-        return putAttachment(DID_ATTACHMENT_KEY, did)
+    fun putContextDid(did: Did?) {
+        putAttachment(DID_ATTACHMENT_KEY, did)
     }
 
-    fun findContextInvitation(walletAlias: String? = null, invAlias: String? = null): Invitation? {
-        val ctxWallet = findContextWallet(walletAlias) ?: return null
+    fun findContextInvitation(invAlias: String? = null): Invitation? {
         val effAlias = invAlias ?: getAttachment(INVITATION_ATTACHMENT_KEY)?.id ?: return null
-        return ctxWallet.findInvitation {
-            val candidates = listOf(it.id, it.invitationKey()).map { c -> c.lowercase() }
+        val invitations = mutableListOf<Invitation>()
+        modelService.wallets.forEach { w -> invitations.addAll(w.invitations.filter { iv ->
+            val candidates = listOf(iv.id, iv.invitationKey()).map { c -> c.lowercase() }
             candidates.any { c -> c.startsWith(effAlias.lowercase()) }
-        }
+        })}
+        return invitations.firstOrNull()
     }
 
-    fun putContextInvitation(invitation: Invitation): Invitation? {
-        return putAttachment(INVITATION_ATTACHMENT_KEY, invitation)
+    fun putContextInvitation(invitation: Invitation?) {
+        putAttachment(INVITATION_ATTACHMENT_KEY, invitation)
     }
 
     fun findContextWallet(alias: String? = null): Wallet? {
@@ -95,8 +96,8 @@ object CLIService: AttachmentSupport() {
         }
     }
 
-    fun putContextWallet(wallet: Wallet): Wallet? {
-        return putAttachment(WALLET_ATTACHMENT_KEY, wallet)
+    fun putContextWallet(wallet: Wallet?) {
+        putAttachment(WALLET_ATTACHMENT_KEY, wallet)
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
