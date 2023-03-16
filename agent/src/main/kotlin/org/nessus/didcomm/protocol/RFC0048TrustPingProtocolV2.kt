@@ -33,7 +33,6 @@ import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
-import org.nessus.didcomm.service.DidPeerNumalgo
 import org.nessus.didcomm.service.RFC0048_TRUST_PING_V2
 import org.nessus.didcomm.util.dateTimeInstant
 import org.nessus.didcomm.util.dateTimeNow
@@ -93,7 +92,7 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         val maybeDidPeer = DidPeer.fromUri(senderDid.uri)
 
         if (pcon.state == ConnectionState.INVITATION) {
-            if (maybeDidPeer?.numalgo != DidPeerNumalgo.NUMALGO_2) {
+            if (maybeDidPeer?.numalgo != 2) {
                 val senderDidDoc = diddocV2Service.resolveDidDocument(senderDid.uri)
                 val senderDidDocAttachment = diddocV2Service.createDidDocAttachment(senderDidDoc)
                 trustPingBuilder.attachments(listOf(senderDidDocAttachment))

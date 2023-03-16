@@ -35,7 +35,6 @@ import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITEE_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITER_DID_DOCUMENT_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
-import org.nessus.didcomm.service.DidPeerNumalgo
 import org.nessus.didcomm.service.RFC0434_OUT_OF_BAND_V2
 import java.util.UUID
 
@@ -80,7 +79,7 @@ class RFC0434OutOfBandProtocolV2(mex: MessageExchange): Protocol<RFC0434OutOfBan
 
         // Add the DidDoc attachment when we don't have a did:peer:2
         val maybeDidPeer = DidPeer.fromUri(invitationDid.uri)
-        if (maybeDidPeer?.numalgo != DidPeerNumalgo.NUMALGO_2) {
+        if (maybeDidPeer?.numalgo != 2) {
             val invitationDidDoc = diddocV2Service.resolveDidDocument(invitationDid.uri)
             val invitationDidDocAttachment = diddocV2Service.createDidDocAttachment(invitationDidDoc)
             invitationBuilder.attachments(listOf(invitationDidDocAttachment))

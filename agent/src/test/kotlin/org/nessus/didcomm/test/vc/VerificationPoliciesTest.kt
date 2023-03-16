@@ -11,7 +11,6 @@ import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.trimJson
 import org.nessus.didcomm.w3c.W3CVerifiableCredential
-import org.nessus.didcomm.w3c.W3CVerifiableValidator
 
 class VerificationPoliciesTest: AbstractAgentTest() {
     private val log = KotlinLogging.logger {}
@@ -23,19 +22,15 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         val holderDid = didService.createDid(DidMethod.KEY)
         val verifierDid = didService.createDid(DidMethod.KEY)
 
-        // issue VC
-        val mergeData = """{
-          "issuer": "${issuerDid.uri}",
-          "credentialSubject": {
-            "id": "${holderDid.uri}"
-          }
-        }""".decodeJson()
-
         val vc = W3CVerifiableCredential
-            .fromPath("/nessus/vc-templates/VerifiableId.json")
-            .merge(mergeData)
-
-        W3CVerifiableValidator.validateSubject(vc)
+            .fromTemplate("/nessus/vc-templates/VerifiableId.json",
+                """{
+                    "issuer": "${issuerDid.uri}",
+                    "credentialSubject": {
+                        "id": "${holderDid.uri}"
+                    }
+                }""".decodeJson())
+            .validate()
 
         val config = ProofConfig(
             issuerDid = issuerDid.uri,
@@ -47,7 +42,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // create VP
         val vp = custodian.createPresentation(
-            vcs = listOf(signedVc),
+            vcs = listOf(signedVc.encodeJson()),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri)
 
@@ -55,7 +50,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         val vr = auditor.verify(vp, listOf(
             policyService.getPolicy("SignaturePolicy")))
 
-        vr.valid shouldBe true
+        vr.outcome shouldBe true
     }
 
     @Test
@@ -67,9 +62,14 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // issue VC
         val vc = W3CVerifiableCredential
-            .fromPath("/nessus/vc-templates/VerifiableId.json")
-
-        W3CVerifiableValidator.validateSubject(vc)
+            .fromTemplate("/nessus/vc-templates/VerifiableId.json",
+                """{
+                    "issuer": "${issuerDid.uri}",
+                    "credentialSubject": {
+                        "id": "${holderDid.uri}"
+                    }
+                }""".decodeJson())
+            .validate()
 
         val config = ProofConfig(
             issuerDid = issuerDid.uri,
@@ -81,7 +81,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // create VP
         val vp = custodian.createPresentation(
-            vcs = listOf(signedVc),
+            vcs = listOf(signedVc.encodeJson()),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri,
             challenge = "1234",
@@ -93,7 +93,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // verify VP
         val vr = Auditor.getService().verify(vp, listOf(policy))
-        vr.valid shouldBe true
+        vr.outcome shouldBe true
     }
 
     @Test
@@ -112,10 +112,8 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         }""".decodeJson()
 
         val vc = W3CVerifiableCredential
-            .fromPath("/nessus/vc-templates/VerifiableId.json")
-            .merge(mergeData)
-
-        W3CVerifiableValidator.validateSubject(vc)
+            .fromTemplate("/nessus/vc-templates/VerifiableId.json", mergeData)
+            .validate()
 
         val config = ProofConfig(
             issuerDid = issuerDid.uri,
@@ -127,7 +125,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // create VP
         val vp = Custodian.getService().createPresentation(
-            vcs = listOf(signedVc),
+            vcs = listOf(signedVc.encodeJson()),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri,
         )
@@ -141,6 +139,6 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // verify VP
         val vr = Auditor.getService().verify(vp, listOf(policy))
-        vr.valid shouldBe true
+        vr.outcome shouldBe true
     }
 }

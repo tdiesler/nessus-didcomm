@@ -1,0 +1,78 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$ref": "#/definitions/TravelPermissionTemplate",
+    "definitions": {
+        "TravelPermissionTemplate": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "potentialAction": {
+                    "$ref": "#/definitions/PotentialAction"
+                }
+            },
+            "required": [
+                "id",
+                "potentialAction"
+            ],
+            "title": "TravelPermissionTemplate"
+        },
+        "PotentialAction": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "agent": {
+                    "type": "string"
+                },
+                "participant": {
+                    "type": "string"
+                },
+                "location": {
+                    "$ref": "#/definitions/Location"
+                }
+            },
+            "required": [
+                "agent",
+                "location",
+                "participant",
+                "type"
+            ],
+            "title": "PotentialAction"
+        },
+        "Location": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "type": {
+                    "type": "string"
+                },
+                "address": {
+                    "$ref": "#/definitions/Address"
+                }
+            },
+            "required": [
+                "address",
+                "type"
+            ],
+            "title": "Location"
+        },
+        "Address": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "addressCountry": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "addressCountry"
+            ],
+            "title": "Address"
+        }
+    }
+}

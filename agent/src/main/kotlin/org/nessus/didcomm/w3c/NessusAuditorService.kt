@@ -10,7 +10,10 @@ object NessusAuditorService: ObjectService<NessusAuditorService>() {
     override fun getService() = apply { }
 
     fun verify(vcJson: String, policies: List<VerificationPolicy>): VerificationResult {
-        val auditor = Auditor.getService()
-        return auditor.verify(vcJson, policies)
+        return Auditor.getService().verify(vcJson, policies)
+    }
+
+    fun verify(vc: W3CVerifiableCredential, policies: List<VerificationPolicy>): VerificationResult {
+        return verify(vc.encodeJson(), policies)
     }
 }

@@ -40,8 +40,8 @@ import java.util.Collections.max
         IssueVerifiableCredential::class,
         PresentVerifiableCredential::class,
         VerifyCredentialCommand::class,
-        VerificationPolicyCommands::class,
-        CredentialTemplateCommands::class,
+        PolicyCommands::class,
+        TemplateCommands::class,
     ]
 )
 class VCCommands: AbstractBaseCommand() {
@@ -188,8 +188,8 @@ class VerifyCredentialCommand: AbstractBaseCommand() {
         verificationResult.policyResults.forEach { (policy, result) ->
             echo("${policy.padEnd(maxIdLength)} - $result")
         }
-        echo("${"Verified".padEnd(maxIdLength)} - ${verificationResult.valid}")
-        return if (verificationResult.valid) 0 else 1
+        echo("${"Verified".padEnd(maxIdLength)} - ${verificationResult.outcome}")
+        return if (verificationResult.outcome) 0 else 1
     }
 }
 
@@ -199,7 +199,7 @@ class VerifyCredentialCommand: AbstractBaseCommand() {
     name = "policy",
     description = ["Verification policy commands"],
 )
-class VerificationPolicyCommands: AbstractBaseCommand() {
+class PolicyCommands: AbstractBaseCommand() {
 
     @Command(name = "list", description = ["List verification policies"])
     fun listVerificationPolicies() {
@@ -232,7 +232,7 @@ class VerificationPolicyCommands: AbstractBaseCommand() {
     name = "template",
     description = ["Credential template commands"],
 )
-class CredentialTemplateCommands: AbstractBaseCommand() {
+class TemplateCommands: AbstractBaseCommand() {
 
     @Command(name = "list", description = ["List credential templates"])
     fun listCredentialTemplates() {

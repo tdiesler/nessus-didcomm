@@ -30,8 +30,6 @@ import org.nessus.didcomm.did.DidDocV2
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.DidCreateOptions
-import org.nessus.didcomm.service.DidPeerNumalgo.NUMALGO_0
-import org.nessus.didcomm.service.DidPeerNumalgo.NUMALGO_2
 import org.nessus.didcomm.service.DidPeerOptions
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
@@ -56,8 +54,8 @@ class DidServiceTest: AbstractAgentTest() {
 
         val methodSpecs: List<Pair<DidMethod, DidCreateOptions?>> = listOf(
             Pair(DidMethod.KEY, null),
-            Pair(DidMethod.PEER, DidPeerOptions(NUMALGO_0)),
-            Pair(DidMethod.PEER, DidPeerOptions(NUMALGO_2, alice.endpointUrl)),
+            Pair(DidMethod.PEER, DidPeerOptions(numalgo = 0)),
+            Pair(DidMethod.PEER, DidPeerOptions(numalgo = 2, alice.endpointUrl)),
             Pair(DidMethod.SOV, null),
         )
 
@@ -74,8 +72,8 @@ class DidServiceTest: AbstractAgentTest() {
                 when(method) {
                     DidMethod.KEY -> did.uri shouldBe Alice.didkey
                     DidMethod.PEER -> when(numalgo) {
-                        NUMALGO_0 -> did.uri shouldBe Alice.didpeer0
-                        NUMALGO_2 -> did.uri shouldStartWith "did:peer:2"
+                        0 -> did.uri shouldBe Alice.didpeer0
+                        2 -> did.uri shouldStartWith "did:peer:2"
                         else -> throw IllegalStateException("Unknown numalgo: $numalgo")
                     }
                     DidMethod.SOV -> did.uri shouldBe Alice.didsov

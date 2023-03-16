@@ -1,0 +1,178 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+
+    "title": "Basic Passport for a natural person",
+
+    "type": "object",
+    "properties": {
+        "@context": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "credentialSchema": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "credentialStatus": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "credentialSubject": { "$ref": "#/definitions/MarriageCertificate" },
+        "evidence": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "documentPresence": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "evidenceDocument": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "subjectPresence": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "verifier": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": false
+            }
+        },
+        "expirationDate": {
+            "type": "string"
+        },
+        "id": {
+            "type": "string"
+        },
+        "issuanceDate": {
+            "type": "string"
+        },
+        "issued": {
+            "type": "string"
+        },
+        "issuer": {
+            "type": "string"
+        },
+        "proof": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "type": "string"
+                },
+                "creator": {
+                    "type": "string"
+                },
+                "domain": {
+                    "type": "string"
+                },
+                "jws": {
+                    "type": "string"
+                },
+                "nonce": {
+                    "type": "string"
+                },
+                "proofPurpose": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "verificationMethod": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
+        "type": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "validFrom": {
+            "type": "string"
+        }
+    },
+    "required": [
+        "@context",
+        "type"
+    ],
+    "additionalProperties": false,
+
+    "definitions": {
+        "MarriageCertificate": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "spouse": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Spouse"
+                    }
+                }
+            },
+            "required": [
+                "spouse"
+            ],
+            "title": "MarriageCertificate"
+        },
+        "Spouse": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "givenName": {
+                    "type": "string"
+                },
+                "familyName": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "id",
+                "familyName",
+                "givenName"
+            ],
+            "title": "Spouse"
+        }
+    }
+}

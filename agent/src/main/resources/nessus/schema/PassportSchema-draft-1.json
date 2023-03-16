@@ -1,0 +1,165 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+
+  "title": "Basic Passport for a natural person",
+
+  "type": "object",
+  "properties": {
+    "@context": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "credentialSchema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "credentialStatus": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "credentialSubject": { "$ref": "#/definitions/Passport" },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "documentPresence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidenceDocument": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "id": {
+            "type": "string"
+          },
+          "subjectPresence": {
+            "type": "string"
+          },
+          "type": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verifier": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "expirationDate": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "issuanceDate": {
+      "type": "string"
+    },
+    "issued": {
+      "type": "string"
+    },
+    "issuer": {
+      "type": "string"
+    },
+    "proof": {
+      "type": "object",
+      "properties": {
+        "created": {
+          "type": "string"
+        },
+        "creator": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "jws": {
+          "type": "string"
+        },
+        "nonce": {
+          "type": "string"
+        },
+        "proofPurpose": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "verificationMethod": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "type": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "validFrom": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "@context",
+    "type"
+  ],
+  "additionalProperties": false,
+
+  "definitions": {
+    "Passport": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "givenName": {
+          "type": "string",
+          "minLength": 3
+        },
+        "familyName": {
+          "type": "string",
+          "minLength": 3
+        },
+        "citizenship": {
+          "type": "string",
+          "minLength": 2
+        }
+      },
+      "required": [
+        "id",
+        "givenName",
+        "familyName",
+        "citizenship"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

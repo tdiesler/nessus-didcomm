@@ -46,9 +46,45 @@ fun dateTimeInstant(seconds: Long): OffsetDateTime {
  * Map
  */
 
-// [TODO] Better type magic?
-fun Map<*, *>.toUnionMap(other: Map<*, *>): Map<*, *> {
-    val unionMap = this.toMutableMap(); unionMap.putAll(other)
+@Suppress("UNCHECKED_CAST")
+fun Map<String, Any?>.toUnionMap(other: Map<String, Any?>): Map<String, Any?> {
+    val unionMap = mutableMapOf<String, Any?>()
+    for (k in this.keys + other.keys) {
+        val thisVal = this[k]
+        val otherVal = other[k]
+        when {
+
+            otherVal is String && otherVal.isNotEmpty() -> unionMap[k] = otherVal
+
+            thisVal is String -> if (thisVal.isNotEmpty()) unionMap[k] = thisVal
+
+            thisVal is List<*> && otherVal is List<*> -> when {
+                thisVal.isNotEmpty() && otherVal.isEmpty() -> unionMap[k] = thisVal
+                thisVal.isEmpty() && otherVal.isNotEmpty() -> unionMap[k] = otherVal
+                thisVal[0] is Map<*, *> && otherVal[0] is Map<*, *> -> {
+                    check(thisVal.size == otherVal.size) { "Arrays of map must have equal size: $thisVal vs. $otherVal" }
+                    val unionList = mutableListOf<Map<String, Any?>>()
+                    for (idx in (0 until thisVal.size)) {
+                        val thisMap = thisVal[idx] as Map<String, Any?>
+                        val otherMap = otherVal[idx] as Map<String, Any?>
+                        unionList.add(thisMap.toUnionMap(otherMap))
+
+                    }
+                    unionMap[k] = unionList
+                }
+                else -> unionMap[k] = thisVal + otherVal
+            }
+
+            thisVal is Map<*, *> && otherVal is Map<*, *> -> {
+                val thisMap = thisVal as Map<String, Any?>
+                val otherMap = otherVal as Map<String, Any?>
+                unionMap[k] = thisMap.toUnionMap(otherMap)
+            }
+
+            thisVal != null && otherVal == null -> unionMap[k] = thisVal
+            thisVal == null && otherVal != null -> unionMap[k] = otherVal
+        }
+    }
     return unionMap.toMap()
 }
 

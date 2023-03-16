@@ -30,6 +30,7 @@ import org.nessus.didcomm.service.WalletPlugin
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.gsonPretty
+import org.nessus.didcomm.w3c.W3CVerifiableCredential
 import org.nessus.didcomm.wallet.AcapyWallet
 import org.nessus.didcomm.wallet.NessusWallet
 
@@ -81,6 +82,9 @@ abstract class Wallet(
 
     @SerializedName("connections")
     private val connectionsInternal: MutableList<Connection> = mutableListOf(),
+
+    @SerializedName("verifiable-credentials")
+    private val verifiableCredentialsInternal: MutableList<W3CVerifiableCredential> = mutableListOf(),
 ) {
     companion object {
         private val log = KotlinLogging.logger {}
@@ -92,6 +96,7 @@ abstract class Wallet(
     val dids get() = didsInternal.toList()
     val invitations get() = invitationsInternal.toList()
     val connections get() = connectionsInternal.toList()
+    val verifiableCredentials get() = verifiableCredentialsInternal.toList()
 
     @Transient
     private val redactedOptions = options.mapValues { (k, v) ->
@@ -187,6 +192,14 @@ abstract class Wallet(
     @Synchronized
     fun removeInvitation(id: String) {
         getInvitation(id)?.run { invitationsInternal.remove(this) }
+    }
+
+    fun addVerifiableCredential(vc: W3CVerifiableCredential) {
+        verifiableCredentialsInternal.add(vc)
+    }
+
+    fun findVerifiableCredential(predicate: (vc: W3CVerifiableCredential) -> Boolean): W3CVerifiableCredential? {
+        return verifiableCredentialsInternal.firstOrNull(predicate)
     }
 
     fun encodeJson(pretty: Boolean = false, redacted: Boolean = true): String {

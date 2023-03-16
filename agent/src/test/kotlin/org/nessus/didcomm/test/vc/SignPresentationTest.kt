@@ -23,7 +23,7 @@ class SignPresentationTest {
         val domain: String? = null
         val nonce = "c0ae1c8e-c7e7-469f-b252-86e6a0e7387e"
 
-        val signer: RsaSignature2018LdSigner = RsaSignature2018LdSigner(SignatureKeys.testRSAPrivateKey)
+        val signer = RsaSignature2018LdSigner(SignatureKeys.testRSAPrivateKey)
         signer.verificationMethod = verificationMethod
         signer.created = created
         signer.domain = domain
@@ -42,7 +42,7 @@ class SignPresentationTest {
 
         Validation.validateJsonLd(verifiablePresentation)
 
-        val verifier: RsaSignature2018LdVerifier = RsaSignature2018LdVerifier(SignatureKeys.testRSAPublicKey)
+        val verifier = RsaSignature2018LdVerifier(SignatureKeys.testRSAPublicKey)
         val verify = verifier.verify(verifiablePresentation)
         Assertions.assertTrue(verify)
     }

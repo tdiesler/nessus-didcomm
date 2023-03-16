@@ -1,13 +1,14 @@
 package org.nessus.didcomm.test.vc
 
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import mu.KotlinLogging
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.w3c.W3CVerifiableCredential
-import org.nessus.didcomm.w3c.W3CVerifiableValidator
+import org.nessus.didcomm.w3c.W3CVerifiableCredentialValidator
 import java.util.UUID
 
 class CredentialDataMergeTest: AbstractAgentTest() {
@@ -23,7 +24,7 @@ class CredentialDataMergeTest: AbstractAgentTest() {
           "id": "urn:uuid:${UUID.randomUUID()}",
           "issuer": "${issuerDid.uri}",
           "issuanceDate" : "${dateTimeNow()}",
-          "expires": "${dateTimeNow().plusYears(10)}",
+          "expirationDate": "${dateTimeNow().plusYears(10)}",
           "credentialSubject": {
             "id": "${holderDid.uri}",
             "givenName": "Malathi",
@@ -33,12 +34,10 @@ class CredentialDataMergeTest: AbstractAgentTest() {
         }""".decodeJson()
 
         val vc = W3CVerifiableCredential
-            .fromPath("/example/vc/malathi-passport-vc.json")
-            .merge(mergeData)
+            .fromTemplate("/nessus/vc-templates/Passport.json", mergeData)
+            .validate()
 
         log.info { "Merged: ${vc.encodeJson(true)}" }
-
-        W3CVerifiableValidator.validateSubject(vc)
     }
 
     @Test
@@ -51,7 +50,7 @@ class CredentialDataMergeTest: AbstractAgentTest() {
           "id": "urn:uuid:${UUID.randomUUID()}",
           "issuer": "${issuerDid.uri}",
           "issuanceDate" : "${dateTimeNow()}",
-          "expires": "${dateTimeNow().plusYears(10)}",
+          "expirationDate": "${dateTimeNow().plusYears(10)}",
           "credentialSubject": {
             "id": "${holderDid.uri}",
             "givenName": "Malathi",
@@ -59,16 +58,39 @@ class CredentialDataMergeTest: AbstractAgentTest() {
           }
         }""".decodeJson()
 
-        val vc = W3CVerifiableCredential
-            .fromPath("/example/vc/malathi-passport-vc.json")
-            .merge(mergeData)
-
+        val vc = W3CVerifiableCredential.fromTemplate("/nessus/vc-templates/Passport.json", mergeData)
         log.info { "Merged: ${vc.encodeJson(true)}" }
 
-        try {
-            W3CVerifiableValidator.validateSubject(vc)
-        } catch (e: IllegalStateException) {
-            e.message shouldBe "Validation errors"
-        }
+        val validationResult = W3CVerifiableCredentialValidator.validate(vc, false)
+        validationResult.outcome shouldBe false
+        "${validationResult.errors[0]}" shouldContain "credentialSubject.familyName: is missing but it is required"
+    }
+
+
+    @Test
+    fun testInvalidCredential() {
+
+        val issuerDid = didService.createDid(DidMethod.KEY)
+        val holderDid = didService.createDid(DidMethod.KEY)
+
+        // default issuanceDate
+        val mergeData = """{
+          "id": "urn:uuid:${UUID.randomUUID()}",
+          "issuer": "${issuerDid.uri}",
+          "expirationDate": "bad data",
+          "credentialSubject": {
+            "id": "${holderDid.uri}",
+            "givenName": "Malathi",
+            "familyName": "Hamal",
+            "citizenship": "US"
+          }
+        }""".decodeJson()
+
+        val vc = W3CVerifiableCredential.fromTemplate("/nessus/vc-templates/Passport.json", mergeData)
+        log.info { "Merged: ${vc.encodeJson(true)}" }
+
+        val validationResult = W3CVerifiableCredentialValidator.validate(vc, false)
+        validationResult.outcome shouldBe false
+        "${validationResult.errors[0]}" shouldContain "Bad 'expirationDate'"
     }
 }

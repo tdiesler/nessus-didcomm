@@ -20,7 +20,6 @@
 package org.nessus.didcomm.did
 
 import id.walt.model.DidUrl
-import org.nessus.didcomm.service.DidPeerNumalgo
 import org.nessus.didcomm.service.DidService
 
 enum class DidMethod(val value: String) {
@@ -105,8 +104,8 @@ class DidPeer(id: String, method: DidMethod, verkey: String): Did(id, method, ve
     }
 
     val numalgo get() = when {
-        uri.startsWith("did:peer:0") -> DidPeerNumalgo.NUMALGO_0
-        uri.startsWith("did:peer:2") -> DidPeerNumalgo.NUMALGO_2
+        uri.startsWith("did:peer:0") -> 0
+        uri.startsWith("did:peer:2") -> 2
         else -> throw IllegalStateException("Unsupported numalgo: $uri")
     }
 }

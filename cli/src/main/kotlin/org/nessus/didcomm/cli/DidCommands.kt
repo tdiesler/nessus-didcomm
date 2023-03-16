@@ -4,7 +4,6 @@ import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.DidCreateOptions
-import org.nessus.didcomm.service.DidPeerNumalgo
 import org.nessus.didcomm.service.DidPeerOptions
 import org.nessus.didcomm.util.encodeJson
 import picocli.CommandLine.Command
@@ -71,7 +70,7 @@ class DidCreateCommand: AbstractDidCommand() {
         val didMethod = DidMethod.fromValue(methodName)
         val didOptions = when (didMethod) {
             DidMethod.PEER -> {
-                val numalgo = didParams["algo"]?.let { DidPeerNumalgo.fromValue(it.toInt()) } ?: DidPeerNumalgo.NUMALGO_0
+                val numalgo = didParams["algo"]?.toInt() ?: 0
                 val endpointUrl = didParams["url"] ?: ctxWallet.endpointUrl
                 DidPeerOptions(numalgo, endpointUrl)
             }

@@ -70,20 +70,8 @@ typealias WaltIdDid = id.walt.model.Did
 /** Abstract Did create options */
 open class DidCreateOptions
 
-enum class DidPeerNumalgo(val algo: Int) {
-    NUMALGO_0(0),
-    NUMALGO_2(2);
-    companion object {
-        fun fromValue(algo: Int) = when(algo) {
-            0 -> NUMALGO_0
-            2 -> NUMALGO_2
-            else -> throw IllegalArgumentException("Unsupported numalgo: $algo")
-        }
-    }
-}
-
-class DidPeerOptions(
-    val numalgo: DidPeerNumalgo,
+data class DidPeerOptions(
+    val numalgo: Int? = null,
     val serviceEndpoint: String? = null,
 ): DidCreateOptions()
 
@@ -176,6 +164,8 @@ object DidService: ObjectService<DidService>() {
         val log = KotlinLogging.logger {}
 
         override fun createDid(keyAlias: String?, options: DidCreateOptions?): Did {
+            require(options == null) { "Options not supported for did:key: $options" }
+
             val nessusKeyAlgorithm = DEFAULT_KEY_ALGORITHM
             val waltKeyAlgorithm = nessusKeyAlgorithm.toWaltIdKeyAlgorithm()
             val keyId = keyAlias?.let { KeyId(it) } ?: cryptoService.generateKey(waltKeyAlgorithm)
@@ -249,10 +239,11 @@ object DidService: ObjectService<DidService>() {
                 return Did(identifier, DidMethod.PEER, publicSigningKey)
             }
 
-            val peerOptions = options as? DidPeerOptions ?: DidPeerOptions(DidPeerNumalgo.NUMALGO_0)
+            val peerOptions = options as? DidPeerOptions ?: DidPeerOptions(0)
 
             val (did, didDoc) = when(peerOptions.numalgo) {
-                DidPeerNumalgo.NUMALGO_0 -> {
+
+                0 -> {
                     val did = didUriToDid(createPeerDIDNumalgo0(signingKey))
                     // Note, PeerDidDoc does not contain an encryption key
                     // val didDoc = WaltIdDidDoc.decode(resolvePeerDID(did.uri))
@@ -272,7 +263,8 @@ object DidService: ObjectService<DidService>() {
                     )
                     Pair(did, didDoc)
                 }
-                DidPeerNumalgo.NUMALGO_2 -> {
+
+                2 -> {
                     val service = peerOptions.serviceEndpoint?.let { endpointUrl ->
                         """
                         { 
@@ -285,7 +277,10 @@ object DidService: ObjectService<DidService>() {
                     val didDoc = WaltIdDidDoc.decode(resolvePeerDID(did.uri))
                     Pair(did, didDoc)
                 }
+
+                else -> throw IllegalArgumentException("Unsupported numalgo: ${peerOptions.numalgo}")
             }
+
             check(isPeerDID(did.uri)) { "Not a did:peer: ${did.uri}" }
             checkNotNull(didDoc) { "Cannot resolve: ${did.uri}" }
 
@@ -340,6 +335,7 @@ object DidService: ObjectService<DidService>() {
     object DidSovPlugin: DidServicePlugin {
 
         override fun createDid(keyAlias: String?, options: DidCreateOptions?): Did {
+            require(options == null) { "Options not supported for did:sov: $options" }
 
             val nessusKeyAlgorithm = DEFAULT_KEY_ALGORITHM
             val waltKeyAlgorithm = nessusKeyAlgorithm.toWaltIdKeyAlgorithm()
