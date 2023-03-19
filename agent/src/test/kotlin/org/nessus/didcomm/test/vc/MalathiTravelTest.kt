@@ -1,9 +1,11 @@
 package org.nessus.didcomm.test.vc
 
 import id.walt.auditor.VerificationPolicy
+import id.walt.common.prettyPrint
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
 import io.kotest.matchers.shouldBe
+import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.Wallet
@@ -11,8 +13,8 @@ import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
-import org.nessus.didcomm.util.toUnionMap
 import org.nessus.didcomm.util.trimJson
+import org.nessus.didcomm.util.unionMap
 import org.nessus.didcomm.w3c.W3CVerifiableCredential
 import java.util.UUID
 
@@ -36,6 +38,7 @@ import java.util.UUID
  * https://www.w3.org/TR/vc-use-cases/#international-travel-with-minor-and-upgrade
  */
 class MalathiTravelTest: AbstractAgentTest() {
+    private val log = KotlinLogging.logger {}
 
     @Test
     fun travelWithMinor() {
@@ -70,7 +73,7 @@ class MalathiTravelTest: AbstractAgentTest() {
 
         // Hospital issues birth certificate
 
-        issueBirthCertificate(hospitalDid, anand, anandDid, """
+        issueBirthCertificate(hospitalDid, malathi, anandDid, """
             {
               "givenName": "Anand",
               "familyName": "Hamal",
@@ -92,8 +95,9 @@ class MalathiTravelTest: AbstractAgentTest() {
 
         // Government issues marriage certificate
 
-        val subjectData = """
+        issueMarriageCertificate(govmentDid, malathi, malathiDid, """
             {
+              "id": "${malathiDid.uri}",
               "spouse": [
                 {
                   "id": "${malathiDid.uri}",
@@ -107,16 +111,14 @@ class MalathiTravelTest: AbstractAgentTest() {
                 }
               ]
             }
-            """.decodeJson()
-
-        issueMarriageCertificate(govmentDid, malathi, malathiDid, subjectData)
-        issueMarriageCertificate(govmentDid, rajesh, rajeshDid, subjectData)
+            """.decodeJson())
 
         // Rajesh issues permission to travel
 
-        issuePermissionToTravel(rajeshDid, malathi, malathiDid, """
+        issueTravelPermission(rajeshDid, malathi, malathiDid, """
             {
-                "agent": "${anandDid.uri}",
+                "id": "${anandDid.uri}",
+                "guardian": "${malathiDid.uri}",
                 "location": {
                     "address": {
                         "addressCountry": "CA"
@@ -131,7 +133,7 @@ class MalathiTravelTest: AbstractAgentTest() {
 
         // Malathi presents Anand's Birth Certificate at the Airport
 
-        verifyBirthCertificate(anand, anandDid, airportDid)
+        verifyBirthCertificate(malathi, malathiDid, airportDid)
 
         // Malathi presents her Marriage Certificate at the Airport
 
@@ -151,8 +153,6 @@ class MalathiTravelTest: AbstractAgentTest() {
             "expirationDate": "${dateTimeNow().plusYears(10)}",
             "credentialSubject": {
                 "id": "${holderDid.uri}",
-                "givenName": "",
-                "familyName": "",
                 "citizenship": "US"
             }
         }""".decodeJson()
@@ -161,10 +161,10 @@ class MalathiTravelTest: AbstractAgentTest() {
             "credentialSubject": ${subject.encodeJson()}
         }""".decodeJson()
 
-        val mergedData = credentialTemplate.toUnionMap(subjectTemplate)
+        val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("/nessus/vc-templates/Passport.json", mergedData)
+            .fromTemplate("Passport", mergedData)
             .validate()
 
         val proofConfig = ProofConfig(
@@ -179,17 +179,14 @@ class MalathiTravelTest: AbstractAgentTest() {
         return signedVc
     }
 
-    private fun issueBirthCertificate(issuerDid: Did, holder: Wallet, holderDid: Did, subject: Map<String, Any>): W3CVerifiableCredential {
+    private fun issueBirthCertificate(issuerDid: Did, holder: Wallet, subjectDid: Did, subject: Map<String, Any>): W3CVerifiableCredential {
 
         val credentialTemplate = """{
             "id": "urn:uuid:${UUID.randomUUID()}",
             "issuer": "${issuerDid.uri}",
             "issuanceDate": "${dateTimeNow()}",
             "credentialSubject": {
-                "id": "${holderDid.uri}",
-                "givenName": "",
-                "familyName": "",
-                "birthDate": "",
+                "id": "${subjectDid.uri}",
                 "birthPlace": {
                     "type": "Hospital",
                     "address": {
@@ -200,19 +197,7 @@ class MalathiTravelTest: AbstractAgentTest() {
                         "streetAddress": "123 Main St."
                     }
                 },
-                "citizenship": "US",
-                "parent": [
-                    {
-                        "id": "",
-                        "givenName": "",
-                        "familyName": ""
-                    },
-                    {
-                        "id": "",
-                        "givenName": "",
-                        "familyName": ""
-                    }
-                ]
+                "citizenship": "US"
             }
         }""".decodeJson()
 
@@ -220,15 +205,15 @@ class MalathiTravelTest: AbstractAgentTest() {
             "credentialSubject": ${subject.encodeJson()}
         }""".decodeJson()
 
-        val mergedData = credentialTemplate.toUnionMap(subjectTemplate)
+        val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("/nessus/vc-templates/BirthCertificate.json", mergedData)
+            .fromTemplate("BirthCertificate", mergedData)
             .validate()
 
         val proofConfig = ProofConfig(
             issuerDid = issuerDid.uri,
-            subjectDid = holderDid.uri,
+            subjectDid = subjectDid.uri,
             proofPurpose = "assertionMethod",
             proofType = ProofType.LD_PROOF)
 
@@ -243,31 +228,17 @@ class MalathiTravelTest: AbstractAgentTest() {
         val credentialTemplate = """{
             "id": "urn:uuid:${UUID.randomUUID()}",
             "issuer": "${issuerDid.uri}",
-            "issuanceDate": "${dateTimeNow()}",
-            "credentialSubject": {
-                "spouse": [
-                    {
-                        "id": "",
-                        "givenName": "",
-                        "familyName": ""
-                    },
-                    {
-                        "id": "",
-                        "givenName": "",
-                        "familyName": ""
-                    }
-                ]
-            }
+            "issuanceDate": "${dateTimeNow()}"
         }""".decodeJson()
 
         val subjectTemplate = """{
             "credentialSubject": ${subject.encodeJson()}
         }""".decodeJson()
 
-        val mergedData = credentialTemplate.toUnionMap(subjectTemplate)
+        val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("/nessus/vc-templates/MarriageCertificate.json", mergedData)
+            .fromTemplate("MarriageCertificate", mergedData)
             .validate()
 
         val proofConfig = ProofConfig(
@@ -283,7 +254,7 @@ class MalathiTravelTest: AbstractAgentTest() {
     }
 
 
-    private fun issuePermissionToTravel(issuerDid: Did, holder: Wallet, holderDid: Did, subject: Map<String, Any>): W3CVerifiableCredential {
+    private fun issueTravelPermission(issuerDid: Did, holder: Wallet, holderDid: Did, subject: Map<String, Any>): W3CVerifiableCredential {
 
         val credentialTemplate = """{
             "id": "urn:uuid:${UUID.randomUUID()}",
@@ -291,13 +262,8 @@ class MalathiTravelTest: AbstractAgentTest() {
             "issuanceDate": "${dateTimeNow()}",
             "expirationDate": "${dateTimeNow().plusWeeks(8)}",
             "credentialSubject": {
-                "agent": "",
-                "participant": "${holderDid.uri}",
                 "location": {
-                    "type": "Country",
-                    "address": {
-                        "addressCountry": ""
-                    }
+                    "type": "Country"
                 }
             }
         }""".decodeJson()
@@ -306,10 +272,10 @@ class MalathiTravelTest: AbstractAgentTest() {
             "credentialSubject": ${subject.encodeJson()}
         }""".decodeJson()
 
-        val mergedData = credentialTemplate.toUnionMap(subjectTemplate)
+        val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("/nessus/vc-templates/TravelPermission.json", mergedData)
+            .fromTemplate("TravelPermission", mergedData)
             .validate()
 
         val proofConfig = ProofConfig(
@@ -353,64 +319,77 @@ class MalathiTravelTest: AbstractAgentTest() {
 
     private fun verifyTravelPermission(malathi: Wallet, rajesh: Wallet, anand: Wallet, verifierDid: Did) {
 
-        val malathiPassport = getVerifiableCredential(malathi, "Passport")
-        val marriageCertificate = getVerifiableCredential(malathi, "MarriageCertificate")
-        val travelPermission = getVerifiableCredential(malathi, "TravelPermission")
+        val malathiPassportVc = getVerifiableCredential(malathi, "Passport")
+        val marriageCertificateVc = getVerifiableCredential(malathi, "MarriageCertificate")
+        val travelPermissionVc = getVerifiableCredential(malathi, "TravelPermission")
         val malathiDid = malathi.dids.find { it.method == DidMethod.KEY } as Did
-        val malathiId = malathiPassport.credentialSubject.id.toString()
+        val malathiId = malathiPassportVc.credentialSubject.id.toString()
         malathiDid.uri shouldBe malathiId
 
-        val rajeshPassport = getVerifiableCredential(rajesh, "Passport")
+        val rajeshPassportVc = getVerifiableCredential(rajesh, "Passport")
         val rajeshDid = rajesh.dids.find { it.method == DidMethod.KEY } as Did
-        val rajeshId = rajeshPassport.credentialSubject.id.toString()
+        val rajeshId = rajeshPassportVc.credentialSubject.id.toString()
         rajeshDid.uri shouldBe rajeshId
 
-        val birthCertificate = getVerifiableCredential(anand, "BirthCertificate")
+        val birthCertificateVc = getVerifiableCredential(malathi, "BirthCertificate")
         val anandDid = anand.dids.find { it.method == DidMethod.KEY } as Did
-        val anandId = birthCertificate.credentialSubject.id.toString()
+        val anandId = birthCertificateVc.credentialSubject.id.toString()
         anandDid.uri shouldBe anandId
 
         // Verify that Malathi is the mother and Rajesh is the father of Anand
 
-        val birthCertificateVP = createVerifiablePresentation(anandDid, verifierDid, birthCertificate)
-        val birthCertificateResult = auditor.verify(birthCertificateVP, listOf(
+        val birthCertificateVp = createVerifiablePresentation(anandDid, verifierDid, birthCertificateVc)
+        val birthCertificateResult = auditor.verify(birthCertificateVp, listOf(
             policyService.getPolicy("JsonSchemaPolicy"),
             policyService.getPolicy("SignaturePolicy"),
             policyService.getPolicyWithJsonArg("DynamicPolicy", """
                 {
                     "input": { "motherId": "$malathiId", "fatherId": "$rajeshId" },
-                    "policy": "class:/rego/birth-certificate.rego"
+                    "policy": "class:nessus/rego/birth-certificate.rego"
                 }""".trimJson())))
 
         birthCertificateResult.outcome shouldBe true
 
         // Verify that Rajesh is married to Malathi
 
-        val marriageCertificateVP = createVerifiablePresentation(malathiDid, verifierDid, marriageCertificate)
-        val marriageCertificateResult = auditor.verify(marriageCertificateVP, listOf(
+        val marriageCertificateVp = createVerifiablePresentation(malathiDid, verifierDid, marriageCertificateVc)
+        val marriageCertificateResult = auditor.verify(marriageCertificateVp, listOf(
             policyService.getPolicy("JsonSchemaPolicy"),
             policyService.getPolicy("SignaturePolicy"),
             policyService.getPolicyWithJsonArg("DynamicPolicy", """
                 {
                     "input": { "firstId": "$malathiId", "secondId": "$rajeshId" },
-                    "policy": "class:/rego/marriage-certificate.rego"
+                    "policy": "class:nessus/rego/marriage-certificate.rego"
                 }""".trimJson())))
 
         marriageCertificateResult.outcome shouldBe true
 
         // Verify that Rajesh has given permission for Anand to travel with Malathi
 
-        val travelPermissionVP = createVerifiablePresentation(malathiDid, verifierDid, travelPermission)
+        val travelPermissionVP = createVerifiablePresentation(malathiDid, verifierDid, travelPermissionVc)
         val travelPermissionResult = auditor.verify(travelPermissionVP, listOf(
             policyService.getPolicy("JsonSchemaPolicy"),
             policyService.getPolicy("SignaturePolicy"),
             policyService.getPolicyWithJsonArg("DynamicPolicy", """
                 {
-                    "input": { "agentId": "$anandId", "participantId": "$malathiId" },
-                    "policy": "class:/rego/travel-permission.rego"
+                    "input": { "minorId": "$anandId", "guardianId": "$malathiId" },
+                    "policy": "class:nessus/rego/travel-permission.rego"
                 }""".trimJson())))
 
         travelPermissionResult.outcome shouldBe true
+
+        val combinedVp = custodian.createPresentation(
+            vcs = listOf(malathiPassportVc, marriageCertificateVc, birthCertificateVc, travelPermissionVc).toTypedArray(),
+            holderDid = malathiDid.uri,
+            verifierDid = verifierDid.uri)
+
+        val combinedResult = auditor.verify(combinedVp, listOf(
+            policyService.getPolicy("JsonSchemaPolicy"),
+            policyService.getPolicy("SignaturePolicy")))
+
+        combinedResult.outcome shouldBe true
+
+        log.info { combinedVp.prettyPrint() }
     }
 
     private fun getVerifiableCredential(holder: Wallet, type: String): W3CVerifiableCredential {

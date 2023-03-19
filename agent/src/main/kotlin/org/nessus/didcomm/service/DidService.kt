@@ -58,7 +58,9 @@ import org.nessus.didcomm.did.DidDocV2
 import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.did.DidPeer
 import org.nessus.didcomm.did.KeyAlgorithm
+import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeBase64
+import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.trimJson
 
 
@@ -68,7 +70,9 @@ typealias WaltIdDidDoc = id.walt.model.Did
 typealias WaltIdDid = id.walt.model.Did
 
 /** Abstract Did create options */
-open class DidCreateOptions
+open class DidCreateOptions {
+    override fun toString() = "DidCreateOptions()"
+}
 
 data class DidPeerOptions(
     val numalgo: Int? = null,
@@ -259,7 +263,7 @@ object DidService: ObjectService<DidService>() {
                         verificationMethod = verificationMethods,
                         authentication = listOf(VerificationMethod.Reference(authenticationId)),
                         keyAgreement = listOf(VerificationMethod.Reference(keyAgreementId)),
-                        service = null
+                        serviceEndpoint = null
                     )
                     Pair(did, didDoc)
                 }
@@ -274,7 +278,7 @@ object DidService: ObjectService<DidService>() {
                         """.trimJson()
                     }
                     val did = didUriToDid(createPeerDIDNumalgo2(listOf(encryptionKey), listOf(signingKey), service))
-                    val didDoc = WaltIdDidDoc.decode(resolvePeerDID(did.uri))
+                    val didDoc = WaltIdDidDoc.decode(fixupDidDoc(resolvePeerDID(did.uri)))
                     Pair(did, didDoc)
                 }
 
@@ -284,8 +288,9 @@ object DidService: ObjectService<DidService>() {
             check(isPeerDID(did.uri)) { "Not a did:peer: ${did.uri}" }
             checkNotNull(didDoc) { "Cannot resolve: ${did.uri}" }
 
-            WaltIdDidService.storeDid(did.uri, didDoc.encodePretty())
-            appendKeyStoreAliases(keyId, did, DidDocV2.fromWaltIdDidDoc(didDoc))
+            val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
+            WaltIdDidService.storeDid(did.uri, didDocV2.encodeJson(true))
+            appendKeyStoreAliases(keyId, did, didDocV2)
 
             return did
         }
@@ -303,7 +308,7 @@ object DidService: ObjectService<DidService>() {
         }
 
         override fun resolveDidDoc(uri: String): WaltIdDidDoc? {
-            val peerDidDoc = resolvePeerDID(uri)
+            val peerDidDoc = fixupDidDoc(resolvePeerDID(uri))
             return WaltIdDidDoc.decode(peerDidDoc)
         }
 
@@ -318,6 +323,16 @@ object DidService: ObjectService<DidService>() {
             appendKeyStoreAliases(keyId, did, DidDocV2.fromWaltIdDidDoc(didDoc))
 
             return keyId
+        }
+
+        // Did Document @context not optional in WaltId
+        // https://github.com/walt-id/waltid-ssikit/issues/251
+        private fun fixupDidDoc(didDoc: String): String {
+            val decoded = didDoc.decodeJson().toMutableMap()
+            if ("@context" !in decoded) {
+                decoded["@context"] = DID_CONTEXT_URL
+            }
+            return decoded.encodeJson()
         }
 
         private fun resolveFromKey(key: Key): WaltIdDid {
@@ -403,9 +418,9 @@ object DidService: ObjectService<DidService>() {
     }
 
     private fun addWalletServiceEndpoint(did: WaltIdDid) {
-        if (did.service == null || did.service?.isEmpty() == true) {
+        if (did.serviceEndpoint == null || did.serviceEndpoint?.isEmpty() == true) {
             modelService.findWalletByDid(did.id)?.also {
-                did.service = listOf(
+                did.serviceEndpoint = listOf(
                     ServiceEndpoint(
                         id = "${did.id}#didcomm-1",
                         type = "wallet-endpoint",
@@ -451,7 +466,7 @@ object DidService: ObjectService<DidService>() {
             verificationMethod = verificationMethods,
             authentication = authenticationRef,
             keyAgreement = keyAgreementRefs,
-            service = null
+            serviceEndpoint = null
         )
     }
 

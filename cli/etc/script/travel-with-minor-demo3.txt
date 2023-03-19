@@ -1,0 +1,9 @@
+
+# Present ##############################################################################################################
+
+vc present -h Malathi.Did -y Airport.Did --vc Malathi.Passport.Vc
+vc present -h Malathi.Did -y Airport.Did --vc Malathi.BirthCertificate.Vc
+vc present -h Malathi.Did -y Airport.Did --vc Malathi.MarriageCertificate.Vc
+vc present -h Malathi.Did -y Airport.Did --vc Malathi.TravelPermission.Vc
+
+vc present -h Malathi.Did -y Airport.Did --vc Malathi.Passport.Vc --vc Malathi.BirthCertificate.Vc --vc Malathi.MarriageCertificate.Vc --vc Malathi.TravelPermission.Vc

@@ -23,7 +23,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         val verifierDid = didService.createDid(DidMethod.KEY)
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("/nessus/vc-templates/VerifiableId.json",
+            .fromTemplate("VerifiableId",
                 """{
                     "issuer": "${issuerDid.uri}",
                     "credentialSubject": {
@@ -62,7 +62,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // issue VC
         val vc = W3CVerifiableCredential
-            .fromTemplate("/nessus/vc-templates/VerifiableId.json",
+            .fromTemplate("VerifiableId",
                 """{
                     "issuer": "${issuerDid.uri}",
                     "credentialSubject": {
@@ -112,7 +112,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         }""".decodeJson()
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("/nessus/vc-templates/VerifiableId.json", mergeData)
+            .fromTemplate("VerifiableId", mergeData)
             .validate()
 
         val config = ProofConfig(

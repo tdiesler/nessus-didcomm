@@ -81,7 +81,7 @@ open class Did(id: String, val method: DidMethod, val verkey: String) {
     }
 
     fun shortString(): String {
-        return "$uri [verkey=$verkey]"
+        return uri
     }
 
     override fun toString(): String {

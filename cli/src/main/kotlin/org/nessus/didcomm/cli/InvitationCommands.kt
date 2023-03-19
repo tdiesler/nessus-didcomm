@@ -44,9 +44,9 @@ class InvitationListCommand: AbstractInvitationCommand() {
         val ctxWallet = getContextWallet(walletAlias)
         val invis = findInvitations(ctxWallet, alias)
         if (verbose)
-            echo(invis.map { it.encodeJson(true) })
+            echoList(invis.map { it.encodeJson(true) })
         else
-            echo(invis.map { it.shortString() })
+            echoList(invis.map { it.shortString() })
         return 0
     }
 }

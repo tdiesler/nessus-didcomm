@@ -138,10 +138,10 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-                "agent": {
+                "id": {
                     "type": "string"
                 },
-                "participant": {
+                "guardian": {
                     "type": "string"
                 },
                 "location": {
@@ -149,9 +149,9 @@
                 }
             },
             "required": [
-                "agent",
-                "location",
-                "participant"
+                "id",
+                "guardian",
+                "location"
             ],
             "title": "TravelPermission"
         },

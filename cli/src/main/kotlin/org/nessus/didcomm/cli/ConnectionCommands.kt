@@ -45,9 +45,9 @@ class ConnectionListCommand: AbstractConnectionCommand() {
         val ctxWallet = getContextWallet(walletAlias)
         val pcons = findConnections(ctxWallet, alias)
         if (verbose)
-            echo(pcons.map { it.encodeJson(true) })
+            echoList(pcons.map { it.encodeJson(true) })
         else
-            echo(pcons.map { it.shortString() })
+            echoList(pcons.map { it.shortString() })
         return 0
     }
 }

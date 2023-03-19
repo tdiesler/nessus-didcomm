@@ -19,6 +19,9 @@
  */
 package org.nessus.didcomm.cli
 
+import id.walt.auditor.Auditor
+import id.walt.common.resolveContent
+import id.walt.custodian.Custodian
 import mu.KotlinLogging
 import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.AgentType
@@ -30,6 +33,8 @@ import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.NessusPolicyRegistryService
 import org.nessus.didcomm.service.WalletService
+import org.nessus.didcomm.w3c.NessusSignatoryService
+import org.nessus.didcomm.w3c.W3CVerifiableCredential
 import picocli.CommandLine
 import java.io.PrintStream
 import java.net.URL
@@ -43,11 +48,14 @@ abstract class AbstractBaseCommand: Callable<Int> {
         var out: PrintStream = System.out
     }
 
+    val auditor get() = Auditor.getService()
     val cliService get() = CLIService.getService()
+    val custodian get() = Custodian.getService()
     val didService get() = DidService.getService()
     val endpointService get() = EndpointService.getService()
     val modelService get() = ModelService.getService()
     val policyService get() = NessusPolicyRegistryService.getService()
+    val signatory get() = NessusSignatoryService.getService()
     val walletService get() = WalletService.getService()
 
     override fun call(): Int {
@@ -60,11 +68,11 @@ abstract class AbstractBaseCommand: Callable<Int> {
         out.println(msg)
     }
 
-    fun echo(result: List<Any>) {
+    fun echoList(result: List<Any>) {
         result.forEach { echo(it) }
     }
 
-    fun echo(message: String, result: List<Any>) {
+    fun echoList(message: String, result: List<Any>) {
         log.info { message }
         out.print(message)
         result.forEach { echo(it) }
@@ -81,8 +89,8 @@ abstract class AbstractBaseCommand: Callable<Int> {
                     val eps = EndpointSpec("", url.host, url.port)
                     check(cliService.attachmentKeys.any {
                         val result = runCatching { EndpointSpec.valueOf(it.name) }
-                        val keyHost = result.getOrNull()?.host
                         val keyPort = result.getOrNull()?.port
+                        // val keyHost = result.getOrNull()?.host
                         // [TODO] verify endpoint type/host
                         result.isSuccess && eps.port == keyPort
                     }) { "No running endpoint for: ${it.endpointUrl}"}
@@ -103,7 +111,7 @@ abstract class AbstractBaseCommand: Callable<Int> {
         return did
     }
 
-    fun getContextInvitation(walletAlias: String? = null, invAlias: String? = null): Invitation {
+    fun getContextInvitation(invAlias: String? = null): Invitation {
         val invitation = cliService.findContextInvitation(invAlias)
         checkNotNull(invitation) { "No invitation" }
         return invitation
@@ -116,5 +124,67 @@ abstract class AbstractBaseCommand: Callable<Int> {
             else -> "Cannot find wallet for: $alias"
         }}
         return wallet
+    }
+
+    fun getWalletFromAlias(alias: String?): Wallet {
+        return alias?.toIntOrNull()
+            ?.let { idx -> modelService.wallets[idx] }
+            ?: getContextWallet(alias)
+    }
+
+    fun findWalletAndDidFromAlias(walletAlias: String?, alias: String?): Pair<Wallet?, Did?> {
+
+        // Last Did of the context wallet
+        if (alias == null) {
+            return getContextWallet(walletAlias).let { w -> Pair(w, w.dids.lastOrNull()) }
+        }
+
+        // Did alias as a reference to a context variable
+        cliService.getVar(alias)?.also {
+            return findWalletAndDidFromAlias(walletAlias, it)
+        }
+
+        // Did alias as an index into the context wallet did list
+        if (alias.toIntOrNull() != null) {
+            val idx = alias.toInt()
+            return getContextWallet(walletAlias).let { w -> Pair(w, w.dids[idx]) }
+        }
+
+        // Find did for the given wallet alias
+        if (walletAlias != null) {
+            return getContextWallet(walletAlias).let { w ->
+                Pair(w, w.findDidsByAlias(alias).firstOrNull())
+            }
+        }
+
+        // Did alias as fuzzy uri selector for all wallet dids
+        modelService.wallets
+            .map { w -> Pair(w, w.findDidsByAlias(alias).firstOrNull()) }
+            .firstOrNull { p -> p.second != null }
+            ?.also { return it }
+
+        return Pair(null, null)
+    }
+
+    fun getVcpFromAlias(holder: Wallet, alias: String): W3CVerifiableCredential? {
+
+        // Vc alias as a reference to a context variable
+        cliService.getVar(alias)?.also {
+            return holder.getVerifiableCredential(it)
+        }
+
+        // Vc alias as an index into the context wallet vc list
+        if (alias.toIntOrNull() != null) {
+            val idx = alias.toInt()
+            return holder.verifiableCredentials[idx]
+        }
+
+        // Vc alias as fuzzy id selector
+        holder.findVerifiableCredential { vc -> vc.id.toString().startsWith(alias) }
+            ?.also { return it }
+
+        // Vc alias as fileUrl or content
+        return kotlin.runCatching { resolveContent(alias) }
+            .getOrNull()?.let { W3CVerifiableCredential.fromJson(it) }
     }
 }

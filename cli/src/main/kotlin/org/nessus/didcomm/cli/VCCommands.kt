@@ -20,18 +20,23 @@
 
 package org.nessus.didcomm.cli
 
-import id.walt.auditor.Auditor
-import id.walt.custodian.Custodian
+import id.walt.common.resolveContent
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
-import id.walt.signatory.Signatory
 import org.nessus.didcomm.util.dateTimeNow
+import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.encodeJson
+import org.nessus.didcomm.util.trimJson
+import org.nessus.didcomm.util.unionMap
+import org.nessus.didcomm.w3c.W3CVerifiableCredential
+import org.nessus.didcomm.w3c.W3CVerifiableCredentialValidator.validateCredential
+import picocli.CommandLine
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
-import picocli.CommandLine.Parameters
-import java.io.File
-import java.time.format.DateTimeFormatter
+import java.nio.file.Path
 import java.util.Collections.max
+import java.util.UUID
+import kotlin.io.path.writeText
 
 @Command(
     name = "vc",
@@ -47,13 +52,54 @@ import java.util.Collections.max
 class VCCommands: AbstractBaseCommand() {
 
     @Command(name = "list", description = ["List verifiable credentials"])
-    fun listVerifiableCredentials() {
-        echo("\nListing verifiable credentials...")
-        val vcs = Custodian.getService().listCredentials()
-        if (vcs.isNotEmpty()) {
-            echo()
-            vcs.forEachIndexed { index, vc -> echo("- ${index + 1}: $vc") }
+    fun listVerifiableCredentials(
+
+        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        walletAlias: String?,
+
+        @Option(names = ["--vc"], paramLabel = "vc", description = ["Select Verifiable Credentials"])
+        vcOpt: Boolean?,
+
+        @Option(names = ["--vp"], paramLabel = "vp", description = ["Select Verifiable Presentations"])
+        vpOpt: Boolean?,
+    ) {
+        val sortedVcps = sortedVcps(walletAlias, vcOpt, vpOpt)
+        sortedVcps.forEachIndexed { idx, vcp ->
+            echo("[$idx] - ${vcp.types} ${vcp.id}")
         }
+    }
+
+    @Command(name = "show", description = ["Show a verifiable credential"])
+    fun showVerifiableCredential(
+
+        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        walletAlias: String?,
+
+        @Option(names = ["--vc"], paramLabel = "vc", description = ["Select Verifiable Credentials"])
+        vcOpt: Boolean?,
+
+        @Option(names = ["--vp"], paramLabel = "vp", description = ["Select Verifiable Presentations"])
+        vpOpt: Boolean?,
+
+        @CommandLine.Parameters(description = ["The credential alias"])
+        alias: String,
+    ) {
+        val sortedVcps = sortedVcps(walletAlias, vcOpt, vpOpt)
+        val predicate = { vc: W3CVerifiableCredential -> vc.id.toString().lowercase().startsWith(alias.lowercase()) }
+        val vcp = alias.toIntOrNull()
+            ?. let { idx -> sortedVcps[idx] }
+            ?: let { sortedVcps.firstOrNull { vcp -> predicate(vcp) }}
+        vcp?.also {
+            echo()
+            echo(vcp.encodeJson(true))
+        }
+    }
+
+    private fun sortedVcps(walletAlias: String?, vcOpt: Boolean?, vpOpt: Boolean?): List<W3CVerifiableCredential> {
+        val ctxWallet = getContextWallet(walletAlias)
+        val vcs = ctxWallet.verifiableCredentials.filter { it.isVerifiableCredential }
+        val vps = ctxWallet.verifiableCredentials.filter { it.isVerifiablePresentation }
+        return vcs.filter { vcOpt == null || vcOpt } + vps.filter { vpOpt == null || vpOpt }
     }
 }
 
@@ -65,11 +111,17 @@ class IssueVerifiableCredential: AbstractBaseCommand() {
     @Option(names = ["-t", "--template"], required = true, description = ["Credential template"])
     var template: String? = null
 
-    @Option(names = ["-i", "--issuer"], required = true, paramLabel = "Did", description = ["DID of the issuer (associated with signing)"])
-    var issuerDid: String? = null
+    @Option(names = ["-i", "--issuer"], required = true, paramLabel = "Did", description = ["DID of the issuer"])
+    var issuerAlias: String? = null
 
-    @Option(names = ["-s", "--subject"], required = true, paramLabel = "Did", description = ["DID of the subject (receiver of the credential)"])
-    var subjectDid: String? = null
+    @Option(names = ["-s", "--subject"], required = true, paramLabel = "Did", description = ["DID of the subject"])
+    var subjectAlias: String? = null
+
+    @Option(names = ["-h", "--holder"], paramLabel = "Did", description = ["DID of the holder"])
+    var holderAlias: String? = null
+
+    @Option(names = ["-d", "--data"], paramLabel = "json", description = ["Input data that overrides template values"])
+    var inputData: String? = null
 
     @Option(names = ["--proof-type"], paramLabel = "[JWT|LD_PROOF]", description = ["Proof type to be used"], defaultValue = "LD_PROOF")
     var proofType: ProofType? = ProofType.LD_PROOF
@@ -77,30 +129,83 @@ class IssueVerifiableCredential: AbstractBaseCommand() {
     @Option(names = ["--proof-purpose"], description = ["Proof purpose to be used"], defaultValue = "assertionMethod")
     var proofPurpose: String = "assertionMethod"
 
-    @Parameters(description = ["The vc output file"])
-    var dest: File? = null
+    @Option(names = ["-o", "--out"], paramLabel = "Path", description = ["The vc output path"])
+    var dest: Path? = null
+
+    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
 
     override fun call(): Int {
 
-        echo("Issuing a verifiable credential (using template $template)...")
+        if (holderAlias == null)
+            holderAlias = subjectAlias
 
-        val vcStr: String = Signatory.getService().issue(
-            template!!, ProofConfig(
-                issuerDid = issuerDid!!,
-                subjectDid = subjectDid,
-                proofType = proofType!!,
-                proofPurpose = proofPurpose,
-                creator = issuerDid
-            ))
+        val (issuer, issuerDid) = findWalletAndDidFromAlias(null, issuerAlias!!)
+        val (subject, subjectDid) = findWalletAndDidFromAlias(null, subjectAlias!!)
+        val (holder, holderDid) = findWalletAndDidFromAlias(null, holderAlias!!)
 
-        echo("\nResults: ...")
-        echo("Issuer $issuerDid issued a $template to Holder $subjectDid")
-        echo("Credential document (below, JSON):\n\n$vcStr")
+        checkNotNull(issuer) { "Cannot find issuer wallet" }
+        checkNotNull(subject) { "Cannot find subject wallet" }
+        checkNotNull(holder) { "Cannot find holder wallet" }
+
+        checkNotNull(issuerDid) { "Cannot find issuer Did: $issuerAlias" }
+        checkNotNull(subjectDid) { "Cannot find issuer Did: $subjectAlias" }
+        checkNotNull(holderDid) { "Cannot find issuer Did: $holderAlias" }
+
+        echo("")
+
+        // The raw template data with no values
+        val templateA = W3CVerifiableCredential.loadTemplate(template!!)
+
+        // Add values required by all templates
+        val templateB = templateA.unionMap("""{
+            "id": "urn:uuid:${UUID.randomUUID()}",
+            "issuer": "${issuerDid.uri}",
+            "issuanceDate": "${dateTimeNow()}",
+            "credentialSubject": {
+                "id": "${subjectDid.uri}"
+            }
+        }""".decodeJson())
+
+        // Merge with input data
+        val templateC = inputData?.let {
+            templateB.unionMap(inputData!!.decodeJson())
+        } ?: templateB
+
+        // Create the verifiable credential
+        val vc = W3CVerifiableCredential.fromJson(templateC)
+
+        // Validate the credential
+        val validationResults = validateCredential(vc, false)
+        if (validationResults.isFailure) {
+            validationResults.errors.forEach { echo(it) }
+            return 1
+        }
+
+        val proofConfig = ProofConfig(
+            issuerDid = issuerDid.uri,
+            subjectDid = holderDid.uri,
+            proofPurpose = proofPurpose,
+            proofType = proofType!!)
+
+        val signedVc = signatory.issue(vc, proofConfig, false)
+        holder.addVerifiableCredential(signedVc)
+
+        echo("Issuer '${issuer.name}' issued a '$template' to holder '${holder.name}'")
+
+        val varKey = "${holder.name}.${template}.Vc"
+        cliService.putVar("$varKey.json", signedVc.encodeJson())
+        cliService.putVar(varKey, "${signedVc.id}")
+        echo("$varKey=${signedVc.id}")
+
+        if (verbose)
+            echo("\n$varKey.json=${signedVc.encodeJson(true)}")
 
         dest?.run {
-            dest!!.writeText(vcStr)
+            dest!!.writeText(signedVc.encodeJson(true))
             echo("\nSaved credential to file: $dest")
         }
+
         return 0
     }
 }
@@ -111,10 +216,10 @@ class IssueVerifiableCredential: AbstractBaseCommand() {
 class PresentVerifiableCredential: AbstractBaseCommand() {
 
     @Option(names = ["-h", "--holder"], required = true, paramLabel = "Did", description = ["DID of the holder (owner of the VC)"])
-    var holderDid: String? = null
+    var holderAlias: String? = null
 
-    @Option(names = ["-v", "--verifier"], required = true, paramLabel = "Did", description = ["DID of the verifier (recipient of the VP)"])
-    var verifierDid: String? = null
+    @Option(names = ["-y", "--verifier"], required = true, paramLabel = "Did", description = ["DID of the verifier (recipient of the VP)"])
+    var verifierAlias: String? = null
 
     @Option(names = ["-d", "--domain"], description = ["Domain name to be used in the LD proof"])
     var domain: String? = null
@@ -122,35 +227,57 @@ class PresentVerifiableCredential: AbstractBaseCommand() {
     @Option(names = ["-c", "--challenge"], description = ["Challenge to be used in the LD proof"])
     var challenge: String? = null
 
-    @Parameters(index = "0", description = ["The vc input file"])
-    var src: File? = null
+    @Option(names = ["--vc"], required = true, arity = "1..*", paramLabel = "vcs", description = ["The vc input path/ref"])
+    var vcAliases: List<String> = mutableListOf()
 
-    @Parameters(index = "1", description = ["The vc output file"], arity = "0..1")
-    var dest: File? = null
+    @Option(names = ["-o", "--out"], paramLabel = "Path", description = ["The vp output path"])
+    var dest: Path? = null
+
+    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
 
     override fun call(): Int {
-        check(src!!.isFile) { "Not a file: $src" }
 
-        echo("Creating a verifiable presentation for DID $holderDid ...")
+        val (holder, holderDid) = findWalletAndDidFromAlias(null, holderAlias!!)
+        val (verifier, verifierDid) = findWalletAndDidFromAlias(null, verifierAlias!!)
 
-        val vpStr = Custodian.getService().createPresentation(
-            vcs=listOf(src!!.readText()),
-            holderDid=holderDid!!,
-            verifierDid=verifierDid!!,
-            domain=domain,
-            challenge=challenge)
+        checkNotNull(holder) { "Cannot find holder wallet" }
+        checkNotNull(holderDid) { "Cannot find holder Did: $holderAlias" }
 
-        echo("\nResults: ...")
-        echo("Verifiable presentation generated for holder DID: $holderDid")
-        echo("Verifiable presentation document (below, JSON):\n\n$vpStr")
+        checkNotNull(verifier) { "Cannot find verifier wallet" }
+        checkNotNull(verifierDid) { "Cannot find verifier Did: $verifierAlias" }
 
-        // Storing VP
-        if (dest == null) {
-            val pattern = DateTimeFormatter.ofPattern("yyMMddHHmmss")
-            dest = File("data/vc/presented/vp-${dateTimeNow().format(pattern)}.json")
+        val vcs = vcAliases.map {
+            val vc = getVcpFromAlias(holder, it)
+            checkNotNull(vc) { "Cannot find vc in holder wallet: $it" }
         }
-        dest!!.writeText(vpStr)
-        echo("\nVerifiable presentation was saved to file: $dest")
+
+        val vpJson = custodian.createPresentation(
+            vcs = vcs.map { it.encodeJson() },
+            holderDid = holderDid.uri,
+            verifierDid = verifierDid.uri,
+            challenge= challenge,
+            domain = domain).trimJson()
+
+        val vp = W3CVerifiableCredential.fromJson(vpJson)
+        verifier.addVerifiableCredential(vp)
+
+        val templates = vcs.map { it.types.last() }
+        echo("Holder '${holder.name}' presents $templates to verifier '${verifier.name}'")
+
+        val varKey = "${verifier.name}.${holder.name}.${templates.joinToString(separator = "")}.Vp"
+        cliService.putVar("$varKey.json", vpJson)
+        cliService.putVar(varKey, "${vp.id}")
+        echo("$varKey=${vp.id}")
+
+        if (verbose)
+            echo("\n$varKey.json=${vp.encodeJson(true)}")
+
+        dest?.run {
+            dest!!.writeText(vp.encodeJson(true))
+            echo("\nSaved presentation to file: $dest")
+        }
+
         return 0
     }
 }
@@ -163,12 +290,18 @@ class VerifyCredentialCommand: AbstractBaseCommand() {
     @Option(names = ["-p", "--policy"], arity = "1..*", paramLabel = "policy", description = ["Verification policies"])
     var policySpecs: List<String>? = null
 
-    @Parameters(index = "0", description = ["The vc/vp input file"])
-    var src: File? = null
+    @Option(names = ["--vc"], required = true, description = ["The vc/vp input path/ref"])
+    var src: String? = null
+
+    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+    var verbose: Boolean = false
 
     override fun call(): Int {
-        check(src!!.isFile) { "Not a file: ${src!!.absoluteFile}" }
         check(policySpecs!!.isNotEmpty()) { "No policies" }
+
+        val vcp = cliService.getVar(src!!)
+            ?.let { W3CVerifiableCredential.fromJson(it) }
+            ?: resolveContent(src!!).let { W3CVerifiableCredential.fromJson(it) }
 
         val policies = policySpecs!!.map {
             val toks = it.split('=')
@@ -179,11 +312,13 @@ class VerifyCredentialCommand: AbstractBaseCommand() {
             }
         }
 
-        echo("Verifying from: $src ...")
+        echo("Verifying: $src ...")
+        if (verbose)
+            echo("\n${vcp.encodeJson(true)}")
+        echo("")
 
-        val verificationResult = Auditor.getService().verify(src!!.readText(), policies)
+        val verificationResult = auditor.verify(vcp.encodeJson(), policies)
 
-        echo("\nResults ...")
         val maxIdLength = max(policies.map { it.id.length })
         verificationResult.policyResults.forEach { (policy, result) ->
             echo("${policy.padEnd(maxIdLength)} - $result")
@@ -203,9 +338,8 @@ class PolicyCommands: AbstractBaseCommand() {
 
     @Command(name = "list", description = ["List verification policies"])
     fun listVerificationPolicies() {
-        echo("\nListing verification policies ...")
         val maxIdLength = max(policyService.listPolicyInfo().map { (id, _, _, _) -> id.length })
-        policyService.listPolicyInfo().forEach { (id, description, argumentType, isMutable) ->
+        policyService.listPolicyInfo().sortedBy { it.id }.forEach { (id, description, argumentType, isMutable) ->
             echo("${if (isMutable) "*" else "-"} %s %s %s".format(
                 id.padEnd(maxIdLength),
                 description ?: "No description",
@@ -236,12 +370,36 @@ class TemplateCommands: AbstractBaseCommand() {
 
     @Command(name = "list", description = ["List credential templates"])
     fun listCredentialTemplates() {
-        echo("\nListing VC templates ...")
-        Signatory.getService().listTemplates().sortedBy { it.name }.forEach { tmpl ->
-            echo("${if (tmpl.mutable) "*" else "-"} ${tmpl.name}")
+        signatory.templates.forEachIndexed { idx, tmpl ->
+            echo("[$idx] ${if (tmpl.mutable) "*" else "-"} ${tmpl.name}")
         }
         echo()
         echo("(*) ... custom template")
+    }
+
+    @Command(name = "show", description = ["Show a credential template"])
+    fun showCredentialTemplate(
+        @CommandLine.Parameters(description = ["The template alias"])
+        alias: String,
+
+        @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+        verbose: Boolean
+    ) {
+        // Did alias as an index into the context wallet did list
+        if (alias.toIntOrNull() != null) {
+            val idx = alias.toInt()
+            signatory.templates[idx]
+        } else {
+            signatory.findTemplateByAlias(alias)
+        }?.also { tmpl ->
+            val vc = W3CVerifiableCredential.loadTemplate(tmpl.name, false)
+            if (verbose) {
+                echo(vc.encodeJson(true))
+            } else {
+                val subject = vc["credentialSubject"] as Map<*, *>
+                echo(subject.encodeJson(true))
+            }
+        }
     }
 
 //    @Command(name = "export", description = ["Export a credential template"])

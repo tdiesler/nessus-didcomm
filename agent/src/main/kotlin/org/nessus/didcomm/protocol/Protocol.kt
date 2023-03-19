@@ -24,7 +24,7 @@ import mu.KLogger
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.*
-import org.nessus.didcomm.util.toUnionMap
+import org.nessus.didcomm.util.unionMap
 
 abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
 
@@ -63,7 +63,7 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     fun dispatchTo(target: Wallet, headers: Map<String, Any?> = mapOf()): T {
 
         // Merge headers and create the follow-up message if needed
-        val effectiveHeaders = mex.last.headers.toUnionMap(headers).toMutableMap() as MutableMap<String, Any?>
+        val effectiveHeaders = mex.last.headers.unionMap(headers).toMutableMap()
         if (effectiveHeaders != mex.last.headers) {
             mex.addMessage(EndpointMessage(mex.last.body, effectiveHeaders.toMap()))
         }

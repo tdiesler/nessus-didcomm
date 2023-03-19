@@ -48,6 +48,11 @@
             <directory>etc/config</directory>
             <filtered>true</filtered>
         </fileSet>
+        <fileSet>
+            <outputDirectory>script</outputDirectory>
+            <directory>etc/script</directory>
+            <filtered>true</filtered>
+        </fileSet>
     </fileSets>
 
 </assembly>

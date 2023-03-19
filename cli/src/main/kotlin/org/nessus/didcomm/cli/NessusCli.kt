@@ -19,16 +19,22 @@
  */
 package org.nessus.didcomm.cli
 
+import id.walt.common.resolveContent
+import mu.KotlinLogging
 import org.fusesource.jansi.AnsiConsole
 import org.jline.console.CmdLine
 import org.jline.console.impl.SystemRegistryImpl
 import org.jline.console.impl.SystemRegistryImpl.UnknownCommandException
 import org.jline.keymap.KeyMap
 import org.jline.reader.Binding
+import org.jline.reader.EOFError
 import org.jline.reader.EndOfFileException
 import org.jline.reader.LineReader
 import org.jline.reader.LineReaderBuilder
 import org.jline.reader.MaskingCallback
+import org.jline.reader.ParsedLine
+import org.jline.reader.Parser
+import org.jline.reader.Parser.ParseContext
 import org.jline.reader.Reference
 import org.jline.reader.UserInterruptException
 import org.jline.reader.impl.DefaultParser
@@ -41,6 +47,7 @@ import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHME
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import picocli.CommandLine
 import picocli.CommandLine.Command
+import picocli.CommandLine.IExecutionExceptionHandler
 import picocli.CommandLine.ParameterException
 import picocli.shell.jline3.PicocliCommands
 import kotlin.system.exitProcess
@@ -60,22 +67,33 @@ import kotlin.system.exitProcess
         RFC0048TrustPingCommand::class,
         RFC0095BasicMessageCommand::class,
         RFC0434Commands::class,
+        RunScriptCommand::class,
+        VariableCommands::class,
         VCCommands::class,
         WalletCommands::class,
     ]
 )
 class NessusCli {
+    val log = KotlinLogging.logger { }
 
     companion object {
 
         @JvmStatic
         fun main(args: Array<String>) {
             ServiceMatrixLoader.loadServiceDefinitions()
-            exitProcess(NessusCli().runTerminal())
+            exitProcess(NessusCli().runTerminal(args))
         }
 
-        val defaultCommandLine
-            get() = CommandLine(NessusCli())
+        val defaultCommandLine get() = run {
+            val log = KotlinLogging.logger { }
+            val cmdln = CommandLine(NessusCli())
+            cmdln.executionExceptionHandler = IExecutionExceptionHandler { ex, _, _ ->
+                log.error(ex) { }
+                println(ex.message)
+                1
+            }
+            cmdln
+        }
     }
 
     val cliService get() = CLIService.getService()
@@ -95,10 +113,7 @@ class NessusCli {
             check(exitCode == 0) { "Unexpected exit code: $exitCode" }
         }
         execResult.onFailure {
-            when(it) {
-                is Exception -> cmdln.executionExceptionHandler.handleExecutionException(it, cmdln, parseResult.getOrNull())
-                else -> it.printStackTrace()
-            }
+            cmdln.executionExceptionHandler.handleExecutionException(it as Exception, cmdln, parseResult.getOrNull())
         }
         return execResult
     }
@@ -116,8 +131,8 @@ class NessusCli {
         }
     }
 
-    private fun runTerminal(): Int {
-        val version = javaClass.getResource("/version.txt")?.readText()
+    private fun runTerminal(args: Array<String>): Int {
+        val version = resolveContent("class:version.txt")
         AnsiConsole.systemInstall()
         try {
             TerminalBuilder.builder().build().use { terminal ->
@@ -135,7 +150,15 @@ class NessusCli {
                 println(topSpec.usageMessage().description()[0])
                 println("Version: $version")
 
-                val parser = DefaultParser()
+                class MultilineParser : Parser {
+                    override fun parse(line: String, cursor: Int, context: ParseContext?): ParsedLine {
+                        if (ParseContext.ACCEPT_LINE == context && line.endsWith("\\"))
+                            throw EOFError(-1, cursor, "Multiline")
+                        return DefaultParser().parse(line.replace("\\\n", ""), cursor, context)
+                    }
+                }
+
+                val parser = MultilineParser()
                 val systemRegistry = SystemRegistryImpl(parser, terminal, null, null)
                 systemRegistry.setCommandRegistries(commands)
 
@@ -170,6 +193,13 @@ class NessusCli {
                     return null
                 }
 
+                if (args.isNotEmpty()) {
+                    check(args.size == 1) { "Multiple arguments not supported: $args" }
+                    val command = "run ${args[0]}"
+                    println("\n${prompt()}$command")
+                    systemRegistry.execute(command)
+                }
+
                 // Start the shell and process input until the user quits with Ctrl-D
                 while (true) {
                     try {
@@ -191,27 +221,36 @@ class NessusCli {
     }
 
     private fun smartSplit(args: String): List<String> {
-        var auxstr: String? = null
         val result = mutableListOf<String>()
-        val startQuote = { t: String -> t.startsWith("'") || t.startsWith('"') }
-        val endQuote = { t: String -> t.endsWith("'") || t.endsWith('"') }
-        args.split(' ').forEach {
-            when {
-                startQuote(it) -> {
-                    auxstr = it.drop(1)
+        val option = Regex("^-(.+)")
+        val quoteStart = Regex("^'(.+)")
+        val quoteEnd = Regex("(.+)'$")
+        val toks = args.split(Regex("\\s")).toMutableList()
+        while (toks.isNotEmpty()) {
+            val tok = toks.removeAt(0)
+            if (option.matches(tok)) {
+                result.add(tok)
+                val buffer = StringBuffer()
+                while(toks.isNotEmpty() && !option.matches(toks[0])) {
+                    val aux = toks.removeAt(0)
+                    buffer.append(" $aux")
                 }
-                endQuote(it) -> {
-                    result.add("$auxstr $it".dropLast(1))
-                    auxstr = null
+                if (buffer.isNotEmpty())
+                    result.add("$buffer".trim())
+            } else if (quoteStart.matches(tok)) {
+                val buffer = StringBuffer(tok.drop(1))
+                while(!quoteEnd.matches(toks[0])) {
+                    val aux = toks.removeAt(0)
+                    buffer.append(" $aux")
                 }
-                else -> {
-                    when {
-                        auxstr != null -> { auxstr += " $it" }
-                        else -> { result.add(it) }
-                    }
-                }
+                val aux = toks.removeAt(0)
+                buffer.append(" $aux".dropLast(1))
+                result.add("$buffer")
+            } else {
+                result.add(tok)
             }
         }
+        log.debug { "Command split: $result" }
         return result.toList()
     }
 }

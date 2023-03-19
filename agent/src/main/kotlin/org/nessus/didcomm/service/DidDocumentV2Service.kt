@@ -41,8 +41,8 @@ object DidDocumentV2Service: ObjectService<DidDocumentV2Service>(), DIDDocResolv
 
     private val didService get() = DidService.getService()
 
-    override fun resolve(uri: String): Optional<SicpaDidDoc> {
-        val didDoc = resolveDidDocument(uri).toSicpaDidDoc()
+    override fun resolve(did: String): Optional<SicpaDidDoc> {
+        val didDoc = resolveDidDocument(did).toSicpaDidDoc()
         return Optional.ofNullable(didDoc)
     }
 

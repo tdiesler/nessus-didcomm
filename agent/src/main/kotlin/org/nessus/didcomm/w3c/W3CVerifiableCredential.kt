@@ -2,10 +2,12 @@ package org.nessus.didcomm.w3c
 
 import id.walt.auditor.VerificationPolicyResult
 import id.walt.credentials.w3c.schema.SchemaValidatorFactory
+import id.walt.credentials.w3c.templates.VcTemplateService
+import id.walt.servicematrix.ServiceRegistry
 import mu.KotlinLogging
 import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.util.toUnionMap
+import org.nessus.didcomm.util.unionMap
 
 typealias DanubeTechVerifiableCredential = com.danubetech.verifiablecredentials.VerifiableCredential
 typealias DanubeTechValidation = com.danubetech.verifiablecredentials.validation.Validation
@@ -22,8 +24,12 @@ open class W3CVerifiableCredential internal constructor(jsonObject: Map<String, 
 
     companion object {
 
-        fun fromJson(input: String): W3CVerifiableCredential {
-            return W3CVerifiableCredential(input.decodeJson())
+        fun fromJson(jsonObject: Map<String, Any?>): W3CVerifiableCredential {
+            return W3CVerifiableCredential(jsonObject)
+        }
+
+        fun fromJson(jsonStr: String): W3CVerifiableCredential {
+            return W3CVerifiableCredential(jsonStr.decodeJson())
         }
 
         fun fromTemplate(path: String, data: Map<String, Any?> = mapOf()): W3CVerifiableCredential {
@@ -31,35 +37,48 @@ open class W3CVerifiableCredential internal constructor(jsonObject: Map<String, 
             val effData = data.toMutableMap()
             if ("issuanceDate" !in data)
                 effData["issuanceDate"] = "${dateTimeNow()}"
-            val content = template.toUnionMap(effData)
+            val content = template.unionMap(effData)
             return W3CVerifiableCredential(content)
         }
 
         @Suppress("UNCHECKED_CAST")
-        fun loadTemplate(path: String): Map<String, Any> {
-            val url = W3CVerifiableCredential::class.java.getResource(path)
-            checkNotNull(url) { "No resource: $path" }
-            val finalProperties = setOf("@context", "type", "credentialSchema")
-            fun stripMapValues(map: Map<String, Any>): Map<String, Any> {
-                return map.mapValues { (k, v) -> when {
-                    k in finalProperties -> v
-                    v is Map<*, *> -> stripMapValues(v as Map<String, Any>)
-                    v is List<*> -> listOf<Any>()
-                    else -> ""
-                }}
+        fun loadTemplate(pathOrName: String, stripValues: Boolean = true): Map<String, Any> {
+            val templateService: VcTemplateService = ServiceRegistry.getService()
+            val vcTemplate = templateService.getTemplate(pathOrName).template?.let {
+                W3CVerifiableCredential(it.toJson().decodeJson())
             }
-            return stripMapValues(url.readText().decodeJson())
+            checkNotNull(vcTemplate) { "Cannot load template: $pathOrName" }
+            return if (stripValues) {
+                val fixedProperties = setOf("@context", "type", "credentialSchema")
+                fun stripMapValues(map: Map<String, Any>): Map<String, Any> {
+                    return map.mapValues { (k, v) -> when {
+                        k in fixedProperties -> v
+                        v is Map<*, *> -> stripMapValues(v as Map<String, Any>)
+                        v is List<*> -> listOf<Any>()
+                        else -> ""
+                    }}
+                }
+                stripMapValues(vcTemplate.toMap())
+            } else {
+                vcTemplate.toMap()
+            }
         }
 
         private const val JWT_PATTERN = "(^[A-Za-z0-9-_]*\\.[A-Za-z0-9-_]*\\.[A-Za-z0-9-_]*\$)"
         fun isJWT(data: String) = Regex(JWT_PATTERN).matches(data)
     }
 
+    val isVerifiableCredential
+        get() = !isVerifiablePresentation
+
+    val isVerifiablePresentation
+        get() = types.contains("VerifiablePresentation")
+
     /**
      * Validate credential integrity and schema
      */
     fun validate() = apply {
-        W3CVerifiableCredentialValidator.validate(this, true)
+        W3CVerifiableCredentialValidator.validateCredential(this, true)
     }
 
     /**
@@ -95,7 +114,7 @@ open class W3CVerifiableCredential internal constructor(jsonObject: Map<String, 
 object W3CVerifiableCredentialValidator {
     private val log = KotlinLogging.logger {}
 
-    fun validate(vc: W3CVerifiableCredential, strict: Boolean = true): VerificationPolicyResult {
+    fun validateCredential(vc: W3CVerifiableCredential, strict: Boolean = true): VerificationPolicyResult {
 
         // Differences between Contexts, Types, and CredentialSchemas
         // https://www.w3.org/TR/vc-data-model/#differences-between-contexts-types-and-credentialschemas

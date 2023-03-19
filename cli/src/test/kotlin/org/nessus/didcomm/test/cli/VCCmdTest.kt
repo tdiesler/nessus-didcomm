@@ -51,11 +51,11 @@ class VCCmdTest: AbstractCliTest() {
             val aliceDid = alice.createDid().uri
             val acmeDid = acme.createDid().uri
 
-            cliService.execute("vc issue -t VerifiableId -i $faberDid -s $aliceDid target/VerifiableId.json").isSuccess shouldBe true
-            cliService.execute("vc present -h $aliceDid -v $acmeDid -c 1234 target/VerifiableId.json target/VerifiablePresentation.json").isSuccess shouldBe true
+            cliService.execute("vc issue -t VerifiableId -i $faberDid -s $aliceDid --out target/VerifiableId.json").isSuccess shouldBe true
+            cliService.execute("vc present -h $aliceDid -y $acmeDid -c 1234 --vc target/VerifiableId.json --out target/VerifiablePresentation.json").isSuccess shouldBe true
 
             val challengePolicy = """ChallengePolicy={"challenges":["1234"],"applyToVC":false}"""
-            cliService.execute("vc verify -p SignaturePolicy -p $challengePolicy -- target/VerifiablePresentation.json").isSuccess shouldBe true
+            cliService.execute("vc verify -p SignaturePolicy -p $challengePolicy --vc target/VerifiablePresentation.json").isSuccess shouldBe true
 
         } finally {
             modelService.removeWallet(acme.id)

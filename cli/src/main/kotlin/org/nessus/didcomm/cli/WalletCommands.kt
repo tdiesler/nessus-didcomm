@@ -22,7 +22,7 @@ package org.nessus.didcomm.cli
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
+import org.nessus.didcomm.protocol.MessageExchange
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
@@ -30,65 +30,49 @@ import picocli.CommandLine.Parameters
 @Command(
     name = "wallet",
     description = ["Multitenant wallet commands"],
-    subcommands = [
-        WalletCreateCommand::class,
-        WalletListCommand::class,
-        WalletShowCommand::class,
-        WalletRemoveCommand::class,
-        WalletSwitchCommand::class,
-    ]
 )
-class WalletCommands
+class WalletCommands: AbstractBaseCommand() {
 
-@Command(name = "list", description = ["List available wallets"])
-class WalletListCommand: AbstractBaseCommand() {
+    @Command(name = "list", description = ["List available wallets"])
+    fun listWallets(
 
-    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
-    var verbose: Boolean = false
-
-    override fun call(): Int {
-        val walletModels = modelService.wallets
-        if (verbose)
-            echo(walletModels.map { it.encodeJson(true) })
-        else
-            echo(walletModels.map { it.shortString() })
-        return 0
+        @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+        verbose: Boolean = false
+    ) {
+        modelService.wallets.forEachIndexed { idx, w ->
+            val wstr = if (verbose) w.encodeJson(true) else w.shortString()
+            echo("[$idx] $wstr")
+        }
     }
-}
 
-@Command(name = "show", description = ["Show wallet details"])
-class WalletShowCommand: AbstractBaseCommand() {
+    @Command(name = "show", description = ["Show wallet details"])
+    fun showWallet(
 
-    @Option(names = ["--alias"], description = ["Optional wallet alias"])
-    var alias: String? = null
+        @Parameters(description = ["The wallet alias"])
+        alias: String,
 
-    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
-    var verbose: Boolean = false
-
-    override fun call(): Int {
-        val wallet = getContextWallet(alias)
+        @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+        verbose: Boolean = false,
+    ) {
+        val w = getWalletFromAlias(alias)
         if (verbose)
-            echo(wallet.encodeJson(true))
+            echo(w.encodeJson(true))
         else
-            echo(wallet.shortString())
-        return 0
+            echo(w.shortString())
     }
-}
 
-@Command(name = "create", description = ["Create a wallet for a given agent"])
-class WalletCreateCommand: AbstractBaseCommand() {
+    @Command(name = "create", description = ["Create a wallet for a given agent"])
+    fun createWallet(
+        @Option(names = ["-n", "--name"], required = true, description = ["The wallet name"])
+        name: String,
 
-    @Option(names = ["-n", "--name"], required = true, description = ["The wallet name"])
-    var name: String? = null
+        @Option(names = ["-a", "--agent"], description = ["The agent type (default=Nessus)"], defaultValue = "Nessus")
+        agent: String?,
 
-    @Option(names = ["-a", "--agent"], description = ["The agent type (default=Nessus)"], defaultValue = "Nessus")
-    var agent: String? = null
-
-    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
-    var verbose: Boolean = false
-
-    override fun call(): Int {
-        val wallet = Wallet.Builder(name!!)
+        @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+        verbose: Boolean = false
+    ) {
+        val wallet = Wallet.Builder(name)
             .agentType(AgentType.fromValue(agent!!))
             .build()
         cliService.putContextWallet(wallet)
@@ -96,41 +80,31 @@ class WalletCreateCommand: AbstractBaseCommand() {
             echo("Wallet created\n${wallet.encodeJson(true)}")
         else
             echo("Wallet created: ${wallet.shortString()}")
-        return 0
     }
-}
 
-@Command(name = "remove", description = ["Remove and delete a given wallet"])
-class WalletRemoveCommand: AbstractBaseCommand() {
-
-    @Parameters(description = ["The wallet alias"])
-    var alias: String? = null
-
-    override fun call(): Int {
-        val walletAtt = cliService.getAttachment(WALLET_ATTACHMENT_KEY)
-        getContextWallet(alias).also { wallet ->
-            if (walletAtt?.id == wallet.id) {
-                cliService.putAttachment(WALLET_ATTACHMENT_KEY, null)
+    @Command(name = "remove", description = ["Remove and delete a given wallet"])
+    fun removeWallet(
+        @Parameters(description = ["The wallet alias"])
+        alias: String
+    ) {
+        getWalletFromAlias(alias).also { wallet ->
+            val walletAtt = cliService.getAttachment(MessageExchange.WALLET_ATTACHMENT_KEY)
+            if (wallet.id == walletAtt?.id) {
+                cliService.removeAttachment(MessageExchange.WALLET_ATTACHMENT_KEY)
             }
             walletService.removeWallet(wallet.id)
             echo("Wallet removed: ${wallet.shortString()}")
-            return 0
         }
     }
-}
 
-
-@Command(name = "switch", description = ["Switch the current context wallet"])
-class WalletSwitchCommand: AbstractBaseCommand() {
-
-    @Parameters(description = ["The wallet alias"])
-    var alias: String? = null
-
-    override fun call(): Int {
-        val wallet = getContextWallet(alias)
+    @Command(name = "switch", description = ["Switch the current context wallet"])
+    fun switchWallet(
+        @Parameters(description = ["The wallet alias"])
+        alias: String
+    ) {
+        val wallet = getWalletFromAlias(alias)
         cliService.putContextWallet(wallet)
         cliService.putContextDid(wallet.dids.lastOrNull())
         cliService.putContextConnection(wallet.connections.lastOrNull { it.state == ConnectionState.ACTIVE })
-        return 0
     }
 }

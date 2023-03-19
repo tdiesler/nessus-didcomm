@@ -1,0 +1,23 @@
+
+# Create Wallets #######################################################################################################
+
+wallet create --name Government
+wallet create --name Hospital
+wallet create --name Airport
+
+wallet create --name Malathi
+wallet create --name Rajesh
+
+# wallet create --name Anand
+
+# Create Dids ##########################################################################################################
+
+did create --wallet Government --method key
+did create --wallet Hospital --method key
+did create --wallet Airport --method key
+
+did create --wallet Malathi --method key
+did create --wallet Rajesh --method key
+
+# did create --wallet Anand --method key
+

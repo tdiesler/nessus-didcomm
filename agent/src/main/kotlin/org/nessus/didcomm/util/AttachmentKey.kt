@@ -19,7 +19,7 @@
  */
 package org.nessus.didcomm.util
 
-import java.util.*
+import java.util.Objects
 import kotlin.reflect.KClass
 
 open class AttachmentKey<T: Any>(val name: String, val type: KClass<T>) {
@@ -38,6 +38,6 @@ open class AttachmentKey<T: Any>(val name: String, val type: KClass<T>) {
 
     override fun toString(): String {
         val cname = type.qualifiedName
-        return "[name=$name, type=$cname]"
+        return "(name=$name, type=$cname)"
     }
 }

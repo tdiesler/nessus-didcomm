@@ -55,7 +55,7 @@ data class AgentConfiguration(
 
     override fun toString(): String {
         val redactedApiKey = apiKey.substring(0, 4) + "..."
-        return "AgentConfiguration [agentAdminUrl=$adminUrl, agentUserUrl=$userUrl, agentApiKey=$redactedApiKey]"
+        return "AgentConfiguration(agentAdminUrl=$adminUrl, agentUserUrl=$userUrl, agentApiKey=$redactedApiKey)"
     }
 }
 

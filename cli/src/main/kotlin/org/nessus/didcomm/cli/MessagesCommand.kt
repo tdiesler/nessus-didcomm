@@ -2,7 +2,6 @@ package org.nessus.didcomm.cli
 
 import id.walt.common.prettyPrint
 import org.nessus.didcomm.protocol.MessageExchange
-import picocli.CommandLine
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
@@ -44,9 +43,9 @@ class MessageListCommand: AbstractMessageCommand() {
         val start = max(0, size - msgCount)
         val msgs = mex.messages.subList(start, size)
         if (verbose)
-            echo(msgs.map { it.prettyPrint() })
+            echoList(msgs.map { it.prettyPrint() })
         else
-            echo(msgs.map { it.shortString() })
+            echoList(msgs.map { it.shortString() })
         return 0
     }
 }

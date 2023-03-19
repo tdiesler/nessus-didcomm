@@ -7,7 +7,7 @@
     "Passport"
   ],
   "credentialSchema": {
-    "id": "class:/nessus/schema/PassportSchema-draft-1.json",
+    "id": "class:nessus/schema/PassportSchema-draft-1.json",
     "type": "JsonSchemaValidator2018"
   },
   "id": "urn:uuid:3add94f4-28ec-42a1-8704-4e4aa51006b4",

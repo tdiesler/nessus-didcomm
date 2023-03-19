@@ -7,13 +7,14 @@
     "MarriageCertificate"
   ],
   "credentialSchema": {
-    "id": "class:/nessus/schema/MarriageCertificateSchema-draft-1.json",
+    "id": "class:nessus/schema/MarriageCertificateSchema-draft-1.json",
     "type": "JsonSchemaValidator2018"
   },
   "id": "urn:uuid:3add94f4-28ec-42a1-8704-4e4aa51006b4",
   "issuer": "did:ebsi:2A9BZ9SUe6BatacSpvs1V5CdjHvLpQ7bEsi2Jb6LdHKnQxaN",
   "issuanceDate": "2021-08-31T00:00:00Z",
   "credentialSubject": {
+    "id": "did:example:BcRisGnqV4QPb6bRmDCqEjyuubBarS1Y1nhDwxBMTXY4",
     "spouse": [
       {
         "id": "did:example:BcRisGnqV4QPb6bRmDCqEjyuubBarS1Y1nhDwxBMTXY4",

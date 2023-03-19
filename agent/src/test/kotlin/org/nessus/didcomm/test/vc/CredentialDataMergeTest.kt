@@ -34,7 +34,7 @@ class CredentialDataMergeTest: AbstractAgentTest() {
         }""".decodeJson()
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("/nessus/vc-templates/Passport.json", mergeData)
+            .fromTemplate("Passport", mergeData)
             .validate()
 
         log.info { "Merged: ${vc.encodeJson(true)}" }
@@ -58,10 +58,10 @@ class CredentialDataMergeTest: AbstractAgentTest() {
           }
         }""".decodeJson()
 
-        val vc = W3CVerifiableCredential.fromTemplate("/nessus/vc-templates/Passport.json", mergeData)
+        val vc = W3CVerifiableCredential.fromTemplate("Passport", mergeData)
         log.info { "Merged: ${vc.encodeJson(true)}" }
 
-        val validationResult = W3CVerifiableCredentialValidator.validate(vc, false)
+        val validationResult = W3CVerifiableCredentialValidator.validateCredential(vc, false)
         validationResult.outcome shouldBe false
         "${validationResult.errors[0]}" shouldContain "credentialSubject.familyName: is missing but it is required"
     }
@@ -86,10 +86,10 @@ class CredentialDataMergeTest: AbstractAgentTest() {
           }
         }""".decodeJson()
 
-        val vc = W3CVerifiableCredential.fromTemplate("/nessus/vc-templates/Passport.json", mergeData)
+        val vc = W3CVerifiableCredential.fromTemplate("Passport", mergeData)
         log.info { "Merged: ${vc.encodeJson(true)}" }
 
-        val validationResult = W3CVerifiableCredentialValidator.validate(vc, false)
+        val validationResult = W3CVerifiableCredentialValidator.validateCredential(vc, false)
         validationResult.outcome shouldBe false
         "${validationResult.errors[0]}" shouldContain "Bad 'expirationDate'"
     }

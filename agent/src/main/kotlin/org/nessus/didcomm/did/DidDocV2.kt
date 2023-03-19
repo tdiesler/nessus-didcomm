@@ -66,7 +66,7 @@ data class DidDocV2(
 
             return DidDocV2(
                 doc.id,
-                context = doc.context?.let { doc.context } ?: listOf(),
+                context = doc.context.let { doc.context },
                 alsoKnownAs = listOf(),
                 controller = listOf(),
                 authentications = doc.authentication?.map { visitVerificationMethod(it) } ?: listOf(),
@@ -75,7 +75,7 @@ data class DidDocV2(
                 capabilityInvocations = doc.capabilityInvocation?.map { visitVerificationMethod(it) } ?: listOf(),
                 capabilityDelegations = doc.capabilityDelegation?.map { visitVerificationMethod(it) } ?: listOf(),
                 verificationMethods = verificationMethods.map { it.toVerificationMethod() },
-                didCommServices = doc.service?.map { it.toDIDCommService() } ?: listOf())
+                didCommServices = doc.serviceEndpoint?.map { it.toDIDCommService() } ?: listOf())
         }
     }
 
@@ -96,6 +96,7 @@ data class DidDocV2(
     }
 }
 
+@Suppress("DEPRECATION")
 fun WaltIdVerificationMethod.toVerificationMethod() = VerificationMethod(
     id = id,
     type = when(type) {

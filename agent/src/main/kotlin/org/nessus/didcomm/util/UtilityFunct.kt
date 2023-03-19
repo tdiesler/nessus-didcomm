@@ -47,7 +47,7 @@ fun dateTimeInstant(seconds: Long): OffsetDateTime {
  */
 
 @Suppress("UNCHECKED_CAST")
-fun Map<String, Any?>.toUnionMap(other: Map<String, Any?>): Map<String, Any?> {
+fun Map<String, Any?>.unionMap(other: Map<String, Any?>): Map<String, Any?> {
     val unionMap = mutableMapOf<String, Any?>()
     for (k in this.keys + other.keys) {
         val thisVal = this[k]
@@ -67,7 +67,7 @@ fun Map<String, Any?>.toUnionMap(other: Map<String, Any?>): Map<String, Any?> {
                     for (idx in (0 until thisVal.size)) {
                         val thisMap = thisVal[idx] as Map<String, Any?>
                         val otherMap = otherVal[idx] as Map<String, Any?>
-                        unionList.add(thisMap.toUnionMap(otherMap))
+                        unionList.add(thisMap.unionMap(otherMap))
 
                     }
                     unionMap[k] = unionList
@@ -78,7 +78,7 @@ fun Map<String, Any?>.toUnionMap(other: Map<String, Any?>): Map<String, Any?> {
             thisVal is Map<*, *> && otherVal is Map<*, *> -> {
                 val thisMap = thisVal as Map<String, Any?>
                 val otherMap = otherVal as Map<String, Any?>
-                unionMap[k] = thisMap.toUnionMap(otherMap)
+                unionMap[k] = thisMap.unionMap(otherMap)
             }
 
             thisVal != null && otherVal == null -> unionMap[k] = thisVal

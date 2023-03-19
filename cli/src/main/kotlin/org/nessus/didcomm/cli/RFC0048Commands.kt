@@ -71,7 +71,7 @@ class RFC0048SendPingCommand: AbstractBaseCommand() {
         val header = "${sender.name} received a Trust Ping response"
         if (verbose) {
             val pingMessages = mex.messages.takeLast(2)
-            echo("${header}\n", pingMessages.map { it.prettyPrint() })
+            echoList("${header}\n", pingMessages.map { it.prettyPrint() })
         } else {
             echo(header)
         }

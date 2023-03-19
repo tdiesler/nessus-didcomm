@@ -43,6 +43,7 @@ object CLIService: AttachmentSupport() {
     fun getService() = apply {}
 
     private val modelService get() = ModelService.getService()
+    private val variables = mutableMapOf<String, String>()
 
     fun execute(args: String, cmdln: CommandLine? = null): Result<Any> {
         return NessusCli().execute(args, cmdln)
@@ -98,6 +99,26 @@ object CLIService: AttachmentSupport() {
 
     fun putContextWallet(wallet: Wallet?) {
         putAttachment(WALLET_ATTACHMENT_KEY, wallet)
+    }
+
+    fun getVar(key: String): String? {
+        return variables.keys
+            .firstOrNull { it.lowercase() == key.lowercase() }
+            ?.let { variables[it] }
+    }
+
+    fun getVars(): Map<String, String> {
+        return variables.toMap()
+    }
+
+    fun delVar(key: String): String? {
+        return variables.keys
+            .firstOrNull { it.lowercase() == key.lowercase() }
+            ?.also { variables.remove(it) }
+    }
+
+    fun putVar(key: String, value: String) {
+        variables[key] = value
     }
 
     // Private ---------------------------------------------------------------------------------------------------------

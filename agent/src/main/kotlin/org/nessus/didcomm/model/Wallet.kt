@@ -140,6 +140,18 @@ abstract class Wallet(
     }
 
     @Synchronized
+    fun findDidsByAlias(alias: String?): List<Did> {
+        alias?.toIntOrNull()?.also {
+            val idx = alias.toInt()
+            return listOf(dids[idx])
+        }
+        return dids.filter {
+            val candidates = listOf(it.id, it.uri, it.verkey).map { c -> c.lowercase() }
+            candidates.any { c -> alias == null || c.startsWith(alias.lowercase()) }
+        }
+    }
+
+    @Synchronized
     fun removeDid(did: Did) {
         didsInternal.remove(did)
     }
@@ -196,6 +208,10 @@ abstract class Wallet(
 
     fun addVerifiableCredential(vc: W3CVerifiableCredential) {
         verifiableCredentialsInternal.add(vc)
+    }
+
+    fun getVerifiableCredential(id: String): W3CVerifiableCredential? {
+        return findVerifiableCredential { "${it.id}" == id }
     }
 
     fun findVerifiableCredential(predicate: (vc: W3CVerifiableCredential) -> Boolean): W3CVerifiableCredential? {
