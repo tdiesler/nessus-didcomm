@@ -3,6 +3,6 @@ package system
 default main = false
 
 main {
-    input.minorId == data.id
-    input.guardianId == data.guardian
+    input.credentialData.credentialSubject.id == input.parameter.minorId
+    input.credentialData.credentialSubject.guardian == input.parameter.guardianId
 }

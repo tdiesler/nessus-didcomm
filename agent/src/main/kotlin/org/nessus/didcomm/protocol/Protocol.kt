@@ -25,6 +25,7 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.*
 import org.nessus.didcomm.util.unionMap
+import org.nessus.didcomm.w3c.NessusSignatoryService
 
 abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
 
@@ -39,6 +40,7 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     val keyStore get() = KeyStoreService.getService()
     val modelService get() = ModelService.getService()
     val protocolService get() = ProtocolService.getService()
+    val signatory get() = NessusSignatoryService.getService()
 
     abstract val supportedAgentTypes: List<AgentType>
 

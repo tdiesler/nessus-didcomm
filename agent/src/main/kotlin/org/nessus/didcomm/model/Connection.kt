@@ -84,15 +84,15 @@ class Connection(
             field = did
         }
 
+    private val modelService get() = ModelService.getService()
+
+    val myWallet get() = modelService.findWalletByVerkey(myVerkey)
+    val theirWallet get() = modelService.findWalletByVerkey(theirVerkey)
+
     val myVerkey get() = myDid.verkey
     val theirVerkey get() = theirDid.verkey
 
-    val alias get() = run {
-        val modelService = ModelService.getService()
-        val myName = modelService.findWalletByVerkey(myVerkey)?.name
-        val theirName = modelService.findWalletByVerkey(theirVerkey)?.name
-        "$myName-$theirName"
-    }
+    val alias get() = "${myWallet?.name}-${theirWallet?.name}"
 
     fun shortString(): String {
         return "$alias [id=$id, myDid=${myDid.uri}, theirDid=${theirDid.uri}, state=$state]"

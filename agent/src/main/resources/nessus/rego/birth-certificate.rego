@@ -3,6 +3,6 @@ package system
 default main = false
 
 main {
-    input.motherId == data.parent[0].id
-    input.fatherId == data.parent[1].id
+    input.credentialData.credentialSubject.parent[0].id == input.parameter.motherId
+    input.credentialData.credentialSubject.parent[1].id == input.parameter.fatherId
 }

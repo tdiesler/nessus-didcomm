@@ -4,10 +4,10 @@
   ],
   "type": [
     "VerifiableCredential",
-    "Passport"
+    "UniversityTranscript"
   ],
   "credentialSchema": {
-    "id": "class:nessus/schema/PassportSchema-draft-01.json",
+    "id": "class:nessus/schema/UniversityTranscriptSchema-draft-01.json",
     "type": "JsonSchemaValidator2018"
   },
   "id": "urn:uuid:3add94f4-28ec-42a1-8704-4e4aa51006b4",
@@ -16,8 +16,12 @@
   "expirationDate": "2031-08-31T00:00:00Z",
   "credentialSubject": {
     "id": "did:example:BcRisGnqV4QPb6bRmDCqEjyuubBarS1Y1nhDwxBMTXY4",
-    "givenName": "Malathi",
-    "familyName": "Hamal",
-    "citizenship": "US"
+    "givenName": "Alice",
+    "familyName": "Garcia",
+    "ssn": "123-45-6789",
+    "degree": "Bachelor of Science, Marketing",
+    "status": "graduated",
+    "year": "2015",
+    "average": "5"
   }
 }

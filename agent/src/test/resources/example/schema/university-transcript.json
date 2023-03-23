@@ -1,0 +1,10 @@
+{
+  "id": "did:example:BcRisGnqV4QPb6bRmDCqEjyuubBarS1Y1nhDwxBMTXY4",
+  "givenName": "Alice",
+  "familyName": "Garcia",
+  "ssn": "123-45-6789",
+  "degree": "Bachelor of Science, Marketing",
+  "status": "graduated",
+  "year": "2015",
+  "average": "5"
+}

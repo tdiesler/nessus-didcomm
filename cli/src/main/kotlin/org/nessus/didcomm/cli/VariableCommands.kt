@@ -22,7 +22,7 @@ package org.nessus.didcomm.cli
 import id.walt.common.prettyPrint
 import picocli.CommandLine.Command
 import picocli.CommandLine.Parameters
-import java.util.Collections.max
+import java.util.Collections
 
 @Command(
     name = "variable",
@@ -32,10 +32,12 @@ class VariableCommands: AbstractBaseCommand() {
 
     @Command(name = "list", description = ["List session variables"])
     fun listVariables() {
-        val maxKeyLength = max(cliService.getVars().keys.mapIndexed { idx, k -> "[$idx] [$k]".length })
-        sortedEntries.forEachIndexed { idx, (k, v) ->
-            val valStr = if (v.length > 96) "${v.take(48)}...${v.takeLast(48)}" else v
-            echo("${"[$idx] [$k]".padEnd(maxKeyLength)} $valStr")
+        if (cliService.getVars().isNotEmpty()) {
+            val maxKeyLength = Collections.max(cliService.getVars().keys.mapIndexed { idx, k -> "[$idx] [$k]".length })
+            sortedEntries.forEachIndexed { idx, (k, v) ->
+                val valStr = if (v.length > 96) "${v.take(48)}...${v.takeLast(48)}" else v
+                echo("${"[$idx] [$k]".padEnd(maxKeyLength)} $valStr")
+            }
         }
     }
 

@@ -82,7 +82,8 @@ fun Any.encodeJson(pretty: Boolean = false): String {
 }
 
 fun String.isJson(): Boolean {
-    return this.trim().startsWith('{')
+    val trimmed = trim()
+    return trimmed.startsWith('{') && trimmed.endsWith('}')
 }
 
 @Suppress("UNCHECKED_CAST")

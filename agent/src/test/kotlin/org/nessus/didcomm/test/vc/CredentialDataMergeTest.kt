@@ -61,9 +61,9 @@ class CredentialDataMergeTest: AbstractAgentTest() {
         val vc = W3CVerifiableCredential.fromTemplate("Passport", mergeData)
         log.info { "Merged: ${vc.encodeJson(true)}" }
 
-        val validationResult = W3CVerifiableCredentialValidator.validateCredential(vc, false)
-        validationResult.outcome shouldBe false
-        "${validationResult.errors[0]}" shouldContain "credentialSubject.familyName: is missing but it is required"
+        val validation = W3CVerifiableCredentialValidator.validateCredential(vc, false)
+        validation.result shouldBe false
+        "${validation.errors[0]}" shouldContain "credentialSubject.familyName: is missing but it is required"
     }
 
 
@@ -89,8 +89,7 @@ class CredentialDataMergeTest: AbstractAgentTest() {
         val vc = W3CVerifiableCredential.fromTemplate("Passport", mergeData)
         log.info { "Merged: ${vc.encodeJson(true)}" }
 
-        val validationResult = W3CVerifiableCredentialValidator.validateCredential(vc, false)
-        validationResult.outcome shouldBe false
-        "${validationResult.errors[0]}" shouldContain "Bad 'expirationDate'"
+        val verification = W3CVerifiableCredentialValidator.validateCredential(vc, false)
+        "${verification.errors[0]}" shouldContain "Bad 'expirationDate'"
     }
 }

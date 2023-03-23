@@ -1,10 +1,4 @@
 
-# Create Wallets/Dids ##################################################################################################
-
-wallet create --name Anand
-
-did create --wallet Anand
-
 # Issue Verifiable Credentials #########################################################################################
 
 vc issue -t Passport -i Government.Did -s Malathi.Did

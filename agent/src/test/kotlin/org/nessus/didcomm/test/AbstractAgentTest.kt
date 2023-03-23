@@ -107,19 +107,19 @@ abstract class AbstractAgentTest: AnnotationSpec() {
         ServiceMatrixLoader.loadServiceDefinitions(matrixProperties)
     }
 
-    val auditor = NessusAuditorService.getService()
+    val auditor get() = NessusAuditorService.getService()
     val cryptoService get() = NessusCryptoService.getService()
-    val custodian = NessusCustodianService.getService()
+    val custodian get() = NessusCustodianService.getService()
     val didComm get() = DidCommService.getService()
     val diddocV1Service get() = DidDocumentV1Service.getService()
     val didService get() = DidService.getService()
-    val dispatchService = MessageDispatchService.getService()
+    val dispatchService get() = MessageDispatchService.getService()
     val endpointService get() = EndpointService.getService()
     val keyStore get() = KeyStoreService.getService()
     val modelService get() = ModelService.getService()
     val policyService get() = NessusPolicyRegistryService.getService()
     val secretResolver get() = SecretResolverService.getService()
-    val signatory = NessusSignatoryService.getService()
+    val signatory get() = NessusSignatoryService.getService()
     val templateService get() = VcTemplateService.getService()
     val walletService get() = WalletService.getService()
 

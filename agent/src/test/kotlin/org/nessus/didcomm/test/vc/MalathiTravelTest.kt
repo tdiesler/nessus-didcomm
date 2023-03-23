@@ -339,7 +339,7 @@ class MalathiTravelTest: AbstractAgentTest() {
         // Verify that Malathi is the mother and Rajesh is the father of Anand
 
         val birthCertificateVp = createVerifiablePresentation(anandDid, verifierDid, birthCertificateVc)
-        val birthCertificateResult = auditor.verify(birthCertificateVp, listOf(
+        val birthCertificate = auditor.verify(birthCertificateVp, listOf(
             policyService.getPolicy("JsonSchemaPolicy"),
             policyService.getPolicy("SignaturePolicy"),
             policyService.getPolicyWithJsonArg("DynamicPolicy", """
@@ -348,12 +348,12 @@ class MalathiTravelTest: AbstractAgentTest() {
                     "policy": "class:nessus/rego/birth-certificate.rego"
                 }""".trimJson())))
 
-        birthCertificateResult.outcome shouldBe true
+        birthCertificate.result shouldBe true
 
         // Verify that Rajesh is married to Malathi
 
         val marriageCertificateVp = createVerifiablePresentation(malathiDid, verifierDid, marriageCertificateVc)
-        val marriageCertificateResult = auditor.verify(marriageCertificateVp, listOf(
+        val marriageCertificate = auditor.verify(marriageCertificateVp, listOf(
             policyService.getPolicy("JsonSchemaPolicy"),
             policyService.getPolicy("SignaturePolicy"),
             policyService.getPolicyWithJsonArg("DynamicPolicy", """
@@ -362,12 +362,12 @@ class MalathiTravelTest: AbstractAgentTest() {
                     "policy": "class:nessus/rego/marriage-certificate.rego"
                 }""".trimJson())))
 
-        marriageCertificateResult.outcome shouldBe true
+        marriageCertificate.result shouldBe true
 
         // Verify that Rajesh has given permission for Anand to travel with Malathi
 
         val travelPermissionVP = createVerifiablePresentation(malathiDid, verifierDid, travelPermissionVc)
-        val travelPermissionResult = auditor.verify(travelPermissionVP, listOf(
+        val travelPermission = auditor.verify(travelPermissionVP, listOf(
             policyService.getPolicy("JsonSchemaPolicy"),
             policyService.getPolicy("SignaturePolicy"),
             policyService.getPolicyWithJsonArg("DynamicPolicy", """
@@ -376,18 +376,18 @@ class MalathiTravelTest: AbstractAgentTest() {
                     "policy": "class:nessus/rego/travel-permission.rego"
                 }""".trimJson())))
 
-        travelPermissionResult.outcome shouldBe true
+        travelPermission.result shouldBe true
 
         val combinedVp = custodian.createPresentation(
             vcs = listOf(malathiPassportVc, marriageCertificateVc, birthCertificateVc, travelPermissionVc).toTypedArray(),
             holderDid = malathiDid.uri,
             verifierDid = verifierDid.uri)
 
-        val combinedResult = auditor.verify(combinedVp, listOf(
+        val verification = auditor.verify(combinedVp, listOf(
             policyService.getPolicy("JsonSchemaPolicy"),
             policyService.getPolicy("SignaturePolicy")))
 
-        combinedResult.outcome shouldBe true
+        verification.result shouldBe true
 
         log.info { combinedVp.prettyPrint() }
     }
@@ -400,8 +400,8 @@ class MalathiTravelTest: AbstractAgentTest() {
 
     private fun verifyCredential(holderDid: Did, verifierDid: Did, signedVc: W3CVerifiableCredential, policies: List<VerificationPolicy>) {
         val vp = createVerifiablePresentation(holderDid, verifierDid, signedVc)
-        val verificationResult = auditor.verify(vp, policies)
-        verificationResult.outcome shouldBe true
+        val verification = auditor.verify(vp, policies)
+        verification.result shouldBe true
     }
 
     private fun createVerifiablePresentation(holderDid: Did, verifierDid: Did, signedVc: W3CVerifiableCredential): String {

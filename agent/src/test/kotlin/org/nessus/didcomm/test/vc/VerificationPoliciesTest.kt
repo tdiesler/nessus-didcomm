@@ -1,6 +1,5 @@
 package org.nessus.didcomm.test.vc
 
-import id.walt.auditor.Auditor
 import id.walt.custodian.Custodian
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
@@ -50,7 +49,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         val vr = auditor.verify(vp, listOf(
             policyService.getPolicy("SignaturePolicy")))
 
-        vr.outcome shouldBe true
+        vr.result shouldBe true
     }
 
     @Test
@@ -92,8 +91,8 @@ class VerificationPoliciesTest: AbstractAgentTest() {
             """{ "challenges": ["1234"], "applyToVC": false }""".trimJson())
 
         // verify VP
-        val vr = Auditor.getService().verify(vp, listOf(policy))
-        vr.outcome shouldBe true
+        val vr = auditor.verify(vp, listOf(policy))
+        vr.result shouldBe true
     }
 
     @Test
@@ -138,7 +137,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
             }""".trimJson())
 
         // verify VP
-        val vr = Auditor.getService().verify(vp, listOf(policy))
-        vr.outcome shouldBe true
+        val vr = auditor.verify(vp, listOf(policy))
+        vr.result shouldBe true
     }
 }

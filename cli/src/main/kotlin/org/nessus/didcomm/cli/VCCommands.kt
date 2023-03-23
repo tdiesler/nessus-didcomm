@@ -317,14 +317,14 @@ class VerifyCredentialCommand: AbstractBaseCommand() {
             echo("\n${vcp.encodeJson(true)}")
         echo("")
 
-        val verificationResult = auditor.verify(vcp.encodeJson(), policies)
+        val verification = auditor.verify(vcp.encodeJson(), policies)
 
         val maxIdLength = max(policies.map { it.id.length })
-        verificationResult.policyResults.forEach { (policy, result) ->
+        verification.policyResults.forEach { (policy, result) ->
             echo("${policy.padEnd(maxIdLength)} - $result")
         }
-        echo("${"Verified".padEnd(maxIdLength)} - ${verificationResult.outcome}")
-        return if (verificationResult.outcome) 0 else 1
+        echo("${"Verified".padEnd(maxIdLength)} - ${verification.result}")
+        return if (verification.result) 0 else 1
     }
 }
 

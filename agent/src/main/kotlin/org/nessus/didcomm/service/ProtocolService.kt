@@ -32,6 +32,7 @@ val RFC0434_OUT_OF_BAND_V1 = ProtocolKey("https://didcomm.org/out-of-band/1.1", 
 val RFC0048_TRUST_PING_V2 = ProtocolKey("https://didcomm.org/trust_ping/2.0-preview", RFC0048TrustPingProtocolV2::class)
 val RFC0095_BASIC_MESSAGE_V2 = ProtocolKey("https://didcomm.org/basicmessage/2.0-preview", RFC0095BasicMessageProtocolV2::class)
 val RFC0434_OUT_OF_BAND_V2 = ProtocolKey("https://didcomm.org/out-of-band/2.0-preview", RFC0434OutOfBandProtocolV2::class)
+val RFC0453_ISSUE_CREDENTIAL_V3 = ProtocolKey("https://didcomm.org/issue-credential/3.0", RFC0453IssueCredentialV3::class)
 
 class ProtocolKey<T: Protocol<T>>(uri: String, type: KClass<T>): AttachmentKey<T>(uri, type) {
     val uri get() = this.name
@@ -52,6 +53,7 @@ object ProtocolService : ObjectService<ProtocolService>() {
         RFC0048_TRUST_PING_V2,
         RFC0095_BASIC_MESSAGE_V2,
         RFC0434_OUT_OF_BAND_V2,
+        RFC0453_ISSUE_CREDENTIAL_V3,
     )
 
     fun findProtocolKey(uri: String): ProtocolKey<*> {
@@ -73,6 +75,7 @@ object ProtocolService : ObjectService<ProtocolService>() {
             RFC0048_TRUST_PING_V2 -> RFC0048TrustPingProtocolV2(mex)
             RFC0095_BASIC_MESSAGE_V2 -> RFC0095BasicMessageProtocolV2(mex)
             RFC0434_OUT_OF_BAND_V2 -> RFC0434OutOfBandProtocolV2(mex)
+            RFC0453_ISSUE_CREDENTIAL_V3 -> RFC0453IssueCredentialV3(mex)
 
             else -> throw IllegalStateException("Unknown protocol: $key")
         } as T

@@ -114,8 +114,7 @@ object DidService: ObjectService<DidService>() {
     }
 
     fun deleteDid(did: Did) {
-        ContextManager.hkvStore.delete(HKVKey("did", "created", did.uri), recursive = true)
-        keyStore.getKeyId(did.uri)?.also { keyId -> keyStore.delete(keyId) }
+        WaltIdDidService.deleteDid(did.uri)
         withPlugin(did.method).deleteDid(did)
     }
 
@@ -182,7 +181,7 @@ object DidService: ObjectService<DidService>() {
             val did = Did(identifier, DidMethod.KEY, verkey)
 
             val didDocV2 = DidDocV2.fromWaltIdDidDoc(WaltIdDidService.resolve(did.uri))
-            WaltIdDidService.storeDid(did.uri, didDocV2.encodeJson(true))
+            storeDid(did.uri, didDocV2.encodeJson(true))
 
             appendKeyStoreAliases(keyId, did, didDocV2)
 
@@ -289,7 +288,7 @@ object DidService: ObjectService<DidService>() {
             checkNotNull(didDoc) { "Cannot resolve: ${did.uri}" }
 
             val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
-            WaltIdDidService.storeDid(did.uri, didDocV2.encodeJson(true))
+            storeDid(did.uri, didDocV2.encodeJson(true))
             appendKeyStoreAliases(keyId, did, didDocV2)
 
             return did
@@ -319,7 +318,7 @@ object DidService: ObjectService<DidService>() {
             val pubKeyBytes = did.verkey.decodeBase58()
             val keyId = storePubkeyBytes(pubKeyBytes)
 
-            WaltIdDidService.storeDid(did.uri, didDoc.encodePretty())
+            storeDid(did.uri, didDoc.encodePretty())
             appendKeyStoreAliases(keyId, did, DidDocV2.fromWaltIdDidDoc(didDoc))
 
             return keyId
@@ -365,7 +364,7 @@ object DidService: ObjectService<DidService>() {
             val did = Did(identifier, DidMethod.SOV, verkey)
 
             val didDoc = DidDocV2.fromWaltIdDidDoc(generateWaltIdDidDoc(did, pubkeyBytes))
-            WaltIdDidService.storeDid(did.uri, didDoc.encodeJson(true))
+            storeDid(did.uri, didDoc.encodeJson(true))
 
             appendKeyStoreAliases(keyId, did, didDoc)
 
@@ -398,7 +397,7 @@ object DidService: ObjectService<DidService>() {
             }
 
             val didDoc = DidDocV2.fromWaltIdDidDoc(resolveFromKey(keyStore.load(keyId.id)))
-            WaltIdDidService.storeDid(did.uri, didDoc.encodeJson(true))
+            storeDid(did.uri, didDoc.encodeJson(true))
 
             appendKeyStoreAliases(keyId, did, didDoc)
             return keyId
@@ -506,6 +505,11 @@ object DidService: ObjectService<DidService>() {
         checkNotNull(verkey) {"No verkey in: ${vmethod.id}"}
         val did = Did.fromUri(vmethod.controller, verkey)
         return DidPeer(did.id, did.method, did.verkey)
+    }
+
+    // Private in WaltIdDidService
+    private fun storeDid(didUrlStr: String, didDoc: String) {
+        ContextManager.hkvStore.put(HKVKey("did", "created", didUrlStr), didDoc)
     }
 
 }

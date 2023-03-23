@@ -125,16 +125,15 @@ class DidServiceTest: AbstractAgentTest() {
             val did = alice.createDid(method, keyId.id, options)
             did.verkey shouldBe Alice.verkey
 
-            val numalgo = (options as? DidPeerOptions)?.numalgo
-
             when (method) {
                 DidMethod.KEY -> did.uri shouldBe Alice.didkey
-                DidMethod.PEER -> when (numalgo) {
-                    0 -> did.uri shouldBe Alice.didpeer0
-                    2 -> did.uri shouldStartWith "did:peer:2"
-                    else -> throw IllegalStateException("Unknown numalgo: $numalgo")
+                DidMethod.PEER -> {
+                    when (val numalgo = (options as? DidPeerOptions)?.numalgo) {
+                        0 -> did.uri shouldBe Alice.didpeer0
+                        2 -> did.uri shouldStartWith "did:peer:2"
+                        else -> throw IllegalStateException("Unknown numalgo: $numalgo")
+                    }
                 }
-
                 DidMethod.SOV -> did.uri shouldBe Alice.didsov
             }
 

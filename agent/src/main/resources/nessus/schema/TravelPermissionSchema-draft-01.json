@@ -1,8 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-
-    "title": "Basic Passport for a natural person",
-
+    "title": "Travel Permission for a minor and his/her guardian",
     "type": "object",
     "properties": {
         "@context": {
@@ -35,7 +33,7 @@
             },
             "additionalProperties": false
         },
-        "credentialSubject": { "$ref": "#/definitions/BirthCertificate" },
+        "credentialSubject": { "$ref": "#/definitions/TravelPermission" },
         "evidence": {
             "type": "array",
             "items": {
@@ -134,51 +132,28 @@
     "additionalProperties": false,
 
     "definitions": {
-        "BirthCertificate": {
+        "TravelPermission": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
                 "id": {
                     "type": "string"
                 },
-                "type": {
+                "guardian": {
                     "type": "string"
                 },
-                "givenName": {
-                    "type": "string"
-                },
-                "familyName": {
-                    "type": "string"
-                },
-                "birthDate": {
-                    "type": "string",
-                    "format": "date-time"
-                },
-                "birthPlace": {
-                    "$ref": "#/definitions/BirthPlace"
-                },
-                "citizenship": {
-                    "type": "string"
-                },
-                "parent": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/Parent"
-                    }
+                "location": {
+                    "$ref": "#/definitions/Location"
                 }
             },
             "required": [
                 "id",
-                "birthDate",
-                "birthPlace",
-                "citizenship",
-                "familyName",
-                "givenName",
-                "parent"
+                "guardian",
+                "location"
             ],
-            "title": "BirthCertificate"
+            "title": "TravelPermission"
         },
-        "BirthPlace": {
+        "Location": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -193,64 +168,20 @@
                 "address",
                 "type"
             ],
-            "title": "BirthPlace"
+            "title": "Location"
         },
         "Address": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
-                "type": {
-                    "type": "string"
-                },
-                "addressLocality": {
-                    "type": "string"
-                },
-                "addressRegion": {
-                    "type": "string"
-                },
-                "postalCode": {
-                    "type": "string",
-                    "format": "integer"
-                },
-                "streetAddress": {
+                "addressCountry": {
                     "type": "string"
                 }
             },
             "required": [
-                "addressLocality",
-                "addressRegion",
-                "postalCode",
-                "streetAddress",
-                "type"
+                "addressCountry"
             ],
             "title": "Address"
-        },
-        "Parent": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "givenName": {
-                    "type": "string"
-                },
-                "familyName": {
-                    "type": "string"
-                },
-                "maidenName": {
-                    "type": "string"
-                }
-            },
-            "required": [
-                "id",
-                "givenName",
-                "familyName"
-            ],
-            "title": "Parent"
         }
     }
 }

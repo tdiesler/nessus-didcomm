@@ -18,18 +18,18 @@ typealias WaltIdVerifiableCredential = id.walt.credentials.w3c.VerifiableCredent
  *
  * https://www.w3.org/TR/2022/REC-vc-data-model-20220303
  */
-open class W3CVerifiableCredential internal constructor(jsonObject: Map<String, Any?>) : DanubeTechVerifiableCredential(jsonObject) {
+open class W3CVerifiableCredential private constructor(jsonObject: Map<String, Any?>) : DanubeTechVerifiableCredential(jsonObject) {
 
     data class CredentialSchema(val id: String, val type: String)
 
     companion object {
 
         fun fromJson(jsonObject: Map<String, Any?>): W3CVerifiableCredential {
-            return W3CVerifiableCredential(jsonObject)
+            return W3CVerifiableCredential(jsonObject).validate()
         }
 
         fun fromJson(jsonStr: String): W3CVerifiableCredential {
-            return W3CVerifiableCredential(jsonStr.decodeJson())
+            return W3CVerifiableCredential(jsonStr.decodeJson()).validate()
         }
 
         fun fromTemplate(path: String, data: Map<String, Any?> = mapOf()): W3CVerifiableCredential {
@@ -38,6 +38,8 @@ open class W3CVerifiableCredential internal constructor(jsonObject: Map<String, 
             if ("issuanceDate" !in data)
                 effData["issuanceDate"] = "${dateTimeNow()}"
             val content = template.unionMap(effData)
+
+            // Note, a vc loaded from template may not (yet) validate against the schema
             return W3CVerifiableCredential(content)
         }
 
@@ -116,18 +118,25 @@ object W3CVerifiableCredentialValidator {
 
     fun validateCredential(vc: W3CVerifiableCredential, strict: Boolean = true): VerificationPolicyResult {
 
-        // Differences between Contexts, Types, and CredentialSchemas
-        // https://www.w3.org/TR/vc-data-model/#differences-between-contexts-types-and-credentialschemas
+        if ("VerifiablePresentation" in vc.types) {
+            log.debug { "Not validating VerifiablePresentation" }
+            return VerificationPolicyResult.success()
+        }
 
         runCatching { DanubeTechValidation.validateJson(vc) }.onFailure {
-            val result = VerificationPolicyResult.failure(listOf(it.message as String))
+            val result = VerificationPolicyResult.failure(listOf(it))
             result.errors.forEach { log.error { it } }
             if (strict) throw it
             return result
         }
 
         val result = vc.credentialSchema?.id?.let {
-            SchemaValidatorFactory.get(it).validate(vc.toJson())
+            runCatching {
+                val validator = SchemaValidatorFactory.get(it)
+                validator.validate(vc.toJson())
+            }.onFailure {
+                log.error { "Cannot validate credential: ${vc.encodeJson(true)}" }
+            }.getOrThrow()
         } ?: VerificationPolicyResult.success()
 
         result.errors.forEach { log.error { it } }

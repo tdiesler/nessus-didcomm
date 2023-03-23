@@ -1,8 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-
     "title": "Basic Passport for a natural person",
-
     "type": "object",
     "properties": {
         "@context": {
@@ -35,7 +33,7 @@
             },
             "additionalProperties": false
         },
-        "credentialSubject": { "$ref": "#/definitions/TravelPermission" },
+        "credentialSubject": { "$ref": "#/definitions/UniversityTranscript" },
         "evidence": {
             "type": "array",
             "items": {
@@ -134,56 +132,48 @@
     "additionalProperties": false,
 
     "definitions": {
-        "TravelPermission": {
+        "UniversityTranscript": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
                 "id": {
                     "type": "string"
                 },
-                "guardian": {
+                "givenName": {
                     "type": "string"
                 },
-                "location": {
-                    "$ref": "#/definitions/Location"
+                "familyName": {
+                    "type": "string"
+                },
+                "ssn": {
+                    "type": "string"
+                },
+                "degree": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "year": {
+                    "type": "string",
+                    "format": "integer"
+                },
+                "average": {
+                    "type": "string",
+                    "format": "integer"
                 }
             },
             "required": [
+                "average",
+                "degree",
+                "familyName",
+                "givenName",
                 "id",
-                "guardian",
-                "location"
+                "ssn",
+                "status",
+                "year"
             ],
-            "title": "TravelPermission"
-        },
-        "Location": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "type": {
-                    "type": "string"
-                },
-                "address": {
-                    "$ref": "#/definitions/Address"
-                }
-            },
-            "required": [
-                "address",
-                "type"
-            ],
-            "title": "Location"
-        },
-        "Address": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "addressCountry": {
-                    "type": "string"
-                }
-            },
-            "required": [
-                "addressCountry"
-            ],
-            "title": "Address"
+            "title": "UniversityTranscript"
         }
     }
 }

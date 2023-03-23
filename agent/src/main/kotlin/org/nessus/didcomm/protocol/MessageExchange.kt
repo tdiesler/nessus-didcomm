@@ -93,6 +93,20 @@ class MessageExchange(): AttachmentSupport() {
                 }
             }
         }
+
+        fun findByWallet(wallet: Wallet): MessageExchange {
+            synchronized(exchangeRegistry) {
+                val mex = exchangeRegistry.firstOrNull {
+                    val pcon = it.getAttachment(CONNECTION_ATTACHMENT_KEY)
+                    pcon?.myWallet == wallet
+                }
+                if (mex == null) {
+                    exchangeRegistry.forEach { log.error { "Candidate $it" } }
+                }
+                checkNotNull(mex) { "Cannot find message exchange for: ${wallet.name}" }
+                return mex
+            }
+        }
     }
 
     private val messageStore: MutableList<EndpointMessage> = mutableListOf()

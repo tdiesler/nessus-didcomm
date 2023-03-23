@@ -35,7 +35,7 @@ object NessusSignatoryService: ObjectService<NessusSignatoryService>() {
             ProofType.JWT -> JwtCredentialService.getService().sign(vc.toJson(), config)
         }.trimJson()
 
-        log.info { "Issued and Signed Credential: ${signedVcJson.prettyPrint()}" }
+        log.info { "Signed Credential: ${signedVcJson.prettyPrint()}" }
 
         val signedVc = W3CVerifiableCredential.fromJson(signedVcJson)
 
