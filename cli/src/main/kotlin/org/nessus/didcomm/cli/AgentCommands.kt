@@ -24,7 +24,6 @@ import org.nessus.didcomm.util.AttachmentKey
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.ScopeType.INHERIT
-import java.net.URL
 
 @Command(
     name = "agent",
@@ -32,15 +31,15 @@ import java.net.URL
 )
 class AgentCommands: AbstractBaseCommand() {
 
-    @Option(names = ["--uri" ], scope = INHERIT, description = ["The URI of the form [type:][host:]port"])
-    var uri: String? = null
-
     @Option(names = ["--wallet" ], scope = INHERIT, description = ["An Wallet alias"])
     var walletAlias: String? = null
 
+    @Option(names = ["--uri" ], scope = INHERIT, description = ["The URI of the form [type:][host:]port"])
+    var uri: String? = null
+
     @Command(name = "start", description = ["Start the agent's endpoint"])
     fun start(): Int {
-        val eps = getEndpointSpec(uri)
+        val eps = getEndpointSpec(walletAlias, uri)
         check(eps.type.lowercase() == "camel") { "Unsupported endpoint type: $eps" }
         val context = endpointService.startEndpoint("http://${eps.host}:${eps.port}") as CamelContext
         echo("Started ${eps.type} endpoint on ${eps.host}:${eps.port}")
@@ -51,7 +50,7 @@ class AgentCommands: AbstractBaseCommand() {
 
     @Command(name = "stop", description = ["Stop the agent's endpoint"])
     fun stop(): Int {
-        val eps = getEndpointSpec(uri)
+        val eps = getEndpointSpec(walletAlias, uri)
         val key = AttachmentKey("$eps", CamelContext::class)
         val context = cliService.removeAttachment(key)
         checkNotNull(context) { "No endpoint context" }
@@ -60,14 +59,12 @@ class AgentCommands: AbstractBaseCommand() {
         return 0
     }
 
-    private fun getEndpointSpec(uri: String?): EndpointSpec {
-        return if (uri != null) {
-            EndpointSpec.valueOf(uri)
-        } else {
-            getContextWallet(walletAlias).run {
-                EndpointSpec.valueOf(URL(endpointUrl))
-            }
-        }
+    private fun getEndpointSpec(walletAlias: String?, uri: String?): EndpointSpec {
+        if (uri != null)
+            return EndpointSpec.valueOf(uri)
+        val agentHost = System.getenv("NESSUS_AGENT_HOST") ?: "localhost"
+        val userPort = System.getenv("NESSUS_USER_PORT") ?: "9000"
+        return EndpointSpec.valueOf("${agentHost}:${userPort}")
     }
 }
 
@@ -79,16 +76,20 @@ data class EndpointSpec(
     companion object {
         private const val DEFAULT_ENDPOINT_TYPE = "Camel"
 
-        fun valueOf(url: URL): EndpointSpec {
-            return EndpointSpec(DEFAULT_ENDPOINT_TYPE, url.host, url.port)
-        }
-
         fun valueOf(uri: String): EndpointSpec {
             val toks = uri.split(':')
+            fun checkType(type: String): String {
+                check(type == DEFAULT_ENDPOINT_TYPE) { "Unsupported endpoint type: $type" }
+                return type
+            }
+            fun checkHost(host: String): String {
+                check( !host.startsWith("//")) { "Unsupported host: $host" }
+                return host
+            }
             return when (toks.size) {
-                3 -> EndpointSpec(toks[0], toks[1], toks[2].toInt())
-                2 -> EndpointSpec(DEFAULT_ENDPOINT_TYPE, toks[0], toks[1].toInt())
-                1 -> EndpointSpec(DEFAULT_ENDPOINT_TYPE,"0.0.0.0", toks[0].toInt())
+                3 -> EndpointSpec(checkType(toks[0]), checkHost(toks[1]), toks[2].toInt())
+                2 -> EndpointSpec(DEFAULT_ENDPOINT_TYPE, checkHost(toks[0]), toks[1].toInt())
+                1 -> EndpointSpec(DEFAULT_ENDPOINT_TYPE,"localhost", toks[0].toInt())
                 else -> throw IllegalArgumentException("Invalid URI spec: $uri")
             }
         }

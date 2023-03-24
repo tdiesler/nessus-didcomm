@@ -19,14 +19,17 @@
  */
 package org.nessus.didcomm.cli
 
-import org.nessus.didcomm.did.Did
+import mu.KotlinLogging
+import org.apache.camel.CamelContext
+import org.apache.camel.ServiceStatus
 import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.model.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
+import org.nessus.didcomm.model.MessageExchange.Companion.DID_ATTACHMENT_KEY
+import org.nessus.didcomm.model.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
+import org.nessus.didcomm.model.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.protocol.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.MessageExchange.Companion.DID_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.AttachmentSupport
@@ -34,6 +37,7 @@ import picocli.CommandLine
 
 
 object CLIService: AttachmentSupport() {
+    private val log = KotlinLogging.logger {  }
 
     // Fetch the wallet state from external agents
     init {
@@ -47,6 +51,13 @@ object CLIService: AttachmentSupport() {
 
     fun execute(args: String, cmdln: CommandLine? = null): Result<Any> {
         return NessusCli().execute(args, cmdln)
+    }
+
+    fun findCamelContexts(): List<CamelContext> {
+        return attachmentKeys
+            .filter { it.type == CamelContext::class }
+            .map { getAttachment(it) as CamelContext }
+            .filter { it.status == ServiceStatus.Started }
     }
 
     fun findContextConnection(walletAlias: String? = null, conAlias: String? = null): Connection? {
@@ -71,7 +82,8 @@ object CLIService: AttachmentSupport() {
         }
     }
 
-    fun putContextDid(did: Did?) {
+    fun putContextDid(ownerAlias: String?, did: Did?) {
+        putVar("${ownerAlias ?: "External"}.Did", did?.uri)
         putAttachment(DID_ATTACHMENT_KEY, did)
     }
 
@@ -98,6 +110,7 @@ object CLIService: AttachmentSupport() {
     }
 
     fun putContextWallet(wallet: Wallet?) {
+        log.debug { "Put context wallet: ${wallet?.shortString()}" }
         putAttachment(WALLET_ATTACHMENT_KEY, wallet)
     }
 
@@ -114,11 +127,15 @@ object CLIService: AttachmentSupport() {
     fun delVar(key: String): String? {
         return variables.keys
             .firstOrNull { it.lowercase() == key.lowercase() }
-            ?.also { variables.remove(it) }
+            ?.also {
+                log.debug { "Delete variable: $it" }
+                variables.remove(it)
+            }
     }
 
-    fun putVar(key: String, value: String) {
-        variables[key] = value
+    fun putVar(key: String, value: String?) {
+        log.debug { "Put variable: $key=$value" }
+        value?.also { variables[key] = it } ?: run { delVar(key) }
     }
 
     // Private ---------------------------------------------------------------------------------------------------------

@@ -29,11 +29,12 @@ import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
 import mu.KotlinLogging
 import org.didcommx.didcomm.message.Attachment
-import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toRaw
-import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.did.DidDocV1
-import org.nessus.didcomm.did.DidMethod
-import org.nessus.didcomm.did.WaltIdKeyAlgorithm
+import org.nessus.didcomm.service.LazySodiumService.convertEd25519toRaw
+import org.nessus.didcomm.model.DID_DOCUMENT_MEDIA_TYPE
+import org.nessus.didcomm.model.Did
+import org.nessus.didcomm.model.DidDocV1
+import org.nessus.didcomm.model.DidMethod
+import org.nessus.didcomm.model.WaltIdKeyAlgorithm
 import org.nessus.didcomm.util.decodeBase64Url
 import org.nessus.didcomm.util.decodeBase64UrlStr
 import org.nessus.didcomm.util.decodeJson
@@ -147,15 +148,6 @@ object DidDocumentV1Service: ObjectService<DidDocumentV1Service>() {
             }
           }
         """.decodeJson()
-    }
-
-    fun extractDidDocAttachment(attachment: Attachment, verkey: String?): DidDocV1Attachment {
-        require(attachment.mediaType == DID_DOCUMENT_MEDIA_TYPE) { "Unexpected media_type: ${attachment.mediaType} "}
-
-        val didDocAttachment = gson.toJson(attachment.data.toJSONObject()["json"])
-        checkNotNull(didDocAttachment) {"Cannot find attached did document"}
-
-        return extractDidDocAttachment(didDocAttachment, verkey)
     }
 
     fun extractDidDocAttachment(attachment: String, verkey: String?): DidDocV1Attachment {

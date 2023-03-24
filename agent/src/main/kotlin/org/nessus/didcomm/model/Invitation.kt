@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.model
 
-import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.util.encodeJson
 
 class Invitation {

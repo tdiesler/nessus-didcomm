@@ -24,12 +24,12 @@ import io.kotest.core.annotation.EnabledIf
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
 import org.hyperledger.indy.sdk.crypto.Crypto
-import org.nessus.didcomm.crypto.LibIndyService.closeAndDeleteWallet
-import org.nessus.didcomm.crypto.LibIndyService.createAnOpenWallet
-import org.nessus.didcomm.crypto.LibIndyService.createAndStoreDid
-import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.service.LibIndyService.closeAndDeleteWallet
+import org.nessus.didcomm.service.LibIndyService.createAnOpenWallet
+import org.nessus.didcomm.service.LibIndyService.createAndStoreDid
+import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
+import org.nessus.didcomm.protocol.EncryptionEnvelopeV1
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.gson
 
@@ -126,7 +126,7 @@ class LibIndyTest: AbstractIntegrationTest() {
             val packed = String(Crypto.packMessage(faber, receivers, faberDid.verkey, message.toByteArray()).get())
             log.info { "Packed: ${packed.prettyPrint()}" }
 
-            val unpacked = RFC0019EncryptionEnvelope()
+            val unpacked = EncryptionEnvelopeV1()
                 .unpackEncryptedEnvelope(packed)
             log.info { "Unpacked: $unpacked"}
             unpacked?.recipientVerkey shouldBe aliceDid.verkey
@@ -153,7 +153,7 @@ class LibIndyTest: AbstractIntegrationTest() {
             val aliceDid = alice.createDid(DidMethod.SOV)
 
             val message = "Your hovercraft is full of eels."
-            val packed = RFC0019EncryptionEnvelope()
+            val packed = EncryptionEnvelopeV1()
                 .packEncryptedEnvelope(message, aliceDid, faberDid)
             log.info { "Packed: ${packed.prettyPrint()}" }
 

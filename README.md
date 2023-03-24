@@ -90,10 +90,10 @@ Government [agent=AcaPy, type=INDY, url=http://192.168.0.10:8031]
 Wallet created: Faber [agent=AcaPy, type=IN_MEMORY, url=http://192.168.0.10:8030]
 
 Faber>> wallet create --name=Alice 
-Wallet created: Alice [agent=Nessus, type=IN_MEMORY, url=http://192.168.0.10:8130]
+Wallet created: Alice [agent=Nessus, type=IN_MEMORY, url=http://192.168.0.10:9000]
 
 Alice>> agent start
-Started Camel endpoint on 192.168.0.10:8130
+Started Camel endpoint on 192.168.0.10:9000
 
 Alice>> rfc0434 create-invitation --inviter=Faber
 Faber created an RFC0434 Invitation: did:key:z6Mkk4KrPgeamSqtMN6UGvQrP2scL9nQmWEUXeEhgiSf8YCd [key=6c4ooSQ9RuMREsFmbMT1XwKcWaWZMcz7qdKmrSUeDKRF, url=http://192.168.0.10:8030]
@@ -110,6 +110,31 @@ Alice>> message list
 [id=e02e0cd5-63db-4dde-aa73-ace8cb3a0c66, thid=e02e0cd5-63db-4dde-aa73-ace8cb3a0c66, type=https://didcomm.org/trust_ping/1.0/ping]
 [id=f7a7be95-e8be-4535-8d47-047ef0e7e9f1, thid=e02e0cd5-63db-4dde-aa73-ace8cb3a0c66, type=https://didcomm.org/trust_ping/1.0/ping_response]
 ```
+
+### Docker Example
+
+You can run a headless Nessus agent endpoint like this ...
+
+```shell
+docker run --detach --name didcomm \
+  -p 9100:9100 \
+  -e NESSUS_USER_PORT=9100 \
+  nessusio/nessus-didcomm:dev \
+    run --headless script/travel-with-minor-bootstrap.txt
+
+docker logs -fn400 didcomm
+````
+
+or a local interactive shell like this ...
+
+```shell
+docker run -it --name=didcomm \
+  -p 9000:9000 \
+  -e NESSUS_USER_HOST=$EXTERNAL_IP \
+  -e NESSUS_USER_PORT=9000 \
+  nessusio/nessus-didcomm:dev agent start
+````
+
 
 ### Code Sample
 

@@ -5,11 +5,11 @@ import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.trimJson
-import org.nessus.didcomm.w3c.W3CVerifiableCredential
+import org.nessus.didcomm.model.W3CVerifiableCredential
 
 class VerificationPoliciesTest: AbstractAgentTest() {
     private val log = KotlinLogging.logger {}

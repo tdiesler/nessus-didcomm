@@ -23,7 +23,7 @@ import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.service.toOctetKeyPair
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.decodeHex

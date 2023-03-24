@@ -27,10 +27,10 @@ import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyType
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toCurve25519
-import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxEasyBytes
-import org.nessus.didcomm.crypto.LazySodiumService.cryptoBoxOpenEasyBytes
-import org.nessus.didcomm.crypto.LazySodiumService.lazySodium
+import org.nessus.didcomm.service.LazySodiumService.convertEd25519toCurve25519
+import org.nessus.didcomm.service.LazySodiumService.cryptoBoxEasyBytes
+import org.nessus.didcomm.service.LazySodiumService.cryptoBoxOpenEasyBytes
+import org.nessus.didcomm.service.LazySodiumService.lazySodium
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber

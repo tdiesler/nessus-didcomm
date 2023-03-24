@@ -1,0 +1,16 @@
+
+# Start the agent ######################################################################################################
+
+agent start --uri 0.0.0.0:9000
+
+# Create Wallets #######################################################################################################
+
+wallet create --name Malathi
+
+# Create a Connection ##################################################################################################
+
+protocol invitation receive --inviter=Government --url=http://localhost:9100/message/invitation?inviter=Government&method=key
+
+# Propose a Verifiable Credential ######################################################################################
+
+vc propose -t Passport -i Government.Did -s Malathi.Did --data={"givenName": "Malathi", "familyName": "Hamal", "citizenship": "US"}

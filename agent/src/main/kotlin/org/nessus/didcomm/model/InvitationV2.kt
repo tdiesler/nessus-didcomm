@@ -22,11 +22,11 @@ package org.nessus.didcomm.model
 import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.message.MessageBuilder
-import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.did.DidDocV2
-import org.nessus.didcomm.service.DID_DOCUMENT_MEDIA_TYPE
-import org.nessus.didcomm.service.DidDocumentV2Service
 import org.nessus.didcomm.service.DidService
+import org.nessus.didcomm.service.ModelService
+import org.nessus.didcomm.util.decodeJson
+import java.io.InputStreamReader
+import java.net.URL
 
 /**
  * [Out of Band Invitation]https://identity.foundation/didcomm-messaging/spec/#out-of-band-messages
@@ -114,6 +114,14 @@ data class InvitationV2(
 
     @Suppress("UNCHECKED_CAST")
     companion object {
+        val DEFAULT_ACCEPT = listOf("didcomm/v2") //, "didcomm/aip2;env=rfc587")
+
+        fun fromUrl(url: URL): InvitationV2 {
+            return with(InputStreamReader(url.openStream())) {
+                fromMessage(Message.parse(readText().decodeJson()))
+            }
+        }
+
         fun fromMessage(msg: Message): InvitationV2 {
             requireNotNull(msg.from) { "No from" }
             return Builder(msg.id, msg.type, msg.from!!)
@@ -126,20 +134,16 @@ data class InvitationV2(
     }
 
     private val didService get() = DidService.getService()
+    private val modelService get() = ModelService.getService()
 
-    val diddoc: DidDocV2 get() = run {
-            val invitationDidDoc = didService.loadOrResolveDidDocument(from) ?: run {
-                checkNotNull(attachments) { "No attachments" }
-                attachments
-                    .filter { it.mediaType == DID_DOCUMENT_MEDIA_TYPE }
-                    .map {
-                        val diddocV2Service = DidDocumentV2Service.getService()
-                        diddocV2Service.extractDidDocAttachment(it)
-                    }.firstOrNull()
-            }
-            checkNotNull(invitationDidDoc) { "No invitation DidDoc" }
-            invitationDidDoc
-        }
+    val diddoc: DidDocV2
+        get() = run {
+        val invitationDidDoc = attachments
+            ?.firstOrNull { it.mediaType == DID_DOCUMENT_MEDIA_TYPE }
+            ?.let { DidDocV2.fromAttachment(it) }
+            ?:let { didService.resolveDidDoc(from) }
+        checkNotNull(invitationDidDoc) { "No invitation DidDoc" }
+    }
 
     fun invitationKey(): String {
         return recipientDid().verkey
@@ -152,7 +156,7 @@ data class InvitationV2(
     }
 
     fun recipientServiceEndpoint(): String {
-        return diddoc.serviceEndpoint() as String
+        return diddoc.serviceEndpoint as String
     }
 
     fun toMessage(): Message {

@@ -19,8 +19,6 @@
  */
 package org.nessus.didcomm.test.cli
 
-import io.kotest.core.annotation.EnabledCondition
-import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.AnnotationSpec
 import mu.KotlinLogging
 import org.nessus.didcomm.agent.AriesAgent
@@ -33,7 +31,6 @@ import picocli.CommandLine
 import picocli.CommandLine.IExecutionExceptionHandler
 import java.io.OutputStream
 import java.io.PrintStream
-import kotlin.reflect.KClass
 
 
 abstract class AbstractCliTest: AnnotationSpec() {
@@ -61,8 +58,4 @@ abstract class AbstractCliTest: AnnotationSpec() {
         }
         return cmdln
     }
-}
-
-class AcaPyOnlyCondition : EnabledCondition {
-    override fun enabled(kclass: KClass<out Spec>): Boolean = AriesAgent.adminClient().isLive
 }

@@ -1,0 +1,36 @@
+<html>
+<head>
+    <link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <a href="/playground?method=${method}">Home</a>
+
+    <h2>Basic Message</h2>
+
+    All communication in <a href="https://identity.foundation/didcomm-messaging/spec/">DIDComm</a> is asynchronous.<br>
+    Here we show how we can send plain, signed and encrypted messages to the other party.
+
+    <div>
+    <pre>
+        <code>
+        Nessus DIDComm CLI
+        Version: ${version}
+
+        >> agent start
+
+        >> wallet create --name Malathi
+
+        Malathi>> protocol invitation receive --inviter=Government --url=http://${Host}/message/invitation?inviter=Government&method=${method}
+
+        Malathi>> protocol basic-message send "This worked great. Looking forward to doing more of this exciting Trust over IP"
+
+        Malathi>> protocol basic-message send --sign "Here a message that you can trust coming from me"
+
+        Malathi>> protocol basic-message send --encrypt "Here a message that nobody else can see"
+
+        Malathi>> message list
+        </code>
+    </pre>
+    </div>
+</body>
+</html>

@@ -24,7 +24,7 @@ import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import org.nessus.didcomm.service.HttpService
 import org.nessus.didcomm.service.HttpService.HttpClient.Companion.createHttpLoggingInterceptor
-import org.nessus.didcomm.wallet.AcapyWallet
+import org.nessus.didcomm.model.AcapyWallet
 import org.slf4j.event.Level
 import java.net.ConnectException
 

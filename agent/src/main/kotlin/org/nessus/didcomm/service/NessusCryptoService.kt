@@ -33,9 +33,8 @@ import id.walt.services.crypto.SunCryptoService
 import id.walt.services.key.Keys
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
-import org.nessus.didcomm.crypto.LazySodiumService
-import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toCurve25519
-import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.model.Did
+import org.nessus.didcomm.service.LazySodiumService.convertEd25519toCurve25519
 import org.nessus.didcomm.util.encodeBase64Url
 import org.nessus.didcomm.util.trimJson
 import java.security.SecureRandom

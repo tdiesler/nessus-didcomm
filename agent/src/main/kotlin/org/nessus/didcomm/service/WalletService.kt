@@ -22,19 +22,20 @@ package org.nessus.didcomm.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import id.walt.services.keystore.KeyStoreService
 import mu.KotlinLogging
 import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
 import org.nessus.didcomm.agent.AgentConfiguration
 import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.agent.AriesClient
-import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.AcapyWallet
+import org.nessus.didcomm.model.AcapyWalletPlugin
 import org.nessus.didcomm.model.AgentType
+import org.nessus.didcomm.model.Did
+import org.nessus.didcomm.model.DidMethod
+import org.nessus.didcomm.model.NessusWalletPlugin
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.Wallet.WalletConfig
-import org.nessus.didcomm.wallet.*
 import java.net.ConnectException
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -53,7 +54,6 @@ object WalletService: ObjectService<WalletService>() {
 
     private val modelService get() = ModelService.getService()
     private val didService get() = DidService.getService()
-    private val keyStore get() = KeyStoreService.getService()
 
     fun createWallet(config: WalletConfig): Wallet {
         val maybeWallet = findWallet(config.name)
@@ -80,12 +80,7 @@ object WalletService: ObjectService<WalletService>() {
 
     fun removeWallet(id: String): Wallet? {
         return modelService.getWallet(id)?.also { wallet ->
-            wallet.dids.forEach { did ->
-                didService.deleteDid(did)
-                keyStore.getKeyId(did.uri)?.let {
-                    keyStore.delete(it)
-                }
-            }
+            wallet.dids.forEach { didService.deleteDid(it) }
             wallet.walletPlugin.removeWallet(wallet)
             modelService.removeWallet(wallet.id)
         }
@@ -102,8 +97,12 @@ object WalletService: ObjectService<WalletService>() {
      *
      * Nessus Dids are created locally and have their associated keys in the {@see KeyStoreService}
      */
-    fun createDid(wallet: Wallet, method: DidMethod? = null, keyAlias: String? = null, options: DidCreateOptions? = null): Did {
-        val did = wallet.walletPlugin.createDid(wallet, method, keyAlias, options)
+    fun createDid(wallet: Wallet, method: DidMethod? = null, keyAlias: String? = null, options: DidOptions? = null): Did {
+        val auxOptions = options ?: when(method) {
+            DidMethod.PEER -> DidPeerOptions(numalgo = 2, wallet.endpointUrl)
+            else -> DidOptions(wallet.endpointUrl)
+        }
+        val did = wallet.walletPlugin.createDid(wallet, method, keyAlias, auxOptions)
         wallet.addDid(did)
         return did
     }
@@ -200,7 +199,7 @@ interface WalletPlugin {
 
     fun removeWallet(wallet: Wallet)
 
-    fun createDid(wallet: Wallet, method: DidMethod?, keyAlias: String? = null, options: DidCreateOptions? = null): Did
+    fun createDid(wallet: Wallet, method: DidMethod?, keyAlias: String? = null, options: DidOptions? = null): Did
 
     fun publicDid(wallet: Wallet): Did?
 

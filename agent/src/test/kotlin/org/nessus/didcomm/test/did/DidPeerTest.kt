@@ -29,7 +29,7 @@ import org.didcommx.peerdid.VerificationMethodTypeAuthentication
 import org.didcommx.peerdid.createPeerDIDNumalgo2
 import org.didcommx.peerdid.isPeerDID
 import org.didcommx.peerdid.resolvePeerDID
-import org.nessus.didcomm.did.SicpaDidDoc
+import org.nessus.didcomm.model.SicpaDidDoc
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.trimJson
 

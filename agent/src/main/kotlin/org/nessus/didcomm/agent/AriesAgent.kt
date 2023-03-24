@@ -20,7 +20,7 @@
 package org.nessus.didcomm.agent
 
 import org.hyperledger.aries.api.connection.ConnectionRecord
-import org.nessus.didcomm.wallet.AcapyWallet
+import org.nessus.didcomm.model.AcapyWallet
 
 class AriesAgent {
 

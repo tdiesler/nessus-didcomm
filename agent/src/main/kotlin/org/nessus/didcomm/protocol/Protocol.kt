@@ -22,10 +22,12 @@ package org.nessus.didcomm.protocol
 import id.walt.services.keystore.KeyStoreService
 import mu.KLogger
 import org.nessus.didcomm.model.AgentType
+import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.*
 import org.nessus.didcomm.util.unionMap
-import org.nessus.didcomm.w3c.NessusSignatoryService
+import org.nessus.didcomm.service.NessusSignatoryService
 
 abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
 
@@ -35,7 +37,7 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     val didService get() = DidService.getService()
     val didComm get() = DidCommService.getService()
     val diddocV1Service get() = DidDocumentV1Service.getService()
-    val diddocV2Service get() = DidDocumentV2Service.getService()
+    val didResolverService get() = DidDocResolverService.getService()
     val dispatchService get() = MessageDispatchService.getService()
     val keyStore get() = KeyStoreService.getService()
     val modelService get() = ModelService.getService()
@@ -48,7 +50,6 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
         require(agentType in supportedAgentTypes) { "Protocol not supported by $agentType" }
     }
 
-
     internal open fun invokeMethod(to: Wallet, messageType: String): Boolean {
         throw IllegalStateException("Dispatch not supported in protocol: $protocolUri")
     }
@@ -59,6 +60,10 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
 
     fun getMessageExchange(): MessageExchange {
         return mex
+    }
+
+    fun getConnection(): Connection {
+        return mex.getConnection()
     }
 
     @Suppress("UNCHECKED_CAST")

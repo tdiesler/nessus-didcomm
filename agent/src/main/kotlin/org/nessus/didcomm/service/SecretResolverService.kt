@@ -29,7 +29,7 @@ object SecretResolverService: ObjectService<SecretResolverService>(), SecretReso
         if (!hasPrivateKey(kid))
             return Optional.ofNullable(null)
 
-        val didDoc = didService.loadDidDocument(kid)
+        val didDoc = didService.loadDidDoc(kid)
         val verificationMethod = didDoc.verificationMethods.first { it.id == kid }
         val crv = when(verificationMethod.type) {
             ED25519_VERIFICATION_KEY_2018,

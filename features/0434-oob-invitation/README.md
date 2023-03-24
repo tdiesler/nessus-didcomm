@@ -83,7 +83,7 @@ The first Trust Ping Response, will use `fromPrior` to maintain trust integrity.
           "didCommServices":[
             {
               "id":"did:key:z6MksUtmw8WmEVzL7xiQF7PuMu4mC2cavyU9jbQ4VoBSA6EN#didcomm-1",
-              "serviceEndpoint":"http://192.168.0.10:8130",
+              "serviceEndpoint":"http://192.168.0.10:9000",
               "accept":[
                 "didcomm/v2"
               ]

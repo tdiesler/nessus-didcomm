@@ -19,48 +19,38 @@
  */
 package org.nessus.didcomm.test
 
+import co.touchlab.stately.concurrency.value
 import id.walt.credentials.w3c.templates.VcTemplateService
 import id.walt.services.keystore.KeyStoreService
 import io.kotest.core.spec.style.AnnotationSpec
+import org.nessus.didcomm.model.NessusWalletPlugin.Companion.getEndpointUrl
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.service.DidCommService
 import org.nessus.didcomm.service.DidDocumentV1Service
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.MessageDispatchService
+import org.nessus.didcomm.service.MessageDispatcher
 import org.nessus.didcomm.service.ModelService
+import org.nessus.didcomm.service.NessusAuditorService
 import org.nessus.didcomm.service.NessusCryptoService
+import org.nessus.didcomm.service.NessusCustodianService
 import org.nessus.didcomm.service.NessusPolicyRegistryService
+import org.nessus.didcomm.service.NessusSignatoryService
 import org.nessus.didcomm.service.SecretResolverService
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
-import org.nessus.didcomm.w3c.NessusAuditorService
-import org.nessus.didcomm.w3c.NessusCustodianService
-import org.nessus.didcomm.w3c.NessusSignatoryService
-import org.nessus.didcomm.wallet.NessusWalletPlugin.Companion.getNessusEndpointUrl
 
-val ACAPY_OPTIONS_01 = mapOf(
+val ACAPY_OPTIONS = mapOf(
     "ACAPY_HOSTNAME" to System.getenv("ACAPY_HOSTNAME"),
     "ACAPY_ADMIN_PORT" to "8031",
     "ACAPY_USER_PORT" to "8030",
 )
 
-val ACAPY_OPTIONS_02 = mapOf(
-    "ACAPY_HOSTNAME" to System.getenv("ACAPY_HOSTNAME"),
-    "ACAPY_ADMIN_PORT" to "8041",
-    "ACAPY_USER_PORT" to "8040",
-)
-
-val NESSUS_OPTIONS_01 = mapOf(
-    "NESSUS_HOSTNAME" to System.getenv("NESSUS_HOSTNAME"),
-    "NESSUS_USER_PORT" to "8130",
-)
-
-val NESSUS_OPTIONS_02 = mapOf(
-    "NESSUS_HOSTNAME" to System.getenv("NESSUS_HOSTNAME"),
-    "NESSUS_USER_PORT" to "8140",
+val NESSUS_OPTIONS = mapOf(
+    "NESSUS_USER_HOST" to System.getenv("NESSUS_USER_HOST"),
+    "NESSUS_USER_PORT" to System.getenv("NESSUS_USER_PORT"),
 )
 
 object Government {
@@ -123,18 +113,27 @@ abstract class AbstractAgentTest: AnnotationSpec() {
     val templateService get() = VcTemplateService.getService()
     val walletService get() = WalletService.getService()
 
+    val endpointHandle = ThreadLocal<AutoCloseable>()
+
     fun readResource(path: String): String {
         val url = javaClass.getResource(path)
         checkNotNull(url) { "No resource: $path" }
         return url.readText()
     }
 
-    fun startNessusEndpoint(options: Map<String, Any>, listener: MessageListener? = null): AutoCloseable {
-        val endpointUrl = getNessusEndpointUrl(options)
-        return endpointService.startEndpoint(endpointUrl, listener)
+    fun startNessusEndpoint(options: Map<String, Any>, listener: MessageDispatcher? = null): AutoCloseable {
+        val endpointUrl = getEndpointUrl(options)
+        val handle = endpointService.startEndpoint(endpointUrl, listener)
+        endpointHandle.set(handle)
+        return handle
     }
 
-    fun removeWallet(wallet: Wallet) {
-        walletService.removeWallet(wallet.id)
+    fun <T: AutoCloseable> stopNessusEndpoint(handle: T? = null) {
+        val effHandle = handle ?: endpointHandle.get()
+        endpointService.stopEndpoint(effHandle!!)
+    }
+
+    fun removeWallet(wallet: Wallet?) {
+        wallet?.also { walletService.removeWallet(it.id) }
     }
 }

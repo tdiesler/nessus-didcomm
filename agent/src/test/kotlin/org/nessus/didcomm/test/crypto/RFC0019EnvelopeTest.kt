@@ -23,9 +23,9 @@ import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyType
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.nessus.didcomm.did.DidMethod
-import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
-import org.nessus.didcomm.protocol.RFC0023DidExchangeProtocolV1.Companion.RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1
+import org.nessus.didcomm.model.DidMethod
+import org.nessus.didcomm.protocol.EncryptionEnvelopeV1
+import org.nessus.didcomm.protocol.DidExchangeV1Protocol.Companion.DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.util.encodeJson
@@ -45,7 +45,7 @@ class RFC0019EnvelopeTest: AbstractAgentTest() {
         val aliceKey = keyStore.load(aliceDid.verkey, KeyType.PRIVATE)
         keyStore.delete(aliceDid.verkey)
 
-        val rfc0019 = RFC0019EncryptionEnvelope()
+        val rfc0019 = EncryptionEnvelopeV1()
         val envelope = rfc0019.packEncryptedEnvelope("Scheena Dog", faberDid, aliceDid)
 
         // Restore the key to store (i.e. Alice's Did is internal for unpack)
@@ -73,9 +73,9 @@ class RFC0019EnvelopeTest: AbstractAgentTest() {
         }
         """.trimJson()
 
-        val rfc0019 = RFC0019EncryptionEnvelope()
+        val rfc0019 = EncryptionEnvelopeV1()
         val (message, _, recipientVerkey) = rfc0019.unpackEncryptedEnvelope(envelope)!!
-        message.selectJson("@type") shouldBe RFC0023_DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1
+        message.selectJson("@type") shouldBe DIDEXCHANGE_MESSAGE_TYPE_REQUEST_V1
         recipientVerkey shouldBe aliceDidSov.verkey
 
 

@@ -1,7 +1,6 @@
 package org.nessus.didcomm.model
 
 import com.google.gson.annotations.SerializedName
-import org.nessus.didcomm.did.Did
 import org.nessus.didcomm.model.InvitationState.DONE
 import org.nessus.didcomm.model.InvitationState.INITIAL
 import org.nessus.didcomm.model.InvitationState.RECEIVED

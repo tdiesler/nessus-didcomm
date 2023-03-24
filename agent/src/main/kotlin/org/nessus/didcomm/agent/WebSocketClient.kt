@@ -24,7 +24,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.WebSocket
 import org.nessus.didcomm.agent.AgentConfiguration.Companion.agentConfiguration
-import org.nessus.didcomm.wallet.AcapyWallet
+import org.nessus.didcomm.model.AcapyWallet
 
 /**
  * Creates and maintains a WebSocket connection (optionally) on behalf of a given wallet.

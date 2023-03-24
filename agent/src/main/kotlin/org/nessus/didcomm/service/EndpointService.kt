@@ -22,7 +22,6 @@ package org.nessus.didcomm.service
 import id.walt.servicematrix.BaseService
 import id.walt.servicematrix.ServiceProvider
 import id.walt.servicematrix.ServiceRegistry
-import org.nessus.didcomm.protocol.MessageListener
 
 abstract class EndpointService<T: AutoCloseable>: BaseService() {
     override val implementation get() = serviceImplementation<EndpointService<T>>()
@@ -37,14 +36,14 @@ abstract class EndpointService<T: AutoCloseable>: BaseService() {
      *
      * @return A handle specific to the endpoint implementation
      */
-    open fun startEndpoint(endpointUrl: String, listener: MessageListener? = null): T {
+    open fun startEndpoint(endpointUrl: String, listener: MessageDispatcher? = null): T {
         throw IllegalStateException("Override startEndpoint")
     }
 
     /**
      * Stops the endpoint service represented by the given handle
      */
-    open fun stopEndpoint(handle: T) {
+    open fun <T: AutoCloseable> stopEndpoint(handle: T) {
         handle.close()
     }
 }

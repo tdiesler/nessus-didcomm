@@ -23,36 +23,26 @@ import io.kotest.core.annotation.EnabledCondition
 import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.AnnotationSpec
 import org.nessus.didcomm.agent.AriesAgent
+import org.nessus.didcomm.model.NessusWalletPlugin
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.protocol.MessageListener
 import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.MessageDispatchService
+import org.nessus.didcomm.service.MessageDispatcher
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import org.nessus.didcomm.service.WalletService
+import org.nessus.didcomm.util.Holder
 import org.nessus.didcomm.util.encodeHex
-import org.nessus.didcomm.wallet.NessusWalletPlugin
 import kotlin.reflect.KClass
 
-val ACAPY_OPTIONS_01 = mapOf(
+val ACAPY_OPTIONS = mapOf(
     "ACAPY_HOSTNAME" to System.getenv("ACAPY_HOSTNAME"),
     "ACAPY_ADMIN_PORT" to "8031",
     "ACAPY_USER_PORT" to "8030",
 )
 
-val ACAPY_OPTIONS_02 = mapOf(
-    "ACAPY_HOSTNAME" to System.getenv("ACAPY_HOSTNAME"),
-    "ACAPY_ADMIN_PORT" to "8041",
-    "ACAPY_USER_PORT" to "8040",
-)
-
-val NESSUS_OPTIONS_01 = mapOf(
-    "NESSUS_HOSTNAME" to System.getenv("NESSUS_HOSTNAME"),
-    "NESSUS_USER_PORT" to "8130",
-)
-
-val NESSUS_OPTIONS_02 = mapOf(
-    "NESSUS_HOSTNAME" to System.getenv("NESSUS_HOSTNAME"),
-    "NESSUS_USER_PORT" to "8140",
+val NESSUS_OPTIONS = mapOf(
+    "NESSUS_USER_HOST" to System.getenv("NESSUS_USER_HOST"),
+    "NESSUS_USER_PORT" to System.getenv("NESSUS_USER_PORT"),
 )
 
 object Government {
@@ -101,13 +91,22 @@ abstract class AbstractIntegrationTest: AnnotationSpec() {
     val endpointService get() = EndpointService.getService()
     val walletService get() = WalletService.getService()
 
+    private val endpointHandleHolder = Holder<AutoCloseable>()
+
     fun getWalletByAlias(name: String): Wallet? {
         return walletService.findWallet(name)
     }
 
-    fun startNessusEndpoint(options: Map<String, Any>, listener: MessageListener? = null): AutoCloseable {
-        val endpointUrl = NessusWalletPlugin.getNessusEndpointUrl(options)
-        return endpointService.startEndpoint(endpointUrl, listener)
+    fun startNessusEndpoint(options: Map<String, Any>, listener: MessageDispatcher? = null): AutoCloseable {
+        val endpointUrl = NessusWalletPlugin.getEndpointUrl(options)
+        val handle = endpointService.startEndpoint(endpointUrl, listener)
+        endpointHandleHolder.value = handle
+        return handle
+    }
+
+    fun <T: AutoCloseable> stopNessusEndpoint(handle: T? = null) {
+        val effHandle = handle ?: endpointHandleHolder.value
+        endpointService.stopEndpoint(effHandle!!)
     }
 
     fun removeWallet(wallet: Wallet) {

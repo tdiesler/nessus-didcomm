@@ -22,17 +22,12 @@ package org.nessus.didcomm.model
 import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 import mu.KotlinLogging
-import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.did.DidMethod
 import org.nessus.didcomm.model.ConnectionState.*
-import org.nessus.didcomm.service.DidCreateOptions
+import org.nessus.didcomm.service.DidOptions
 import org.nessus.didcomm.service.WalletPlugin
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.gsonPretty
-import org.nessus.didcomm.w3c.W3CVerifiableCredential
-import org.nessus.didcomm.wallet.AcapyWallet
-import org.nessus.didcomm.wallet.NessusWallet
 
 enum class AgentType(val value: String) {
     @SerializedName("AcaPy")
@@ -106,12 +101,10 @@ abstract class Wallet(
         }
     }
 
-    @Synchronized
-    fun createDid(method: DidMethod? = null, keyAlias: String? = null, options: DidCreateOptions? = null): Did {
+    fun createDid(method: DidMethod? = null, keyAlias: String? = null, options: DidOptions? = null): Did {
         return walletService.createDid(this, method, keyAlias, options)
     }
 
-    @Synchronized
     fun addDid(did: Did) {
         // We currently don't support multiple representations for the same verification key
         check(getDid(did.verkey) == null) { "Did already added" }
@@ -119,27 +112,22 @@ abstract class Wallet(
         didsInternal.add(did)
     }
 
-    @Synchronized
     fun getDid(verkey: String): Did? {
         return dids.firstOrNull{ it.verkey == verkey }
     }
 
-    @Synchronized
     fun getPublicDid(): Did? {
         return walletService.getPublicDid(this)
     }
 
-    @Synchronized
     fun hasDid(verkey: String): Boolean {
         return getDid(verkey) != null
     }
 
-    @Synchronized
     fun findDid(predicate: (d: Did) -> Boolean): Did? {
         return dids.firstOrNull(predicate)
     }
 
-    @Synchronized
     fun findDidsByAlias(alias: String?): List<Did> {
         alias?.toIntOrNull()?.also {
             val idx = alias.toInt()
@@ -151,57 +139,47 @@ abstract class Wallet(
         }
     }
 
-    @Synchronized
     fun removeDid(did: Did) {
         didsInternal.remove(did)
     }
 
-    @Synchronized
     fun addConnection(con: Connection) {
         check(getConnection(con.id) == null) { "Connection already added" }
         connectionsInternal.add(con)
     }
 
-    @Synchronized
     fun getConnection(id: String): Connection? {
         return connectionsInternal.firstOrNull { it.id == id }
     }
 
-    @Synchronized
     fun findConnection(predicate: (c: Connection) -> Boolean): Connection? {
         return connectionsInternal.firstOrNull(predicate)
     }
 
-    @Synchronized
     fun removeConnection(id: String) {
         getConnection(id)?.also {
             connectionsInternal.remove(it)
         }
     }
 
-    @Synchronized
     open fun removeConnections() {
         walletService.removeConnections(this)
         connectionsInternal.clear()
     }
 
-    @Synchronized
     fun addInvitation(invitation: Invitation) {
         check(getInvitation(invitation.id) == null) { "Invitation already added" }
         invitationsInternal.add(invitation)
     }
 
-    @Synchronized
     fun getInvitation(id: String): Invitation? {
         return findInvitation { it.id == id }
     }
 
-    @Synchronized
     fun findInvitation(predicate: (i: Invitation) -> Boolean): Invitation? {
         return invitationsInternal.firstOrNull(predicate)
     }
 
-    @Synchronized
     fun removeInvitation(id: String) {
         getInvitation(id)?.run { invitationsInternal.remove(this) }
     }
@@ -263,6 +241,7 @@ abstract class Wallet(
         var mayExist: Boolean = false
 
         fun agentType(agentType: AgentType?) = apply { this.agentType = agentType }
+        fun endpointUrl(url: String?) = apply { url?.also { options["endpointUrl"] = url }}
         fun options(options: Map<String, String>) = apply { this.options.putAll(options) }
         fun storageType(storageType: StorageType?) = apply { this.storageType = storageType }
         fun walletKey(walletKey: String?) = apply { this.walletKey = walletKey }

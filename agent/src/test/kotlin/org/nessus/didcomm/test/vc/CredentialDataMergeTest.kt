@@ -3,12 +3,12 @@ package org.nessus.didcomm.test.vc
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import mu.KotlinLogging
-import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.decodeJson
-import org.nessus.didcomm.w3c.W3CVerifiableCredential
-import org.nessus.didcomm.w3c.W3CVerifiableCredentialValidator
+import org.nessus.didcomm.model.W3CVerifiableCredential
+import org.nessus.didcomm.model.W3CVerifiableCredentialValidator
 import java.util.UUID
 
 class CredentialDataMergeTest: AbstractAgentTest() {

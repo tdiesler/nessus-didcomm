@@ -23,18 +23,19 @@ import id.walt.auditor.Auditor
 import id.walt.common.resolveContent
 import id.walt.custodian.Custodian
 import mu.KotlinLogging
-import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.cli.NessusCli.Companion.headless
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.Invitation
+import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.NessusPolicyRegistryService
+import org.nessus.didcomm.service.NessusSignatoryService
 import org.nessus.didcomm.service.WalletService
-import org.nessus.didcomm.w3c.NessusSignatoryService
-import org.nessus.didcomm.w3c.W3CVerifiableCredential
 import picocli.CommandLine
 import java.io.PrintStream
 import java.net.URL
@@ -65,7 +66,8 @@ abstract class AbstractBaseCommand: Callable<Int> {
 
     fun echo(msg: Any = "") {
         log.info { msg }
-        out.println(msg)
+        if (!headless)
+            out.println(msg)
     }
 
     fun echoList(result: List<Any>) {
@@ -74,7 +76,8 @@ abstract class AbstractBaseCommand: Callable<Int> {
 
     fun echoList(message: String, result: List<Any>) {
         log.info { message }
-        out.print(message)
+        if (!headless)
+            out.print(message)
         result.forEach { echo(it) }
     }
 
@@ -132,34 +135,37 @@ abstract class AbstractBaseCommand: Callable<Int> {
             ?: getContextWallet(alias)
     }
 
-    fun findWalletAndDidFromAlias(walletAlias: String?, alias: String?): Pair<Wallet?, Did?> {
+    fun findWalletAndDidFromAlias(walletAlias: String?, didAlias: String?): Pair<Wallet?, Did?> {
 
         // Last Did of the context wallet
-        if (alias == null) {
+        if (didAlias == null) {
             return getContextWallet(walletAlias).let { w -> Pair(w, w.dids.lastOrNull()) }
         }
 
         // Did alias as a reference to a context variable
-        cliService.getVar(alias)?.also {
-            return findWalletAndDidFromAlias(walletAlias, it)
+        cliService.getVar(didAlias)?.also { uri ->
+            val did = didService.loadOrResolveDid(uri)
+            checkNotNull(did) { "Cannot resolve did: $uri" }
+            val wallet = modelService.findWalletByDid(uri)
+            return Pair(wallet, did)
         }
 
         // Did alias as an index into the context wallet did list
-        if (alias.toIntOrNull() != null) {
-            val idx = alias.toInt()
+        if (didAlias.toIntOrNull() != null) {
+            val idx = didAlias.toInt()
             return getContextWallet(walletAlias).let { w -> Pair(w, w.dids[idx]) }
         }
 
         // Find did for the given wallet alias
         if (walletAlias != null) {
             return getContextWallet(walletAlias).let { w ->
-                Pair(w, w.findDidsByAlias(alias).firstOrNull())
+                Pair(w, w.findDidsByAlias(didAlias).firstOrNull())
             }
         }
 
         // Did alias as fuzzy uri selector for all wallet dids
         modelService.wallets
-            .map { w -> Pair(w, w.findDidsByAlias(alias).firstOrNull()) }
+            .map { w -> Pair(w, w.findDidsByAlias(didAlias).firstOrNull()) }
             .firstOrNull { p -> p.second != null }
             ?.also { return it }
 
@@ -184,7 +190,8 @@ abstract class AbstractBaseCommand: Callable<Int> {
             ?.also { return it }
 
         // Vc alias as fileUrl or content
-        return kotlin.runCatching { resolveContent(alias) }
-            .getOrNull()?.let { W3CVerifiableCredential.fromJson(it) }
+        val content = resolveContent(alias)
+        check(content != alias) { "Cannot resolve vc alias: $alias" }
+        return W3CVerifiableCredential.fromJson(content)
     }
 }

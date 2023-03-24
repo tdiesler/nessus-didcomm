@@ -20,9 +20,6 @@
 package org.nessus.didcomm.service
 
 import mu.KotlinLogging
-import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.model.Connection
-import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Model
 import org.nessus.didcomm.model.Wallet
 
@@ -64,18 +61,5 @@ object ModelService: ObjectService<ModelService>() {
         return model.removeWallet(id)?.also {
             log.info {"Removed Wallet: ${it.shortString()}" }
         }
-    }
-
-    fun findConnection(peerOne: Did, peerTwo: Did): Connection? {
-        val peerDids = listOf(peerOne.uri, peerTwo.uri)
-        log.info { "Find connection for: $peerDids" }
-        val predicate = { c: Connection -> c.myDid.uri in peerDids && c.theirDid.uri in peerDids }
-        return wallets
-            .flatMap { w -> w.connections.filter { c ->
-                val res = predicate(c)
-                log.info { "${c.shortString()} => $res" }
-                res
-            }}
-            .firstOrNull { c -> c.state == ConnectionState.ACTIVE }
     }
 }

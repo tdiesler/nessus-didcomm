@@ -32,11 +32,11 @@ class AgentCmdTest: AbstractCliTest() {
     @Test
     fun testValidUri() {
 
-        cliService.execute("agent start --uri 0.0.0.0:8130").isSuccess shouldBe true
+        cliService.execute("agent start --uri 0.0.0.0:9000").isSuccess shouldBe true
 
         Thread.sleep(500)
 
-        cliService.execute("agent stop --uri 0.0.0.0:8130").isSuccess shouldBe true
+        cliService.execute("agent stop --uri 0.0.0.0:9000").isSuccess shouldBe true
     }
 
     @Test

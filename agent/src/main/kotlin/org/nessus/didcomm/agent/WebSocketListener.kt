@@ -27,7 +27,7 @@ import okhttp3.WebSocket
 import org.hyperledger.aries.BaseClient
 import org.hyperledger.aries.webhook.EventType
 import org.nessus.didcomm.util.gson
-import org.nessus.didcomm.wallet.AcapyWallet
+import org.nessus.didcomm.model.AcapyWallet
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 

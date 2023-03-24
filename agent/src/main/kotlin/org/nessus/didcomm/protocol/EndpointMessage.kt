@@ -112,5 +112,3 @@ class EndpointMessage(
         fun build() = EndpointMessage(body, headers)
     }
 }
-
-typealias MessageListener = (msg: EndpointMessage) -> Unit

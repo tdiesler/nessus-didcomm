@@ -19,33 +19,20 @@
  */
 package org.nessus.didcomm.model
 
-import org.nessus.didcomm.util.encodeJson
-import org.nessus.didcomm.util.gson
-
 class Model {
 
     internal val walletsMap: MutableMap<String, Wallet> = mutableMapOf()
 
-    @get:Synchronized
     val wallets
         get() = walletsMap.values.toList()
 
-    val asJson
-        get() = gson.toJson(mapOf("wallets" to wallets.sortedBy { it.name }))
-
-    @Synchronized
     fun addWallet(wallet: Wallet) {
         check(!walletsMap.containsKey(wallet.id)) { "Wallet already exists: ${wallet.id}" }
         walletsMap[wallet.id] = wallet
     }
 
-    @Synchronized
     fun removeWallet(id: String): Wallet? {
         return walletsMap.remove(id)
-    }
-
-    fun encode(pretty: Boolean = false): String {
-        return mapOf("wallets" to wallets.sortedBy { it.name }).encodeJson(pretty)
     }
 }
 

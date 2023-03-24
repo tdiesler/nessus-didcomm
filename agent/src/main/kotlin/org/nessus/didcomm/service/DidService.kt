@@ -37,8 +37,7 @@ import id.walt.crypto.newKeyId
 import id.walt.model.DID_CONTEXT_URL
 import id.walt.model.ServiceEndpoint
 import id.walt.model.VerificationMethod
-import id.walt.services.context.ContextManager
-import id.walt.services.hkvstore.HKVKey
+import id.walt.services.did.DidService.storeDid
 import id.walt.services.keystore.KeyStoreService
 import mu.KotlinLogging
 import org.didcommx.peerdid.VerificationMaterialAgreement
@@ -50,43 +49,78 @@ import org.didcommx.peerdid.createPeerDIDNumalgo0
 import org.didcommx.peerdid.createPeerDIDNumalgo2
 import org.didcommx.peerdid.isPeerDID
 import org.didcommx.peerdid.resolvePeerDID
-import org.nessus.didcomm.crypto.LazySodiumService.convertEd25519toRaw
-import org.nessus.didcomm.did.DEFAULT_KEY_ALGORITHM
-import org.nessus.didcomm.did.Did
-import org.nessus.didcomm.did.Did.Companion.didMethod
-import org.nessus.didcomm.did.DidDocV2
-import org.nessus.didcomm.did.DidMethod
-import org.nessus.didcomm.did.DidPeer
-import org.nessus.didcomm.did.KeyAlgorithm
+import org.nessus.didcomm.service.LazySodiumService.convertEd25519toRaw
+import org.nessus.didcomm.model.DEFAULT_KEY_ALGORITHM
+import org.nessus.didcomm.model.Did
+import org.nessus.didcomm.model.Did.Companion.didMethod
+import org.nessus.didcomm.model.DidDocV2
+import org.nessus.didcomm.model.DidMethod
+import org.nessus.didcomm.model.DidPeer
+import org.nessus.didcomm.model.KeyAlgorithm
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeBase64
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.trimJson
-
 
 typealias WaltIdDidService = id.walt.services.did.DidService
 typealias WaltIdDidMethod = id.walt.model.DidMethod
 typealias WaltIdDidDoc = id.walt.model.Did
 typealias WaltIdDid = id.walt.model.Did
 
-/** Abstract Did create options */
-open class DidCreateOptions {
-    override fun toString() = "DidCreateOptions()"
+/** Common Did document options */
+open class DidOptions(
+    val endpointUrl: String?,
+) {
+    override fun toString() = "DidOptions(endpointUrl=$endpointUrl)"
 }
 
-data class DidPeerOptions(
-    val numalgo: Int? = null,
-    val serviceEndpoint: String? = null,
-): DidCreateOptions()
+class DidPeerOptions(
+    val numalgo: Int = 0,
+    endpointUrl: String? = null,
+): DidOptions(endpointUrl) {
+    override fun toString() = "DidPeerOptions(numalgo=$numalgo, endpointUrl=$endpointUrl)"
+}
 
 interface DidServicePlugin {
-    fun createDid(keyAlias: String?, options: DidCreateOptions? = null): Did
+    fun createDid(keyAlias: String?, options: DidOptions?): Did
     fun loadDid(uri: String): Did
     fun loadDidDoc(uri: String): WaltIdDidDoc
     fun resolveDid(uri: String): Did?
     fun resolveDidDoc(uri: String): WaltIdDidDoc?
     fun importDid(did: Did): KeyId
+    fun importDidDoc(didDoc: WaltIdDidDoc): KeyId
     fun deleteDid(did: Did) {}
+}
+
+fun WaltIdDidDoc.findServiceEndpoint(): String? {
+    return service?.firstOrNull()?.serviceEndpoint?.firstOrNull()
+}
+
+fun WaltIdDidDoc.withServiceEndpoint(uri: String, endpointUrl: String? = null) = apply {
+
+    // Check already existing serviceEndpoint
+    if (findServiceEndpoint() != null)
+        return this
+
+    // Use given endpointUrl or from a wallet (when found)
+    val serviceEndpoint = if (endpointUrl != null) {
+        endpointUrl
+    } else {
+        val modelService = ModelService.getService()
+        modelService.findWalletByDid(uri)?.endpointUrl
+    }
+
+    // Assign a new service endpoint
+    // Note, WaltIdDidDoc is mutable
+    if (serviceEndpoint != null) {
+        service = listOf(
+            ServiceEndpoint(
+                id = "$uri#didcomm-1",
+                type = "DIDCommMessaging",
+                serviceEndpoint = listOf(serviceEndpoint)
+            )
+        )
+    }
 }
 
 object DidService: ObjectService<DidService>() {
@@ -106,59 +140,76 @@ object DidService: ObjectService<DidService>() {
         }
     }
 
-    fun createDid(method: DidMethod, keyAlias: String? = null, options: DidCreateOptions? = null): Did {
+    /**
+     * A Did may be given an endpointUrl at create time, which is then stored as part of the DidDoc
+     */
+    fun createDid(method: DidMethod, keyAlias: String? = null, options: DidOptions? = null): Did {
         val did = withPlugin(method).createDid(keyAlias, options)
-        val didDoc = loadDidDocument(did.uri)
-        log.info { "Created Did: ${didDoc.encodeJson(true)}" }
+        log.info { "Created DidDoc: ${loadDidDoc(did.uri).encodeJson(true)}" }
         return did
     }
 
     fun deleteDid(did: Did) {
-        WaltIdDidService.deleteDid(did.uri)
+        if (hasDid(did.uri)) {
+            WaltIdDidService.deleteDid(did.uri)
+            keyStore.getKeyId(did.uri)?.also { keyStore.delete(it) }
+        }
         withPlugin(did.method).deleteDid(did)
     }
 
     fun hasDid(uri: String): Boolean {
-        return try { WaltIdDidService.load(uri); true }
-        catch (e: RuntimeException) { false }
+        return WaltIdDidService.loadDid(uri) != null
     }
 
+    /**
+     * Loads a Did that is required to exist in store
+     */
     fun loadDid(uri: String): Did {
         return withPlugin(didMethod(uri)).loadDid(uri)
     }
 
-    fun loadDidDocument(uri: String): DidDocV2 {
-        val didDoc = withPlugin(didMethod(uri)).loadDidDoc(uri)
-            .also { addWalletServiceEndpoint(it) }
-        return DidDocV2.fromWaltIdDidDoc(didDoc)
+    /**
+     * Loads a DidDoc that is required to exist in store
+     */
+    fun loadDidDoc(uri: String): DidDocV2 {
+        val waltDidDoc = withPlugin(didMethod(uri)).loadDidDoc(uri)
+        return DidDocV2.fromWaltIdDidDoc(waltDidDoc.withServiceEndpoint(uri))
     }
 
     fun loadOrResolveDid(uri: String): Did? {
-        return if (hasDid(uri))
-            loadDid(uri)
-        else
-            resolveDid(uri)
+        return when {
+            hasDid(uri) -> loadDid(uri)
+            else -> resolveDid(uri)
+        }
     }
 
-    fun loadOrResolveDidDocument(uri: String): DidDocV2? {
-        return if (hasDid(uri))
-            loadDidDocument(uri)
-        else
-            resolveDidDocument(uri)
+    fun loadOrResolveDidDoc(uri: String): DidDocV2? {
+        return when {
+            hasDid(uri) -> loadDidDoc(uri)
+            else -> resolveDidDoc(uri)
+        }
     }
 
     fun resolveDid(uri: String): Did? {
-        return withPlugin(didMethod(uri)).resolveDid(uri)
+        val waltDidDoc = withPlugin(didMethod(uri)).resolveDidDoc(uri)
+        return waltDidDoc?.let { didFromDidDoc(it) }
     }
 
-    fun resolveDidDocument(uri: String): DidDocV2? {
-        return withPlugin(didMethod(uri)).resolveDidDoc(uri)
-            ?.also { addWalletServiceEndpoint(it) }
-            ?.let { DidDocV2.fromWaltIdDidDoc(it) }
+    fun resolveDidDoc(uri: String): DidDocV2? {
+        val waltDidDoc = withPlugin(didMethod(uri)).resolveDidDoc(uri)
+        return waltDidDoc?.let { DidDocV2.fromWaltIdDidDoc(it.withServiceEndpoint(uri)) }
     }
 
     fun importDid(did: Did): KeyId {
         return withPlugin(did.method).importDid(did)
+    }
+
+    fun importDidDoc(didDoc: DidDocV2): KeyId {
+        val method = didMethod(didDoc.id)
+        val encodedDoc = didDoc.encodeJson()
+        val waltDidDoc = WaltIdDidDoc.decode(encodedDoc)
+        checkNotNull(waltDidDoc?.findServiceEndpoint()) { "No serviceEndpoint in: ${waltDidDoc?.encodeJson()}" }
+        return withPlugin(method).importDidDoc(waltDidDoc!!)
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
@@ -166,8 +217,7 @@ object DidService: ObjectService<DidService>() {
     object DidKeyPlugin: DidServicePlugin {
         val log = KotlinLogging.logger {}
 
-        override fun createDid(keyAlias: String?, options: DidCreateOptions?): Did {
-            require(options == null) { "Options not supported for did:key: $options" }
+        override fun createDid(keyAlias: String?, options: DidOptions?): Did {
 
             val nessusKeyAlgorithm = DEFAULT_KEY_ALGORITHM
             val waltKeyAlgorithm = nessusKeyAlgorithm.toWaltIdKeyAlgorithm()
@@ -180,9 +230,10 @@ object DidService: ObjectService<DidService>() {
             val identifier = convertRawKeyToMultiBase58Btc(pubkeyBytes, getMulticodecKeyCode(waltKeyAlgorithm))
             val did = Did(identifier, DidMethod.KEY, verkey)
 
-            val didDocV2 = DidDocV2.fromWaltIdDidDoc(WaltIdDidService.resolve(did.uri))
-            storeDid(did.uri, didDocV2.encodeJson(true))
+            val waltDidDoc = WaltIdDidService.resolve(did.uri)
+            storeDid(waltDidDoc.withServiceEndpoint(did.uri, options?.endpointUrl))
 
+            val didDocV2 = DidDocV2.fromWaltIdDidDoc(waltDidDoc)
             appendKeyStoreAliases(keyId, did, didDocV2)
 
             return did
@@ -205,17 +256,48 @@ object DidService: ObjectService<DidService>() {
         }
 
         override fun importDid(did: Did): KeyId {
+
+            // Store verification key
             WaltIdDidService.importDidAndKeys(did.uri)
             val keyId = keyStore.load(did.uri).keyId
-            val didDoc = DidDocV2.fromWaltIdDidDoc(WaltIdDidService.resolve(did.uri))
-            appendKeyStoreAliases(keyId, did, didDoc)
+
+            // Generate WaltIdDidDoc
+            val didDoc = WaltIdDidService.resolve(did.uri)
+
+            // Store the generated DidDoc
+            storeDid(didDoc)
+
+            // Store key aliases referenced from the DidDoc
+            val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
+            appendKeyStoreAliases(keyId, did, didDocV2)
+
+            return keyId
+        }
+
+        override fun importDidDoc(didDoc: WaltIdDidDoc): KeyId {
+
+            // Construct the Did from the DidDoc
+            val did = didFromDidDoc(didDoc)
+
+            // Store verification key
+            WaltIdDidService.importDidAndKeys(did.uri)
+            val keyId = keyStore.load(did.uri).keyId
+
+            // Store the given DidDoc
+            storeDid(didDoc)
+
+            // Store key aliases referenced from the DidDoc
+            val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
+            appendKeyStoreAliases(keyId, did, didDocV2)
+
             return keyId
         }
     }
 
     object DidPeerPlugin: DidServicePlugin {
 
-        override fun createDid(keyAlias: String?, options: DidCreateOptions?): Did {
+        override fun createDid(keyAlias: String?, options: DidOptions?): Did {
+            requireNotNull(options) { "No did:peer options" }
 
             val nessusKeyAlgorithm = KeyAlgorithm.EdDSA_Ed25519
             val waltKeyAlgorithm = nessusKeyAlgorithm.toWaltIdKeyAlgorithm()
@@ -242,9 +324,7 @@ object DidService: ObjectService<DidService>() {
                 return Did(identifier, DidMethod.PEER, publicSigningKey)
             }
 
-            val peerOptions = options as? DidPeerOptions ?: DidPeerOptions(0)
-
-            val (did, didDoc) = when(peerOptions.numalgo) {
+            val (did, waltDidDoc) = when((options as DidPeerOptions).numalgo) {
 
                 0 -> {
                     val did = didUriToDid(createPeerDIDNumalgo0(signingKey))
@@ -262,13 +342,12 @@ object DidService: ObjectService<DidService>() {
                         verificationMethod = verificationMethods,
                         authentication = listOf(VerificationMethod.Reference(authenticationId)),
                         keyAgreement = listOf(VerificationMethod.Reference(keyAgreementId)),
-                        serviceEndpoint = null
                     )
                     Pair(did, didDoc)
                 }
 
                 2 -> {
-                    val service = peerOptions.serviceEndpoint?.let { endpointUrl ->
+                    val service = options.endpointUrl?.let { endpointUrl ->
                         """
                         { 
                             "type": "DIDCommMessaging", 
@@ -281,21 +360,24 @@ object DidService: ObjectService<DidService>() {
                     Pair(did, didDoc)
                 }
 
-                else -> throw IllegalArgumentException("Unsupported numalgo: ${peerOptions.numalgo}")
+                else -> throw IllegalArgumentException("Unsupported numalgo: ${options.numalgo}")
             }
 
             check(isPeerDID(did.uri)) { "Not a did:peer: ${did.uri}" }
-            checkNotNull(didDoc) { "Cannot resolve: ${did.uri}" }
+            checkNotNull(waltDidDoc) { "Cannot resolve: ${did.uri}" }
 
-            val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
-            storeDid(did.uri, didDocV2.encodeJson(true))
+            storeDid(waltDidDoc.withServiceEndpoint(did.uri, options.endpointUrl))
+            storeDid(waltDidDoc)
+
+            val didDocV2 = DidDocV2.fromWaltIdDidDoc(waltDidDoc)
             appendKeyStoreAliases(keyId, did, didDocV2)
 
             return did
         }
 
         override fun loadDid(uri: String): DidPeer {
-            return didFromDidDoc(loadDidDoc(uri))
+            val did = didFromDidDoc(loadDidDoc(uri))
+            return DidPeer(did.id, did.method, did.verkey)
         }
 
         override fun loadDidDoc(uri: String): WaltIdDidDoc {
@@ -312,14 +394,43 @@ object DidService: ObjectService<DidService>() {
         }
 
         override fun importDid(did: Did): KeyId {
-            val didDoc = resolveDidDoc(did.uri)
-            checkNotNull(didDoc) { "Cannot resolve: ${did.uri}" }
 
-            val pubKeyBytes = did.verkey.decodeBase58()
-            val keyId = storePubkeyBytes(pubKeyBytes)
+            // Store verification key
+            val keyId = keyStore.getKeyId(did.uri)?.let { KeyId(it) } ?: run {
+                val pubkeyBytes = did.verkey.decodeBase58()
+                storePubkeyBytes(pubkeyBytes)
+            }
 
-            storeDid(did.uri, didDoc.encodePretty())
-            appendKeyStoreAliases(keyId, did, DidDocV2.fromWaltIdDidDoc(didDoc))
+            // Generate WaltIdDidDoc
+            val didDoc =  WaltIdDidDoc.decode(resolvePeerDID(did.uri))
+
+            // Store the generated DidDoc
+            storeDid(didDoc!!)
+
+            // Store key aliases referenced from the DidDoc
+            val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
+            appendKeyStoreAliases(keyId, did, didDocV2)
+
+            return keyId
+        }
+
+        override fun importDidDoc(didDoc: WaltIdDidDoc): KeyId {
+
+            // Construct the Did from the DidDoc
+            val did = didFromDidDoc(didDoc)
+
+            // Store verification key
+            val keyId = keyStore.getKeyId(did.uri)?.let { KeyId(it) } ?: run {
+                val pubkeyBytes = did.verkey.decodeBase58()
+                storePubkeyBytes(pubkeyBytes)
+            }
+
+            // Store the given DidDoc
+            storeDid(didDoc)
+
+            // Store key aliases referenced from the DidDoc
+            val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
+            appendKeyStoreAliases(keyId, did, didDocV2)
 
             return keyId
         }
@@ -348,8 +459,7 @@ object DidService: ObjectService<DidService>() {
 
     object DidSovPlugin: DidServicePlugin {
 
-        override fun createDid(keyAlias: String?, options: DidCreateOptions?): Did {
-            require(options == null) { "Options not supported for did:sov: $options" }
+        override fun createDid(keyAlias: String?, options: DidOptions?): Did {
 
             val nessusKeyAlgorithm = DEFAULT_KEY_ALGORITHM
             val waltKeyAlgorithm = nessusKeyAlgorithm.toWaltIdKeyAlgorithm()
@@ -363,10 +473,11 @@ object DidService: ObjectService<DidService>() {
 
             val did = Did(identifier, DidMethod.SOV, verkey)
 
-            val didDoc = DidDocV2.fromWaltIdDidDoc(generateWaltIdDidDoc(did, pubkeyBytes))
-            storeDid(did.uri, didDoc.encodeJson(true))
+            val waltDidDoc = generateWaltIdDidDoc(did, pubkeyBytes)
+            storeDid(waltDidDoc.withServiceEndpoint(did.uri, options?.endpointUrl))
 
-            appendKeyStoreAliases(keyId, did, didDoc)
+            val didDocV2 = DidDocV2.fromWaltIdDidDoc(waltDidDoc)
+            appendKeyStoreAliases(keyId, did, didDocV2)
 
             return did
         }
@@ -391,15 +502,44 @@ object DidService: ObjectService<DidService>() {
         }
 
         override fun importDid(did: Did): KeyId {
+
+            // Store verification key
             val keyId = keyStore.getKeyId(did.uri)?.let { KeyId(it) } ?: run {
                 val pubkeyBytes = did.verkey.decodeBase58()
                 storePubkeyBytes(pubkeyBytes)
             }
 
-            val didDoc = DidDocV2.fromWaltIdDidDoc(resolveFromKey(keyStore.load(keyId.id)))
-            storeDid(did.uri, didDoc.encodeJson(true))
+            // Generate WaltIdDidDoc
+            val didDoc = resolveFromKey(keyStore.load(keyId.id))
 
-            appendKeyStoreAliases(keyId, did, didDoc)
+            // Store the generated DidDoc
+            storeDid(didDoc)
+
+            // Store key aliases referenced from the DidDoc
+            val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
+            appendKeyStoreAliases(keyId, did, didDocV2)
+
+            return keyId
+        }
+
+        override fun importDidDoc(didDoc: WaltIdDidDoc): KeyId {
+
+            // Construct the Did from the DidDoc
+            val did = didFromDidDoc(didDoc)
+
+            // Store verification key
+            val keyId = keyStore.getKeyId(did.uri)?.let { KeyId(it) } ?: run {
+                val pubkeyBytes = did.verkey.decodeBase58()
+                storePubkeyBytes(pubkeyBytes)
+            }
+
+            // Store the given DidDoc
+            storeDid(didDoc)
+
+            // Store key aliases referenced from the DidDoc
+            val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
+            appendKeyStoreAliases(keyId, did, didDocV2)
+
             return keyId
         }
 
@@ -413,20 +553,6 @@ object DidService: ObjectService<DidService>() {
             val did = Did(identifier, DidMethod.SOV, verkey)
 
             return generateWaltIdDidDoc(did, pubkeyBytes)
-        }
-    }
-
-    private fun addWalletServiceEndpoint(did: WaltIdDid) {
-        if (did.serviceEndpoint == null || did.serviceEndpoint?.isEmpty() == true) {
-            modelService.findWalletByDid(did.id)?.also {
-                did.serviceEndpoint = listOf(
-                    ServiceEndpoint(
-                        id = "${did.id}#didcomm-1",
-                        type = "wallet-endpoint",
-                        serviceEndpoint = listOf(it.endpointUrl)
-                    )
-                )
-            }
         }
     }
 
@@ -465,7 +591,6 @@ object DidService: ObjectService<DidService>() {
             verificationMethod = verificationMethods,
             authentication = authenticationRef,
             keyAgreement = keyAgreementRefs,
-            serviceEndpoint = null
         )
     }
 
@@ -488,28 +613,22 @@ object DidService: ObjectService<DidService>() {
             verificationMethods)
     }
 
-    private fun didFromDidDoc(didDoc: WaltIdDidDoc): DidPeer {
-        val vmethod = didDoc.authentication?.firstOrNull { it.type.startsWith("Ed25519") }
+    private fun didFromDidDoc(didDoc: WaltIdDidDoc): Did {
+        val verificationMethod = didDoc.authentication?.firstOrNull { it.type.startsWith("Ed25519") }
             ?: didDoc.verificationMethod?.firstOrNull { it.type.startsWith("Ed25519") }
-        checkNotNull(vmethod) {"No suitable verification method: ${didDoc.encode()}"}
+        checkNotNull(verificationMethod) {"No suitable verification method: ${didDoc.encode()}"}
         val verkey = when {
-            vmethod.publicKeyBase58 != null -> {
-                vmethod.publicKeyBase58
+            verificationMethod.publicKeyBase58 != null -> {
+                verificationMethod.publicKeyBase58
             }
-            vmethod.publicKeyMultibase != null -> {
-                val verkeyBytes = convertMultiBase58BtcToRawKey(vmethod.publicKeyMultibase!!)
+            verificationMethod.publicKeyMultibase != null -> {
+                val verkeyBytes = convertMultiBase58BtcToRawKey(verificationMethod.publicKeyMultibase!!)
                 verkeyBytes.encodeBase58()
             }
             else -> throw IllegalStateException("Unsupported public key encoding")
         }
-        checkNotNull(verkey) {"No verkey in: ${vmethod.id}"}
-        val did = Did.fromUri(vmethod.controller, verkey)
-        return DidPeer(did.id, did.method, did.verkey)
+        checkNotNull(verkey) {"No verkey in: ${verificationMethod.id}"}
+        return Did.fromUri(verificationMethod.controller, verkey)
     }
-
-    // Private in WaltIdDidService
-    private fun storeDid(didUrlStr: String, didDoc: String) {
-        ContextManager.hkvStore.put(HKVKey("did", "created", didUrlStr), didDoc)
-    }
-
 }
+

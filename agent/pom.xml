@@ -81,6 +81,10 @@
             <artifactId>kotlin-logging-jvm</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.kotest</groupId>
+            <artifactId>kotest-framework-api-jvm</artifactId>
+        </dependency>
+        <dependency>
             <groupId>network.idu.acapy</groupId>
             <artifactId>aries-client-python</artifactId>
         </dependency>
@@ -101,15 +105,12 @@
             <artifactId>camel-undertow</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-
-        <!-- Runtime -->
-        <dependency>
             <groupId>org.hyperledger</groupId>
             <artifactId>indy</artifactId>
-            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
 
         <!-- Test -->

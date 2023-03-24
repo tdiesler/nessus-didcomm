@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.service
 
+import id.walt.common.prettyPrint
 import mu.KotlinLogging
 import okhttp3.MediaType.Companion.toMediaType
 import org.didcommx.didcomm.common.Typ.Encrypted
@@ -26,16 +27,17 @@ import org.didcommx.didcomm.common.Typ.Plaintext
 import org.didcommx.didcomm.common.Typ.Signed
 import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.model.UnpackParams
-import org.nessus.didcomm.did.Did
+import org.nessus.didcomm.model.Did
+import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.protocol.EncryptionEnvelopeV1
+import org.nessus.didcomm.protocol.EncryptionEnvelopeV1.Companion.ENCRYPTED_ENVELOPE_V1_MEDIA_TYPE
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_PROTOCOL_URI
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_RECIPIENT_VERKEY
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_SENDER_VERKEY
-import org.nessus.didcomm.protocol.MessageExchange
-import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope
-import org.nessus.didcomm.protocol.RFC0019EncryptionEnvelope.Companion.RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE
-import org.nessus.didcomm.protocol.RFC0048TrustPingProtocolV1.Companion.RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1
+import org.nessus.didcomm.protocol.TrustPingV1Protocol.Companion.TRUST_PING_MESSAGE_TYPE_PING_V1
+import org.nessus.didcomm.util.NessusRuntimeException
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.matches
 
@@ -54,25 +56,29 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
     private val protocolService get() = ProtocolService.getService()
 
     /**
-     * Entry point for all external messages sent to a wallet endpoint
+     * Entry point for all external messages sent to the agent
      */
-    fun dispatchInbound(epm: EndpointMessage): MessageExchange? {
+    override fun invoke(epm: EndpointMessage): MessageExchange? {
         val contentType = epm.headers["Content-Type"] as? String
         checkNotNull(contentType) { "No 'Content-Type' header"}
         return when {
-            RFC0019_ENCRYPTED_ENVELOPE_MEDIA_TYPE.matches(contentType) -> dispatchEncryptionEnvelopeV1(epm)
-            Plaintext.typ.toMediaType().matches(contentType) -> dispatchPlaintextEnvelope(epm)
-            Signed.typ.toMediaType().matches(contentType) -> dispatchSignedEnvelope(epm)
-            Encrypted.typ.toMediaType().matches(contentType) -> dispatchEncryptedEnvelopeV2(epm)
-            else -> throw IllegalStateException("Unknown content type: $contentType")
+            ENCRYPTED_ENVELOPE_V1_MEDIA_TYPE.matches(contentType) -> dispatchEncryptionEnvelopeV1(epm)
+            else -> dispatchDidCommV2Envelope(epm, contentType)
         }
     }
 
     fun dispatchToEndpoint(url: String, epm: EndpointMessage): Boolean {
         val httpClient = httpService.httpClient()
         val res = httpClient.post(url, epm.body, headers = epm.headers.mapValues { (_, v) -> v.toString() })
-        check(res.isSuccessful) { "Call failed with ${res.code} ${res.message}" }
-        return res.isSuccessful
+        if (!res.isSuccessful) {
+            val error = res.body?.string()
+            log.error { error?.prettyPrint() }
+            when {
+                !error.isNullOrEmpty() -> throw NessusRuntimeException(error)
+                else -> throw IllegalStateException("Call failed with ${res.code} ${res.message}")
+            }
+        }
+        return true
     }
 
     /**
@@ -91,18 +97,11 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
         return protocol.invokeMethod(target, messageType)
     }
 
-    /**
-     * MessageDispatcher invocation
-     */
-    override fun invoke(msg: EndpointMessage): MessageExchange? {
-        return dispatchInbound(msg)
-    }
-
     // Private ---------------------------------------------------------------------------------------------------------
 
     private fun dispatchEncryptionEnvelopeV1(encrypted: EndpointMessage): MessageExchange? {
 
-        val rfc0019 = RFC0019EncryptionEnvelope()
+        val rfc0019 = EncryptionEnvelopeV1()
         val (message, senderVerkey, recipientVerkey) = rfc0019.unpackEncryptedEnvelope(encrypted.body as String) ?: run {
                 // This service may receive encrypted envelopes with key ids in `recipients.header.kid` that we have never seen.
                 // Here, we silently ignore these messages and rely on the unpack function to provide appropriate logging.
@@ -124,7 +123,7 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
         val recipientWallet = modelService.findWalletByVerkey(recipientVerkey) ?: run {
             val logmsg = "Cannot find recipient wallet verkey=$recipientVerkey"
             when (aux.type) {
-                RFC0048_TRUST_PING_MESSAGE_TYPE_PING_V1 -> log.warn { "$logmsg for trust ping" }
+                TRUST_PING_MESSAGE_TYPE_PING_V1 -> log.warn { "$logmsg for trust ping" }
                 else -> log.error { "$logmsg for message type: ${aux.type}" }
             }
             return null
@@ -138,6 +137,8 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
         checkNotNull(protocolKey) { "Unknown message type: ${aux.type}" }
 
         val mex = MessageExchange.findByVerkey(recipientVerkey)
+        checkNotNull(mex) { "No message exchange for: $recipientVerkey" }
+
         mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
             .header(MESSAGE_HEADER_PROTOCOL_URI, protocolKey.name)
             .build())
@@ -146,23 +147,10 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
         return mex
     }
 
-    private fun dispatchPlaintextEnvelope(plaintext: EndpointMessage): MessageExchange? {
+    private fun dispatchDidCommV2Envelope(epm: EndpointMessage, contentType: String): MessageExchange? {
+        check(setOf(Plaintext, Signed, Encrypted).any { it.typ.toMediaType().matches(contentType) }) { "Unknown content type: $contentType" }
         val unpackResult = DidCommService.getService().unpack(
-            UnpackParams.Builder(plaintext.bodyAsJson).build()
-        )
-        return dispatchUnpackedMessage(unpackResult.message)
-    }
-
-    private fun dispatchSignedEnvelope(signed: EndpointMessage): MessageExchange? {
-        val unpackResult = DidCommService.getService().unpack(
-            UnpackParams.Builder(signed.bodyAsJson).build()
-        )
-        return dispatchUnpackedMessage(unpackResult.message)
-    }
-
-    private fun dispatchEncryptedEnvelopeV2(encrypted: EndpointMessage): MessageExchange? {
-        val unpackResult = DidCommService.getService().unpack(
-            UnpackParams.Builder(encrypted.bodyAsJson).build()
+            UnpackParams.Builder(epm.bodyAsJson).build()
         )
         return dispatchUnpackedMessage(unpackResult.message)
     }
@@ -197,6 +185,8 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
             else null
 
         val mex = MessageExchange.findByVerkey(recipientVerkey)
+        checkNotNull(mex) { "No message exchange for: $recipientVerkey" }
+
         mex.addMessage(EndpointMessage.Builder(msg)
             .header(MESSAGE_HEADER_PROTOCOL_URI, protocolKey.name)
             .header(MESSAGE_HEADER_SENDER_VERKEY, senderVerkey)

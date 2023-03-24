@@ -89,9 +89,11 @@ fun String.isJson(): Boolean {
 @Suppress("UNCHECKED_CAST")
 fun String.decodeJson(): Map<String, Any> {
     // Naive decoding of int values may produce double
-    return gson.fromJson(this, Map::class.java).mapValues{ (_, v) ->
+    return runCatching { gson.fromJson(this, Map::class.java).mapValues{ (_, v) ->
         if (v is Double && v % 1 == 0.0) v.toInt() else v
-    } as Map<String, Any>
+    }}.onFailure {
+        throw IllegalStateException("Cannot parse: $this", it)
+    }.getOrThrow() as Map<String, Any>
 }
 
 fun String.trimJson(): String {

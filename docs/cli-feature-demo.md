@@ -71,7 +71,7 @@ Let's now create a native Nessus wallet for Alice
 Wallet created: Faber [agent=AcaPy, type=IN_MEMORY, url=http://192.168.0.10:8030]
 
 Faber>> wallet create --name Alice
-Wallet created: Alice [agent=Nessus, type=IN_MEMORY, url=http://192.168.0.10:8130]
+Wallet created: Alice [agent=Nessus, type=IN_MEMORY, url=http://192.168.0.10:9000]
 
 Alice>>
 ```
@@ -101,7 +101,7 @@ Lets now start Alice's HTTP endpoint
 
 ```shell
 Alice>> agent start
-Started Camel endpoint on 192.168.0.10:8130
+Started Camel endpoint on 192.168.0.10:9000
 ```
 
 This starts an [Apache Camel](https://camel.apache.org) endpoint, and hence provides a plethora of routing 
@@ -197,7 +197,7 @@ Alice>> wallet remove faber                                                     
 Wallet removed: Faber [agent=AcaPy, type=IN_MEMORY, url=http://192.168.0.10:8030]
 
 Alice>> wallet create --name Faber
-Wallet created: Faber [agent=Nessus, type=IN_MEMORY, url=http://192.168.0.10:8130]
+Wallet created: Faber [agent=Nessus, type=IN_MEMORY, url=http://192.168.0.10:9000]
 
 Alice>> rfc0434 create-invitation --inviter=Faber --verbose --dcv2
 Faber created an RFC0434 Invitation
@@ -241,7 +241,7 @@ Faber created an RFC0434 Invitation
               "accept": [
                 "didcomm/v2"
               ],
-              "serviceEndpoint": "http://192.168.0.10:8130"
+              "serviceEndpoint": "http://192.168.0.10:9000"
             }
           ]
         }
@@ -275,7 +275,7 @@ When Alice received the Invitation from Faber, she can establish the connection 
 
 ```shell
 Alice>> rfc0434 receive-invitation
-Alice received an RFC0434 Invitation: did:key:z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam [key=FpNGJAxfonjpdaVbP7minTz5RhoqbKZ6iAA3vh5jLLoP, url=http://192.168.0.10:8130]
+Alice received an RFC0434 Invitation: did:key:z6MkuGdJtRD79LEHk5LJ4gjZdZY5FH5h1CoTQB4yky3kFZam [key=FpNGJAxfonjpdaVbP7minTz5RhoqbKZ6iAA3vh5jLLoP, url=http://192.168.0.10:9000]
 Alice-Faber [id=3da3baa8-aac6-4ec2-a472-29f5c5435f7f, myDid=did:key:z6Mkpzrq3Pf6xPkBxppPCh7XE1NpfPTYqGbkodMdWcVaaMFQ, theirDid=did:key:z6MkngmjqN8hVSBwvz5KVEMSwhiLjqgP7VWNgMpVjegRJiMr, state=ACTIVE]
 ```
 
@@ -289,9 +289,9 @@ Alice>> connection show -v                                                      
   "invitationKey": "FpNGJAxfonjpdaVbP7minTz5RhoqbKZ6iAA3vh5jLLoP",
   "myRole": "INVITEE",
   "myLabel": "Invitee Alice on NESSUS",
-  "myEndpointUrl": "http://192.168.0.10:8130",
+  "myEndpointUrl": "http://192.168.0.10:9000",
   "theirRole": "INVITER",
-  "theirEndpointUrl": "http://192.168.0.10:8130",
+  "theirEndpointUrl": "http://192.168.0.10:9000",
   "state": "ACTIVE",
   "myDid": {
     "method": "KEY",
@@ -375,7 +375,7 @@ EndpointMessage(
                                 "accept":[
                                     "didcomm/v2"
                                 ],
-                                "serviceEndpoint":"http://192.168.0.10:8130"
+                                "serviceEndpoint":"http://192.168.0.10:9000"
                             }
                         ]
                     }
@@ -402,8 +402,8 @@ is a shortcut available directly on the RFC0434 protocol
 
 ```shell
 Alice>> rfc0434 connect --dcv2 faber alice                                                                                                                                                                          [Conn:9939eec]
-Faber created an RFC0434 Invitation: did:key:z6MkvAmFiRcVxaUo4MTN9DJfmcY1jgbqaorAc5ZLDNrF791Y [key=GiWD8BN4d2zKwrcfTeLpvWz1v7KzAvbov4eQP6tEBvEA, url=http://192.168.0.10:8130]
-Alice received an RFC0434 Invitation: did:key:z6MkvAmFiRcVxaUo4MTN9DJfmcY1jgbqaorAc5ZLDNrF791Y [key=GiWD8BN4d2zKwrcfTeLpvWz1v7KzAvbov4eQP6tEBvEA, url=http://192.168.0.10:8130]
+Faber created an RFC0434 Invitation: did:key:z6MkvAmFiRcVxaUo4MTN9DJfmcY1jgbqaorAc5ZLDNrF791Y [key=GiWD8BN4d2zKwrcfTeLpvWz1v7KzAvbov4eQP6tEBvEA, url=http://192.168.0.10:9000]
+Alice received an RFC0434 Invitation: did:key:z6MkvAmFiRcVxaUo4MTN9DJfmcY1jgbqaorAc5ZLDNrF791Y [key=GiWD8BN4d2zKwrcfTeLpvWz1v7KzAvbov4eQP6tEBvEA, url=http://192.168.0.10:9000]
 Alice-Faber [id=20e82029-ef64-4572-a6d2-7ac661435d32, myDid=did:key:z6MkvSHUgybJtTCGemvJgUvURZPGVFkZgfUKSam6Z7QcP3EX, theirDid=did:key:z6MkvMJwBXeykWgsCxkoJdJUVdSztFZMztt2qH3JCWK5NfwC, state=ACTIVE]
 ```
 

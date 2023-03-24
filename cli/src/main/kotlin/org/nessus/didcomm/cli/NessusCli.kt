@@ -41,10 +41,18 @@ import org.jline.reader.impl.DefaultParser
 import org.jline.terminal.Terminal
 import org.jline.terminal.TerminalBuilder
 import org.jline.widget.TailTipWidgets
+import org.nessus.didcomm.cli.model.ConnectionCommands
+import org.nessus.didcomm.cli.model.DidCommands
+import org.nessus.didcomm.cli.model.InvitationCommands
+import org.nessus.didcomm.cli.model.MessageCommands
+import org.nessus.didcomm.cli.model.WalletCommands
+import org.nessus.didcomm.cli.protocol.ProtocolCommands
+import org.nessus.didcomm.cli.protocol.VerifiableCredentialCommands
 import org.nessus.didcomm.model.ConnectionState
-import org.nessus.didcomm.protocol.MessageExchange.Companion.DID_ATTACHMENT_KEY
-import org.nessus.didcomm.protocol.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
+import org.nessus.didcomm.model.MessageExchange.Companion.DID_ATTACHMENT_KEY
+import org.nessus.didcomm.model.MessageExchange.Companion.INVITATION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.ServiceMatrixLoader
+import org.nessus.didcomm.util.Holder
 import picocli.CommandLine
 import picocli.CommandLine.Command
 import picocli.CommandLine.IExecutionExceptionHandler
@@ -60,32 +68,47 @@ import kotlin.system.exitProcess
         AgentCommands::class,
         ClearScreenCommand::class,
         ConnectionCommands::class,
+        HelpTreeCommand::class,
         DidCommands::class,
-        CommandsCommand::class,
         InvitationCommands::class,
         MessageCommands::class,
-        RFC0048TrustPingCommand::class,
-        RFC0095BasicMessageCommand::class,
-        RFC0434Commands::class,
-        RunScriptCommand::class,
+        ProtocolCommands::class,
+        RunCommand::class,
         VariableCommands::class,
-        VCCommands::class,
+        VerifiableCredentialCommands::class,
         WalletCommands::class,
     ]
 )
 class NessusCli {
-    val log = KotlinLogging.logger { }
 
     companion object {
+        val log = KotlinLogging.logger { }
+
+        val headless get() = _headless.value == true
 
         @JvmStatic
         fun main(args: Array<String>) {
+            val nessusCli = NessusCli()
+
             ServiceMatrixLoader.loadServiceDefinitions()
-            exitProcess(NessusCli().runTerminal(args))
+
+            val command = args.joinToString(separator = " ")
+            _headless.value = command.startsWith("run --headless")
+
+            if (args.isNotEmpty()) {
+                nessusCli.execute(command).onFailure {
+                    when(it) {
+                        is RuntimeException -> throw it
+                        else -> throw IllegalStateException(it)
+                    }
+                }
+            }
+
+            if (!headless)
+                exitProcess(nessusCli.runTerminal())
         }
 
         val defaultCommandLine get() = run {
-            val log = KotlinLogging.logger { }
             val cmdln = CommandLine(NessusCli())
             cmdln.executionExceptionHandler = IExecutionExceptionHandler { ex, _, _ ->
                 log.error(ex) { }
@@ -94,6 +117,8 @@ class NessusCli {
             }
             cmdln
         }
+
+        private val _headless = Holder(false)
     }
 
     val cliService get() = CLIService.getService()
@@ -131,7 +156,7 @@ class NessusCli {
         }
     }
 
-    private fun runTerminal(args: Array<String>): Int {
+    private fun runTerminal(): Int {
         val version = resolveContent("class:version.txt")
         AnsiConsole.systemInstall()
         try {
@@ -147,7 +172,7 @@ class NessusCli {
                 }
 
                 val topSpec = cmdln.commandSpec
-                println(topSpec.usageMessage().description()[0])
+                println("\n" + topSpec.usageMessage().description()[0])
                 println("Version: $version")
 
                 class MultilineParser : Parser {
@@ -193,13 +218,6 @@ class NessusCli {
                     return null
                 }
 
-                if (args.isNotEmpty()) {
-                    check(args.size == 1) { "Multiple arguments not supported: $args" }
-                    val command = "run ${args[0]}"
-                    println("\n${prompt()}$command")
-                    systemRegistry.execute(command)
-                }
-
                 // Start the shell and process input until the user quits with Ctrl-D
                 while (true) {
                     try {
@@ -220,26 +238,47 @@ class NessusCli {
         }
     }
 
-    private fun smartSplit(args: String): List<String> {
+    fun smartSplit(args: String): List<String> {
         val result = mutableListOf<String>()
-        val option = Regex("^-(.+)")
-        val quoteStart = Regex("^'(.+)")
-        val quoteEnd = Regex("(.+)'$")
+        val shortOption = Regex("^-[a-z]+")
+        val longOption = Regex("^--[a-z]+")
+        val longOptionEqual = Regex("^--[a-z]+(=(.+))")
+        val singleQuoteStart = Regex("^'(.+)")
+        val singleQuoteEnd = Regex("(.+)'$")
+        val doubleQuoteStart = Regex("^\"(.+)")
+        val doubleQuoteEnd = Regex("(.+)\"$")
         val toks = args.split(Regex("\\s")).toMutableList()
+        val option = { t: String -> shortOption.matches(t) || longOption.matches(t) || longOptionEqual.matches(t)}
         while (toks.isNotEmpty()) {
             val tok = toks.removeAt(0)
-            if (option.matches(tok)) {
-                result.add(tok)
+            if (option(tok)) {
                 val buffer = StringBuffer()
-                while(toks.isNotEmpty() && !option.matches(toks[0])) {
+                if (longOptionEqual.matches(tok)) {
+                    val sub = tok.split("=", limit = 2)
+                    check(sub.size == 2) { "Unexpected sub token: $sub" }
+                    result.add(sub[0])
+                    buffer.append(sub[1])
+                } else {
+                    result.add(tok)
+                }
+                while(toks.isNotEmpty() && !option(toks[0])) {
                     val aux = toks.removeAt(0)
                     buffer.append(" $aux")
                 }
                 if (buffer.isNotEmpty())
                     result.add("$buffer".trim())
-            } else if (quoteStart.matches(tok)) {
+            } else if (singleQuoteStart.matches(tok)) {
                 val buffer = StringBuffer(tok.drop(1))
-                while(!quoteEnd.matches(toks[0])) {
+                while(!singleQuoteEnd.matches(toks[0])) {
+                    val aux = toks.removeAt(0)
+                    buffer.append(" $aux")
+                }
+                val aux = toks.removeAt(0)
+                buffer.append(" $aux".dropLast(1))
+                result.add("$buffer")
+            } else if (doubleQuoteStart.matches(tok)) {
+                val buffer = StringBuffer(tok.drop(1))
+                while(!doubleQuoteEnd.matches(toks[0])) {
                     val aux = toks.removeAt(0)
                     buffer.append(" $aux")
                 }

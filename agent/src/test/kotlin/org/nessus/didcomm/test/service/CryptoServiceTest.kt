@@ -30,8 +30,8 @@ import id.walt.services.key.Keys
 import id.walt.services.keystore.KeyType
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.nessus.didcomm.crypto.LazySodiumService
-import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.service.LazySodiumService
+import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.service.toOctetKeyPair
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
@@ -58,7 +58,7 @@ class CryptoServiceTest: AbstractAgentTest() {
 
         val seedBytes = "0000000000000000000000000000000000000000000000000000000000000005".decodeHex()
         val keyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, seedBytes)
-        val didKey05 = didService.createDid(DidMethod.KEY, keyId.id)
+        val didKey05 = didService.createDid(DidMethod.KEY, keyAlias = keyId.id)
         didKey05.uri shouldBe "did:key:z6MkwYMhwTvsq376YBAcJHy3vyRWzBgn5vKfVqqDCgm7XVKU"
 
         // Test OKP Ed25519

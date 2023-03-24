@@ -30,7 +30,7 @@ import org.didcommx.didcomm.common.VerificationMaterialFormat.JWK
 import org.didcommx.didcomm.common.VerificationMethodType.ED25519_VERIFICATION_KEY_2018
 import org.didcommx.didcomm.common.VerificationMethodType.JSON_WEB_KEY_2020
 import org.didcommx.didcomm.common.VerificationMethodType.X25519_KEY_AGREEMENT_KEY_2019
-import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.util.encodeHex
@@ -42,10 +42,10 @@ class SecretResolverServiceTest: AbstractAgentTest() {
     fun resolve_EdDSA_Ed25519_Private() {
 
         val aliceKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
-        val aliceDid = didService.createDid(DidMethod.KEY, aliceKeyId.id)
+        val aliceDid = didService.createDid(DidMethod.KEY, keyAlias = aliceKeyId.id)
         aliceDid.uri shouldBe Alice.didkey
 
-        val didDoc = didService.loadDidDocument(aliceDid.uri)
+        val didDoc = didService.loadDidDoc(aliceDid.uri)
         val kid = didDoc.verificationMethods
             .first { it.type == ED25519_VERIFICATION_KEY_2018 }.id
 
@@ -66,10 +66,10 @@ class SecretResolverServiceTest: AbstractAgentTest() {
     fun resolve_EdDSA_X25519_Private() {
 
         val aliceKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
-        val aliceDid = didService.createDid(DidMethod.KEY, aliceKeyId.id)
+        val aliceDid = didService.createDid(DidMethod.KEY, keyAlias = aliceKeyId.id)
         aliceDid.uri shouldBe Alice.didkey
 
-        val didDoc = didService.loadDidDocument(aliceDid.uri)
+        val didDoc = didService.loadDidDoc(aliceDid.uri)
         val kid = didDoc.verificationMethods
             .first { it.type == X25519_KEY_AGREEMENT_KEY_2019 }.id
 
@@ -87,10 +87,10 @@ class SecretResolverServiceTest: AbstractAgentTest() {
     fun resolve_EdDSA_Ed25519_Public() {
 
         val aliceKeyId = cryptoService.generateKey(KeyAlgorithm.EdDSA_Ed25519, Alice.seed.toByteArray())
-        val aliceDid = didService.createDid(DidMethod.KEY, aliceKeyId.id)
+        val aliceDid = didService.createDid(DidMethod.KEY, keyAlias = aliceKeyId.id)
         aliceDid.uri shouldBe Alice.didkey
 
-        val didDocA = didService.loadDidDocument(aliceDid.uri)
+        val didDocA = didService.loadDidDoc(aliceDid.uri)
         val kid = didDocA.verificationMethods
             .first { it.type == ED25519_VERIFICATION_KEY_2018 }.id
 

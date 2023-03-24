@@ -24,7 +24,7 @@ import id.walt.services.keystore.KeyType
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.didcommx.didcomm.common.VerificationMethodType.ED25519_VERIFICATION_KEY_2018
-import org.nessus.didcomm.did.DidMethod
+import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
@@ -58,7 +58,7 @@ class WalletTest: AbstractAgentTest() {
         loadedDid shouldBe aliceDid
 
         // Verify DidDoc in DidService
-        val didDoc = didService.loadDidDocument(aliceDid.uri)
+        val didDoc = didService.loadDidDoc(aliceDid.uri)
         val ed25519Method = didDoc.findVerificationMethod { it.type == ED25519_VERIFICATION_KEY_2018 }
         ed25519Method?.controller shouldBe aliceDid.uri
 

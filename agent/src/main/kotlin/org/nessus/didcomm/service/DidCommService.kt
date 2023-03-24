@@ -33,7 +33,7 @@ object DidCommService: ObjectService<DidCommService>() {
 
     override fun getService() = apply { }
 
-    private val didDocResolver get() = DidDocumentV2Service.getService()
+    private val didDocResolver get() = DidDocResolverService.getService()
     private val secretResolver get() = SecretResolverService.getService()
     private val didComm get() = DIDComm(didDocResolver, secretResolver)
 
