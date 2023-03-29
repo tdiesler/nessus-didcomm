@@ -66,7 +66,7 @@ data class DidDocV2(
 
             return DidDocV2(
                 doc.id,
-                context = doc.context.let { doc.context },
+                context = doc.context?.let { doc.context } ?: listOf(),
                 alsoKnownAs = listOf(),
                 controller = listOf(),
                 authentications = doc.authentication?.map { visitVerificationMethod(it) } ?: listOf(),
