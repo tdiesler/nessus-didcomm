@@ -3,18 +3,15 @@
     <link rel="stylesheet" href="/index.css">
 </head>
 <body>
-    <h1>Nessus DIDComm - Dashboard</h1>
-
+    <h1>Nessus DIDComm - Playground</h1>
         <div>
-            <ul>
-                <li><a href='/playground?method=peer'>did:peer</a></li>
-                <li><a href='/playground?method=key'>did:key</a></li>
-            </ul>
-
+            Version: ${nessusVersion}
             <p>
             <table>
             ${walletDids}
             </table>
+            <p>
+            <a href='/playground?method=peer'>did:peer</a>, <a href='/playground?method=key'>did:key</a>
         </div>
 
     <h2>Supported Features/Protocols</h2>
@@ -24,6 +21,13 @@
                 <li><a href='/playground/trust-ping?method=${method}'>trust ping</a></li>
                 <li><a href='/playground/basic-message?method=${method}'>basic message</a></li>
                 <li><a href='/playground/propose-credential?method=${method}'>propose credential</a></li>
+            </ul>
+        </div>
+
+    <h2>Supported Templates</h2>
+        <div style="padding-left:20px">
+            <ul>
+            ${vcTemplates}
             </ul>
         </div>
 
@@ -60,7 +64,7 @@
             HappyAir verifies that Malathi has a signed statement from Anand's other parent stating that she may exit the country with him.
         </div>
 
-    <h2>Run the local agent</h2>
+    <h2>Run the CLI from Docker</h2>
         <div style="padding-left:0px">
         <pre><code>
     docker run -it --name=didcomm \
