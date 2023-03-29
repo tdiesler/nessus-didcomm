@@ -24,8 +24,8 @@ import id.walt.services.keystore.KeyType
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.didcommx.didcomm.common.VerificationMethodType.ED25519_VERIFICATION_KEY_2018
-import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.AgentType
+import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.test.AbstractAgentTest

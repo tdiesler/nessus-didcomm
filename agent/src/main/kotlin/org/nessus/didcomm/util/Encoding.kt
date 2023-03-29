@@ -111,14 +111,15 @@ internal class CollectionAdapter : JsonSerializer<Collection<*>> {
     }
 }
 
-internal class MapAdapter : JsonSerializer<Map<String, *>> {
-    override fun serialize(src: Map<String, *>, type: Type, ctx: JsonSerializationContext): JsonElement? {
+internal class MapAdapter : JsonSerializer<Map<*, *>> {
+    override fun serialize(src: Map<*, *>, type: Type, ctx: JsonSerializationContext): JsonElement? {
         if (src.isEmpty() && src !is EmptyBodyMap)
             return null
         val obj = JsonObject()
-        src.forEach {(k, v) -> when {
-                k == "_isObject" -> {} // In VerifiableCredential
-                else -> obj.add(k, ctx.serialize(v))
+        src.forEach {(k, v) ->
+            when (k) {
+                "_isObject" -> {} // In VerifiableCredential
+                else -> obj.add("$k", ctx.serialize(v))
             }
         }
         return obj

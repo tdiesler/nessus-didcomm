@@ -24,7 +24,7 @@ import picocli.CommandLine
 import picocli.CommandLine.Command
 import picocli.CommandLine.Model.UsageMessageSpec.SECTION_KEY_COMMAND_LIST
 
-@Command(name = "help-tree", description = ["Show tree of available commands"])
+@Command(name = "commands", description = ["Show tree of available commands"])
 class HelpTreeCommand: AbstractBaseCommand(), Runnable {
 
     override fun run() {
