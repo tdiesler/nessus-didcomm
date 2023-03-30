@@ -1,34 +1,38 @@
 <html>
 <head>
-    <link rel="stylesheet" href="/index.css">
+    <link rel="stylesheet" href="/index.css"/>
 </head>
 <body>
-    <a href="/playground?method=${method}">Home</a>
+    <a href="/playground?method=${method}" style="font-size:smaller;">Home</a>
 
     <h2>Trust Ping</h2>
 
-    Trust ping is an integral part of establishing a peer connection. It is also useful if we want to verify that the connection we
-    have with other party is still active.<br>
-    Keys might have been rotated or endpoints migrated to other locations. Some Did methods support such changes transparently, others don't.
-    Here we show how we can issue an explicit trust ping.
+    <div style="padding-left:20px;">
+        <a href="https://github.com/tdiesler/nessus-didcomm/tree/main/features/0048-trust-ping" target="_blank" style="font-size:smaller;">
+            https://github.com/.../features/0048-trust-ping</a>
 
-    <div>
-    <pre>
-        <code>
-        Nessus DIDComm CLI
-        Version: ${nessusVersion}
+        <p/>
+        Trust ping is an integral part of establishing a peer connection. It is also useful if we want to verify that the connection we
+        have with other party is still active.<br/>
+        Keys might have been rotated or endpoints migrated to other locations. Some Did methods support such changes transparently, others don't.
+        Here we show how we can issue an explicit trust ping.
 
-        >> agent start
+        <div>
+        <pre><code>
+    Nessus DIDComm CLI
+    Version: ${nessusVersion}
 
-        >> wallet create --name Malathi
+    >> agent start
 
-        Malathi>> protocol invitation receive --inviter=Government --url=http://${Host}/message/invitation?inviter=Government&method=${method}
+    >> wallet create --name Malathi
 
-        Malathi>> protocol trust-ping send
+    Malathi>> protocol invitation receive --inviter=Government --url=http://${Host}/message/invitation?inviter=Government&amp;method=${method}
 
-        Malathi>> message list
-        </code>
-    </pre>
+    Malathi>> protocol trust-ping send
+
+    Malathi>> message list
+        </code></pre>
+        </div>
     </div>
 </body>
 </html>

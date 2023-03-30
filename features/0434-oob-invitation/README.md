@@ -1,4 +1,4 @@
-## Nessus DidComm RFC0434: Out-of-Band Invitation 2.0
+## Nessus DidComm: Out-of-Band Invitation 2.0
 
 Related:
 * [Aries RFC0434: Out-of-Band Protocol 1.1][rfc0434]

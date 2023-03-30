@@ -1,21 +1,21 @@
 html, body {
   font-family: Helvetica, Sans-Serif;
-  font-size: 14
+  font-size: 1.0em
 }
 
 h1 {
   padding-top: 10px
-  font-size: 15
+  font-size: 0.8em
 }
 
 h2 {
   padding-top: 10px
-  font-size: 14.5
+  font-size: 0.8em
 }
 
 h3 {
   padding-top: 10px
-  font-size: 14
+  font-size: 0.8em
 }
 
 a.disabled {
@@ -25,11 +25,11 @@ a.disabled {
 }
 
 b {
-  font-size: 14
+  font-size: 1.0em
 }
 
 td, th, li {
-  font-size: 14
+  font-size: 1.0em
 }
 
 .code {

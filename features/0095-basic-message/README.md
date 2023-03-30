@@ -1,4 +1,4 @@
-## Nessus DidComm RFC0095: Basic Message 2.0
+## Nessus DidComm: Basic Message 2.0
 
 Related:
 * [Aries RFC0095: Basic Message Protocol 1.0][rfc0095]

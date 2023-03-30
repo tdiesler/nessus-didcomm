@@ -53,16 +53,16 @@ The above should have created the respective siera environment.
 
 ### Supported Protocols
 
-| Protocol                                       | AcaPy | Nessus |
-|:-----------------------------------------------|:-----:|:------:|
-| [RFC0019 Encryption Envelope][rfc0019]         |   x   |   x    |
-| [RFC0023 DID Exchange Protocol 1.0][rfc0023]   |   x   |   x    |
-| [RFC0048 Trust Ping Protocol 1.0][rfc0048]     |   x   |   x    |
-| [RFC0095 Basic Message Protocol 1.0][rfc0095]  |   x   |   x    |
-| [RFC0434 Out-of-Band Protocol 1.1][rfc0434]    |   x   |   x    |
-| [RFC0048 Trust Ping 2.0][rfc0048v2]            |       |   x    |
-| [RFC0095 Basic Message 2.0][rfc0095v2]         |       |   x    |
-| [RFC0434 Out-of-Band Protocol 2.0][rfc0434v2]  |       |   x    |
+| Protocol                                      | AcaPy | Nessus |
+|:----------------------------------------------|:-----:|:------:|
+| [RFC0019 Encryption Envelope 1.0][rfc0019]    |   x   |   x    |
+| [RFC0023 DID Exchange Protocol 1.0][rfc0023]  |   x   |   x    |
+| [RFC0048 Trust Ping Protocol 1.0][rfc0048]    |   x   |   x    |
+| [RFC0095 Basic Message Protocol 1.0][rfc0095] |   x   |   x    |
+| [RFC0434 Out-of-Band Protocol 1.1][rfc0434]   |   x   |   x    |
+| [Trust Ping 2.0][rfc0048v2]                   |       |   x    |
+| [Basic Message 2.0][rfc0095v2]                |       |   x    |
+| [Out-of-Band Protocol 2.0][rfc0434v2]         |       |   x    |
 
 [rfc0019]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0019-encryption-envelope
 [rfc0023]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange

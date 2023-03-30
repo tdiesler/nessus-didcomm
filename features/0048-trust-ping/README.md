@@ -1,4 +1,4 @@
-## Nessus DidComm RFC0048: Trust Ping 2.0
+## Nessus DidComm: Trust Ping 2.0
 
 Related:
 * [Aries RFC0048: Trust Ping Protocol 1.0][rfc0048]

@@ -1,36 +1,42 @@
 <html>
 <head>
-    <link rel="stylesheet" href="/index.css">
+    <link rel="stylesheet" href="/index.css"/>
 </head>
 <body>
-    <a href="/playground?method=${method}">Home</a>
+    <a href="/playground?method=${method}" style="font-size:smaller;">Home</a>
 
     <h2>Basic Message</h2>
 
-    All communication in <a href="https://identity.foundation/didcomm-messaging/spec/">DIDComm</a> is asynchronous.<br>
-    Here we show how we can send plain, signed and encrypted messages to the other party.
+    <div style="padding-left:20px;">
 
-    <div>
-    <pre>
-        <code>
-        Nessus DIDComm CLI
-        Version: ${nessusVersion}
+        <a href="https://github.com/tdiesler/nessus-didcomm/tree/main/features/0095-basic-message" target="_blank" style="font-size:smaller;">
+            https://github.com/.../features/0095-basic-message</a>
 
-        >> agent start
+        <p/>
+        All communication in <a href="https://identity.foundation/didcomm-messaging/spec/">DIDComm</a> is asynchronous.<br>
+        Here we show how we can send plain, signed and encrypted messages to the other party.
 
-        >> wallet create --name Malathi
+        <div>
+        <pre><code>
+    Nessus DIDComm CLI
+    Version: ${nessusVersion}
 
-        Malathi>> protocol invitation receive --inviter=Government --url=http://${Host}/message/invitation?inviter=Government&method=${method}
+    >> agent start
 
-        Malathi>> protocol basic-message send "This worked great. Looking forward to doing more of this exciting Trust over IP"
+    >> wallet create --name Malathi
 
-        Malathi>> protocol basic-message send --sign "Here a message that you can trust coming from me"
+    Malathi>> protocol invitation receive --inviter=Government --url=http://${Host}/message/invitation?inviter=Government&method=${method}
 
-        Malathi>> protocol basic-message send --encrypt "Here a message that nobody else can see"
+    Malathi>> protocol basic-message send "This worked great. Looking forward to doing more of this exciting Trust over IP"
 
-        Malathi>> message list
-        </code>
-    </pre>
+    Malathi>> protocol basic-message send --sign "Here a message that you can trust coming from me"
+
+    Malathi>> protocol basic-message send --encrypt "Here a message that nobody else can see"
+
+    Malathi>> message list
+        </code></pre>
+        </div>
     </div>
+
 </body>
 </html>
