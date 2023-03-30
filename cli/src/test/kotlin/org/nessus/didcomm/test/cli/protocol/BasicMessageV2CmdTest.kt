@@ -25,7 +25,7 @@ import org.nessus.didcomm.test.cli.AbstractCliTest
 class BasicMessageV2CmdTest: AbstractCliTest() {
 
     @Test
-    fun testBasicMessageCommands() {
+    fun testBasicMessageV2() {
 
         cliService.execute("wallet create --name Acme").isSuccess shouldBe true
         cliService.execute("wallet create --name Alice").isSuccess shouldBe true

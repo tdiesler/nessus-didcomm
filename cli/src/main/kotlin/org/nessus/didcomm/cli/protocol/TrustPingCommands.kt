@@ -25,26 +25,22 @@ import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V1
 import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
-import picocli.CommandLine
 import picocli.CommandLine.Command
+import picocli.CommandLine.Option
 
 @Command(
     name = "trust-ping",
-    description = ["Trust ping commands"],
-    subcommands = [
-        SendPingCommand::class
-    ],
-)
-class TrustPingCommands
+    description = ["Trust ping commands"])
+class TrustPingCommands: AbstractBaseCommand() {
 
-@Command(name="send", description = ["Send a trust ping message"])
-class SendPingCommand: AbstractBaseCommand() {
-
-    @CommandLine.Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
-    var verbose: Boolean = false
-
-    override fun call(): Int {
-        val pcon = getContextConnection()
+    @Command(name="send", description = ["Send a trust ping message"])
+    fun sendPing(
+        @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+        verbose: Boolean
+    ): Int {
+        val ctxWallet = cliService.findContextWallet()
+        val pcon = ctxWallet?.currentConnection
+        checkNotNull(pcon) { "No context wallet/connection" }
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)
         val receiver = modelService.findWalletByVerkey(pcon.theirVerkey)
         checkNotNull(sender) { "No sender wallet for: ${pcon.myVerkey}" }
@@ -78,5 +74,4 @@ class SendPingCommand: AbstractBaseCommand() {
         }
         return 0
     }
-
 }

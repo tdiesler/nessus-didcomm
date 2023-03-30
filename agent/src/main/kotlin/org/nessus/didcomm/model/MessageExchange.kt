@@ -140,12 +140,6 @@ class MessageExchange(): AttachmentSupport() {
         return getAttachment(INVITATION_ATTACHMENT_KEY)
     }
 
-    fun activateConnection(pcon: Connection) {
-        synchronized(exchangeRegistry) {
-            pcon.state = ConnectionState.ACTIVE
-        }
-    }
-
     fun addMessage(msg: EndpointMessage): MessageExchange {
         synchronized(exchangeRegistry) {
             val logMsg = "Add message [id=${msg.id}, type=${msg.type}] to mex=$id"

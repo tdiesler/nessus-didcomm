@@ -25,7 +25,7 @@ import org.nessus.didcomm.test.cli.AbstractCliTest
 class OutOfBandV2CmdTest: AbstractCliTest() {
 
     @Test
-    fun testRFC0434V2_DidKey() {
+    fun testOutOfBandInvitationV2_DidKey() {
 
         cliService.execute("wallet create --name Faber").isSuccess shouldBe true
         cliService.execute("wallet create --name Alice").isSuccess shouldBe true
@@ -44,7 +44,7 @@ class OutOfBandV2CmdTest: AbstractCliTest() {
     }
 
     @Test
-    fun testRFC0434V2_DidPeer() {
+    fun testOutOfBandInvitationV2_DidPeer() {
 
         cliService.execute("wallet create --name Faber").isSuccess shouldBe true
         cliService.execute("wallet create --name Alice").isSuccess shouldBe true

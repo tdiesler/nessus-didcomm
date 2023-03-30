@@ -47,7 +47,7 @@ import java.util.concurrent.TimeUnit
  * Nessus DIDComm: Trust Ping Protocol 2.0
  * https://github.com/tdiesler/nessus-didcomm/tree/main/features/0048-trust-ping
  */
-class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPingProtocolV2>(mex) {
+class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(mex) {
     override val log = KotlinLogging.logger {}
 
     override val protocolUri = TRUST_PING_PROTOCOL_V2.uri
@@ -63,13 +63,13 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
     override fun invokeMethod(to: Wallet, messageType: String): Boolean {
         when (messageType) {
             TRUST_PING_MESSAGE_TYPE_PING_V2 -> receiveTrustPing(to)
-            TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2 -> receiveTrustPingResponse()
+            TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2 -> receiveTrustPingResponse(to)
             else -> throw IllegalStateException("Unsupported message type: $messageType")
         }
         return true
     }
 
-    fun sendTrustPing(connection: Connection? = null): RFC0048TrustPingProtocolV2 {
+    fun sendTrustPing(connection: Connection? = null): TrustPingProtocolV2 {
 
         val pcon = connection ?: mex.getAttachment(CONNECTION_ATTACHMENT_KEY)
         checkNotNull(pcon) { "No connection" }
@@ -133,7 +133,7 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         return protocol
     }
 
-    fun awaitTrustPingResponse(timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): RFC0048TrustPingProtocolV2 {
+    fun awaitTrustPingResponse(timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): TrustPingProtocolV2 {
         mex.awaitEndpointMessage(TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2, timeout, unit)
         return this
     }
@@ -143,7 +143,7 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
     /**
      * Receives a Trust Ping and automatically sends the response
      */
-    private fun receiveTrustPing(receiver: Wallet): RFC0048TrustPingProtocolV2 {
+    private fun receiveTrustPing(receiver: Wallet): TrustPingProtocolV2 {
 
         val trustPingEpm = mex.last
         val trustPingMsg = mex.last.body as Message
@@ -175,8 +175,10 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
             pcon.myDid = inviterDid
             pcon.myEndpointUrl = inviterEndpointUrl
             pcon.theirDid = senderDid
+            pcon.theirLabel = modelService.findWalletByDid(senderDid.uri)?.name
             pcon.theirEndpointUrl = senderDidDoc.serviceEndpoint
-            mex.activateConnection(pcon)
+            pcon.state = ConnectionState.ACTIVE
+            receiver.currentConnection = pcon
         }
 
         val receiverDid = pcon.myDid
@@ -230,7 +232,7 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
         return this
     }
 
-    private fun receiveTrustPingResponse(): RFC0048TrustPingProtocolV2 {
+    private fun receiveTrustPingResponse(receiver: Wallet): TrustPingProtocolV2 {
 
         val trustPingResponseEpm = mex.last
         val trustPingResponseMsg = mex.last.body as Message
@@ -240,7 +242,8 @@ class RFC0048TrustPingProtocolV2(mex: MessageExchange): Protocol<RFC0048TrustPin
 
         val pcon = mex.getConnection()
         pcon.theirDid = Did.fromUri(trustPingResponse.from as String)
-        mex.activateConnection(pcon)
+        pcon.state = ConnectionState.ACTIVE
+        receiver.currentConnection = pcon
 
         mex.completeEndpointMessageFuture(TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2, mex.last)
 

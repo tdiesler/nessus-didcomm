@@ -39,7 +39,7 @@ class AgentCommands: AbstractBaseCommand() {
 
     @Command(name = "start", description = ["Start the agent's endpoint"])
     fun start(): Int {
-        val eps = getEndpointSpec(walletAlias, uri)
+        val eps = getEndpointSpec(uri)
         check(eps.type.lowercase() == "camel") { "Unsupported endpoint type: $eps" }
         val context = endpointService.startEndpoint("http://${eps.host}:${eps.port}") as CamelContext
         echo("Started ${eps.type} endpoint on ${eps.host}:${eps.port}")
@@ -50,7 +50,7 @@ class AgentCommands: AbstractBaseCommand() {
 
     @Command(name = "stop", description = ["Stop the agent's endpoint"])
     fun stop(): Int {
-        val eps = getEndpointSpec(walletAlias, uri)
+        val eps = getEndpointSpec(uri)
         val key = AttachmentKey("$eps", CamelContext::class)
         val context = cliService.removeAttachment(key)
         checkNotNull(context) { "No endpoint context" }
@@ -59,7 +59,7 @@ class AgentCommands: AbstractBaseCommand() {
         return 0
     }
 
-    private fun getEndpointSpec(walletAlias: String?, uri: String?): EndpointSpec {
+    private fun getEndpointSpec(uri: String?): EndpointSpec {
         if (uri != null)
             return EndpointSpec.valueOf(uri)
         val agentHost = System.getenv("NESSUS_AGENT_HOST") ?: "localhost"

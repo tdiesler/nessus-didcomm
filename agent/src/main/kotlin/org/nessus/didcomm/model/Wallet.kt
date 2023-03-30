@@ -69,16 +69,16 @@ abstract class Wallet(
     val endpointUrl: String,
     val options: Map<String, String> = mapOf(),
 
-    @SerializedName("dids")
+    @Transient
     private val didsInternal: MutableList<Did> = mutableListOf(),
 
-    @SerializedName("invitations")
+    @Transient
     private val invitationsInternal: MutableList<Invitation> = mutableListOf(),
 
-    @SerializedName("connections")
+    @Transient
     private val connectionsInternal: MutableList<Connection> = mutableListOf(),
 
-    @SerializedName("verifiable-credentials")
+    @Transient
     private val verifiableCredentialsInternal: MutableList<W3CVerifiableCredential> = mutableListOf(),
 ) {
     companion object {
@@ -94,7 +94,13 @@ abstract class Wallet(
     val verifiableCredentials get() = verifiableCredentialsInternal.toList()
 
     @Transient
-    private val redactedOptions = options.mapValues { (k, v) ->
+    var currentConnection: Connection? = null
+        set(pcon) {
+            require(pcon?.state == ACTIVE) { "Unexpected connection state: ${pcon?.shortString()}" }
+            field = pcon
+        }
+
+    private val redactedOptions get() = options.mapValues { (k, v) ->
         when(k) {
             "authToken" -> v.substring(0, 6) + "..." + v.substring(v.length - 6)
             else -> v

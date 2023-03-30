@@ -205,7 +205,8 @@ class NessusCli {
                 }
 
                 fun rightPrompt(): String? {
-                    val ctxConn = cliService.findContextConnection()
+                    val ctxWallet = cliService.findContextWallet()
+                    val ctxConn = ctxWallet?.currentConnection
                     if (ctxConn?.state == ConnectionState.ACTIVE) {
                         return "\n[Conn:${ctxConn.id.substring(0..6)}]"
                     }

@@ -25,37 +25,33 @@ import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.service.BASIC_MESSAGE_PROTOCOL_V1
 import org.nessus.didcomm.service.BASIC_MESSAGE_PROTOCOL_V2
-import picocli.CommandLine
 import picocli.CommandLine.Command
+import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
 import picocli.CommandLine.ScopeType.INHERIT
 
 @Command(
     name = "basic-message",
-    description = ["Basic message commands"],
-    subcommands = [
-        SendMessageCommand::class
-    ],
-)
-class BasicMessageCommands
+    description = ["Basic message commands"])
+class BasicMessageCommands: AbstractBaseCommand() {
 
-@Command(name="send", description = ["Send a basic message"])
-class SendMessageCommand: AbstractBaseCommand() {
+    @Command(name="send", description = ["Send a basic message"])
+    fun sendMessage(
+        @Option(names = ["--sign" ], description = ["Sign the DIDComm V2 messages"])
+        sign: Boolean,
 
-    @CommandLine.Option(names = ["--sign" ], description = ["Sign the DIDComm V2 messages"])
-    var sign: Boolean = false
+        @Option(names = ["--encrypt" ], description = ["Encrypt the DIDComm V2 messages"])
+        encrypt: Boolean,
 
-    @CommandLine.Option(names = ["--encrypt" ], description = ["Encrypt the DIDComm V2 messages"])
-    var encrypt: Boolean = false
+        @Parameters(index = "0", scope = INHERIT, description = ["The message"])
+        message: String,
 
-    @Parameters(index = "0", scope = INHERIT, description = ["The message"])
-    var message: String? = null
-
-    @CommandLine.Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
-    var verbose: Boolean = false
-
-    override fun call(): Int {
-        val pcon = getContextConnection()
+        @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+        verbose: Boolean
+    ): Int {
+        val ctxWallet = cliService.findContextWallet()
+        val pcon = ctxWallet?.currentConnection
+        checkNotNull(pcon) { "No context wallet/connection" }
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)
         val receiver = modelService.findWalletByVerkey(pcon.theirVerkey)
         checkNotNull(sender) { "No sender wallet for: ${pcon.myVerkey}" }
@@ -69,7 +65,7 @@ class SendMessageCommand: AbstractBaseCommand() {
                         MessageExchange()
                             .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
                             .withProtocol(BASIC_MESSAGE_PROTOCOL_V2)
-                            .sendEncryptedMessage(message!!)
+                            .sendEncryptedMessage(message)
                             .getMessageExchange()
 
                     }
@@ -78,7 +74,7 @@ class SendMessageCommand: AbstractBaseCommand() {
                         MessageExchange()
                             .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
                             .withProtocol(BASIC_MESSAGE_PROTOCOL_V2)
-                            .sendSignedMessage(message!!)
+                            .sendSignedMessage(message)
                             .getMessageExchange()
                     }
 
@@ -86,7 +82,7 @@ class SendMessageCommand: AbstractBaseCommand() {
                         MessageExchange()
                             .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
                             .withProtocol(BASIC_MESSAGE_PROTOCOL_V2)
-                            .sendPlaintextMessage(message!!)
+                            .sendPlaintextMessage(message)
                             .getMessageExchange()
                     }
                 }
@@ -95,7 +91,7 @@ class SendMessageCommand: AbstractBaseCommand() {
                 MessageExchange()
                     .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
                     .withProtocol(BASIC_MESSAGE_PROTOCOL_V1)
-                    .sendMessage(message!!)
+                    .sendMessage(message)
                     .getMessageExchange()
             }
         }
@@ -106,4 +102,5 @@ class SendMessageCommand: AbstractBaseCommand() {
             echo(header)
         return 0
     }
+
 }

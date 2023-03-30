@@ -20,6 +20,8 @@
 package org.nessus.didcomm.cli.protocol
 
 import org.nessus.didcomm.cli.AbstractBaseCommand
+import org.nessus.didcomm.model.Did
+import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.InvitationV2
 import org.nessus.didcomm.model.MessageExchange
@@ -172,13 +174,18 @@ class InviteAndConnect: AbstractOutOfBandCommand() {
     @Parameters(index = "1", description = ["The invitee alias"])
     var inviteeAlias: String? = null
 
+    @Option(names = ["--method" ], description = ["Optional Did method"])
+    var method: String? = null
+
     override fun call(): Int {
         val inviter = getContextWallet(inviterAlias)
         val invitee = getContextWallet(inviteeAlias)
-        val inviterDid = cliService.findContextDid(inviterAlias)
         val dcv2 = inviter.useDidCommV2() && invitee.useDidCommV2()
         checkWalletEndpoint(inviter, invitee)
-        val mex = when {
+        val didMethod = method?.let { DidMethod.fromValue(method!!) }
+        var inviterDid: Did? = inviter.createDid(didMethod)
+        var inviteeDid: Did?
+        val pcon = when {
             dcv2 -> {
                 MessageExchange()
                     .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
@@ -187,7 +194,10 @@ class InviteAndConnect: AbstractOutOfBandCommand() {
                         val invitation = it.getMessageExchange().getInvitation()
                         echoCreateInvitation(inviter.name, invitation!!)
                     }
-                    .receiveOutOfBandInvitation(invitee)
+                    .receiveOutOfBandInvitation(
+                        invitee,
+                        inviterAlias = inviter.name,
+                        inviterAgent = inviter.agentType.value)
                     .also {
                         val invitation = it.getMessageExchange().getInvitation()
                         echoReceiveInvitation(invitee.name, invitation!!)
@@ -195,7 +205,12 @@ class InviteAndConnect: AbstractOutOfBandCommand() {
                     .withProtocol(TRUST_PING_PROTOCOL_V2)
                     .sendTrustPing()
                     .awaitTrustPingResponse()
-                    .getMessageExchange()
+                    .also {
+                        val pcon = it.getConnection()
+                        inviterDid = pcon.theirDid
+                        inviteeDid = pcon.myDid
+                    }
+                    .getConnection()
             }
             else -> {
                 MessageExchange()
@@ -212,16 +227,26 @@ class InviteAndConnect: AbstractOutOfBandCommand() {
                     }
                     .withProtocol(DIDEXCHANGE_PROTOCOL_V1)
                     .connect(invitee)
-                    .getMessageExchange()
+                    .also {
+                        val pcon = it.getConnection()
+                        inviterDid = pcon.theirDid
+                        inviteeDid = pcon.myDid
+                    }
+                    .getConnection()
             }
         }
-        val pcon = mex.getConnection()
-        check(invitee.findDid { d -> d.uri == pcon.myDid.uri } != null)
-        check(inviter.findDid { d -> d.uri == pcon.theirDid.uri } != null)
+        check(pcon.myLabel == invitee.name) { "Unexpected invitee label: ${pcon.myLabel}" }
+        check(pcon.theirLabel == inviter.name) { "Unexpected inviter label: ${pcon.theirLabel}" }
 
         cliService.putContextConnection(pcon)
-        cliService.putContextDid(invitee.name, pcon.myDid)
-        cliService.putContextDid(inviter.name, pcon.theirDid)
+        cliService.putContextDid(pcon.myLabel, pcon.myDid)
+        cliService.putContextDid(pcon.theirLabel, pcon.theirDid)
+
+        val inviterConnection = inviter.findConnection { c -> c.myDid == inviterDid && c.theirDid == inviteeDid }
+        val inviteeConnection = invitee.findConnection { c -> c.myDid == inviteeDid && c.theirDid == inviterDid }
+        checkNotNull(inviterConnection) { "No inviter connection" }
+        checkNotNull(inviteeConnection) { "No invitee connection" }
+
         cliService.putAttachment(INVITATION_ATTACHMENT_KEY, null)
         echo(pcon.shortString())
         if (verbose)

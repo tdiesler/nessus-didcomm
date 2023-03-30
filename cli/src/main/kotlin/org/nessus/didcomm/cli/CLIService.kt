@@ -20,8 +20,6 @@
 package org.nessus.didcomm.cli
 
 import mu.KotlinLogging
-import org.apache.camel.CamelContext
-import org.apache.camel.ServiceStatus
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.Invitation
@@ -51,22 +49,6 @@ object CLIService: AttachmentSupport() {
 
     fun execute(args: String, cmdln: CommandLine? = null): Result<Any> {
         return NessusCli().execute(args, cmdln)
-    }
-
-    fun findCamelContexts(): List<CamelContext> {
-        return attachmentKeys
-            .filter { it.type == CamelContext::class }
-            .map { getAttachment(it) as CamelContext }
-            .filter { it.status == ServiceStatus.Started }
-    }
-
-    fun findContextConnection(walletAlias: String? = null, conAlias: String? = null): Connection? {
-        val ctxWallet = findContextWallet(walletAlias) ?: return null
-        val effAlias = conAlias ?: getAttachment(CONNECTION_ATTACHMENT_KEY)?.id ?: return null
-        return ctxWallet.findConnection {
-            val candidates = listOf(it.id, it.alias).map { c -> c.lowercase() }
-            candidates.any { c -> c.startsWith(effAlias.lowercase()) }
-        }
     }
 
     fun putContextConnection(pcon: Connection?) {

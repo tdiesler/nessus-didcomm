@@ -10,35 +10,23 @@ import kotlin.math.max
 
 @Command(
     name = "message",
-    description = ["Message related commands"],
-    subcommands = [
-        MessageListCommand::class,
-        MessageShowCommand::class,
-    ])
-class MessageCommands
+    description = ["Message related commands"])
+class MessageCommands: AbstractBaseCommand() {
 
-open class AbstractMessageCommand: AbstractBaseCommand() {
+    @Command(name = "list", description = ["List connection messages"])
+    fun listMessages(
+        @Option(names = ["--wallet"], description = ["Optional wallet alias"])
+        walletAlias: String?,
 
-    @Option(names = ["--pcon"], description = ["Optional connection alias"])
-    var conAlias: String? = null
+        @Option(names = ["-n", "--tail"], description = ["Optional number of (tail) messages"], defaultValue = "12")
+        msgCount: Int,
 
-    @Option(names = ["--wallet"], description = ["Optional wallet alias"])
-    var walletAlias: String? = null
-
-    @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
-    var verbose: Boolean = false
-}
-
-@Command(
-    name = "list",
-    description = ["List connection messages"])
-class MessageListCommand: AbstractMessageCommand() {
-
-    @Option(names = ["-n", "--tail"], description = ["Optional number of (tail) messages"])
-    var msgCount: Int = 12
-
-    override fun call(): Int {
-        val pcon = getContextConnection(walletAlias, conAlias)
+        @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+        verbose: Boolean
+    ): Int {
+        val ctxWallet = cliService.findContextWallet(walletAlias)
+        val pcon = ctxWallet?.currentConnection
+        checkNotNull(pcon) { "No connection for: $walletAlias" }
         val mex = MessageExchange.findByVerkey(pcon.myVerkey)
         checkNotNull(mex) { "No message exchange for: ${pcon.myVerkey}" }
 
@@ -51,24 +39,27 @@ class MessageListCommand: AbstractMessageCommand() {
             echoList(msgs.map { it.shortString() })
         return 0
     }
-}
 
-@Command(
-    name = "show",
-    description = ["Show connection message"])
-class MessageShowCommand: AbstractMessageCommand() {
+    @Command(name = "show", description = ["Show connection message"])
+    fun showMessage(
+        @Option(names = ["--wallet"], description = ["Optional wallet alias"])
+        walletAlias: String?,
 
-    @Parameters(description = ["A message alias"])
-    var alias: String? = null
+        @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+        verbose: Boolean,
 
-    override fun call(): Int {
-        val pcon = getContextConnection(walletAlias, conAlias)
+        @Parameters(description = ["A message alias"])
+        alias: String
+    ): Int {
+        val ctxWallet = cliService.findContextWallet(walletAlias)
+        val pcon = ctxWallet?.currentConnection
+        checkNotNull(pcon) { "No connection for: $walletAlias" }
         val mex = MessageExchange.findByVerkey(pcon.myVerkey)
         checkNotNull(mex) { "No message exchange for: ${pcon.myVerkey}" }
 
         mex.messages.firstOrNull {
             val candidates = listOf(it.id).map { c -> c.lowercase() }
-            candidates.any { c -> c.startsWith(alias!!.lowercase()) }
+            candidates.any { c -> c.startsWith(alias.lowercase()) }
         }?.let { msg ->
             if (verbose)
                 echo(msg.prettyPrint())

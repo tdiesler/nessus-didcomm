@@ -25,7 +25,7 @@ import org.nessus.didcomm.test.cli.AbstractCliTest
 class TrustPingV2CmdTest: AbstractCliTest() {
 
     @Test
-    fun testRFC0048Commands() {
+    fun testTrustPingCommands() {
 
         cliService.execute("wallet create --name Acme").isSuccess shouldBe true
         cliService.execute("wallet create --name Alice").isSuccess shouldBe true

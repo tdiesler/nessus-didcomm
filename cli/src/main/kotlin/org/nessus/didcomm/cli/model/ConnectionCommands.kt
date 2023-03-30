@@ -2,47 +2,29 @@ package org.nessus.didcomm.cli.model
 
 import org.nessus.didcomm.cli.AbstractBaseCommand
 import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.util.encodeJson
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
-import picocli.CommandLine.ScopeType.INHERIT
+import picocli.CommandLine.Parameters
 
 @Command(
     name = "connection",
-    description = ["Connection related commands"],
-    subcommands = [
-        ConnectionListCommand::class,
-        ConnectionShowCommand::class,
-    ])
-class ConnectionCommands
+    description = ["Connection related commands"])
+class ConnectionCommands: AbstractBaseCommand() {
 
-/**
- * Common Connection Options
- */
-open class AbstractConnectionCommand: AbstractBaseCommand() {
+    @Command(name = "list", description = ["List available Connections"])
+    fun listConnections(
+        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        walletAlias: String?,
 
-    @Option(names = ["--wallet"], scope = INHERIT, paramLabel = "wallet", description = ["Optional wallet alias"])
-    var walletAlias: String? = null
-
-    @Option(names = ["-v", "--verbose"], scope = INHERIT, description = ["Verbose terminal output"])
-    var verbose: Boolean = false
-
-    fun findConnections(wallet: Wallet, alias: String?): List<Connection> {
-        return wallet.connections.filter {
-            val candidates = listOf(it.id, it.alias).map { c -> c.lowercase() }
-            candidates.any { c -> alias == null || c.startsWith(alias.lowercase()) }
-        }
-    }
-}
-
-@Command(name = "list", description = ["List available Connections"])
-class ConnectionListCommand: AbstractConnectionCommand() {
-
-    @Option(names = ["--alias"], description = ["Optional Connection alias"])
-    var alias: String? = null
-
-    override fun call(): Int {
+        @Option(names = ["--alias"], description = ["Optional Connection alias"])
+        alias: String?,
+        
+        @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+        verbose: Boolean,
+    ): Int {
         val ctxWallet = getContextWallet(walletAlias)
         val pcons = findConnections(ctxWallet, alias)
         if (verbose)
@@ -51,15 +33,18 @@ class ConnectionListCommand: AbstractConnectionCommand() {
             echoList(pcons.map { it.shortString() })
         return 0
     }
-}
 
-@Command(name = "show", description = ["Show Connection details"])
-class ConnectionShowCommand: AbstractConnectionCommand() {
+    @Command(name = "show", description = ["Show Connection details"])
+    fun showConnection(
+        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        walletAlias: String?,
 
-    @Option(names = ["--alias"], description = ["Optional Connection alias"])
-    var alias: String? = null
+        @Option(names = ["--alias"], description = ["Optional Connection alias"])
+        alias: String?,
 
-    override fun call(): Int {
+        @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
+        verbose: Boolean,
+    ): Int {
         val ctxWallet = getContextWallet(walletAlias)
         findConnections(ctxWallet, alias).firstOrNull()?.also {
             if (verbose)
@@ -69,5 +54,31 @@ class ConnectionShowCommand: AbstractConnectionCommand() {
 
         }
         return 0
+    }
+
+    @Command(name = "switch", description = ["Switch the current Connection"])
+    fun switchConnection(
+        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        walletAlias: String?,
+
+        @Parameters(description = ["The Connection alias (e.g. Acme-Alice)"])
+        alias: String,
+    ): Int {
+        val ctxWallet = getContextWallet(walletAlias)
+        val pcon = ctxWallet.findConnection { c -> c.alias.lowercase().startsWith(alias.lowercase()) && c.state == ConnectionState.ACTIVE }
+        if (pcon != null) {
+            ctxWallet.currentConnection = pcon
+            echo("Switched to: ${pcon.shortString()}")
+        } else {
+            echo("Cannot switch to: $alias")
+        }
+        return 0
+    }
+
+    private fun findConnections(wallet: Wallet, alias: String?): List<Connection> {
+        return wallet.connections.filter {
+            val candidates = listOf(it.id, it.alias).map { c -> c.lowercase() }
+            candidates.any { c -> alias == null || c.startsWith(alias.lowercase()) }
+        }
     }
 }

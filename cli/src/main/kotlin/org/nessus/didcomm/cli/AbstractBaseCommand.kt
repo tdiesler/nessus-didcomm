@@ -25,7 +25,6 @@ import id.walt.custodian.Custodian
 import mu.KotlinLogging
 import org.nessus.didcomm.cli.NessusCli.Companion.headless
 import org.nessus.didcomm.model.AgentType
-import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.W3CVerifiableCredential
@@ -100,12 +99,6 @@ abstract class AbstractBaseCommand: Callable<Int> {
                 }
             }
         }
-    }
-
-    fun getContextConnection(walletAlias: String? = null, conAlias: String? = null): Connection {
-        val pcon = cliService.findContextConnection(walletAlias, conAlias)
-        checkNotNull(pcon) { "No connection" }
-        return pcon
     }
 
     fun getContextDid(walletAlias: String? = null, didAlias: String? = null): Did {

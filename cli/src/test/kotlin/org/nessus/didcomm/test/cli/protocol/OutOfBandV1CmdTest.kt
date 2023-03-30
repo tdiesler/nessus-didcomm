@@ -28,7 +28,7 @@ import org.nessus.didcomm.util.AcaPyIsLiveCondition
 class OutOfBandV1CmdTest: AbstractCliTest() {
 
     @Test
-    fun testRFC0434CommandsV1() {
+    fun testOutOfBandInvitationV1() {
 
         cliService.execute("wallet create --name Faber --agent AcaPy").isSuccess shouldBe true
         cliService.execute("wallet create --name Alice").isSuccess shouldBe true

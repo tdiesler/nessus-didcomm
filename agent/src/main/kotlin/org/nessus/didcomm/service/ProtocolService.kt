@@ -30,7 +30,7 @@ val TRUST_PING_PROTOCOL_V1 = ProtocolKey("https://didcomm.org/trust_ping/1.0", T
 val BASIC_MESSAGE_PROTOCOL_V1 = ProtocolKey("https://didcomm.org/basicmessage/1.0", BasicMessageV1Protocol::class)
 val OUT_OF_BAND_PROTOCOL_V1 = ProtocolKey("https://didcomm.org/out-of-band/1.1", OutOfBandV1Protocol::class)
 
-val TRUST_PING_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/trust_ping/2.0-preview", RFC0048TrustPingProtocolV2::class)
+val TRUST_PING_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/trust_ping/2.0-preview", TrustPingProtocolV2::class)
 val BASIC_MESSAGE_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/basicmessage/2.0-preview", BasicMessageProtocolV2::class)
 val OUT_OF_BAND_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/out-of-band/2.0-preview", OutOfBandV2Protocol::class)
 val ISSUE_CREDENTIAL_PROTOCOL_V3 = ProtocolKey("https://didcomm.org/issue-credential/3.0", IssueCredentialV3Protocol::class)
@@ -74,7 +74,7 @@ object ProtocolService : ObjectService<ProtocolService>() {
             BASIC_MESSAGE_PROTOCOL_V1 -> BasicMessageV1Protocol(mex)
             OUT_OF_BAND_PROTOCOL_V1 -> OutOfBandV1Protocol(mex)
 
-            TRUST_PING_PROTOCOL_V2 -> RFC0048TrustPingProtocolV2(mex)
+            TRUST_PING_PROTOCOL_V2 -> TrustPingProtocolV2(mex)
             BASIC_MESSAGE_PROTOCOL_V2 -> BasicMessageProtocolV2(mex)
             OUT_OF_BAND_PROTOCOL_V2 -> OutOfBandV2Protocol(mex)
             ISSUE_CREDENTIAL_PROTOCOL_V3 -> IssueCredentialV3Protocol(mex)

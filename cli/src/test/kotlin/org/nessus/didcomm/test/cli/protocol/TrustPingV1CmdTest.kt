@@ -28,7 +28,7 @@ import org.nessus.didcomm.util.AcaPyIsLiveCondition
 class TrustPingV1CmdTest: AbstractCliTest() {
 
     @Test
-    fun testRFC0048Commands() {
+    fun testTrustPingCommands() {
 
         cliService.execute("wallet create --name Faber --agent AcaPy").isSuccess shouldBe true
         cliService.execute("wallet create --name Alice").isSuccess shouldBe true
