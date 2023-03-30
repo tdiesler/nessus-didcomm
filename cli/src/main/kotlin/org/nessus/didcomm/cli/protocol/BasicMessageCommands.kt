@@ -32,10 +32,11 @@ import picocli.CommandLine.ScopeType.INHERIT
 
 @Command(
     name = "basic-message",
-    description = ["Basic message commands"])
+    description = ["Basic message commands"],
+    mixinStandardHelpOptions = true)
 class BasicMessageCommands: AbstractBaseCommand() {
 
-    @Command(name="send", description = ["Send a basic message"])
+    @Command(name="send", description = ["Send a basic message"], mixinStandardHelpOptions = true)
     fun sendMessage(
         @Option(names = ["--sign" ], description = ["Sign the DIDComm V2 messages"])
         sign: Boolean,

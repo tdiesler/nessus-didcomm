@@ -62,7 +62,7 @@ import kotlin.system.exitProcess
 
 @Command(
     name = "didcomm", description = ["Nessus DIDComm CLI"],
-    mixinStandardHelpOptions = false,
+    mixinStandardHelpOptions = true,
     usageHelpWidth = 160,
     subcommands = [
         AgentCommands::class,

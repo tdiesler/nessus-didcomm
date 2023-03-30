@@ -45,6 +45,7 @@ import kotlin.io.path.writeText
 @Command(
     name = "vc",
     description = ["Verifiable credential commands"],
+    mixinStandardHelpOptions = true,
     subcommands = [
         ProposeVerifiableCredential::class,
         IssueVerifiableCredential::class,
@@ -56,7 +57,7 @@ import kotlin.io.path.writeText
 )
 class VerifiableCredentialCommands: AbstractBaseCommand() {
 
-    @Command(name = "list", description = ["List verifiable credentials"])
+    @Command(name = "list", description = ["List verifiable credentials"], mixinStandardHelpOptions = true)
     fun listVerifiableCredentials(
 
         @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
@@ -74,7 +75,7 @@ class VerifiableCredentialCommands: AbstractBaseCommand() {
         }
     }
 
-    @Command(name = "show", description = ["Show a verifiable credential"])
+    @Command(name = "show", description = ["Show a verifiable credential"], mixinStandardHelpOptions = true)
     fun showVerifiableCredential(
 
         @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
@@ -110,7 +111,8 @@ class VerifiableCredentialCommands: AbstractBaseCommand() {
 
 @Command(
     name = "propose",
-    description = ["Propose a verifiable credential"])
+    description = ["Propose a verifiable credential"],
+    mixinStandardHelpOptions = true)
 class ProposeVerifiableCredential: AbstractBaseCommand() {
 
     @Option(names = ["-i", "--issuer"], paramLabel = "Did", description = ["DID of the issuer"])
@@ -190,7 +192,8 @@ class ProposeVerifiableCredential: AbstractBaseCommand() {
 
 @Command(
     name = "issue",
-    description = ["Issue a verifiable credential"])
+    description = ["Issue a verifiable credential"],
+    mixinStandardHelpOptions = true)
 class IssueVerifiableCredential: AbstractBaseCommand() {
 
     @Option(names = ["-i", "--issuer"], required = true, paramLabel = "Did", description = ["DID of the issuer"])
@@ -297,7 +300,8 @@ class IssueVerifiableCredential: AbstractBaseCommand() {
 
 @Command(
     name = "present",
-    description = ["Present a verifiable credential"])
+    description = ["Present a verifiable credential"],
+    mixinStandardHelpOptions = true)
 class PresentVerifiableCredential: AbstractBaseCommand() {
 
     @Option(names = ["-h", "--holder"], required = true, paramLabel = "Did", description = ["DID of the holder (owner of the VC)"])
@@ -369,7 +373,7 @@ class PresentVerifiableCredential: AbstractBaseCommand() {
 
 @Command(
     name = "verify",
-    description = ["Verify a credential/presentation"])
+    description = ["Verify a credential/presentation"], mixinStandardHelpOptions = true)
 class VerifyCredentialCommand: AbstractBaseCommand() {
 
     @Option(names = ["-p", "--policy"], arity = "1..*", paramLabel = "policy", description = ["Verification policies"])
@@ -418,10 +422,12 @@ class VerifyCredentialCommand: AbstractBaseCommand() {
 @Command(
     name = "policy",
     description = ["Verification policy commands"],
+    mixinStandardHelpOptions = true,
 )
 class PolicyCommands: AbstractBaseCommand() {
 
-    @Command(name = "list", description = ["List verification policies"])
+    @Command(name = "list", description = ["List verification policies"],
+        mixinStandardHelpOptions = true)
     fun listVerificationPolicies() {
         val maxIdLength = max(policyService.listPolicyInfo().map { (id, _, _, _) -> id.length })
         policyService.listPolicyInfo().sortedBy { it.id }.forEach { (id, description, argumentType, isMutable) ->
@@ -434,12 +440,12 @@ class PolicyCommands: AbstractBaseCommand() {
         echo("(*) ... mutable dynamic policy")
     }
 
-//    @Command(name = "create", description = ["Create a verification policy"])
+//    @Command(name = "create", description = ["Create a verification policy"], mixinStandardHelpOptions = true)
 //    fun createVerificationPolicy() {
 //        TODO("createVerificationPolicy")
 //    }
 //
-//    @Command(name = "remove", description = ["Remove a verification policy"])
+//    @Command(name = "remove", description = ["Remove a verification policy"], mixinStandardHelpOptions = true)
 //    fun removeVerificationPolicy() {
 //        TODO("removeVerificationPolicy")
 //    }
@@ -450,10 +456,11 @@ class PolicyCommands: AbstractBaseCommand() {
 @Command(
     name = "template",
     description = ["Credential template commands"],
+    mixinStandardHelpOptions = true,
 )
 class TemplateCommands: AbstractBaseCommand() {
 
-    @Command(name = "list", description = ["List credential templates"])
+    @Command(name = "list", description = ["List credential templates"], mixinStandardHelpOptions = true)
     fun listCredentialTemplates() {
         signatory.templates.forEachIndexed { idx, tmpl ->
             echo("[$idx] ${if (tmpl.mutable) "*" else "-"} ${tmpl.name}")
@@ -462,7 +469,7 @@ class TemplateCommands: AbstractBaseCommand() {
         echo("(*) ... custom template")
     }
 
-    @Command(name = "show", description = ["Show a credential template"])
+    @Command(name = "show", description = ["Show a credential template"], mixinStandardHelpOptions = true)
     fun showCredentialTemplate(
         @CommandLine.Parameters(description = ["The template alias"])
         alias: String,
@@ -487,17 +494,17 @@ class TemplateCommands: AbstractBaseCommand() {
         }
     }
 
-//    @Command(name = "export", description = ["Export a credential template"])
+//    @Command(name = "export", description = ["Export a credential template"], mixinStandardHelpOptions = true)
 //    fun exportCredentialTemplate() {
 //        TODO("exportCredentialTemplate")
 //    }
 //
-//    @Command(name = "import", description = ["Import a credential template"])
+//    @Command(name = "import", description = ["Import a credential template"], mixinStandardHelpOptions = true)
 //    fun importCredentialTemplate() {
 //        TODO("importCredentialTemplate")
 //    }
 //
-//    @Command(name = "remove", description = ["Remove a credential template"])
+//    @Command(name = "remove", description = ["Remove a credential template"], mixinStandardHelpOptions = true)
 //    fun removeCredentialTemplate() {
 //        TODO("removeCredentialTemplate")
 //    }

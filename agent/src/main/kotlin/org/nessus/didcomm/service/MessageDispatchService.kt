@@ -81,10 +81,12 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
         return true
     }
 
+    // Private ---------------------------------------------------------------------------------------------------------
+
     /**
      * Routes the message to a given target wallet through it's associated protocol.
      */
-    fun dispatchToWallet(target: Wallet, mex: MessageExchange): Boolean {
+    private fun dispatchToWallet(target: Wallet, mex: MessageExchange): Boolean {
 
         val protocolUri = mex.last.protocolUri
         val messageType = mex.last.type
@@ -96,8 +98,6 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
         val protocol = protocolService.getProtocol(key, mex)
         return protocol.invokeMethod(target, messageType)
     }
-
-    // Private ---------------------------------------------------------------------------------------------------------
 
     private fun dispatchEncryptionEnvelopeV1(encrypted: EndpointMessage): MessageExchange? {
 
@@ -114,9 +114,10 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
          * We now need to find the target Wallet and MessageExchange
          */
 
-        val aux = EndpointMessage(message, mapOf(
+        val aux = EndpointMessage.Builder(message, mapOf(
             MESSAGE_HEADER_SENDER_VERKEY to senderVerkey,
-            MESSAGE_HEADER_RECIPIENT_VERKEY to recipientVerkey))
+            MESSAGE_HEADER_RECIPIENT_VERKEY to recipientVerkey
+        )).inbound().build()
 
         // The other agent may send ping messages to a wallet that we have already deleted
         // We warn about these, all other undeliverable messages cause an error
@@ -141,6 +142,7 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
 
         mex.addMessage(EndpointMessage.Builder(aux.body, aux.headers)
             .header(MESSAGE_HEADER_PROTOCOL_URI, protocolKey.name)
+            .inbound()
             .build())
 
         dispatchToWallet(recipientWallet, mex)
@@ -191,6 +193,7 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
             .header(MESSAGE_HEADER_PROTOCOL_URI, protocolKey.name)
             .header(MESSAGE_HEADER_SENDER_VERKEY, senderVerkey)
             .header(MESSAGE_HEADER_RECIPIENT_VERKEY, recipientVerkey)
+            .inbound()
             .build())
 
         dispatchToWallet(recipientWallet, mex)

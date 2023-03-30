@@ -1,7 +1,6 @@
 package org.nessus.didcomm.cli.model
 
 import org.nessus.didcomm.cli.AbstractBaseCommand
-import org.nessus.didcomm.cli.CLIService
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.Wallet
 import picocli.CommandLine.Command
@@ -11,6 +10,7 @@ import picocli.CommandLine.ScopeType.INHERIT
 @Command(
     name = "invitation",
     description = ["Invitation related commands"],
+    mixinStandardHelpOptions = true,
     subcommands = [
         InvitationListCommand::class,
         InvitationShowCommand::class,
@@ -36,7 +36,7 @@ open class AbstractInvitationCommand: AbstractBaseCommand() {
     }
 }
 
-@Command(name = "list", description = ["List available Invitations"])
+@Command(name = "list", description = ["List available Invitations"], mixinStandardHelpOptions = true)
 class InvitationListCommand: AbstractInvitationCommand() {
 
     @Option(names = ["--alias"], description = ["Optional Invitation alias"])
@@ -53,7 +53,7 @@ class InvitationListCommand: AbstractInvitationCommand() {
     }
 }
 
-@Command(name = "show", description = ["Show Invitation details"])
+@Command(name = "show", description = ["Show Invitation details"], mixinStandardHelpOptions = true)
 class InvitationShowCommand: AbstractInvitationCommand() {
 
     @Option(names = ["--alias"], description = ["Optional Invitation alias"])

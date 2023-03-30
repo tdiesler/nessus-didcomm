@@ -24,6 +24,7 @@ import picocli.CommandLine.Command
 @Command(
     name = "protocol",
     description = ["Protocol Commands"],
+    mixinStandardHelpOptions = true,
     subcommands = [
         BasicMessageCommands::class,
         OutOfBandCommands::class,

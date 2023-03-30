@@ -99,14 +99,15 @@ class OutOfBandV1Protocol(mex: MessageExchange): Protocol<OutOfBandV1Protocol>(m
         }.validate()
         log.info { "Inviter (${inviter.name}) created Invitation: ${gsonPretty.toJson(invitationV1)}" }
 
-        mex.addMessage(EndpointMessage(
-            invitationV1, mapOf(
+        val epm = EndpointMessage.Builder(invitationV1, mapOf(
                 MESSAGE_HEADER_PROTOCOL_URI to protocolUri,
                 MESSAGE_HEADER_ID to invitationV1.id,
                 MESSAGE_HEADER_THID to invitationV1.id,
-                MESSAGE_HEADER_TYPE to invitationV1.type,
-            )
-        ))
+                MESSAGE_HEADER_TYPE to invitationV1.type))
+            .outbound()
+            .build()
+
+        mex.addMessage(epm)
 
         mex.putAttachment(WALLET_ATTACHMENT_KEY, inviter)
         inviter.addInvitation(Invitation(invitationV1))
@@ -262,14 +263,15 @@ class OutOfBandV1Protocol(mex: MessageExchange): Protocol<OutOfBandV1Protocol>(m
         inviteeMex.putAttachment(WALLET_ATTACHMENT_KEY, invitee)
 
         // Do this before the admin command call to avoid a race with the incoming didex request message
-        inviteeMex.addMessage(EndpointMessage(
+        val epm = EndpointMessage.Builder(
             invitation, mapOf(
                 MESSAGE_HEADER_PROTOCOL_URI to protocolUri,
                 MESSAGE_HEADER_ID to invitation.id,
                 MESSAGE_HEADER_THID to invitation.id,
                 MESSAGE_HEADER_TYPE to invitation.type,
             )
-        ))
+        ).build()
+        inviteeMex.addMessage(epm)
 
         /*
          * AcaPy sends the DidEx Request automatically on receipt
@@ -292,12 +294,15 @@ class OutOfBandV1Protocol(mex: MessageExchange): Protocol<OutOfBandV1Protocol>(m
         val inviteeMex = MessageExchange()
         inviteeMex.putAttachment(WALLET_ATTACHMENT_KEY, invitee)
 
-        inviteeMex.addMessage(EndpointMessage(invitation, mapOf(
-            MESSAGE_HEADER_PROTOCOL_URI to protocolUri,
-            MESSAGE_HEADER_ID to invitation.id,
-            MESSAGE_HEADER_THID to invitation.id,
-            MESSAGE_HEADER_TYPE to invitation.type,
-        )))
+        val epm = EndpointMessage.Builder(invitation, mapOf(
+                MESSAGE_HEADER_PROTOCOL_URI to protocolUri,
+                MESSAGE_HEADER_ID to invitation.id,
+                MESSAGE_HEADER_THID to invitation.id,
+                MESSAGE_HEADER_TYPE to invitation.type))
+            .inbound()
+            .build()
+
+        inviteeMex.addMessage(epm)
 
         // Needs to be did:sov, otherwise
         // ValidationError: {'did': ['Value did:key:z6... is not an indy decentralized identifier (DID)']}

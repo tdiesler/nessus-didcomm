@@ -13,13 +13,14 @@ import picocli.CommandLine.ScopeType
 @Command(
     name = "did",
     description = ["Did related commands"],
+    mixinStandardHelpOptions = true,
 )
 class DidCommands: AbstractBaseCommand() {
 
     @Option(names = ["--wallet"], scope = ScopeType.INHERIT, paramLabel = "wallet", description = ["Optional wallet alias"])
     var walletAlias: String? = null
 
-    @Command(name = "list", description = ["List available Dids"])
+    @Command(name = "list", description = ["List available Dids"], mixinStandardHelpOptions = true)
     fun listDids(
         @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
         verbose: Boolean
@@ -31,7 +32,7 @@ class DidCommands: AbstractBaseCommand() {
         }
     }
 
-    @Command(name = "show", description = ["Show Did details"])
+    @Command(name = "show", description = ["Show Did details"], mixinStandardHelpOptions = true)
     fun showDid(
         @Parameters(description = ["The did alias"])
         alias: String,
@@ -45,7 +46,7 @@ class DidCommands: AbstractBaseCommand() {
         }
     }
 
-    @Command(name = "create", description = ["Create a Did for the given wallet"])
+    @Command(name = "create", description = ["Create a Did for the given wallet"], mixinStandardHelpOptions = true)
     fun createDid(
         @Option(names = ["-m", "--method"], description = ["The Did method with url parameters (e.g. peer?numalgo=2)"], defaultValue = "key")
         method: String,
@@ -86,7 +87,7 @@ class DidCommands: AbstractBaseCommand() {
             echoDidDoc(did)
     }
 
-    @Command(name = "remove", description = ["Remove a Did from the given wallet (tbd)"])
+    @Command(name = "remove", description = ["Remove a Did from the given wallet (tbd)"], mixinStandardHelpOptions = true)
     fun removeDid(
 //        @Parameters(description = ["The Did alias"])
 //        alias: String?

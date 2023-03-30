@@ -31,10 +31,11 @@ import picocli.CommandLine.Parameters
 @Command(
     name = "wallet",
     description = ["Multitenant wallet commands"],
+    mixinStandardHelpOptions = true,
 )
 class WalletCommands: AbstractBaseCommand() {
 
-    @Command(name = "list", description = ["List available wallets"])
+    @Command(name = "list", description = ["List available wallets"], mixinStandardHelpOptions = true)
     fun listWallets(
 
         @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
@@ -46,7 +47,7 @@ class WalletCommands: AbstractBaseCommand() {
         }
     }
 
-    @Command(name = "show", description = ["Show wallet details"])
+    @Command(name = "show", description = ["Show wallet details"], mixinStandardHelpOptions = true)
     fun showWallet(
 
         @Parameters(description = ["The wallet alias"])
@@ -62,7 +63,7 @@ class WalletCommands: AbstractBaseCommand() {
             echo(w.shortString())
     }
 
-    @Command(name = "create", description = ["Create a wallet for a given agent"])
+    @Command(name = "create", description = ["Create a wallet for a given agent"], mixinStandardHelpOptions = true)
     fun createWallet(
         @Option(names = ["-n", "--name"], required = true, description = ["The wallet name"])
         name: String,
@@ -87,7 +88,7 @@ class WalletCommands: AbstractBaseCommand() {
             echo("Wallet created: ${wallet.shortString()}")
     }
 
-    @Command(name = "remove", description = ["Remove and delete a given wallet"])
+    @Command(name = "remove", description = ["Remove and delete a given wallet"], mixinStandardHelpOptions = true)
     fun removeWallet(
         @Parameters(description = ["The wallet alias"])
         alias: String
@@ -102,7 +103,7 @@ class WalletCommands: AbstractBaseCommand() {
         }
     }
 
-    @Command(name = "switch", description = ["Switch the current context wallet"])
+    @Command(name = "switch", description = ["Switch the current context wallet"], mixinStandardHelpOptions = true)
     fun switchWallet(
         @Parameters(description = ["The wallet alias"])
         alias: String

@@ -30,10 +30,10 @@ import picocli.CommandLine.Option
 
 @Command(
     name = "trust-ping",
-    description = ["Trust ping commands"])
+    description = ["Trust ping commands"], mixinStandardHelpOptions = true)
 class TrustPingCommands: AbstractBaseCommand() {
 
-    @Command(name="send", description = ["Send a trust ping message"])
+    @Command(name="send", description = ["Send a trust ping message"], mixinStandardHelpOptions = true)
     fun sendPing(
         @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
         verbose: Boolean

@@ -71,7 +71,12 @@ class CamelEndpointService: EndpointService<CamelContext>() {
         val headers = exchange.message.headers
         val body = exchange.message.getBody(String::class.java)
         checkNotNull(body) { "No message body" }
-        runCatching { dispatcher.invoke(EndpointMessage(body, headers)) }.onFailure { th ->
+        runCatching {
+            val epm = EndpointMessage.Builder(body, headers)
+                .inbound()
+                .build()
+            dispatcher.invoke(epm)
+        }.onFailure { th ->
             headers[Exchange.HTTP_RESPONSE_CODE] = 500 // Internal Server Error
             headers[Exchange.CONTENT_TYPE] = "application/json"
             val sw = StringWriter()

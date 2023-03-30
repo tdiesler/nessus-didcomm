@@ -34,7 +34,7 @@ import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_MEDI
 import org.nessus.didcomm.service.BASIC_MESSAGE_PROTOCOL_V1
 import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.trimJson
-import java.util.*
+import java.util.UUID
 
 /**
  * Aries RFC 0095: Basic Message Protocol 1.0
@@ -101,7 +101,7 @@ class BasicMessageV1Protocol(mex: MessageExchange): Protocol<BasicMessageV1Proto
         }
         """.trimJson()
 
-        myMex.addMessage(EndpointMessage(basicMsg))
+        myMex.addMessage(EndpointMessage.Builder(basicMsg).outbound().build())
 
         return protocol
     }
@@ -124,14 +124,14 @@ class BasicMessageV1Protocol(mex: MessageExchange): Protocol<BasicMessageV1Proto
         }
         """.trimJson()
 
-        myMex.addMessage(EndpointMessage(basicMsg))
+        myMex.addMessage(EndpointMessage.Builder(basicMsg).outbound().build())
 
         val packedBasicMsg = EncryptionEnvelopeV1()
             .packEncryptedEnvelope(basicMsg, pcon.myDid, pcon.theirDid)
 
-        val packedEpm = EndpointMessage(packedBasicMsg, mapOf(
+        val packedEpm = EndpointMessage.Builder(packedBasicMsg, mapOf(
             MESSAGE_HEADER_MEDIA_TYPE to ENCRYPTED_ENVELOPE_V1_MEDIA_TYPE
-        ))
+        )).outbound().build()
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
 

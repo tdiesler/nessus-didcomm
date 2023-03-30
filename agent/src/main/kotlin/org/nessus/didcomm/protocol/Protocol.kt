@@ -25,9 +25,15 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.service.*
-import org.nessus.didcomm.util.unionMap
+import org.nessus.didcomm.service.DidCommService
+import org.nessus.didcomm.service.DidDocResolverService
+import org.nessus.didcomm.service.DidDocumentV1Service
+import org.nessus.didcomm.service.DidService
+import org.nessus.didcomm.service.MessageDispatchService
+import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.NessusSignatoryService
+import org.nessus.didcomm.service.ProtocolKey
+import org.nessus.didcomm.service.ProtocolService
 
 abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
 
@@ -67,21 +73,9 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun dispatchTo(target: Wallet, headers: Map<String, Any?> = mapOf()): T {
-
-        // Merge headers and create the follow-up message if needed
-        val effectiveHeaders = mex.last.headers.unionMap(headers).toMutableMap()
-        if (effectiveHeaders != mex.last.headers) {
-            mex.addMessage(EndpointMessage(mex.last.body, effectiveHeaders.toMap()))
-        }
-
-        dispatchService.dispatchToWallet(target, mex)
-        return this as T
-    }
-
-    @Suppress("UNCHECKED_CAST")
     fun dispatchToEndpoint(url: String?, epm: EndpointMessage): T {
         requireNotNull(url) { "No endpoint url" }
+        check(epm.messageDirection == MessageDirection.OUT) { "Unexpected message direction: ${epm.messageDirection}" }
         dispatchService.dispatchToEndpoint(url, epm)
         return this as T
     }

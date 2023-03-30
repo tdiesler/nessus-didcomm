@@ -98,7 +98,7 @@ class TrustPingV1Protocol(mex: MessageExchange): Protocol<TrustPingV1Protocol>(m
                 val pingResponseJson = gson.toJson(pingResponse)
                 log.info { "${sender.name} received TrustPing Response: ${pingResponseJson.prettyPrint()}" }
 
-                val responseEpm = EndpointMessage(pingResponseJson)
+                val responseEpm = EndpointMessage.Builder(pingResponseJson).outbound().build()
                 senderMex.completeEndpointMessageFuture(TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V1, responseEpm)
             }
 
@@ -115,15 +115,15 @@ class TrustPingV1Protocol(mex: MessageExchange): Protocol<TrustPingV1Protocol>(m
                     }
                     """.trimJson()
 
-                senderMex.addMessage(EndpointMessage(trustPing))
+                senderMex.addMessage(EndpointMessage.Builder(trustPing).outbound().build())
                 log.info { "${sender.name} sends TrustPing: ${trustPing.prettyPrint()}" }
 
                 val packedTrustPing = EncryptionEnvelopeV1()
                     .packEncryptedEnvelope(trustPing, pcon.myDid, pcon.theirDid)
 
-                val packedEpm = EndpointMessage(packedTrustPing, mapOf(
+                val packedEpm = EndpointMessage.Builder(packedTrustPing, mapOf(
                     MESSAGE_HEADER_MEDIA_TYPE to ENCRYPTED_ENVELOPE_V1_MEDIA_TYPE
-                ))
+                )).outbound().build()
 
                 dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
             }
@@ -159,15 +159,15 @@ class TrustPingV1Protocol(mex: MessageExchange): Protocol<TrustPingV1Protocol>(m
         }
         """.trimJson()
 
-        val pingResponseEpm = EndpointMessage(pingResponse)
+        val pingResponseEpm = EndpointMessage.Builder(pingResponse).outbound().build()
         mex.addMessage(pingResponseEpm)
 
         val packedTrustPing = EncryptionEnvelopeV1()
             .packEncryptedEnvelope(pingResponse, pcon.myDid, pcon.theirDid)
 
-        val packedEpm = EndpointMessage(packedTrustPing, mapOf(
+        val packedEpm = EndpointMessage.Builder(packedTrustPing, mapOf(
             MESSAGE_HEADER_MEDIA_TYPE to ENCRYPTED_ENVELOPE_V1_MEDIA_TYPE
-        ))
+        )).outbound().build()
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
 

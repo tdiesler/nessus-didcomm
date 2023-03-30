@@ -28,6 +28,7 @@ import picocli.CommandLine.ScopeType.INHERIT
 @Command(
     name = "agent",
     description = ["Agent related commands"],
+    mixinStandardHelpOptions = true,
 )
 class AgentCommands: AbstractBaseCommand() {
 
@@ -37,7 +38,7 @@ class AgentCommands: AbstractBaseCommand() {
     @Option(names = ["--uri" ], scope = INHERIT, description = ["The URI of the form [type:][host:]port"])
     var uri: String? = null
 
-    @Command(name = "start", description = ["Start the agent's endpoint"])
+    @Command(name = "start", description = ["Start the agent's endpoint"], mixinStandardHelpOptions = true)
     fun start(): Int {
         val eps = getEndpointSpec(uri)
         check(eps.type.lowercase() == "camel") { "Unsupported endpoint type: $eps" }
@@ -48,7 +49,7 @@ class AgentCommands: AbstractBaseCommand() {
         return 0
     }
 
-    @Command(name = "stop", description = ["Stop the agent's endpoint"])
+    @Command(name = "stop", description = ["Stop the agent's endpoint"], mixinStandardHelpOptions = true)
     fun stop(): Int {
         val eps = getEndpointSpec(uri)
         val key = AttachmentKey("$eps", CamelContext::class)

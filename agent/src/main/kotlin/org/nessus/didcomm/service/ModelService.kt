@@ -37,10 +37,8 @@ object ModelService: ObjectService<ModelService>() {
         model.addWallet(wallet)
     }
 
-    fun getWallet(id: String): Wallet {
-        val wallet = model.walletsMap[id]
-        checkNotNull(wallet) { "No wallet for: $id" }
-        return wallet
+    fun getWallet(id: String): Wallet? {
+        return model.walletsMap[id]
     }
 
     fun findWallet(predicate: (w: Wallet) -> Boolean): Wallet? {

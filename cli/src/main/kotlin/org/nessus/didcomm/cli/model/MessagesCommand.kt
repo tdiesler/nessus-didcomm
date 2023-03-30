@@ -3,6 +3,8 @@ package org.nessus.didcomm.cli.model
 import id.walt.common.prettyPrint
 import org.nessus.didcomm.cli.AbstractBaseCommand
 import org.nessus.didcomm.model.MessageExchange
+import org.nessus.didcomm.protocol.EndpointMessage
+import org.nessus.didcomm.protocol.MessageDirection
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
@@ -10,10 +12,11 @@ import kotlin.math.max
 
 @Command(
     name = "message",
-    description = ["Message related commands"])
+    description = ["Message related commands"],
+    mixinStandardHelpOptions = true)
 class MessageCommands: AbstractBaseCommand() {
 
-    @Command(name = "list", description = ["List connection messages"])
+    @Command(name = "list", description = ["List connection messages"], mixinStandardHelpOptions = true)
     fun listMessages(
         @Option(names = ["--wallet"], description = ["Optional wallet alias"])
         walletAlias: String?,
@@ -33,14 +36,19 @@ class MessageCommands: AbstractBaseCommand() {
         val size = mex.messages.size
         val start = max(0, size - msgCount)
         val msgs = mex.messages.subList(start, size)
+        val idxAndDirection = { i: Int, m: EndpointMessage -> when(m.messageDirection) {
+            MessageDirection.IN -> "[$i] >>"
+            MessageDirection.OUT -> "[$i] <<"
+            else -> "[$i] .."
+        }}
         if (verbose)
-            echoList(msgs.map { it.prettyPrint() })
+            echoList(msgs.mapIndexed { idx, epm -> "${idxAndDirection(idx, epm)} ${epm.prettyPrint()}" })
         else
-            echoList(msgs.map { it.shortString() })
+            echoList(msgs.mapIndexed { idx, epm -> "${idxAndDirection(idx, epm)} ${epm.shortString()}" })
         return 0
     }
 
-    @Command(name = "show", description = ["Show connection message"])
+    @Command(name = "show", description = ["Show connection message"], mixinStandardHelpOptions = true)
     fun showMessage(
         @Option(names = ["--wallet"], description = ["Optional wallet alias"])
         walletAlias: String?,
@@ -57,14 +65,16 @@ class MessageCommands: AbstractBaseCommand() {
         val mex = MessageExchange.findByVerkey(pcon.myVerkey)
         checkNotNull(mex) { "No message exchange for: ${pcon.myVerkey}" }
 
-        mex.messages.firstOrNull {
-            val candidates = listOf(it.id).map { c -> c.lowercase() }
-            candidates.any { c -> c.startsWith(alias.lowercase()) }
-        }?.let { msg ->
+        val msg = alias.toIntOrNull()?.let { idx -> mex.messages[idx] }
+            ?: mex.messages.firstOrNull { m -> m.id.lowercase().startsWith(alias.lowercase()) }
+
+        if (msg != null) {
             if (verbose)
                 echo(msg.prettyPrint())
             else
                 echo(msg.shortString())
+        } else {
+            echo("No message for: $alias")
         }
         return 0
     }

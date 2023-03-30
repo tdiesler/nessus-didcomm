@@ -34,6 +34,8 @@ import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_ID
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
 import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.decodeJson
@@ -140,7 +142,7 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
 
         log.info { "Holder (${holder.name}) proposes credential: ${proposalMsg.encodeJson(true)}" }
 
-        val epm = EndpointMessage(proposalMsg)
+        val epm = EndpointMessage.Builder(proposalMsg).outbound().build()
         mex.addMessage(epm)
 
         val packResult = didComm.packEncrypted(
@@ -151,10 +153,10 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage(packedMessage, mapOf(
-            EndpointMessage.MESSAGE_HEADER_ID to "${proposalMsg.id}.packed",
-            EndpointMessage.MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
-        ))
+        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
+                MESSAGE_HEADER_ID to "${proposalMsg.id}.packed",
+                MESSAGE_HEADER_TYPE to Typ.Encrypted.typ))
+            .outbound().build()
         log.info { "Holder (${holder.name}) sends credential proposal: ${proposalMsg.encodeJson(true)}" }
 
         mex.placeEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL)
@@ -240,7 +242,7 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
 
         log.info { "Issuer (${issuer.name}) created credential offer: ${offerCredentialMsg.encodeJson(true)}" }
 
-        val epm = EndpointMessage(offerCredentialMsg)
+        val epm = EndpointMessage.Builder(offerCredentialMsg).outbound().build()
         mex.addMessage(epm)
 
         val packResult = didComm.packEncrypted(
@@ -251,10 +253,11 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage(packedMessage, mapOf(
-            EndpointMessage.MESSAGE_HEADER_ID to "${offerCredentialMsg.id}.packed",
-            EndpointMessage.MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
-        ))
+        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
+                MESSAGE_HEADER_ID to "${offerCredentialMsg.id}.packed",
+                MESSAGE_HEADER_TYPE to Typ.Encrypted.typ))
+            .outbound()
+            .build()
         log.info { "Issuer (${issuer.name}) sends credential offer: ${packedEpm.prettyPrint()}" }
 
         mex.placeEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL)
@@ -316,7 +319,7 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
 
         log.info { "Issuer (${issuer.name}) issues credential: ${issueCredentialMsg.encodeJson(true)}" }
 
-        val epm = EndpointMessage(issueCredentialMsg)
+        val epm = EndpointMessage.Builder(issueCredentialMsg).outbound().build()
         mex.addMessage(epm)
 
         val packResult = didComm.packEncrypted(
@@ -327,10 +330,11 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage(packedMessage, mapOf(
-            EndpointMessage.MESSAGE_HEADER_ID to "${issueCredentialMsg.id}.packed",
-            EndpointMessage.MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
-        ))
+        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
+                MESSAGE_HEADER_ID to "${issueCredentialMsg.id}.packed",
+                MESSAGE_HEADER_TYPE to Typ.Encrypted.typ))
+            .outbound()
+            .build()
         log.info { "Issuer (${issuer.name}) sends credential: ${packedEpm.prettyPrint()}" }
 
         val holderMex = MessageExchange.findByVerkey(holderDid.verkey)
@@ -444,7 +448,7 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
 
         log.info { "Holder (${holder.name}) creates credential requests: ${credentialRequestMsg.encodeJson(true)}" }
 
-        val epm = EndpointMessage(credentialRequestMsg)
+        val epm = EndpointMessage.Builder(credentialRequestMsg).outbound().build()
         mex.addMessage(epm)
 
         val packResult = didComm.packEncrypted(
@@ -455,10 +459,11 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage(packedMessage, mapOf(
-            EndpointMessage.MESSAGE_HEADER_ID to "${credentialRequestMsg.id}.packed",
-            EndpointMessage.MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
-        ))
+        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
+                MESSAGE_HEADER_ID to "${credentialRequestMsg.id}.packed",
+                MESSAGE_HEADER_TYPE to Typ.Encrypted.typ))
+            .outbound()
+            .build()
 
         log.info { "Holder (${holder.name}) sends credential requests: ${packedEpm.prettyPrint()}" }
 

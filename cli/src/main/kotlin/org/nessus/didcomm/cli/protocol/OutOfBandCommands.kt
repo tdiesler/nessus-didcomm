@@ -39,6 +39,7 @@ import java.net.URL
 @Command(
     name = "invitation",
     description = ["Out-of-Band Invitation"],
+    mixinStandardHelpOptions = true,
     subcommands = [
         CreateInvitation::class,
         ReceiveInvitation::class,
@@ -71,7 +72,7 @@ open class AbstractOutOfBandCommand: AbstractBaseCommand() {
     }
 }
 
-@Command(name = "create", description = ["Create an Out-of-Band Invitation"])
+@Command(name = "create", description = ["Create an Out-of-Band Invitation"], mixinStandardHelpOptions = true)
 class CreateInvitation: AbstractOutOfBandCommand() {
 
     @Option(names = ["--inviter" ], description = ["Optional inviter alias"])
@@ -103,7 +104,7 @@ class CreateInvitation: AbstractOutOfBandCommand() {
     }
 }
 
-@Command(name = "receive", description = ["Receive an Out-of-Band Invitation"])
+@Command(name = "receive", description = ["Receive an Out-of-Band Invitation"], mixinStandardHelpOptions = true)
 class ReceiveInvitation: AbstractOutOfBandCommand() {
 
     @Option(names = ["--inviter" ], description = ["Optional inviter alias"])
@@ -165,7 +166,7 @@ class ReceiveInvitation: AbstractOutOfBandCommand() {
     }
 }
 
-@Command(name = "connect", description = ["Combine Invitation and Did Exchange"])
+@Command(name = "connect", description = ["Combine Invitation and Did Exchange"], mixinStandardHelpOptions = true)
 class InviteAndConnect: AbstractOutOfBandCommand() {
 
     @Parameters(index = "0", description = ["The inviter alias"])

@@ -11,10 +11,11 @@ import picocli.CommandLine.Parameters
 
 @Command(
     name = "connection",
-    description = ["Connection related commands"])
+    description = ["Connection related commands"],
+    mixinStandardHelpOptions = true)
 class ConnectionCommands: AbstractBaseCommand() {
 
-    @Command(name = "list", description = ["List available Connections"])
+    @Command(name = "list", description = ["List available Connections"], mixinStandardHelpOptions = true)
     fun listConnections(
         @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
         walletAlias: String?,
@@ -34,7 +35,7 @@ class ConnectionCommands: AbstractBaseCommand() {
         return 0
     }
 
-    @Command(name = "show", description = ["Show Connection details"])
+    @Command(name = "show", description = ["Show Connection details"], mixinStandardHelpOptions = true)
     fun showConnection(
         @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
         walletAlias: String?,
@@ -56,7 +57,7 @@ class ConnectionCommands: AbstractBaseCommand() {
         return 0
     }
 
-    @Command(name = "switch", description = ["Switch the current Connection"])
+    @Command(name = "switch", description = ["Switch the current Connection"], mixinStandardHelpOptions = true)
     fun switchConnection(
         @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
         walletAlias: String?,

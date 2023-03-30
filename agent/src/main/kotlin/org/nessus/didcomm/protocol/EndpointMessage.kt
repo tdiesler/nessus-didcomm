@@ -20,15 +20,18 @@
 package org.nessus.didcomm.protocol
 
 import org.didcommx.didcomm.message.Message
+import org.nessus.didcomm.util.ellipsis
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.isJson
 import org.nessus.didcomm.util.selectJson
 import java.util.UUID
 
+enum class MessageDirection { IN, OUT }
+
 /**
  * Associates an endpoint message with additional metadata
  */
-class EndpointMessage(
+class EndpointMessage private constructor(
     val body: Any,
     extraHeaders: Map<String, Any?> = mapOf()
 ) {
@@ -38,6 +41,7 @@ class EndpointMessage(
          * Header constants
          */
         const val MESSAGE_HEADER_ID = "MessageId"
+        const val MESSAGE_HEADER_DIRECTION = "MessageDirection"
         const val MESSAGE_HEADER_MEDIA_TYPE = "MessageMediaType"
         const val MESSAGE_HEADER_PROTOCOL_URI = "MessageProtocolUri"
         const val MESSAGE_HEADER_SENDER_VERKEY = "MessageSenderVerkey"
@@ -82,6 +86,7 @@ class EndpointMessage(
     val protocolUri = headers[MESSAGE_HEADER_PROTOCOL_URI] as? String
     val senderVerkey = headers[MESSAGE_HEADER_SENDER_VERKEY] as? String
     val recipientVerkey = headers[MESSAGE_HEADER_RECIPIENT_VERKEY] as? String
+    val messageDirection = headers[MESSAGE_HEADER_DIRECTION]
 
     val bodyAsJson: String get() = run {
         return if (body is String) body else gson.toJson(body)
@@ -92,7 +97,7 @@ class EndpointMessage(
     }
 
     fun shortString(): String {
-        return "[id=$id, thid=$thid, type=$type]"
+        return "[id=${id.ellipsis()}, thid=${thid.ellipsis()}, type=$type]"
     }
 
     override fun toString(): String {
@@ -107,8 +112,9 @@ class EndpointMessage(
         }
 
         fun body(body: Any) = apply {this.body = body }
+        fun inbound() = apply { headers[MESSAGE_HEADER_DIRECTION] = MessageDirection.IN }
+        fun outbound() = apply { headers[MESSAGE_HEADER_DIRECTION] = MessageDirection.OUT }
         fun header(k: String, v: Any?) = apply { if (v != null) this.headers[k] = v }
-        fun headers(headers: Map<String, Any>) = apply { this.headers.putAll(headers) }
         fun build() = EndpointMessage(body, headers)
     }
 }

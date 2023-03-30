@@ -21,16 +21,16 @@ package org.nessus.didcomm.protocol
 
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
-import org.nessus.didcomm.model.DidDoc
-import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.model.DidDoc
+import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.MessageExchange
+import org.nessus.didcomm.model.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.EncryptionEnvelopeV1.Companion.ENCRYPTED_ENVELOPE_V1_MEDIA_TYPE
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
-import org.nessus.didcomm.model.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.protocol.TrustPingV1Protocol.Companion.TRUST_PING_MESSAGE_TYPE_PING_V1
 import org.nessus.didcomm.service.DIDEXCHANGE_PROTOCOL_V1
 import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V1
@@ -134,15 +134,15 @@ class DidExchangeV1Protocol(mex: MessageExchange): Protocol<DidExchangeV1Protoco
                 }
                 """.trimJson()
 
-        mex.addMessage(EndpointMessage(didexRequest))
+        mex.addMessage(EndpointMessage.Builder(didexRequest).outbound().build())
         log.info { "Requester (${requester.name}) sends DidEx Request: ${didexRequest.prettyPrint()}" }
 
         val packedDidExRequest = EncryptionEnvelopeV1()
             .packEncryptedEnvelope(didexRequest, pcon.myDid, recipientDidKey)
 
-        val packedEpm = EndpointMessage(packedDidExRequest, mapOf(
+        val packedEpm = EndpointMessage.Builder(packedDidExRequest, mapOf(
             MESSAGE_HEADER_MEDIA_TYPE to ENCRYPTED_ENVELOPE_V1_MEDIA_TYPE
-        ))
+        )).outbound().build()
 
         pcon.myRole = ConnectionRole.REQUESTER
         pcon.state = ConnectionState.REQUEST
@@ -179,15 +179,15 @@ class DidExchangeV1Protocol(mex: MessageExchange): Protocol<DidExchangeV1Protoco
                     }
                 }
                 """.trimJson()
-        mex.addMessage(EndpointMessage(didexComplete))
+        mex.addMessage(EndpointMessage.Builder(didexComplete).outbound().build())
         log.info { "Requester (${requester.name}) sends DidEx Complete: ${didexComplete.prettyPrint()}" }
 
         val packedDidExComplete = EncryptionEnvelopeV1()
             .packEncryptedEnvelope(didexComplete, pcon.myDid, pcon.theirDid)
 
-        val packedEpm = EndpointMessage(packedDidExComplete, mapOf(
+        val packedEpm = EndpointMessage.Builder(packedDidExComplete, mapOf(
             MESSAGE_HEADER_MEDIA_TYPE to ENCRYPTED_ENVELOPE_V1_MEDIA_TYPE
-        ))
+        )).outbound().build()
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
 
@@ -298,7 +298,7 @@ class DidExchangeV1Protocol(mex: MessageExchange): Protocol<DidExchangeV1Protoco
             "did": "${responderDid.id}"
         }
         """.trimJson()
-        mex.addMessage(EndpointMessage(didexResponse))
+        mex.addMessage(EndpointMessage.Builder(didexResponse).outbound().build())
         log.info { "Responder (${responder.name}) sends DidEx Response: ${didexResponse.prettyPrint()}" }
 
         val pcon = mex.getConnection()
@@ -310,9 +310,9 @@ class DidExchangeV1Protocol(mex: MessageExchange): Protocol<DidExchangeV1Protoco
         val packedDidExResponse = EncryptionEnvelopeV1()
             .packEncryptedEnvelope(didexResponse, pcon.myDid, pcon.theirDid)
 
-        val packedEpm = EndpointMessage(packedDidExResponse, mapOf(
+        val packedEpm = EndpointMessage.Builder(packedDidExResponse, mapOf(
             MESSAGE_HEADER_MEDIA_TYPE to ENCRYPTED_ENVELOPE_V1_MEDIA_TYPE
-        ))
+        )).outbound().build()
 
         dispatchToEndpoint(theirEndpointUrl, packedEpm)
     }

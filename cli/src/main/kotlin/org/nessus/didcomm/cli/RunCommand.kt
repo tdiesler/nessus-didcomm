@@ -30,6 +30,7 @@ import kotlin.io.path.isRegularFile
 @Command(
     name = "run",
     description = ["Run commands"],
+    mixinStandardHelpOptions = true
 )
 class RunCommand: AbstractBaseCommand() {
 

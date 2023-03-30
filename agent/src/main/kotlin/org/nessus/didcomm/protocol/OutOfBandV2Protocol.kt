@@ -87,7 +87,7 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
         val message = invitationV2.toMessage()
         log.info { "Inviter (${inviter.name}) created Invitation: ${message.prettyPrint()}" }
 
-        val epm = EndpointMessage(message)
+        val epm = EndpointMessage.Builder(message).outbound().build()
         mex.addMessage(epm)
 
         mex.putAttachment(WALLET_ATTACHMENT_KEY, inviter)
@@ -154,12 +154,13 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
         val inviteeMex = MessageExchange()
         inviteeMex.putAttachment(WALLET_ATTACHMENT_KEY, invitee)
 
-        val epm = EndpointMessage(invitationV2.toMessage())
+        val epm = EndpointMessage.Builder(invitationV2.toMessage()).inbound().build()
         inviteeMex.addMessage(epm)
 
         // Create and attach the Connection
 
         val invitationKey = invitation.invitationKey()
+        val inviter = modelService.findWalletByDid(inviterDid.uri)
 
         val pcon = Connection(
             id = "${UUID.randomUUID()}",
@@ -170,9 +171,9 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
             myLabel = invitee.name,
             myEndpointUrl = inviteeEndpointUrl,
             theirDid = inviterDid,
-            theirAgent = inviterAgent,
+            theirAgent = inviter?.agentType?.value ?: inviterAgent,
             theirRole = ConnectionRole.INVITER,
-            theirLabel = inviterAlias,
+            theirLabel = inviter?.name ?: inviterAlias,
             theirEndpointUrl = inviterEndpointUrl,
             state = ConnectionState.INVITATION
         )
@@ -181,8 +182,6 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
         invitee.addConnection(pcon)
 
         // Associate this invitation with the invitee wallet
-        // invitationV2.state = InvitationState.RECEIVED
-        // invitationV2.state = InvitationState.DONE
         invitee.addInvitation(invitation)
 
         // Returns an instance of this protocol associated with another MessageExchange

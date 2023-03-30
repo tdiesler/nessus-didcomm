@@ -94,7 +94,7 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
             .build()
 
         val basicMessageMsg = basicMessage.toMessage()
-        senderMex.addMessage(EndpointMessage(basicMessageMsg)).last
+        senderMex.addMessage(EndpointMessage.Builder(basicMessageMsg).outbound().build()).last
         log.info { "Sender (${sender.name}) creates Basic Message: ${basicMessageMsg.encodeJson(true)}" }
 
         val packResult = didComm.packPlaintext(
@@ -103,10 +103,11 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage(packedMessage, mapOf(
-            MESSAGE_HEADER_ID to "${basicMessageMsg.id}.packed",
-            MESSAGE_HEADER_TYPE to Typ.Plaintext.typ
-        ))
+        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
+                MESSAGE_HEADER_ID to "${basicMessageMsg.id}.packed",
+                MESSAGE_HEADER_TYPE to Typ.Plaintext.typ))
+            .outbound()
+            .build()
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
         return protocol
@@ -141,7 +142,7 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
             .build()
 
         val basicMessageMsg = basicMessage.toMessage()
-        senderMex.addMessage(EndpointMessage(basicMessageMsg)).last
+        senderMex.addMessage(EndpointMessage.Builder(basicMessageMsg).outbound().build()).last
         log.info { "Sender (${sender.name}) creates Basic Message: ${basicMessageMsg.encodeJson(true)}" }
 
         val packResult = didComm.packSigned(
@@ -150,10 +151,11 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage(packedMessage, mapOf(
-            MESSAGE_HEADER_ID to "${basicMessageMsg.id}.packed",
-            MESSAGE_HEADER_TYPE to Typ.Signed.typ
-        ))
+        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
+                MESSAGE_HEADER_ID to "${basicMessageMsg.id}.packed",
+                MESSAGE_HEADER_TYPE to Typ.Signed.typ))
+            .outbound()
+            .build()
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
         return protocol
@@ -188,7 +190,7 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
             .build()
 
         val basicMessageMsg = basicMessage.toMessage()
-        senderMex.addMessage(EndpointMessage(basicMessageMsg)).last
+        senderMex.addMessage(EndpointMessage.Builder(basicMessageMsg).outbound().build()).last
         log.info { "Sender (${sender.name}) creates Basic Message: ${basicMessageMsg.encodeJson(true)}" }
 
         val packResult = didComm.packEncrypted(
@@ -199,10 +201,11 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage(packedMessage, mapOf(
-            MESSAGE_HEADER_ID to "${basicMessageMsg.id}.packed",
-            MESSAGE_HEADER_TYPE to Typ.Encrypted.typ
-        ))
+        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
+                MESSAGE_HEADER_ID to "${basicMessageMsg.id}.packed",
+                MESSAGE_HEADER_TYPE to Typ.Encrypted.typ))
+            .outbound()
+            .build()
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
         return protocol

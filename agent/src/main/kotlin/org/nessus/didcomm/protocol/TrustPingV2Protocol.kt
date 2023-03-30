@@ -112,7 +112,7 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
         senderMex.placeEndpointMessageFuture(TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
 
         val trustPingMsg = trustPingBuilder.build().toMessage()
-        senderMex.addMessage(EndpointMessage(trustPingMsg))
+        senderMex.addMessage(EndpointMessage.Builder(trustPingMsg).outbound().build())
         log.info { "Sender (${sender.name}) creates TrustPing: ${trustPingMsg.encodeJson(true)}" }
 
         val packResult = didComm.packEncrypted(
@@ -123,10 +123,10 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage(packedMessage, mapOf(
+        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
             EndpointMessage.MESSAGE_HEADER_ID to "${trustPingMsg.id}.packed",
             EndpointMessage.MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
-        ))
+        )).outbound().build()
         log.info { "Sender (${sender.name}) sends TrustPing: ${packedEpm.prettyPrint()}" }
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
@@ -196,7 +196,7 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             .build()
 
         val trustPingResponseMsg = trustPingResponse.toMessage()
-        mex.addMessage(EndpointMessage(trustPingResponseMsg)).last
+        mex.addMessage(EndpointMessage.Builder(trustPingResponseMsg).outbound().build()).last
         log.info { "Receiver (${receiver.name}) creates TrustPing Response: ${trustPingResponseMsg.encodeJson(true)}" }
 
         val packResult = didComm.packEncrypted(
@@ -215,11 +215,11 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
         )
 
         val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage(packedMessage, mapOf(
+        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
             EndpointMessage.MESSAGE_HEADER_ID to "${trustPingResponseMsg.id}.packed",
             EndpointMessage.MESSAGE_HEADER_THID to trustPing.id,
             EndpointMessage.MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
-        ))
+        )).outbound().build()
         log.info { "Receiver (${receiver.name}) sends TrustPing Response: ${packedEpm.prettyPrint()}" }
 
         pcon.state = ConnectionState.ACTIVE

@@ -27,10 +27,11 @@ import java.util.Collections
 @Command(
     name = "variable",
     description = ["Session variable commands"],
+    mixinStandardHelpOptions = true
 )
 class VariableCommands: AbstractBaseCommand() {
 
-    @Command(name = "list", description = ["List session variables"])
+    @Command(name = "list", description = ["List session variables"], mixinStandardHelpOptions = true)
     fun listVariables() {
         if (cliService.getVars().isNotEmpty()) {
             val maxKeyLength = Collections.max(cliService.getVars().keys.mapIndexed { idx, k -> "[$idx] [$k]".length })
@@ -41,7 +42,7 @@ class VariableCommands: AbstractBaseCommand() {
         }
     }
 
-    @Command(name = "show", description = ["Show a session variable"])
+    @Command(name = "show", description = ["Show a session variable"], mixinStandardHelpOptions = true)
     fun showVariable(
         @Parameters(description = ["The did alias"])
         alias: String,
