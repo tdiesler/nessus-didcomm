@@ -21,11 +21,11 @@ package org.nessus.didcomm.test.cli.protocol
 
 import io.kotest.core.annotation.EnabledIf
 import io.kotest.matchers.shouldBe
-import org.nessus.didcomm.test.cli.AbstractCliTest
+import org.nessus.didcomm.test.cli.AbstractCLITest
 import org.nessus.didcomm.util.AcaPyIsLiveCondition
 
 @EnabledIf(AcaPyIsLiveCondition::class)
-class BasicMessageV1CmdTest: AbstractCliTest() {
+class BasicMessageV1CmdTest: AbstractCLITest() {
 
     @Test
     fun testBasicMessageV1() {

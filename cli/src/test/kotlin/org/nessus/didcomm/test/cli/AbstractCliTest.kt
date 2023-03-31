@@ -33,7 +33,7 @@ import java.io.OutputStream
 import java.io.PrintStream
 
 
-abstract class AbstractCliTest: AnnotationSpec() {
+abstract class AbstractCLITest: AnnotationSpec() {
 
     @BeforeAll
     fun beforeAll() {

@@ -118,9 +118,7 @@ class IssueCredentialV3ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
         pcon.myLabel shouldBe alice.name
         pcon.myDid shouldBe holderDid
 
-        val vc = alice.findVerifiableCredential { vc ->
-            vc.hasType("UniversityTranscript") && "${vc.credentialSubject.id}" == pcon.myDid.uri
-        }
+        val vc = alice.findVerifiableCredentialByType("UniversityTranscript", pcon.myDid.uri)
 
         val subject = vc?.credentialSubject
         val claims = subject?.claims as Map<*, *>
@@ -184,9 +182,7 @@ class IssueCredentialV3ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
         val pcon = mex.getConnection()
         pcon.theirDid shouldBe holderDid
 
-        val vc = alice.findVerifiableCredential { vc ->
-            vc.hasType("UniversityTranscript") && "${vc.credentialSubject.id}" == pcon.theirDid.uri
-        }
+        val vc = alice.findVerifiableCredentialByType("UniversityTranscript", pcon.theirDid.uri)
 
         val subject = vc?.credentialSubject
         val claims = subject?.claims as Map<*, *>

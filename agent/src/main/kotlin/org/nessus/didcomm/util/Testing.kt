@@ -35,7 +35,10 @@ class AcaPyIsLiveCondition : EnabledCondition {
 
 class NessusIsLiveCondition : EnabledCondition {
     override fun enabled(kclass: KClass<out Spec>): Boolean {
-        val url = "http://localhost:9100/playground/invitation?inviter=Government&method=key"
-        return runCatching { InvitationV2.fromUrl(URL(url)) }.isSuccess
+        // [TODO] Add a liveness/readiness endpoint to the playground
+        val url = "http://localhost:9100/message/invitation?inviter=Government&method=key"
+        return runCatching { InvitationV2.fromUrl(URL(url)) }
+            .onFailure { /* ignore*/ }
+            .isSuccess
     }
 }

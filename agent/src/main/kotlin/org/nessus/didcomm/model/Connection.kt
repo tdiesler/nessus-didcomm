@@ -59,7 +59,7 @@ class Connection(
             field = did
         }
 
-    val alias get() = "${myLabel}-${theirLabel}"
+    val alias get() = "${myLabel}_${theirLabel}"
     val myVerkey get() = myDid.verkey
     val theirVerkey get() = theirDid.verkey
 

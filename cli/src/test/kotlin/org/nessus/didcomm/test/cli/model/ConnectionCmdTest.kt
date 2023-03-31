@@ -21,9 +21,9 @@ package org.nessus.didcomm.test.cli.model
 
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.test.cli.AbstractCliTest
+import org.nessus.didcomm.test.cli.AbstractCLITest
 
-class ConnectionCmdTest: AbstractCliTest() {
+class ConnectionCmdTest: AbstractCLITest() {
 
     @BeforeAll
     fun startAgent() {
@@ -57,25 +57,25 @@ class ConnectionCmdTest: AbstractCliTest() {
         cliService.execute("protocol invitation connect acme alice").isSuccess shouldBe true
         acme.currentConnection?.myLabel shouldBe acme.name
         acme.currentConnection?.theirLabel shouldBe alice.name
-        acme.currentConnection?.alias shouldBe "Acme-Alice"
+        acme.currentConnection?.alias shouldBe "Acme_Alice"
         alice.currentConnection?.myLabel shouldBe alice.name
         alice.currentConnection?.theirLabel shouldBe acme.name
-        alice.currentConnection?.alias shouldBe "Alice-Acme"
+        alice.currentConnection?.alias shouldBe "Alice_Acme"
 
         cliService.execute("protocol invitation connect bob alice").isSuccess shouldBe true
         bob.currentConnection?.myLabel shouldBe bob.name
         bob.currentConnection?.theirLabel shouldBe alice.name
-        bob.currentConnection?.alias shouldBe "Bob-Alice"
+        bob.currentConnection?.alias shouldBe "Bob_Alice"
         alice.currentConnection?.myLabel shouldBe alice.name
         alice.currentConnection?.theirLabel shouldBe bob.name
-        alice.currentConnection?.alias shouldBe "Alice-Bob"
+        alice.currentConnection?.alias shouldBe "Alice_Bob"
 
 
         cliService.execute("wallet switch alice").isSuccess shouldBe true
         cliService.findContextWallet() shouldBe alice // created last
-        alice.currentConnection?.alias shouldBe "Alice-Bob"
+        alice.currentConnection?.alias shouldBe "Alice_Bob"
 
-        cliService.execute("connection switch alice-acme").isSuccess shouldBe true
-        alice.currentConnection?.alias shouldBe "Alice-Acme"
+        cliService.execute("connection switch alice_acme").isSuccess shouldBe true
+        alice.currentConnection?.alias shouldBe "Alice_Acme"
     }
 }

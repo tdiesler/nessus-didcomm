@@ -53,6 +53,14 @@ object CLIService: AttachmentSupport() {
 
     fun putContextConnection(pcon: Connection?) {
         putAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
+        pcon?.also {
+            checkNotNull(pcon.myLabel) { "No myLabel in: ${pcon.shortString()}" }
+            checkNotNull(pcon.theirLabel) { "No theirLabel in: ${pcon.shortString()}" }
+            putVar("${pcon.alias}.myDid", pcon.myDid.uri)
+            putVar("${pcon.alias}.theirDid", pcon.theirDid.uri)
+            putVar("${pcon.myLabel}.Did", pcon.myDid.uri)
+            putVar("${pcon.theirLabel}.Did", pcon.theirDid.uri)
+        }
     }
 
     fun findContextDid(walletAlias: String? = null, didAlias: String? = null): Did? {
@@ -64,9 +72,9 @@ object CLIService: AttachmentSupport() {
         }
     }
 
-    fun putContextDid(ownerAlias: String?, did: Did?) {
-        putVar("${ownerAlias ?: "External"}.Did", did?.uri)
+    fun putContextDid(ownerAlias: String, did: Did?) {
         putAttachment(DID_ATTACHMENT_KEY, did)
+        putVar("${ownerAlias}.Did", did?.uri)
     }
 
     fun findContextInvitation(invAlias: String? = null): Invitation? {

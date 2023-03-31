@@ -20,9 +20,9 @@
 package org.nessus.didcomm.test.cli.model
 
 import io.kotest.matchers.shouldBe
-import org.nessus.didcomm.test.cli.AbstractCliTest
+import org.nessus.didcomm.test.cli.AbstractCLITest
 
-class WalletCmdTest: AbstractCliTest() {
+class WalletCmdTest: AbstractCLITest() {
 
     @Test
     fun acapyWalletCommands() {

@@ -24,7 +24,7 @@ import io.kotest.matchers.shouldBe
 /**
  * run file:script/travel-with-minor.txt
  */
-class RunScriptTest: AbstractCliTest() {
+class RunScriptTest: AbstractCLITest() {
 
     @Test
     fun runTravelWithMinorScript() {

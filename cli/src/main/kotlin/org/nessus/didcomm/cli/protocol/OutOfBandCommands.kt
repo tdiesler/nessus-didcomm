@@ -151,8 +151,6 @@ class ReceiveInvitation: AbstractOutOfBandCommand() {
         val pcon = mex.getConnection()
         check(invitee.findDid { d -> d.uri == pcon.myDid.uri } != null)
 
-        cliService.putContextDid(inviterAlias, pcon.theirDid)
-        cliService.putContextDid(invitee.name, pcon.myDid)
         cliService.putContextConnection(pcon)
 
         checkNotNull(invitee.getInvitation(invitation.id))
@@ -240,8 +238,6 @@ class InviteAndConnect: AbstractOutOfBandCommand() {
         check(pcon.theirLabel == inviter.name) { "Unexpected inviter label: ${pcon.theirLabel}" }
 
         cliService.putContextConnection(pcon)
-        cliService.putContextDid(pcon.myLabel, pcon.myDid)
-        cliService.putContextDid(pcon.theirLabel, pcon.theirDid)
 
         val inviterConnection = inviter.findConnection { c -> c.myDid == inviterDid && c.theirDid == inviteeDid }
         val inviteeConnection = invitee.findConnection { c -> c.myDid == inviteeDid && c.theirDid == inviterDid }

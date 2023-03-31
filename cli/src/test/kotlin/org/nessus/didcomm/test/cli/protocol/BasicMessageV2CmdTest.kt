@@ -20,9 +20,9 @@
 package org.nessus.didcomm.test.cli.protocol
 
 import io.kotest.matchers.shouldBe
-import org.nessus.didcomm.test.cli.AbstractCliTest
+import org.nessus.didcomm.test.cli.AbstractCLITest
 
-class BasicMessageV2CmdTest: AbstractCliTest() {
+class BasicMessageV2CmdTest: AbstractCLITest() {
 
     @Test
     fun testBasicMessageV2() {

@@ -20,9 +20,9 @@
 package org.nessus.didcomm.test.cli.protocol
 
 import io.kotest.matchers.shouldBe
-import org.nessus.didcomm.test.cli.AbstractCliTest
+import org.nessus.didcomm.test.cli.AbstractCLITest
 
-class TrustPingV2CmdTest: AbstractCliTest() {
+class TrustPingV2CmdTest: AbstractCLITest() {
 
     @Test
     fun testTrustPingCommands() {

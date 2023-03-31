@@ -54,7 +54,7 @@ class AgentCommands: AbstractBaseCommand() {
         val eps = getEndpointSpec(uri)
         val key = AttachmentKey("$eps", CamelContext::class)
         val context = cliService.removeAttachment(key)
-        checkNotNull(context) { "No endpoint context" }
+        checkNotNull(context) { "No endpoint context for: $uri" }
         context.stop()
         echo("Stopped ${eps.type} endpoint on ${eps.host}:${eps.port}")
         return 0

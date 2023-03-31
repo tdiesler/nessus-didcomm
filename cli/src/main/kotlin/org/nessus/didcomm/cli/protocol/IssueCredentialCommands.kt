@@ -137,20 +137,19 @@ class ProposeVerifiableCredential: AbstractBaseCommand() {
         checkNotNull(template) { "No template" }
         checkNotNull(inputData) { "No input data" }
 
-        val (_, issuerDid) = findWalletAndDidFromAlias(null, issuerAlias!!)
-        val (subject, subjectDid) = findWalletAndDidFromAlias(null, subjectAlias!!)
+        val (_, issuerDid) = findWalletAndDidFromAlias(issuerAlias!!)
+        val (subject, subjectDid) = findWalletAndDidFromAlias(subjectAlias!!)
         checkNotNull(issuerDid) { "Cannot find issuer Did: $issuerAlias" }
         checkNotNull(subjectDid) { "Cannot find subject Did: $subjectAlias" }
         checkNotNull(subject) { "Cannot find subject wallet" }
 
-        val pcon = subject.findConnection { c ->
-            c.myDid == subjectDid && c.theirDid == issuerDid && c.state == ConnectionState.ACTIVE }
-        checkNotNull(pcon) { "No active connection for peers" }
+        val pcon = subject.findConnection { c -> c.myDid == subjectDid && c.theirDid == issuerDid }
+        check(pcon?.state == ConnectionState.ACTIVE) { "Unexpected connection state: ${pcon?.shortString()}" }
 
         echo("")
 
         MessageExchange()
-            .withAttachment(MessageExchange.CONNECTION_ATTACHMENT_KEY, pcon)
+            .withAttachment(MessageExchange.CONNECTION_ATTACHMENT_KEY, pcon!!)
             .withProtocol(ISSUE_CREDENTIAL_PROTOCOL_V3)
             .sendCredentialProposal(
                 holder = subject,
@@ -166,10 +165,8 @@ class ProposeVerifiableCredential: AbstractBaseCommand() {
             .awaitCredentialOffer(subject, issuerDid)
             .awaitIssuedCredential(subject, issuerDid)
 
-        val signedVc = subject.findVerifiableCredential { vc ->
-            vc.hasType("$template") && "${vc.credentialSubject.id}" == subjectDid.uri
-        }
-        checkNotNull(signedVc) { "No credential" }
+        val signedVc = subject.findVerifiableCredentialByType(template!!, subjectDid.uri)
+        checkNotNull(signedVc) { "No credential was issued" }
 
         echo("Holder '${subject.name}' received a '$template' credential")
 
@@ -228,9 +225,9 @@ class IssueVerifiableCredential: AbstractBaseCommand() {
         if (holderAlias == null)
             holderAlias = subjectAlias
 
-        val (issuer, issuerDid) = findWalletAndDidFromAlias(null, issuerAlias!!)
-        val (subject, subjectDid) = findWalletAndDidFromAlias(null, subjectAlias!!)
-        val (holder, holderDid) = findWalletAndDidFromAlias(null, holderAlias!!)
+        val (issuer, issuerDid) = findWalletAndDidFromAlias(issuerAlias!!)
+        val (subject, subjectDid) = findWalletAndDidFromAlias(subjectAlias!!)
+        val (holder, holderDid) = findWalletAndDidFromAlias(holderAlias!!)
 
         checkNotNull(issuer) { "Cannot find issuer wallet" }
         checkNotNull(subject) { "Cannot find subject wallet" }
@@ -327,8 +324,8 @@ class PresentVerifiableCredential: AbstractBaseCommand() {
 
     override fun call(): Int {
 
-        val (holder, holderDid) = findWalletAndDidFromAlias(null, holderAlias!!)
-        val (verifier, verifierDid) = findWalletAndDidFromAlias(null, verifierAlias!!)
+        val (holder, holderDid) = findWalletAndDidFromAlias(holderAlias!!)
+        val (verifier, verifierDid) = findWalletAndDidFromAlias(verifierAlias!!)
 
         checkNotNull(holder) { "Cannot find holder wallet" }
         checkNotNull(holderDid) { "Cannot find holder Did: $holderAlias" }

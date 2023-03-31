@@ -20,9 +20,9 @@
 package org.nessus.didcomm.test.cli.protocol
 
 import io.kotest.matchers.shouldBe
-import org.nessus.didcomm.test.cli.AbstractCliTest
+import org.nessus.didcomm.test.cli.AbstractCLITest
 
-class OutOfBandV2CmdTest: AbstractCliTest() {
+class OutOfBandV2CmdTest: AbstractCLITest() {
 
     @Test
     fun testOutOfBandInvitationV2_DidKey() {

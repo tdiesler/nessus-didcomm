@@ -128,19 +128,18 @@ abstract class AbstractBaseCommand: Callable<Int> {
             ?: getContextWallet(alias)
     }
 
-    fun findWalletAndDidFromAlias(walletAlias: String?, didAlias: String?): Pair<Wallet?, Did?> {
+    fun findWalletAndDidFromAlias(didAlias: String, walletAlias: String? = null): Pair<Wallet?, Did?> {
 
-        // Last Did of the context wallet
-        if (didAlias == null) {
-            return getContextWallet(walletAlias).let { w -> Pair(w, w.dids.lastOrNull()) }
-        }
-
-        // Did alias as a reference to a context variable
-        cliService.getVar(didAlias)?.also { uri ->
+        fun loadOrResolveDid(uri: String): Pair<Wallet?, Did?> {
             val did = didService.loadOrResolveDid(uri)
             checkNotNull(did) { "Cannot resolve did: $uri" }
             val wallet = modelService.findWalletByDid(uri)
             return Pair(wallet, did)
+        }
+
+        // Did alias as a reference to a context variable
+        cliService.getVar(didAlias)?.also { uri ->
+            return loadOrResolveDid(uri)
         }
 
         // Did alias as an index into the context wallet did list
@@ -161,6 +160,11 @@ abstract class AbstractBaseCommand: Callable<Int> {
             .map { w -> Pair(w, w.findDidsByAlias(didAlias).firstOrNull()) }
             .firstOrNull { p -> p.second != null }
             ?.also { return it }
+
+        // Did alias as fully qualified uri
+        if (didAlias.startsWith("did:")) {
+            return loadOrResolveDid(didAlias)
+        }
 
         return Pair(null, null)
     }

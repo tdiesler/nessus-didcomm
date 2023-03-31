@@ -21,10 +21,10 @@ package org.nessus.didcomm.test.cli.protocol
 
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.test.cli.AbstractCliTest
+import org.nessus.didcomm.test.cli.AbstractCLITest
 import org.nessus.didcomm.util.trimJson
 
-class IssueCredentialV3CmdTest: AbstractCliTest() {
+class IssueCredentialV3CmdTest: AbstractCLITest() {
 
     @Test
     fun listTemplates() {
@@ -57,7 +57,8 @@ class IssueCredentialV3CmdTest: AbstractCliTest() {
                 "average": "5"
             }""".trimJson()
 
-            cliService.execute("vc propose -t UniversityTranscript -i Faber.Did -s Alice.Did -d $subjectData").isSuccess shouldBe true
+            val command = "vc propose -t UniversityTranscript -i Faber.Did -s Alice.Did -d $subjectData"
+            cliService.execute(command).isSuccess shouldBe true
 
         } finally {
             cliService.execute("agent stop").isSuccess shouldBe true

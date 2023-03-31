@@ -22,7 +22,7 @@ package org.nessus.didcomm.test.cli
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.cli.NessusCli
 
-class SmartSplitTest: AbstractCliTest() {
+class SmartSplitTest: AbstractCLITest() {
 
     @Test
     fun singleDashData() {

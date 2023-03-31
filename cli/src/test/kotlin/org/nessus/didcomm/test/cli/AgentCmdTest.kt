@@ -21,7 +21,7 @@ package org.nessus.didcomm.test.cli
 
 import io.kotest.matchers.shouldBe
 
-class AgentCmdTest: AbstractCliTest() {
+class AgentCmdTest: AbstractCLITest() {
 
     @Test
     fun testInvalidUri() {

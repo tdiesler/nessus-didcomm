@@ -202,6 +202,12 @@ abstract class Wallet(
         return verifiableCredentialsInternal.firstOrNull(predicate)
     }
 
+    fun findVerifiableCredentialByType(type: String, subjectId: String? = null): W3CVerifiableCredential? {
+        return verifiableCredentialsInternal.firstOrNull {
+            vc -> vc.hasType(type) && subjectId?.equals("${vc.credentialSubject.id}") ?: true
+        }
+    }
+
     fun encodeJson(pretty: Boolean = false, redacted: Boolean = true): String {
         val encoded = gson.toJson(this)
         val jsonObj = gson.fromJson(encoded, JsonObject::class.java)

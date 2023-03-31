@@ -40,7 +40,7 @@ class DidCommands: AbstractBaseCommand() {
         @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
         verbose: Boolean
     ) {
-        findWalletAndDidFromAlias(walletAlias, alias).second?.also { did ->
+        findWalletAndDidFromAlias(alias, walletAlias).second?.also { did ->
             if (verbose) echoDidDoc(did)
             else echo(did.encodeJson(true))
         }
