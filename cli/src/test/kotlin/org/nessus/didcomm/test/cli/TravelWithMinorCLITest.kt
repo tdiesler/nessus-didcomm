@@ -53,7 +53,3 @@ class TravelWithMinorCLITest<T: AutoCloseable> : AbstractCLITest() {
         }
     }
 }
-
-/*
-vc propose -t TravelPermission -i Rajesh.Did -s Malathi.Did
- */

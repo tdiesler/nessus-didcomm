@@ -34,6 +34,7 @@ import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.NessusAuditorService
 import org.nessus.didcomm.service.NessusCustodianService
 import org.nessus.didcomm.service.NessusSignatoryService
+import org.nessus.didcomm.service.PropertiesService
 import org.nessus.didcomm.service.ProtocolKey
 import org.nessus.didcomm.service.ProtocolService
 
@@ -45,6 +46,8 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     val auditor get() = NessusAuditorService.getService()
     val custodian get() = NessusCustodianService.getService()
     val signatory get() = NessusSignatoryService.getService()
+
+    val properties get() = PropertiesService.getService()
 
     val didService get() = DidService.getService()
     val didComm get() = DidCommService.getService()

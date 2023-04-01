@@ -35,6 +35,7 @@ import org.nessus.didcomm.model.DidPeer
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.service.PropertiesService.PROTOCOL_TRUST_PING_ROTATE_DID
 import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 import org.nessus.didcomm.util.dateTimeInstant
 import org.nessus.didcomm.util.dateTimeNow
@@ -169,9 +170,9 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             didService.importDidDoc(senderDidDoc)
 
             // Rotate the inviter Did
-            val inviterDid = when(invitationDid) {
-                receiver.publicDid -> invitationDid
-                else -> receiver.createDid(invitationDid.method)
+            val inviterDid = when(properties.asBoolean(PROTOCOL_TRUST_PING_ROTATE_DID)) {
+                true -> receiver.createDid(invitationDid.method)
+                false -> invitationDid
             }
             val inviterEndpointUrl = receiver.endpointUrl
 

@@ -34,6 +34,7 @@ import org.nessus.didcomm.service.NessusAuditorService
 import org.nessus.didcomm.service.NessusCustodianService
 import org.nessus.didcomm.service.NessusPolicyRegistryService
 import org.nessus.didcomm.service.NessusSignatoryService
+import org.nessus.didcomm.service.PropertiesService
 import org.nessus.didcomm.service.WalletService
 import picocli.CommandLine
 import java.io.PrintStream
@@ -51,6 +52,8 @@ abstract class AbstractBaseCommand: Callable<Int> {
     val auditor get() = NessusAuditorService.getService()
     val custodian get() = NessusCustodianService.getService()
     val signatory get() = NessusSignatoryService.getService()
+
+    val properties get() = PropertiesService.getService()
 
     val cliService get() = CLIService.getService()
     val didService get() = DidService.getService()
@@ -147,7 +150,7 @@ abstract class AbstractBaseCommand: Callable<Int> {
         }
 
         // Did alias as a reference to a context variable
-        cliService.getVar(didAlias)?.also { uri ->
+        properties.asString(didAlias)?.also { uri ->
             return loadOrResolveDid(uri)
         }
 
@@ -181,7 +184,7 @@ abstract class AbstractBaseCommand: Callable<Int> {
     fun getVcpFromAlias(holder: Wallet, alias: String): W3CVerifiableCredential? {
 
         // Vc alias as a reference to a context variable
-        cliService.getVar(alias)?.also {
+        properties.asString(alias)?.also {
             return holder.getVerifiableCredential(it)
         }
 

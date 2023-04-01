@@ -170,8 +170,8 @@ class ProposeCredential: AbstractBaseCommand() {
         echo("Holder '${subject.name}' received a '$template' credential")
 
         val varKey = "${subject.name}.${template}.Vc"
-        cliService.putVar("$varKey.json", signedVc.encodeJson())
-        cliService.putVar(varKey, "${signedVc.id}")
+        properties.putVar("$varKey.json", signedVc.encodeJson())
+        properties.putVar(varKey, "${signedVc.id}")
         echo("$varKey=${signedVc.id}")
 
         if (verbose)
@@ -278,8 +278,8 @@ class IssueCredential: AbstractBaseCommand() {
         echo("Issuer '${issuer.name}' issued a '$template' to holder '${holder.name}'")
 
         val varKey = "${holder.name}.${template}.Vc"
-        cliService.putVar("$varKey.json", signedVc.encodeJson())
-        cliService.putVar(varKey, "${signedVc.id}")
+        properties.putVar("$varKey.json", signedVc.encodeJson())
+        properties.putVar(varKey, "${signedVc.id}")
         echo("$varKey=${signedVc.id}")
 
         if (verbose)
@@ -375,8 +375,8 @@ class PresentCredential: AbstractBaseCommand() {
         val vp = prover.verifiableCredentials.last { it.isVerifiablePresentation }
 
         val varKey = "${verifierName}.${prover.name}.${templates.joinToString(separator = "")}.Vp"
-        cliService.putVar("$varKey.json", vp.encodeJson())
-        cliService.putVar(varKey, "${vp.id}")
+        properties.putVar("$varKey.json", vp.encodeJson())
+        properties.putVar(varKey, "${vp.id}")
         echo("$varKey=${vp.id}")
 
         if (verbose)
@@ -408,7 +408,7 @@ class VerifyCredentialCommand: AbstractBaseCommand() {
     override fun call(): Int {
         check(policySpecs!!.isNotEmpty()) { "No policies" }
 
-        val vcp = cliService.getVar(src!!)
+        val vcp = properties.asString(src!!)
             ?.let { W3CVerifiableCredential.fromJson(it) }
             ?: resolveContent(src!!).let { W3CVerifiableCredential.fromJson(it) }
 

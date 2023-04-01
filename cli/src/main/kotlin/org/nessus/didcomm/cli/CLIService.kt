@@ -20,6 +20,8 @@
 package org.nessus.didcomm.cli
 
 import mu.KotlinLogging
+import org.nessus.didcomm.service.PropertiesService.asString
+import org.nessus.didcomm.service.PropertiesService.putVar
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.Invitation
@@ -45,7 +47,6 @@ object CLIService: AttachmentSupport() {
     fun getService() = apply {}
 
     private val modelService get() = ModelService.getService()
-    private val variables = mutableMapOf<String, String>()
 
     fun execute(args: String, cmdln: CommandLine? = null): Result<Any> {
         return NessusCli().execute(args, cmdln)
@@ -67,7 +68,7 @@ object CLIService: AttachmentSupport() {
         val tokens = line.split(Regex("\\s"))
         return tokens.joinToString(separator = " ") { tok ->
             regex.matchEntire(tok)?.groupValues?.let { groups ->
-                val value = getVar(groups[2])
+                val value = asString(groups[2])
                 "${groups[1]}$value${groups[3]}"
             } ?: tok
         }
@@ -124,30 +125,6 @@ object CLIService: AttachmentSupport() {
     fun putContextWallet(wallet: Wallet?) {
         log.debug { "Put context wallet: ${wallet?.shortString()}" }
         putAttachment(WALLET_ATTACHMENT_KEY, wallet)
-    }
-
-    fun getVar(key: String): String? {
-        return variables.keys
-            .firstOrNull { it.lowercase() == key.lowercase() }
-            ?.let { variables[it] }
-    }
-
-    fun getVars(): Map<String, String> {
-        return variables.toMap()
-    }
-
-    fun delVar(key: String): String? {
-        return variables.keys
-            .firstOrNull { it.lowercase() == key.lowercase() }
-            ?.also {
-                log.debug { "Delete variable: $it" }
-                variables.remove(it)
-            }
-    }
-
-    fun putVar(key: String, value: String?) {
-        log.debug { "Put variable: $key=$value" }
-        value?.also { variables[key] = it } ?: run { delVar(key) }
     }
 
     // Private ---------------------------------------------------------------------------------------------------------

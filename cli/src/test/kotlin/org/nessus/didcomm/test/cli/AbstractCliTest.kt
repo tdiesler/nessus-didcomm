@@ -26,6 +26,7 @@ import org.nessus.didcomm.cli.AbstractBaseCommand
 import org.nessus.didcomm.cli.CLIService
 import org.nessus.didcomm.cli.NessusCli
 import org.nessus.didcomm.service.ModelService
+import org.nessus.didcomm.service.PropertiesService
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import picocli.CommandLine
 import picocli.CommandLine.IExecutionExceptionHandler
@@ -44,6 +45,8 @@ abstract class AbstractCLITest: AnnotationSpec() {
         // Disable console output
         AbstractBaseCommand.out = PrintStream(OutputStream.nullOutputStream())
     }
+
+    val properties get() = PropertiesService.getService()
 
     val cliService get() = CLIService.getService()
     val modelService get() = ModelService.getService()

@@ -3,19 +3,25 @@
 
 agent start --uri 0.0.0.0:9000
 
-# Create Wallets #######################################################################################################
+# Create Wallets and Dids ##############################################################################################
+#
+# NESSUS_USER_HOST=192.168.0.10
 
-wallet create --name Malathi
-wallet create --name Rajesh
-wallet create --name Anand
+wallet create --name Malathi --url http://192.168.0.10:9000
+wallet create --name Rajesh --url http://192.168.0.10:9000
+wallet create --name Anand --url http://192.168.0.10:9000
+
+did create --wallet Malathi --method=key
+did create --wallet Rajesh --method=key
+did create --wallet Anand --method=key
 
 # Create Connections ###################################################################################################
 
-protocol invitation receive --inviter=Government --invitee=Malathi --url=http://localhost:9100/message/invitation?inviter=Government&method=key
-protocol invitation receive --inviter=Government --invitee=Rajesh --url=http://localhost:9100/message/invitation?inviter=Government&method=key
-protocol invitation receive --inviter=Hospital --invitee=Anand --url=http://localhost:9100/message/invitation?inviter=Hospital&method=key
+protocol invitation receive --inviter Government --invitee-did Malathi.Did --url=http://localhost:9100/message/invitation?inviter=Government&method=key
+protocol invitation receive --inviter Government --invitee-did Rajesh.Did --url=http://localhost:9100/message/invitation?inviter=Government&method=key
+protocol invitation receive --inviter Hospital --invitee-did Anand.Did --url=http://localhost:9100/message/invitation?inviter=Hospital&method=key
 
-protocol invitation connect --inviter=Rajesh --invitee=Malathi
+protocol invitation connect --inviter Rajesh --invitee-did Malathi.Did
 
 # Issue Passports ######################################################################################################
 
@@ -77,10 +83,15 @@ vc propose -t TravelPermission -i Rajesh.Did -s Malathi.Did
         "id": "${Malathi_Government.myDid}",
         "minor": "${Anand.Did}",
         "location": {
+            "type": "Country",
             "address": {
                 "addressCountry": "CA"
             }}
         }
+
+# Present ##############################################################################################################
+
+vc present -h Malathi.Did -y Airport.Did --vc Malathi.Passport.Vc
 
 # Check Context Variables ##############################################################################################
 

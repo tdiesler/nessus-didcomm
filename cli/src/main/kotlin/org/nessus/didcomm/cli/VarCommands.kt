@@ -21,20 +21,21 @@ package org.nessus.didcomm.cli
 
 import id.walt.common.prettyPrint
 import picocli.CommandLine.Command
+import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
 import java.util.Collections
 
 @Command(
-    name = "variable",
+    name = "var",
     description = ["Session variable commands"],
     mixinStandardHelpOptions = true
 )
-class VariableCommands: AbstractBaseCommand() {
+class VarCommands: AbstractBaseCommand() {
 
     @Command(name = "list", description = ["List session variables"], mixinStandardHelpOptions = true)
-    fun listVariables() {
-        if (cliService.getVars().isNotEmpty()) {
-            val maxKeyLength = Collections.max(cliService.getVars().keys.mapIndexed { idx, k -> "[$idx] [$k]".length })
+    fun listVars() {
+        if (properties.getVars().isNotEmpty()) {
+            val maxKeyLength = Collections.max(properties.getVars().keys.mapIndexed { idx, k -> "[$idx] [$k]".length })
             sortedEntries.forEachIndexed { idx, (k, v) ->
                 val valStr = if (v.length > 96) "${v.take(48)}...${v.takeLast(48)}" else v
                 echo("${"[$idx] [$k]".padEnd(maxKeyLength)} $valStr")
@@ -43,22 +44,33 @@ class VariableCommands: AbstractBaseCommand() {
     }
 
     @Command(name = "show", description = ["Show a session variable"], mixinStandardHelpOptions = true)
-    fun showVariable(
-        @Parameters(description = ["The did alias"])
+    fun showVar(
+        @Parameters(description = ["The var alias"])
         alias: String,
     ) {
         val key = alias.toIntOrNull()?.let {
             val idx = alias.toInt()
             sortedEntries[idx].key
         } ?: let {
-            cliService.getVars().keys.firstOrNull { it.contains(alias.lowercase()) }
+            properties.getVars().keys.firstOrNull { it.contains(alias.lowercase()) }
         }
         key?.also { k ->
-            val v = cliService.getVar(k)
+            val v = properties.asString(k)
             echo("$k=${v?.prettyPrint()}")
         }
     }
 
+    @Command(name = "set", description = ["Set a session variable"], mixinStandardHelpOptions = true)
+    fun setVar(
+        @Option(names = ["--key" ], required = true, description = ["Var key"])
+        key: String,
+        @Option(names = ["--val" ], required = true, description = ["Var value"])
+        value: String
+    ) {
+        properties.putVar(key, value)
+        echo("$key=${value.prettyPrint()}")
+    }
+
     private val sortedEntries get() =
-        cliService.getVars().entries.sortedBy { it.key }
+        properties.getVars().entries.sortedBy { it.key }
 }

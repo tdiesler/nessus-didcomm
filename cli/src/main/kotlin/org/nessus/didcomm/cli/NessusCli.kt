@@ -74,7 +74,7 @@ import kotlin.system.exitProcess
         MessageCommands::class,
         ProtocolCommands::class,
         RunCommand::class,
-        VariableCommands::class,
+        VarCommands::class,
         VerifiableCredentialCommands::class,
         WalletCommands::class,
     ]
