@@ -21,25 +21,14 @@ package org.nessus.didcomm.service
 
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.protocol.BasicMessageProtocolV2
-import org.nessus.didcomm.protocol.BasicMessageV1Protocol
-import org.nessus.didcomm.protocol.DidExchangeV1Protocol
-import org.nessus.didcomm.protocol.EncryptionEnvelopeV1
 import org.nessus.didcomm.protocol.IssueCredentialV3Protocol
-import org.nessus.didcomm.protocol.OutOfBandV1Protocol
 import org.nessus.didcomm.protocol.OutOfBandV2Protocol
 import org.nessus.didcomm.protocol.PresentProofV3Protocol
 import org.nessus.didcomm.protocol.Protocol
 import org.nessus.didcomm.protocol.ReportProblemProtocolV2
 import org.nessus.didcomm.protocol.TrustPingProtocolV2
-import org.nessus.didcomm.protocol.TrustPingV1Protocol
 import org.nessus.didcomm.util.AttachmentKey
 import kotlin.reflect.KClass
-
-val ENCRYPTED_ENVELOPE_V1 = ProtocolKey("https://rfc0019/application/didcomm-enc-env", EncryptionEnvelopeV1::class)
-val DIDEXCHANGE_PROTOCOL_V1 = ProtocolKey("https://didcomm.org/didexchange/1.0", DidExchangeV1Protocol::class)
-val TRUST_PING_PROTOCOL_V1 = ProtocolKey("https://didcomm.org/trust_ping/1.0", TrustPingV1Protocol::class)
-val BASIC_MESSAGE_PROTOCOL_V1 = ProtocolKey("https://didcomm.org/basicmessage/1.0", BasicMessageV1Protocol::class)
-val OUT_OF_BAND_PROTOCOL_V1 = ProtocolKey("https://didcomm.org/out-of-band/1.1", OutOfBandV1Protocol::class)
 
 val TRUST_PING_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/trust_ping/2.0-preview", TrustPingProtocolV2::class)
 val BASIC_MESSAGE_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/basicmessage/2.0-preview", BasicMessageProtocolV2::class)
@@ -58,12 +47,6 @@ object ProtocolService : ObjectService<ProtocolService>() {
 
     private val supportedProtocols: List<ProtocolKey<*>> get() = listOf(
 
-        ENCRYPTED_ENVELOPE_V1,
-        DIDEXCHANGE_PROTOCOL_V1,
-        TRUST_PING_PROTOCOL_V1,
-        BASIC_MESSAGE_PROTOCOL_V1,
-        OUT_OF_BAND_PROTOCOL_V1,
-
         TRUST_PING_PROTOCOL_V2,
         BASIC_MESSAGE_PROTOCOL_V2,
         ISSUE_CREDENTIAL_PROTOCOL_V3,
@@ -80,12 +63,6 @@ object ProtocolService : ObjectService<ProtocolService>() {
     @Suppress("UNCHECKED_CAST")
     fun <T: Protocol<T>> getProtocol(key: ProtocolKey<T>, mex: MessageExchange): T {
         return when(key) {
-
-            ENCRYPTED_ENVELOPE_V1 -> EncryptionEnvelopeV1()
-            DIDEXCHANGE_PROTOCOL_V1 -> DidExchangeV1Protocol(mex)
-            TRUST_PING_PROTOCOL_V1 -> TrustPingV1Protocol(mex)
-            BASIC_MESSAGE_PROTOCOL_V1 -> BasicMessageV1Protocol(mex)
-            OUT_OF_BAND_PROTOCOL_V1 -> OutOfBandV1Protocol(mex)
 
             TRUST_PING_PROTOCOL_V2 -> TrustPingProtocolV2(mex)
             BASIC_MESSAGE_PROTOCOL_V2 -> BasicMessageProtocolV2(mex)

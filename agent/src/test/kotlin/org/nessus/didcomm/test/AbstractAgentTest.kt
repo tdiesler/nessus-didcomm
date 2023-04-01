@@ -19,14 +19,12 @@
  */
 package org.nessus.didcomm.test
 
-import co.touchlab.stately.concurrency.value
 import id.walt.credentials.w3c.templates.VcTemplateService
 import id.walt.services.keystore.KeyStoreService
 import io.kotest.core.spec.style.AnnotationSpec
 import org.nessus.didcomm.model.NessusWalletPlugin.Companion.getEndpointUrl
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.DidCommService
-import org.nessus.didcomm.service.DidDocumentV1Service
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.MessageDispatchService
@@ -41,12 +39,6 @@ import org.nessus.didcomm.service.SecretResolverService
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
-
-val ACAPY_OPTIONS = mapOf(
-    "ACAPY_HOSTNAME" to System.getenv("ACAPY_HOSTNAME"),
-    "ACAPY_ADMIN_PORT" to "8031",
-    "ACAPY_USER_PORT" to "8030",
-)
 
 val NESSUS_OPTIONS = mapOf(
     "NESSUS_USER_HOST" to System.getenv("NESSUS_USER_HOST"),
@@ -101,7 +93,6 @@ abstract class AbstractAgentTest: AnnotationSpec() {
     val cryptoService get() = NessusCryptoService.getService()
     val custodian get() = NessusCustodianService.getService()
     val didComm get() = DidCommService.getService()
-    val diddocV1Service get() = DidDocumentV1Service.getService()
     val didService get() = DidService.getService()
     val dispatchService get() = MessageDispatchService.getService()
     val endpointService get() = EndpointService.getService()

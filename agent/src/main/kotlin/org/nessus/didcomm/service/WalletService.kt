@@ -23,12 +23,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import mu.KotlinLogging
-import org.hyperledger.aries.api.multitenancy.CreateWalletTokenRequest
-import org.nessus.didcomm.agent.AgentConfiguration
-import org.nessus.didcomm.agent.AriesAgent
-import org.nessus.didcomm.agent.AriesClient
-import org.nessus.didcomm.model.AcapyWallet
-import org.nessus.didcomm.model.AcapyWalletPlugin
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.DidMethod
@@ -36,7 +30,6 @@ import org.nessus.didcomm.model.NessusWalletPlugin
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.Wallet.WalletConfig
-import java.net.ConnectException
 import java.nio.file.Files
 import java.nio.file.Paths
 import kotlin.io.path.isReadable
@@ -45,10 +38,6 @@ object WalletService: ObjectService<WalletService>() {
     private val log = KotlinLogging.logger {}
 
     override fun getService() = apply { }
-
-    init {
-        initAcaPyWallets()
-    }
 
     val wallets get() = modelService.wallets
 
@@ -59,14 +48,13 @@ object WalletService: ObjectService<WalletService>() {
         val maybeWallet = findWallet(config.name)
         val agentType = config.agentType ?: AgentType.NESSUS
         val storageType = config.storageType ?: StorageType.IN_MEMORY
-        if (config.mayExist && maybeWallet != null) {
+        if (maybeWallet != null) {
             check(maybeWallet.agentType == agentType) {"Wallet ${config.name} exists, with other agent: ${maybeWallet.agentType}"}
             check(maybeWallet.storageType == storageType)  {"Wallet ${config.name} exists, with other type: ${maybeWallet.storageType}"}
             return maybeWallet
         }
 
         val wallet = when(config.agentType!!) {
-            AgentType.ACAPY -> AcapyWalletPlugin().createWallet(config)
             AgentType.NESSUS -> NessusWalletPlugin().createWallet(config)
         }
 
@@ -120,63 +108,6 @@ object WalletService: ObjectService<WalletService>() {
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
-
-    @Suppress("UNCHECKED_CAST")
-    private fun initAcaPyWallets() {
-        val agentConfig = AgentConfiguration.defaultConfiguration
-        val adminClient: AriesClient = AriesAgent.adminClient(agentConfig)
-
-        val walletRecords = try {
-            adminClient.multitenancyWallets(null).get()
-        } catch (e: ConnectException) {
-            log.debug { "No connection to AcaPy: ${agentConfig.adminUrl}" }
-            return
-        }
-
-        // Initialize wallets from Siera config
-        val sieraConfig = readSieraConfig()
-        sieraConfig?.filterKeys { k -> k != "default" }?.forEach {
-            val walletName = it.key
-            val values = it.value as Map<String, String>
-            val agent = values["agent"] ?: "aca-py"
-            check(agent == "aca-py") { "Unsupported agent: $agent" }
-            val endpointUrl = values["endpoint"] as String
-            val authToken = values["auth_token"]
-            walletRecords.firstOrNull { wr -> wr.settings.walletName == walletName }
-                ?.let { wr ->
-                    val wallet = AcapyWallet(
-                        wr.walletId,
-                        walletName,
-                        AgentType.ACAPY,
-                        StorageType.INDY,
-                        endpointUrl,
-                        options = authToken?.let { mapOf("authToken" to authToken) } ?: mapOf()
-                    )
-                    addWallet(wallet)
-            }
-        }
-
-        // Initialize wallets from AcaPy
-        walletRecords
-            .filter { modelService.getWallet(it.walletId) == null }
-            .forEach {
-                val walletId = it.walletId
-                val alias = it.settings.walletName
-                val storageType = StorageType.valueOf(it.settings.walletType.name)
-                val tokReq = CreateWalletTokenRequest.builder().build()
-                val tokRes = adminClient.multitenancyWalletToken(walletId, tokReq).get()
-                val wallet = AcapyWallet(
-                    walletId,
-                    alias,
-                    AgentType.ACAPY,
-                    storageType,
-                    agentConfig.userUrl,
-                    options = mapOf("authToken" to tokRes.token)
-                )
-                addWallet(wallet)
-            }
-        log.info { "Done Wallet Init ".padEnd(180, '=') }
-    }
 
     @Suppress("UNCHECKED_CAST")
     private fun readSieraConfig(): Map<String, Any>? {

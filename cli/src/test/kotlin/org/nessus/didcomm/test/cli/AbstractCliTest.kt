@@ -21,7 +21,6 @@ package org.nessus.didcomm.test.cli
 
 import io.kotest.core.spec.style.AnnotationSpec
 import mu.KotlinLogging
-import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.cli.AbstractBaseCommand
 import org.nessus.didcomm.cli.CLIService
 import org.nessus.didcomm.cli.NessusCli
@@ -50,7 +49,6 @@ abstract class AbstractCLITest: AnnotationSpec() {
 
     val cliService get() = CLIService.getService()
     val modelService get() = ModelService.getService()
-    val adminClient get() = AriesAgent.adminClient()
 
     fun safeExecutionCommandLine(): CommandLine {
         val cmdln = NessusCli.defaultCommandLine

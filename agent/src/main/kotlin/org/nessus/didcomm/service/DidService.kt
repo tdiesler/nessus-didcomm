@@ -53,7 +53,7 @@ import org.nessus.didcomm.service.LazySodiumService.convertEd25519toRaw
 import org.nessus.didcomm.model.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.Did.Companion.didMethod
-import org.nessus.didcomm.model.DidDocV2
+import org.nessus.didcomm.model.DidDoc
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.DidPeer
 import org.nessus.didcomm.model.KeyAlgorithm
@@ -171,9 +171,9 @@ object DidService: ObjectService<DidService>() {
     /**
      * Loads a DidDoc that is required to exist in store
      */
-    fun loadDidDoc(uri: String): DidDocV2 {
+    fun loadDidDoc(uri: String): DidDoc {
         val waltDidDoc = withPlugin(didMethod(uri)).loadDidDoc(uri)
-        return DidDocV2.fromWaltIdDidDoc(waltDidDoc.withServiceEndpoint(uri))
+        return DidDoc.fromWaltIdDidDoc(waltDidDoc.withServiceEndpoint(uri))
     }
 
     fun loadOrResolveDid(uri: String): Did? {
@@ -183,7 +183,7 @@ object DidService: ObjectService<DidService>() {
         }
     }
 
-    fun loadOrResolveDidDoc(uri: String): DidDocV2? {
+    fun loadOrResolveDidDoc(uri: String): DidDoc? {
         return when {
             hasDid(uri) -> loadDidDoc(uri)
             else -> resolveDidDoc(uri)
@@ -195,16 +195,16 @@ object DidService: ObjectService<DidService>() {
         return waltDidDoc?.let { didFromDidDoc(it) }
     }
 
-    fun resolveDidDoc(uri: String): DidDocV2? {
+    fun resolveDidDoc(uri: String): DidDoc? {
         val waltDidDoc = withPlugin(didMethod(uri)).resolveDidDoc(uri)
-        return waltDidDoc?.let { DidDocV2.fromWaltIdDidDoc(it.withServiceEndpoint(uri)) }
+        return waltDidDoc?.let { DidDoc.fromWaltIdDidDoc(it.withServiceEndpoint(uri)) }
     }
 
     fun importDid(did: Did): KeyId {
         return withPlugin(did.method).importDid(did)
     }
 
-    fun importDidDoc(didDoc: DidDocV2): KeyId {
+    fun importDidDoc(didDoc: DidDoc): KeyId {
         val method = didMethod(didDoc.id)
         val encodedDoc = didDoc.encodeJson()
         val waltDidDoc = WaltIdDidDoc.decode(encodedDoc)
@@ -233,7 +233,7 @@ object DidService: ObjectService<DidService>() {
             val waltDidDoc = WaltIdDidService.resolve(did.uri)
             storeDid(waltDidDoc.withServiceEndpoint(did.uri, options?.endpointUrl))
 
-            val didDocV2 = DidDocV2.fromWaltIdDidDoc(waltDidDoc)
+            val didDocV2 = DidDoc.fromWaltIdDidDoc(waltDidDoc)
             appendKeyStoreAliases(keyId, did, didDocV2)
 
             return did
@@ -268,7 +268,7 @@ object DidService: ObjectService<DidService>() {
             storeDid(didDoc)
 
             // Store key aliases referenced from the DidDoc
-            val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
+            val didDocV2 = DidDoc.fromWaltIdDidDoc(didDoc)
             appendKeyStoreAliases(keyId, did, didDocV2)
 
             return keyId
@@ -287,7 +287,7 @@ object DidService: ObjectService<DidService>() {
             storeDid(didDoc)
 
             // Store key aliases referenced from the DidDoc
-            val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
+            val didDocV2 = DidDoc.fromWaltIdDidDoc(didDoc)
             appendKeyStoreAliases(keyId, did, didDocV2)
 
             return keyId
@@ -369,7 +369,7 @@ object DidService: ObjectService<DidService>() {
             storeDid(waltDidDoc.withServiceEndpoint(did.uri, options.endpointUrl))
             storeDid(waltDidDoc)
 
-            val didDocV2 = DidDocV2.fromWaltIdDidDoc(waltDidDoc)
+            val didDocV2 = DidDoc.fromWaltIdDidDoc(waltDidDoc)
             appendKeyStoreAliases(keyId, did, didDocV2)
 
             return did
@@ -408,7 +408,7 @@ object DidService: ObjectService<DidService>() {
             storeDid(didDoc!!)
 
             // Store key aliases referenced from the DidDoc
-            val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
+            val didDocV2 = DidDoc.fromWaltIdDidDoc(didDoc)
             appendKeyStoreAliases(keyId, did, didDocV2)
 
             return keyId
@@ -429,7 +429,7 @@ object DidService: ObjectService<DidService>() {
             storeDid(didDoc)
 
             // Store key aliases referenced from the DidDoc
-            val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
+            val didDocV2 = DidDoc.fromWaltIdDidDoc(didDoc)
             appendKeyStoreAliases(keyId, did, didDocV2)
 
             return keyId
@@ -476,7 +476,7 @@ object DidService: ObjectService<DidService>() {
             val waltDidDoc = generateWaltIdDidDoc(did, pubkeyBytes)
             storeDid(waltDidDoc.withServiceEndpoint(did.uri, options?.endpointUrl))
 
-            val didDocV2 = DidDocV2.fromWaltIdDidDoc(waltDidDoc)
+            val didDocV2 = DidDoc.fromWaltIdDidDoc(waltDidDoc)
             appendKeyStoreAliases(keyId, did, didDocV2)
 
             return did
@@ -516,7 +516,7 @@ object DidService: ObjectService<DidService>() {
             storeDid(didDoc)
 
             // Store key aliases referenced from the DidDoc
-            val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
+            val didDocV2 = DidDoc.fromWaltIdDidDoc(didDoc)
             appendKeyStoreAliases(keyId, did, didDocV2)
 
             return keyId
@@ -537,7 +537,7 @@ object DidService: ObjectService<DidService>() {
             storeDid(didDoc)
 
             // Store key aliases referenced from the DidDoc
-            val didDocV2 = DidDocV2.fromWaltIdDidDoc(didDoc)
+            val didDocV2 = DidDoc.fromWaltIdDidDoc(didDoc)
             appendKeyStoreAliases(keyId, did, didDocV2)
 
             return keyId
@@ -556,7 +556,7 @@ object DidService: ObjectService<DidService>() {
         }
     }
 
-    private fun appendKeyStoreAliases(keyId: KeyId, did: Did, didDoc: DidDocV2) {
+    private fun appendKeyStoreAliases(keyId: KeyId, did: Did, didDoc: DidDoc) {
         appendKeyStoreAliases(keyId, did, didDoc.verificationMethods.map { vm -> vm.id })
     }
 

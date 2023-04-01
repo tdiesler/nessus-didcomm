@@ -22,7 +22,6 @@ package org.nessus.didcomm.cli
 import id.walt.common.resolveContent
 import mu.KotlinLogging
 import org.nessus.didcomm.cli.NessusCli.Companion.headless
-import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.W3CVerifiableCredential
@@ -86,22 +85,15 @@ abstract class AbstractBaseCommand: Callable<Int> {
 
     fun checkWalletEndpoint(vararg wallets: Wallet) {
         wallets.forEach {
-            when (it.agentType) {
-                AgentType.ACAPY -> {
-                    // Assume that AcaPy is running
-                }
-                AgentType.NESSUS -> {
-                    val url = URL(it.endpointUrl)
-                    val eps = EndpointSpec("", url.host, url.port)
-                    check(cliService.attachmentKeys.any {
-                        val result = runCatching { EndpointSpec.valueOf(it.name) }
-                        val keyPort = result.getOrNull()?.port
-                        // val keyHost = result.getOrNull()?.host
-                        // [TODO] verify endpoint type/host
-                        result.isSuccess && eps.port == keyPort
-                    }) { "No running endpoint for: ${it.endpointUrl}"}
-                }
-            }
+            val url = URL(it.endpointUrl)
+            val eps = EndpointSpec("", url.host, url.port)
+            check(cliService.attachmentKeys.any {
+                val result = runCatching { EndpointSpec.valueOf(it.name) }
+                val keyPort = result.getOrNull()?.port
+                // val keyHost = result.getOrNull()?.host
+                // [TODO] verify endpoint type/host
+                result.isSuccess && eps.port == keyPort
+            }) { "No running endpoint for: ${it.endpointUrl}"}
         }
     }
 

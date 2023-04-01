@@ -41,7 +41,7 @@ class ReportProblemProtocolV2(mex: MessageExchange): Protocol<ReportProblemProto
     }
 
     override val supportedAgentTypes
-        get() = listOf(AgentType.ACAPY, AgentType.NESSUS)
+        get() = listOf(AgentType.NESSUS)
 
     override fun invokeMethod(to: Wallet, messageType: String): Boolean {
         when (messageType) {

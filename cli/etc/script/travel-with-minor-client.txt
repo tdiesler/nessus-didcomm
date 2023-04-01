@@ -3,6 +3,10 @@
 
 agent start --uri 0.0.0.0:9000
 
+# Runtime Properties ###################################################################################################
+
+var set --key protocol.trust-ping.rotate-did --val=false
+
 # Create Wallets and Dids ##############################################################################################
 #
 # NESSUS_USER_HOST=192.168.0.10
@@ -21,7 +25,7 @@ protocol invitation receive --inviter Government --invitee-did Malathi.Did --url
 protocol invitation receive --inviter Government --invitee-did Rajesh.Did --url=http://localhost:9100/message/invitation?inviter=Government&method=key
 protocol invitation receive --inviter Hospital --invitee-did Anand.Did --url=http://localhost:9100/message/invitation?inviter=Hospital&method=key
 
-protocol invitation connect --inviter Rajesh --invitee-did Malathi.Did
+protocol invitation connect --inviter-did Rajesh.Did --invitee-did Malathi.Did
 
 # Issue Passports ######################################################################################################
 
@@ -93,6 +97,6 @@ vc propose -t TravelPermission -i Rajesh.Did -s Malathi.Did
 
 vc present -h Malathi.Did -y Airport.Did --vc Malathi.Passport.Vc
 
-# Check Context Variables ##############################################################################################
+# Check Session Variables ##############################################################################################
 
-variable list
+var list

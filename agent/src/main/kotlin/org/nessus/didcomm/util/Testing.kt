@@ -21,23 +21,16 @@ package org.nessus.didcomm.util
 
 import io.kotest.core.annotation.EnabledCondition
 import io.kotest.core.spec.Spec
-import org.nessus.didcomm.agent.AriesAgent
-import org.nessus.didcomm.model.InvitationV2
+import org.nessus.didcomm.model.Invitation
 import java.net.URL
 import kotlin.reflect.KClass
 
-
-class AcaPyIsLiveCondition : EnabledCondition {
-    override fun enabled(kclass: KClass<out Spec>): Boolean {
-        return AriesAgent.adminClient().isLive
-    }
-}
 
 class NessusIsLiveCondition : EnabledCondition {
     override fun enabled(kclass: KClass<out Spec>): Boolean {
         // [TODO] Add a liveness/readiness endpoint to the playground
         val url = "http://localhost:9100/message/invitation?inviter=Government&method=key"
-        return runCatching { InvitationV2.fromUrl(URL(url)) }
+        return runCatching { Invitation.fromUrl(URL(url)) }
             .onFailure { /* ignore*/ }
             .isSuccess
     }

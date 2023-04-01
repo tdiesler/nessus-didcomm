@@ -19,10 +19,7 @@
  */
 package org.nessus.didcomm.itest
 
-import io.kotest.core.annotation.EnabledCondition
-import io.kotest.core.spec.Spec
 import io.kotest.core.spec.style.AnnotationSpec
-import org.nessus.didcomm.agent.AriesAgent
 import org.nessus.didcomm.model.NessusWalletPlugin
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.EndpointService
@@ -32,13 +29,6 @@ import org.nessus.didcomm.service.ServiceMatrixLoader
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.Holder
 import org.nessus.didcomm.util.encodeHex
-import kotlin.reflect.KClass
-
-val ACAPY_OPTIONS = mapOf(
-    "ACAPY_HOSTNAME" to System.getenv("ACAPY_HOSTNAME"),
-    "ACAPY_ADMIN_PORT" to "8031",
-    "ACAPY_USER_PORT" to "8030",
-)
 
 val NESSUS_OPTIONS = mapOf(
     "NESSUS_USER_HOST" to System.getenv("NESSUS_USER_HOST"),
@@ -112,8 +102,4 @@ abstract class AbstractIntegrationTest: AnnotationSpec() {
     fun removeWallet(wallet: Wallet) {
         walletService.removeWallet(wallet.id)
     }
-}
-
-class AcaPyOnlyCondition : EnabledCondition {
-    override fun enabled(kclass: KClass<out Spec>): Boolean = AriesAgent.adminClient().isLive
 }

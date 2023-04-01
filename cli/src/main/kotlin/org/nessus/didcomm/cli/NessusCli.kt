@@ -241,9 +241,9 @@ class NessusCli {
 
     fun smartSplit(args: String): List<String> {
         val result = mutableListOf<String>()
-        val shortOption = Regex("^-[a-z]+")
-        val longOption = Regex("^--[a-z]+")
-        val longOptionEqual = Regex("^--[a-z]+(=(.+))")
+        val shortOption = Regex("^-[a-z|-]+")
+        val longOption = Regex("^--[a-z|-]+")
+        val longOptionEqual = Regex("^--[a-z|-]+(=(.+))")
         val singleQuoteStart = Regex("^'(.+)")
         val singleQuoteEnd = Regex("(.+)'$")
         val doubleQuoteStart = Regex("^\"(.+)")

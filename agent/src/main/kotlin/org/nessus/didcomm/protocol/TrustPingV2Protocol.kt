@@ -30,7 +30,7 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Did
-import org.nessus.didcomm.model.DidDocV2
+import org.nessus.didcomm.model.DidDoc
 import org.nessus.didcomm.model.DidPeer
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
@@ -59,7 +59,7 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
     }
 
     override val supportedAgentTypes
-        get() = listOf(AgentType.ACAPY, AgentType.NESSUS)
+        get() = listOf(AgentType.NESSUS)
 
     override fun invokeMethod(to: Wallet, messageType: String): Boolean {
         when (messageType) {
@@ -107,13 +107,12 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
         val senderMex = MessageExchange.findByVerkey(pcon.myVerkey)
         checkNotNull(senderMex) { "No message exchange for: ${pcon.myVerkey}" }
 
-        val protocol = senderMex.withProtocol(TRUST_PING_PROTOCOL_V2)
+        val trustPingMsg = trustPingBuilder.build().toMessage()
+        senderMex.addMessage(EndpointMessage.Builder(trustPingMsg).outbound().build())
 
         // Register the TrustPing Response future
         senderMex.placeEndpointMessageFuture(TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
 
-        val trustPingMsg = trustPingBuilder.build().toMessage()
-        senderMex.addMessage(EndpointMessage.Builder(trustPingMsg).outbound().build())
         log.info { "Sender (${sender.name}) creates TrustPing: ${trustPingMsg.encodeJson(true)}" }
 
         val packResult = didComm.packEncrypted(
@@ -131,7 +130,7 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
         log.info { "Sender (${sender.name}) sends TrustPing: ${packedEpm.prettyPrint()}" }
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
-        return protocol
+        return senderMex.withProtocol(TRUST_PING_PROTOCOL_V2)
     }
 
     fun awaitTrustPingResponse(timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): TrustPingProtocolV2 {
@@ -164,7 +163,7 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             fromPriorIssuerKid = invitationDidDoc.authentications.first()
 
             val senderDid = Did.fromUri(trustPing.from as String)
-            val senderDidDoc = DidDocV2.fromMessage(trustPingMsg) ?: didService.resolveDidDoc(senderDid.uri)
+            val senderDidDoc = DidDoc.fromMessage(trustPingMsg) ?: didService.resolveDidDoc(senderDid.uri)
             checkNotNull(senderDidDoc) { "No sender DidDoc" }
 
             didService.importDidDoc(senderDidDoc)

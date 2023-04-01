@@ -23,7 +23,6 @@ import id.walt.common.prettyPrint
 import org.nessus.didcomm.cli.AbstractBaseCommand
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
-import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V1
 import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
@@ -42,29 +41,15 @@ class TrustPingCommands: AbstractBaseCommand() {
         val pcon = ctxWallet?.currentConnection
         checkNotNull(pcon) { "No context wallet/connection" }
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)
-        val receiver = modelService.findWalletByVerkey(pcon.theirVerkey)
         checkNotNull(sender) { "No sender wallet for: ${pcon.myVerkey}" }
 
-        val dcv2 = sender.useDidCommV2() && receiver?.useDidCommV2() == true
+        val mex = MessageExchange()
+            .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
+            .withProtocol(TRUST_PING_PROTOCOL_V2)
+            .sendTrustPing()
+            .awaitTrustPingResponse()
+            .getMessageExchange()
 
-        val mex = when {
-            dcv2 -> {
-                MessageExchange()
-                    .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
-                    .withProtocol(TRUST_PING_PROTOCOL_V2)
-                    .sendTrustPing()
-                    .awaitTrustPingResponse()
-                    .getMessageExchange()
-            }
-            else -> {
-                MessageExchange()
-                    .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
-                    .withProtocol(TRUST_PING_PROTOCOL_V1)
-                    .sendTrustPing()
-                    .awaitTrustPingResponse()
-                    .getMessageExchange()
-            }
-        }
         val header = "${sender.name} received a Trust Ping response"
         if (verbose) {
             val pingMessages = mex.messages.takeLast(2)

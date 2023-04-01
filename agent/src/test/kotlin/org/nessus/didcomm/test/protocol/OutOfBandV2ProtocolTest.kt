@@ -26,7 +26,6 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.Invitation
-import org.nessus.didcomm.model.InvitationV2
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.OutOfBandV2Protocol.Companion.OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
@@ -67,8 +66,8 @@ class OutOfBandV2ProtocolTest: AbstractAgentTest() {
 
             val invitation = mex.getInvitation() as Invitation
             invitation.type shouldBe OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
-            invitation.actV2.goalCode shouldBe "issue-vc"
-            invitation.actV2.goal shouldBe "Employment credential with Acme"
+            invitation.goalCode shouldBe "issue-vc"
+            invitation.goal shouldBe "Employment credential with Acme"
 
             faber.findInvitation { it.id == invitation.id } shouldNotBe null
             alice.findInvitation { it.id == invitation.id } shouldNotBe null
@@ -114,8 +113,8 @@ class OutOfBandV2ProtocolTest: AbstractAgentTest() {
 
             val invitation = mex.getInvitation() as Invitation
             invitation.type shouldBe OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
-            invitation.actV2.goalCode shouldBe "issue-vc"
-            invitation.actV2.goal shouldBe "Employment credential with Acme"
+            invitation.goalCode shouldBe "issue-vc"
+            invitation.goal shouldBe "Employment credential with Acme"
 
             faber.findInvitation { it.id == invitation.id } shouldNotBe null
             alice.findInvitation { it.id == invitation.id } shouldNotBe null
@@ -165,7 +164,7 @@ class OutOfBandV2ProtocolTest: AbstractAgentTest() {
         """.trimJson()
 
         val expMsg: Message = exp.decodeMessage()
-        val inviV2: InvitationV2 = InvitationV2.fromMessage(expMsg)
+        val inviV2: Invitation = Invitation.fromMessage(expMsg)
 
         val wasMsg: Message = inviV2.toMessage()
         wasMsg.toJSONObject() shouldBe expMsg.toJSONObject()

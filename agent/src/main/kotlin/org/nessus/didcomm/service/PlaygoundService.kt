@@ -74,7 +74,7 @@ object PlaygroundService: ObjectService<PlaygroundService>() {
             .getInvitation()
 
         checkNotNull(invitation) { "No invitation" }
-        val invitationMessage = invitation.actV2.toMessage()
+        val invitationMessage = invitation.toMessage()
 
         exchange.message.headers["Content-Type"] = "application/json"
         exchange.message.body = invitationMessage.encodeJson(true)

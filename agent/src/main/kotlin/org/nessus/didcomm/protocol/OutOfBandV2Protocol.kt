@@ -29,7 +29,6 @@ import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.DidPeer
 import org.nessus.didcomm.model.Invitation
-import org.nessus.didcomm.model.InvitationV2
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.model.Wallet
@@ -80,10 +79,10 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
             }
         }
 
-        val invitationBuilder = InvitationV2.Builder(id, type, invitationDid.uri)
+        val invitationBuilder = Invitation.Builder(id, type, invitationDid.uri)
             .goalCode(options["goal_code"] as? String)
             .goal(options["goal"] as? String)
-            .accept(InvitationV2.DEFAULT_ACCEPT)
+            .accept(Invitation.DEFAULT_ACCEPT)
 
         // Add the DidDoc attachment when we don't have a did:peer:2
         val maybeDidPeer = DidPeer.fromUri(invitationDid.uri)
@@ -92,18 +91,18 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
             val invitationDidDocAttachment = invitationDidDoc.toAttachment()
             invitationBuilder.attachments(listOf(invitationDidDocAttachment))
         }
-        val invitationV2 = invitationBuilder.build()
+        val invitation = invitationBuilder.build()
 
-        val message = invitationV2.toMessage()
+        val message = invitation.toMessage()
         log.info { "Inviter (${inviter.name}) created Invitation: ${message.prettyPrint()}" }
 
         val epm = EndpointMessage.Builder(message).outbound().build()
         mex.addMessage(epm)
 
         mex.putAttachment(WALLET_ATTACHMENT_KEY, inviter)
-        inviter.addInvitation(Invitation(invitationV2))
+        inviter.addInvitation(invitation)
 
-        val invitationKey = invitationV2.invitationKey()
+        val invitationKey = invitation.invitationKey()
 
         // Create and attach the Connection
         val pcon = Connection(
@@ -138,15 +137,13 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
 
         val invitation = mex.getInvitation()
         checkNotNull(invitation) { "No invitation" }
-        check(invitation.isV2) { "Invalid invitation" }
         log.info { "Invitee (${invitee.name}) received Invitation: ${invitation.prettyPrint()}"}
 
         // [TODO] invitation state for v2
         // check(invitation.state == InvitationState.INITIAL) { "Unexpected invitation state: $invitation" }
 
         // Extract Inviter Did + Document
-        val invitationV2 = invitation.actV2
-        val inviterDidDoc = invitationV2.diddoc
+        val inviterDidDoc = invitation.diddoc
         didService.importDidDoc(inviterDidDoc)
 
         val inviterDid = Did.fromUri(inviterDidDoc.id)
@@ -164,7 +161,7 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
         val inviteeMex = MessageExchange()
         inviteeMex.putAttachment(WALLET_ATTACHMENT_KEY, invitee)
 
-        val epm = EndpointMessage.Builder(invitationV2.toMessage()).inbound().build()
+        val epm = EndpointMessage.Builder(invitation.toMessage()).inbound().build()
         inviteeMex.addMessage(epm)
 
         // Create and attach the Connection

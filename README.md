@@ -14,69 +14,22 @@ The initial scope of this project is laid out in [Proof-of-Concept](./docs/proof
 * [Aries Cloud Agent](https://github.com/hyperledger/aries-cloudagent-python)
 * [Aries Protocol RFCs](https://github.com/hyperledger/aries-rfcs/tree/main/features)
 
-### Ledger with VON-Network
-
-This project requires access to a Hyperledger Indy Network. Is recommended to use the [VON Network](https://github.com/bcgov/von-network), developed as a portable Indy Node Network implementation for local development. Instructions for setting up the von-network can be viewed [here](https://github.com/bcgov/von-network#running-the-network-locally).
-
-Basic instructions for using the VON Network are [here](https://github.com/bcgov/von-network/blob/main/docs/UsingVONNetwork.md).
-
-### Start Hyperledger Aries Cloud Agent
-
-Use this when you want to run the tests.
-
-```
-docker compose up --detach && docker compose logs -f acapy
-```
-
-### Install Siera CLI
-
-[Siera](https://siera.animo.id/) makes self-sovereign identity development easier
-
-```
-brew tap animo/siera
-brew install animo/agent-cli/siera
-```
-
-Now, we can create the default environment
-
-```
-siera configuration add -e default -a aca-py -k adminkey -u http://localhost:8031
-```
-
-### Onboarding
-
-```
-./wallet-bootstrap --create Government --ledger-role TRUSTEE
-```
-
-The above should have created the respective siera environment.
-
 ### Supported Protocols
 
-| Protocol                                      | AcaPy | Nessus |
-|:----------------------------------------------|:-----:|:------:|
-| [RFC0019 Encryption Envelope 1.0][rfc0019]    |   x   |   x    |
-| [RFC0023 DID Exchange Protocol 1.0][rfc0023]  |   x   |   x    |
-| [RFC0048 Trust Ping Protocol 1.0][rfc0048]    |   x   |   x    |
-| [RFC0095 Basic Message Protocol 1.0][rfc0095] |   x   |   x    |
-| [RFC0434 Out-of-Band Protocol 1.1][rfc0434]   |   x   |   x    |
-| [Trust Ping 2.0][rfc0048v2]                   |       |   x    |
-| [Basic Message 2.0][rfc0095v2]                |       |   x    |
-| [Out-of-Band Protocol 2.0][rfc0434v2]         |       |   x    |
-| [Issue Credential 3.0][waci-issue-vc-v3]      |       |   x    |
-| [Present Proof 3.0][waci-present-vp-v3]       |       |   x    |
-| [RFC0317 Please ACK][rfc0317]                 |       |        |
-| [RFC0015 ACKs][rfc0015]                       |       |        |
-| [Report Problem 2.0][dcv2-problem]            |       |        |
+| Protocol                                      | Nessus |
+|:----------------------------------------------|:------:|
+| [Trust Ping 2.0][rfc0048v2]                   |   x    |
+| [Basic Message 2.0][rfc0095v2]                |   x    |
+| [Out-of-Band Protocol 2.0][rfc0434v2]         |   x    |
+| [Issue Credential 3.0][waci-issue-vc-v3]      |   x    |
+| [Present Proof 3.0][waci-present-vp-v3]       |   x    |
+| [RFC0317 Please ACK][rfc0317]                 |        |
+| [RFC0015 ACKs][rfc0015]                       |        |
+| [Report Problem 2.0][dcv2-problem]            |        |
 
 [dcv2-problem]: https://identity.foundation/didcomm-messaging/spec/#problem-reports
 [rfc0015]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0015-acks
-[rfc0019]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0019-encryption-envelope
-[rfc0023]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0023-did-exchange
-[rfc0048]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0048-trust-ping
-[rfc0095]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0095-basic-message
 [rfc0317]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0317-please-ack
-[rfc0434]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0434-outofband
 [rfc0048v2]: features/0048-trust-ping
 [rfc0095v2]: features/0095-basic-message
 [rfc0434v2]: features/0434-oob-invitation
@@ -144,7 +97,6 @@ docker run -it --name=didcomm \
   -e NESSUS_USER_PORT=9000 \
   nessusio/nessus-didcomm:dev agent start
 ````
-
 
 ### Code Sample
 

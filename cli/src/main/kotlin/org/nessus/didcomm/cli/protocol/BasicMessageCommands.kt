@@ -23,7 +23,6 @@ import id.walt.common.prettyPrint
 import org.nessus.didcomm.cli.AbstractBaseCommand
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
-import org.nessus.didcomm.service.BASIC_MESSAGE_PROTOCOL_V1
 import org.nessus.didcomm.service.BASIC_MESSAGE_PROTOCOL_V2
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
@@ -54,48 +53,35 @@ class BasicMessageCommands: AbstractBaseCommand() {
         val pcon = ctxWallet?.currentConnection
         checkNotNull(pcon) { "No context wallet/connection" }
         val sender = modelService.findWalletByVerkey(pcon.myVerkey)
-        val receiver = modelService.findWalletByVerkey(pcon.theirVerkey)
         checkNotNull(sender) { "No sender wallet for: ${pcon.myVerkey}" }
 
-        val dcv2 = sender.useDidCommV2() && receiver?.useDidCommV2() == true
-
         val mex = when {
-            dcv2 -> {
-                when {
-                    encrypt -> {
-                        MessageExchange()
-                            .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
-                            .withProtocol(BASIC_MESSAGE_PROTOCOL_V2)
-                            .sendEncryptedMessage(message)
-                            .getMessageExchange()
+            encrypt -> {
+                MessageExchange()
+                    .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
+                    .withProtocol(BASIC_MESSAGE_PROTOCOL_V2)
+                    .sendEncryptedMessage(message)
+                    .getMessageExchange()
 
-                    }
-
-                    sign -> {
-                        MessageExchange()
-                            .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
-                            .withProtocol(BASIC_MESSAGE_PROTOCOL_V2)
-                            .sendSignedMessage(message)
-                            .getMessageExchange()
-                    }
-
-                    else -> {
-                        MessageExchange()
-                            .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
-                            .withProtocol(BASIC_MESSAGE_PROTOCOL_V2)
-                            .sendPlaintextMessage(message)
-                            .getMessageExchange()
-                    }
-                }
             }
+
+            sign -> {
+                MessageExchange()
+                    .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
+                    .withProtocol(BASIC_MESSAGE_PROTOCOL_V2)
+                    .sendSignedMessage(message)
+                    .getMessageExchange()
+            }
+
             else -> {
                 MessageExchange()
                     .withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
-                    .withProtocol(BASIC_MESSAGE_PROTOCOL_V1)
-                    .sendMessage(message)
+                    .withProtocol(BASIC_MESSAGE_PROTOCOL_V2)
+                    .sendPlaintextMessage(message)
                     .getMessageExchange()
             }
         }
+
         val header = "${sender.name} sent: $message"
         if (verbose)
             echo("${header}\n${mex.last.prettyPrint()}")

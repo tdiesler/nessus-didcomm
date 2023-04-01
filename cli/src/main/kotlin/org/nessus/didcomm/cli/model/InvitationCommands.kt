@@ -3,6 +3,7 @@ package org.nessus.didcomm.cli.model
 import org.nessus.didcomm.cli.AbstractBaseCommand
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.util.encodeJson
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.ScopeType.INHERIT

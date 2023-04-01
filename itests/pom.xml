@@ -49,10 +49,6 @@
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-core</artifactId>
         </dependency>
-        <dependency>
-            <groupId>network.idu.acapy</groupId>
-            <artifactId>aries-client-python</artifactId>
-        </dependency>
 
         <!-- Test -->
         <dependency>

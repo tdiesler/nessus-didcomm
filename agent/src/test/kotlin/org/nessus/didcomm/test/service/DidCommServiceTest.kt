@@ -28,7 +28,7 @@ import org.didcommx.didcomm.model.PackEncryptedParams
 import org.didcommx.didcomm.model.PackPlaintextParams
 import org.didcommx.didcomm.model.PackSignedParams
 import org.didcommx.didcomm.model.UnpackParams
-import org.nessus.didcomm.model.DidDocV2
+import org.nessus.didcomm.model.DidDoc
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.WaltIdDid
@@ -76,7 +76,7 @@ class DidCommServiceTest: AbstractAgentTest() {
             val waltDidDoc: WaltIdDid = WaltIdDidService.load(faberDid.uri)
             log.info { "WaltIdDid ${waltDidDoc.encodePretty()}" }
 
-            val didDocV2: DidDocV2 = didService.loadDidDoc(faberDid.uri)
+            val didDocV2: DidDoc = didService.loadDidDoc(faberDid.uri)
             log.info { "DidDocV2 ${didDocV2.encodeJson(true)}" }
 
             val message = MessageBuilder(
@@ -120,7 +120,7 @@ class DidCommServiceTest: AbstractAgentTest() {
             val waltDidDoc: WaltIdDid = WaltIdDidService.load(faberDid.uri)
             log.info { "WaltIdDid ${waltDidDoc.encodePretty()}" }
 
-            val didDocV2: DidDocV2 = didService.loadDidDoc(faberDid.uri)
+            val didDocV2: DidDoc = didService.loadDidDoc(faberDid.uri)
             log.info { "DidDocV2 ${didDocV2.encodeJson(true)}" }
 
             val message = MessageBuilder(

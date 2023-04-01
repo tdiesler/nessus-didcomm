@@ -22,7 +22,6 @@ package org.nessus.didcomm.model
 import mu.KotlinLogging
 import org.didcommx.didcomm.message.Message
 import org.nessus.didcomm.protocol.EndpointMessage
-import org.nessus.didcomm.protocol.OutOfBandV1Protocol.Companion.OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V1
 import org.nessus.didcomm.protocol.OutOfBandV2Protocol.Companion.OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
 import org.nessus.didcomm.protocol.Protocol
 import org.nessus.didcomm.service.ProtocolKey
@@ -142,26 +141,19 @@ class MessageExchange(): AttachmentSupport() {
 
     fun addMessage(msg: EndpointMessage): MessageExchange {
         synchronized(exchangeRegistry) {
-            val logMsg = "Add message [id=${msg.id}, type=${msg.type}] to mex=$id"
+            val pcon = getAttachment(CONNECTION_ATTACHMENT_KEY)
+            val logMsg = "Add message [id=${msg.id}, type=${msg.type}] to mex=$id associated with ${pcon?.shortString()}"
             checkNotNull(msg.type) { "No message type" }
             if (messageStore.isEmpty()) {
-                check(msg.type in listOf(
-                    OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V1,
-                    OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2)) { "Unexpected message type: ${msg.type}" }
-                val invitation = when(msg.body) {
-                    is InvitationV1 -> Invitation(msg.body)
-                    is Message -> Invitation(InvitationV2.fromMessage(msg.body))
-                    else -> throw IllegalStateException( "Unexpected message body: ${msg.body.javaClass}" )
-                }
+                check(msg.type == OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2) { "Unexpected message type: ${msg.type}" }
+                val invitation = Invitation.fromMessage(msg.body as Message)
                 putAttachment(INVITATION_ATTACHMENT_KEY, invitation)
                 exchangeRegistry.add(this)
                 messageStore.add(msg)
                 log.info { logMsg }
                 return this
             }
-            check(msg.type !in listOf(
-                OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V1,
-                OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2)) { "Invitation already added" }
+            check(msg.type != OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2) { "Invitation already added" }
             messageStore.add(msg)
             log.info { logMsg }
             return this

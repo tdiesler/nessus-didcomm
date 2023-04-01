@@ -27,7 +27,6 @@ import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.DidCommService
 import org.nessus.didcomm.service.DidDocResolverService
-import org.nessus.didcomm.service.DidDocumentV1Service
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.MessageDispatchService
 import org.nessus.didcomm.service.ModelService
@@ -51,7 +50,6 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
 
     val didService get() = DidService.getService()
     val didComm get() = DidCommService.getService()
-    val diddocV1Service get() = DidDocumentV1Service.getService()
     val didResolverService get() = DidDocResolverService.getService()
     val dispatchService get() = MessageDispatchService.getService()
     val keyStore get() = KeyStoreService.getService()
