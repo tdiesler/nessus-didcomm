@@ -22,12 +22,12 @@ package org.nessus.didcomm.itest
 import io.kotest.core.annotation.EnabledIf
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.nessus.didcomm.model.DidMethod
+import org.nessus.didcomm.model.AcapyWallet
 import org.nessus.didcomm.model.AgentType
+import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.LedgerRole
 import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.model.AcapyWallet
 
 /**
  * Onboard ENDORSER through TRUSTEE
@@ -57,7 +57,7 @@ class OnboardEndorserTest : AbstractIntegrationTest() {
             log.info { "encoded: ${endorser.encodeJson(true)}" }
             log.info { "!redacted: ${endorser.encodeJson(true, redacted = false)}" }
 
-            val pubDid = endorser.getPublicDid()
+            val pubDid = endorser.publicDid
             pubDid?.method shouldBe DidMethod.SOV
 
             val auxDid = endorser.createDid()

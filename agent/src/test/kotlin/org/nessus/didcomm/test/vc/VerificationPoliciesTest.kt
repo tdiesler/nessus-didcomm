@@ -22,13 +22,16 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         val verifierDid = didService.createDid(DidMethod.KEY)
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("VerifiableId",
+            .fromTemplate(
+                "VerifiableId",
+                true,
                 """{
                     "issuer": "${issuerDid.uri}",
                     "credentialSubject": {
                         "id": "${holderDid.uri}"
                     }
-                }""".decodeJson())
+                }""".decodeJson()
+            )
             .validate()
 
         val config = ProofConfig(
@@ -61,13 +64,16 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // issue VC
         val vc = W3CVerifiableCredential
-            .fromTemplate("VerifiableId",
+            .fromTemplate(
+                "VerifiableId",
+                true,
                 """{
                     "issuer": "${issuerDid.uri}",
                     "credentialSubject": {
                         "id": "${holderDid.uri}"
                     }
-                }""".decodeJson())
+                }""".decodeJson()
+            )
             .validate()
 
         val config = ProofConfig(
@@ -111,7 +117,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         }""".decodeJson()
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("VerifiableId", mergeData)
+            .fromTemplate("VerifiableId", true, mergeData)
             .validate()
 
         val config = ProofConfig(

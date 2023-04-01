@@ -48,7 +48,7 @@ import java.util.concurrent.TimeUnit
 
 
 /**
- * WACI DIDCommS: Issue Credential Protocol 3.0
+ * WACI DIDComm: Issue Credential Protocol 3.0
  * https://github.com/decentralized-identity/waci-didcomm/tree/main/issue_credential
  */
 class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV3Protocol>(mex) {
@@ -88,8 +88,8 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
      * comment: String
      */
     fun sendCredentialProposal(
-        holder: Wallet,
         issuerDid: Did,
+        holder: Wallet,
         template: String,
         subjectData: Map<String, Any>,
         options: Map<String, Any> = mapOf()
@@ -116,12 +116,12 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
         val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
         val unsignedVc = W3CVerifiableCredential
-            .fromTemplate(template, mergedData)
+            .fromTemplate(template, true, mergedData)
 
         val id = "${UUID.randomUUID()}"
         val type = ISSUE_CREDENTIAL_MESSAGE_TYPE_PROPOSE_CREDENTIAL
 
-        val proposal = CredentialProposal.Builder()
+        val proposal = ProposalMetaData.Builder()
             .goalCode(options["goal_code"] as? String)
             .comment(options["comment"] as? String)
             .credentialPreview(subjectData)
@@ -133,20 +133,20 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
             .mediaType("application/json")
             .build()
 
-        val proposalMsg = MessageBuilder(id, proposal.toMap(), type)
+        val vcProposalMsg = MessageBuilder(id, proposal.toMap(), type)
             .thid(id)
             .to(listOf(issuerDid.uri))
             .from(holderDid.uri)
             .attachments(listOf(vcAttachment))
             .build()
 
-        log.info { "Holder (${holder.name}) proposes credential: ${proposalMsg.encodeJson(true)}" }
+        log.info { "Holder (${holder.name}) proposes credential: ${vcProposalMsg.encodeJson(true)}" }
 
-        val epm = EndpointMessage.Builder(proposalMsg).outbound().build()
+        val epm = EndpointMessage.Builder(vcProposalMsg).outbound().build()
         mex.addMessage(epm)
 
         val packResult = didComm.packEncrypted(
-            PackEncryptedParams.builder(proposalMsg, issuerDid.uri)
+            PackEncryptedParams.builder(vcProposalMsg, issuerDid.uri)
                 .signFrom(holderDid.uri)
                 .from(holderDid.uri)
                 .build()
@@ -154,10 +154,10 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
 
         val packedMessage = packResult.packedMessage
         val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
-                MESSAGE_HEADER_ID to "${proposalMsg.id}.packed",
+                MESSAGE_HEADER_ID to "${vcProposalMsg.id}.packed",
                 MESSAGE_HEADER_TYPE to Typ.Encrypted.typ))
             .outbound().build()
-        log.info { "Holder (${holder.name}) sends credential proposal: ${proposalMsg.encodeJson(true)}" }
+        log.info { "Holder (${holder.name}) sends credential proposal: ${vcProposalMsg.encodeJson(true)}" }
 
         mex.placeEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL)
         mex.placeEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL)
@@ -205,7 +205,7 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
         val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
         val unsignedVc = W3CVerifiableCredential
-            .fromTemplate(template, mergedData)
+            .fromTemplate(template, true, mergedData)
             .validate()
 
         val proofConfig = ProofConfig(
@@ -220,7 +220,7 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
         val id = "${UUID.randomUUID()}"
         val type = ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL
 
-        val offer = CredentialOffer.Builder()
+        val offerMeta = OfferMetaData.Builder()
             .credentialPreview(subjectDataFull)
             .goalCode(options["goal_code"] as? String)
             .comment(options["comment"] as? String)
@@ -233,20 +233,20 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
             .mediaType("application/json")
             .build()
 
-        val offerCredentialMsg = MessageBuilder(id, offer.toMap(), type)
+        val vcOfferMsg = MessageBuilder(id, offerMeta.toMap(), type)
             .thid(id)
             .to(listOf(holderDid.uri))
             .from(issuerDid.uri)
             .attachments(listOf(vcAttachment))
             .build()
 
-        log.info { "Issuer (${issuer.name}) created credential offer: ${offerCredentialMsg.encodeJson(true)}" }
+        log.info { "Issuer (${issuer.name}) created credential offer: ${vcOfferMsg.encodeJson(true)}" }
 
-        val epm = EndpointMessage.Builder(offerCredentialMsg).outbound().build()
+        val epm = EndpointMessage.Builder(vcOfferMsg).outbound().build()
         mex.addMessage(epm)
 
         val packResult = didComm.packEncrypted(
-            PackEncryptedParams.builder(offerCredentialMsg, holderDid.uri)
+            PackEncryptedParams.builder(vcOfferMsg, holderDid.uri)
                 .signFrom(issuerDid.uri)
                 .from(issuerDid.uri)
                 .build()
@@ -254,7 +254,7 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
 
         val packedMessage = packResult.packedMessage
         val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
-                MESSAGE_HEADER_ID to "${offerCredentialMsg.id}.packed",
+                MESSAGE_HEADER_ID to "${vcOfferMsg.id}.packed",
                 MESSAGE_HEADER_TYPE to Typ.Encrypted.typ))
             .outbound()
             .build()
@@ -295,35 +295,35 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
         val pcon = mex.getConnection()
         val issuerDid = pcon.myDid
 
-        val requestCredentialEpm = mex.last
-        val requestCredentialMsg = mex.last.body as Message
-        requestCredentialEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL)
+        val vcRequestEpm = mex.last
+        val vcRequestMsg = mex.last.body as Message
+        vcRequestEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL)
 
         val id = "${UUID.randomUUID()}"
         val type = ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL
 
-        val attachment = requestCredentialMsg.attachments?.firstOrNull { at -> at.format == null || at.format == CREDENTIAL_ATTACHMENT_FORMAT }
+        val attachment = vcRequestMsg.attachments?.firstOrNull { at -> at.format == null || at.format == CREDENTIAL_ATTACHMENT_FORMAT }
         checkNotNull(attachment) { "No credential attachment" }
 
-        val issueCredentialBody: MutableMap<String, Any> = mutableMapOf()
-        options["goal_code"]?.also { issueCredentialBody["goal_code"] = it }
-        options["comment"]?.also { issueCredentialBody["comment"] = it }
-        options["replacement_id"]?.also { issueCredentialBody["replacement_id"] = it }
+        val issuedVcBody: MutableMap<String, Any> = mutableMapOf()
+        options["goal_code"]?.also { issuedVcBody["goal_code"] = it }
+        options["comment"]?.also { issuedVcBody["comment"] = it }
+        options["replacement_id"]?.also { issuedVcBody["replacement_id"] = it }
 
-        val issueCredentialMsg = MessageBuilder(id, issueCredentialBody, type)
-            .thid(requestCredentialMsg.id)
+        val issuedVcMsg = MessageBuilder(id, issuedVcBody, type)
+            .thid(vcRequestMsg.id)
             .to(listOf(holderDid.uri))
             .from(issuerDid.uri)
             .attachments(listOf(attachment))
             .build()
 
-        log.info { "Issuer (${issuer.name}) issues credential: ${issueCredentialMsg.encodeJson(true)}" }
+        log.info { "Issuer (${issuer.name}) issues credential: ${issuedVcMsg.encodeJson(true)}" }
 
-        val epm = EndpointMessage.Builder(issueCredentialMsg).outbound().build()
+        val epm = EndpointMessage.Builder(issuedVcMsg).outbound().build()
         mex.addMessage(epm)
 
         val packResult = didComm.packEncrypted(
-            PackEncryptedParams.builder(issueCredentialMsg, holderDid.uri)
+            PackEncryptedParams.builder(issuedVcMsg, holderDid.uri)
                 .signFrom(issuerDid.uri)
                 .from(issuerDid.uri)
                 .build()
@@ -331,7 +331,7 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
 
         val packedMessage = packResult.packedMessage
         val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
-                MESSAGE_HEADER_ID to "${issueCredentialMsg.id}.packed",
+                MESSAGE_HEADER_ID to "${issuedVcMsg.id}.packed",
                 MESSAGE_HEADER_TYPE to Typ.Encrypted.typ))
             .outbound()
             .build()
@@ -357,35 +357,40 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
         val pcon = mex.getConnection()
         val holderDid = pcon.theirDid
 
-        val credentialProposalEpm = mex.last
-        val credentialProposalMsg = mex.last.body as Message
-        credentialProposalEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_PROPOSE_CREDENTIAL)
+        val vcProposalEpm = mex.last
+        val vcProposalMsg = mex.last.body as Message
+        vcProposalEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_PROPOSE_CREDENTIAL)
 
-        log.info { "Issuer (${issuer.name}) received credential proposal: ${credentialProposalMsg.encodeJson(true)}" }
+        log.info { "Issuer (${issuer.name}) received credential proposal: ${vcProposalMsg.encodeJson(true)}" }
 
         // Extract the proposal data from the Message
 
-        val proposal = CredentialProposal.fromMap(credentialProposalMsg.body)
+        val proposalMeta = ProposalMetaData.fromMap(vcProposalMsg.body)
 
         // Extract the attached credential
 
-        val attachmentsFormats = credentialProposalMsg.attachments?.map { it.format } ?: listOf(CREDENTIAL_ATTACHMENT_FORMAT)
+        val attachmentsFormats = vcProposalMsg.attachments?.map { it.format } ?: listOf(CREDENTIAL_ATTACHMENT_FORMAT)
         check(CREDENTIAL_ATTACHMENT_FORMAT in attachmentsFormats) { "Incompatible attachment formats: $attachmentsFormats" }
 
-        val attachment = credentialProposalMsg.attachments?.firstOrNull { at -> at.format == null || at.format == CREDENTIAL_ATTACHMENT_FORMAT }
+        val attachment = vcProposalMsg.attachments?.firstOrNull { at -> at.format == null || at.format == CREDENTIAL_ATTACHMENT_FORMAT }
         checkNotNull(attachment) { "No credential proposal attachment" }
 
         val attachmentData = attachment.data.jsonData()
         checkNotNull(attachmentData) { "No attachment data" }
 
         val proposedVc = W3CVerifiableCredential.fromJson(attachmentData)
-        val proposedSubjectData = proposedVc.credentialSubject.claims
         val proposedSchema = proposedVc.credentialSchema
         checkNotNull(proposedSchema) { "No credential schema" }
 
         // Verify that the proposal data matches the subject data in the attached credential
 
-        val nonMatchingProposalData = proposal.credentialPreview.filter { (pn, pv, _) -> pv != proposedSubjectData[pn] }
+        val proposedSubjectData = proposedVc.credentialSubject.claims
+
+        val nonMatchingProposalData = proposalMeta.credentialPreview.filter { (pn, pv, _) ->
+            when(pn) {
+                "id" -> pv != "${proposedVc.credentialSubject.id}"
+                else -> pv != proposedSubjectData[pn]
+            }}
         check(nonMatchingProposalData.isEmpty()) { "Non matching data: ${nonMatchingProposalData.encodeJson()}" }
 
         log.info { "Issuer (${issuer.name}) accepts credential proposal" }
@@ -405,7 +410,7 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
         // Copy the goal code from the proposal
         // Note, comment not copied
         val options = mutableMapOf<String, Any>()
-        proposal.goalCode?.also { options["goal_code"] = it }
+        proposalMeta.goalCode?.also { options["goal_code"] = it }
 
         return sendCredentialOffer(issuer, holderDid, template, proposedSubjectData, options)
     }
@@ -415,44 +420,44 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
         val pcon = mex.getConnection()
         val (holderDid, issuerDid) = Pair(pcon.myDid, pcon.theirDid)
 
-        val credentialOfferEpm = mex.last
-        val credentialOfferMsg = mex.last.body as Message
-        credentialOfferEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL)
+        val vcOfferEpm = mex.last
+        val vcOfferMsg = mex.last.body as Message
+        vcOfferEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL)
 
-        val offer = CredentialOffer.fromMap(credentialOfferMsg.body)
+        val offer = OfferMetaData.fromMap(vcOfferMsg.body)
         
-        val attachmentsFormats = credentialOfferMsg.attachments?.map { it.format } ?: listOf(CREDENTIAL_ATTACHMENT_FORMAT)
+        val attachmentsFormats = vcOfferMsg.attachments?.map { it.format } ?: listOf(CREDENTIAL_ATTACHMENT_FORMAT)
         check(CREDENTIAL_ATTACHMENT_FORMAT in attachmentsFormats) { "Incompatible attachment formats: $attachmentsFormats" }
 
-        val attachment = credentialOfferMsg.attachments?.firstOrNull { at -> at.format == null || at.format == CREDENTIAL_ATTACHMENT_FORMAT }
+        val attachment = vcOfferMsg.attachments?.firstOrNull { at -> at.format == null || at.format == CREDENTIAL_ATTACHMENT_FORMAT }
         checkNotNull(attachment) { "No credential offer attachment" }
 
-        log.info { "Holder (${holder.name}) accepts credential offer: ${credentialOfferMsg.encodeJson(true)}" }
+        log.info { "Holder (${holder.name}) accepts credential offer: ${vcOfferMsg.encodeJson(true)}" }
 
         if (mex.hasEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL))
-            mex.completeEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL, credentialOfferEpm)
+            mex.completeEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL, vcOfferEpm)
 
-        val credentialRequestBody: MutableMap<String, Any?> = mutableMapOf()
-        offer.goalCode?.also { credentialRequestBody["goal_code"] = it }
-        offer.comment?.also { credentialRequestBody["comment"] = it }
+        val vcRequestBody: MutableMap<String, Any?> = mutableMapOf()
+        offer.goalCode?.also { vcRequestBody["goal_code"] = it }
+        offer.comment?.also { vcRequestBody["comment"] = it }
 
         val id = "${UUID.randomUUID()}"
         val type = ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL
 
-        val credentialRequestMsg = MessageBuilder(id, credentialRequestBody, type)
-            .thid(credentialOfferMsg.id)
+        val vcRequestMsg = MessageBuilder(id, vcRequestBody, type)
+            .thid(vcOfferMsg.id)
             .to(listOf(issuerDid.uri))
             .from(holderDid.uri)
             .attachments(listOf(attachment))
             .build()
 
-        log.info { "Holder (${holder.name}) creates credential requests: ${credentialRequestMsg.encodeJson(true)}" }
+        log.info { "Holder (${holder.name}) creates credential requests: ${vcRequestMsg.encodeJson(true)}" }
 
-        val epm = EndpointMessage.Builder(credentialRequestMsg).outbound().build()
+        val epm = EndpointMessage.Builder(vcRequestMsg).outbound().build()
         mex.addMessage(epm)
 
         val packResult = didComm.packEncrypted(
-            PackEncryptedParams.builder(credentialRequestMsg, issuerDid.uri)
+            PackEncryptedParams.builder(vcRequestMsg, issuerDid.uri)
                 .signFrom(holderDid.uri)
                 .from(holderDid.uri)
                 .build()
@@ -460,7 +465,7 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
 
         val packedMessage = packResult.packedMessage
         val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
-                MESSAGE_HEADER_ID to "${credentialRequestMsg.id}.packed",
+                MESSAGE_HEADER_ID to "${vcRequestMsg.id}.packed",
                 MESSAGE_HEADER_TYPE to Typ.Encrypted.typ))
             .outbound()
             .build()
@@ -473,11 +478,11 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
 
     private fun receiveCredentialRequest(issuer: Wallet): IssueCredentialV3Protocol {
 
-        val credentialRequestEpm = mex.last
-        val credentialRequestMsg = mex.last.body as Message
-        credentialRequestEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL)
+        val vcRequestEpm = mex.last
+        val vcRequestMsg = mex.last.body as Message
+        vcRequestEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL)
 
-        log.info { "Issuer (${issuer.name}) received credential request: ${credentialRequestMsg.encodeJson(true)}" }
+        log.info { "Issuer (${issuer.name}) received credential request: ${vcRequestMsg.encodeJson(true)}" }
 
         mex.completeEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL, mex.last)
 
@@ -489,11 +494,11 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
 
     private fun receiveIssuedCredential(holder: Wallet): IssueCredentialV3Protocol {
 
-        val issuedCredentialEpm = mex.last
-        val issuedCredentialMsg = mex.last.body as Message
-        issuedCredentialEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL)
+        val issuedVcEpm = mex.last
+        val issuedVcMsg = mex.last.body as Message
+        issuedVcEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL)
 
-        val attachment = issuedCredentialMsg.attachments?.firstOrNull { at -> at.format == null || at.format == CREDENTIAL_ATTACHMENT_FORMAT }
+        val attachment = issuedVcMsg.attachments?.firstOrNull { at -> at.format == null || at.format == CREDENTIAL_ATTACHMENT_FORMAT }
         checkNotNull(attachment) { "No credential attachment" }
 
         val vcJson = gson.toJson(attachment.data.jsonData())
@@ -538,7 +543,7 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
         }
     }
 
-    data class CredentialProposal(
+    data class ProposalMetaData(
 
         /**
          * Optional field that indicates the goal of the message sender
@@ -561,7 +566,7 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
         companion object {
 
             @Suppress("UNCHECKED_CAST")
-            fun fromMap(body: Map<String, Any?>): CredentialProposal {
+            fun fromMap(body: Map<String, Any?>): ProposalMetaData {
                 val builder = Builder()
                 body["goal_code"]?.also { builder.goalCode(it as String) }
                 body["comment"]?.also { builder.comment(it as String) }
@@ -587,14 +592,14 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
                 credentialPreview = entries.map { el -> PreviewAttribute.fromJson(el.encodeJson()) }
             }
 
-            fun build(): CredentialProposal {
+            fun build(): ProposalMetaData {
                 checkNotNull(credentialPreview) { "No credentialPreview" }
-                return CredentialProposal(goalCode, comment, credentialPreview!!)
+                return ProposalMetaData(goalCode, comment, credentialPreview!!)
             }
         }
     }
 
-    data class CredentialOffer(
+    data class OfferMetaData(
 
         /**
          * Optional field that indicates the goal of the message sender
@@ -625,7 +630,7 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
         companion object {
 
             @Suppress("UNCHECKED_CAST")
-            fun fromMap(body: Map<String, Any?>): CredentialOffer {
+            fun fromMap(body: Map<String, Any?>): OfferMetaData {
                 val builder = Builder()
                 body["goal_code"]?.also { builder.goalCode(it as String) }
                 body["comment"]?.also { builder.comment(it as String) }
@@ -654,9 +659,9 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
                 credentialPreview = entries.map { el -> PreviewAttribute.fromJson(el.encodeJson()) }
             }
 
-            fun build(): CredentialOffer {
+            fun build(): OfferMetaData {
                 checkNotNull(credentialPreview) { "No credentialPreview" }
-                return CredentialOffer(goalCode, comment, replacementId, credentialPreview!!)
+                return OfferMetaData(goalCode, comment, replacementId, credentialPreview!!)
             }
         }
     }

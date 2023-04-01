@@ -64,7 +64,7 @@ class RunCommand: AbstractBaseCommand() {
             .toMutableList()
 
         while (lines.isNotEmpty()) {
-            val command = nextCommand(lines)
+            val command = cliService.nextCommand(lines)
             if (command != null) {
                 echo("\n>> $command")
                 cliService.execute(command).onFailure {
@@ -76,27 +76,5 @@ class RunCommand: AbstractBaseCommand() {
         callCount += 1
 
         return 0
-    }
-
-    private fun nextCommand(lines: MutableList<String>): String? {
-        if (lines.isEmpty()) return null
-        val regex = Regex("\\s(.*)")
-        val buffer = StringBuffer(lines.removeAt(0))
-        while (lines.isNotEmpty() && regex.matches(lines[0])) {
-            val part = lines.removeAt(0).trim()
-            buffer.append(" $part")
-        }
-        return replaceVars(buffer.toString())
-    }
-
-    private fun replaceVars(line: String): String {
-        val regex = Regex("(.*)\\$\\{(.+)}(.*)")
-        val tokens = line.split(Regex("\\s"))
-        return tokens.joinToString(separator = " ") { tok ->
-            regex.matchEntire(tok)?.groupValues?.let { groups ->
-                val value = cliService.getVar(groups[2])
-                "${groups[1]}$value${groups[3]}"
-            } ?: tok
-        }
     }
 }

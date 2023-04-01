@@ -9,21 +9,20 @@ wallet create --name Malathi
 wallet create --name Rajesh
 wallet create --name Anand
 
-# Malathi ##############################################################################################################
+# Create Connections ###################################################################################################
 
 protocol invitation receive --inviter=Government --invitee=Malathi --url=http://localhost:9100/message/invitation?inviter=Government&method=key
-
-vc propose -t Passport -i Government.Did -s Malathi.Did --data {"givenName": "Malathi", "familyName": "Hamal", "citizenship": "US"}
-
-# Rajesh ###############################################################################################################
-
 protocol invitation receive --inviter=Government --invitee=Rajesh --url=http://localhost:9100/message/invitation?inviter=Government&method=key
-
-vc propose -t Passport -i Government.Did -s Rajesh.Did --data {"givenName": "Rajesh", "familyName": "Hamal", "citizenship": "US"}
-
-# Anand ################################################################################################################
-
 protocol invitation receive --inviter=Hospital --invitee=Anand --url=http://localhost:9100/message/invitation?inviter=Hospital&method=key
+
+protocol invitation connect --inviter=Rajesh --invitee=Malathi
+
+# Issue Passports ######################################################################################################
+
+vc propose -t Passport -i Malathi_Government.theirDid -s Malathi_Government.myDid --data {"givenName": "Malathi", "familyName": "Hamal", "citizenship": "US"}
+vc propose -t Passport -i Rajesh_Government.theirDid -s Rajesh_Government.myDid --data {"givenName": "Rajesh", "familyName": "Hamal", "citizenship": "US"}
+
+# Issue BirthCertificate ###############################################################################################
 
 vc propose -t BirthCertificate -i Hospital.Did -s Anand.Did --data
     {
@@ -43,15 +42,46 @@ vc propose -t BirthCertificate -i Hospital.Did -s Anand.Did --data
        "citizenship": "US",
        "parent": [
            {
-             "id": "${Malathi.Did}",
+             "id": "${Malathi_Government.myDid}",
              "givenName": "Malathi",
              "familyName": "Hamal"
            },
            {
-             "id": "${Rajesh.Did}",
+             "id": "${Rajesh_Government.myDid}",
              "givenName": "Rajesh",
              "familyName": "Hamal"
            }]
     }
+
+# Issue MarriageCertificate ###############################################################################################
+
+vc propose -t MarriageCertificate -i Malathi_Government.theirDid -s Malathi_Government.myDid
+    --data {
+        "spouse": [
+            {
+              "id": "${Malathi_Government.myDid}",
+              "givenName": "Malathi",
+              "familyName": "Hamal"
+            },
+            {
+              "id": "${Rajesh_Government.myDid}",
+              "givenName": "Rajesh",
+              "familyName": "Hamal"
+            }]
+        }
+
+# Issue TravelPermission ###############################################################################################
+
+vc propose -t TravelPermission -i Rajesh.Did -s Malathi.Did
+    --data {
+        "id": "${Malathi_Government.myDid}",
+        "minor": "${Anand.Did}",
+        "location": {
+            "address": {
+                "addressCountry": "CA"
+            }}
+        }
+
+# Check Context Variables ##############################################################################################
 
 variable list

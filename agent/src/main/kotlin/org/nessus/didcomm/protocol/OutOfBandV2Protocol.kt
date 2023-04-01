@@ -61,14 +61,24 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
      * goal_code: String
      * goal: String
      */
-    fun createOutOfBandInvitation(inviter: Wallet, did: Did? = null, options: Map<String, Any> = mapOf()): OutOfBandV2Protocol {
+    fun createOutOfBandInvitation(inviter: Wallet, inviterDid: Did? = null, options: Map<String, Any> = mapOf()): OutOfBandV2Protocol {
         checkAgentType(inviter.agentType)
 
         val id = "${UUID.randomUUID()}"
         val type = OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
 
         // Create and register the Did Document for this Invitation
-        val invitationDid = did ?: inviter.createDid()
+        val invitationDid = when {
+            inviterDid != null -> {
+                log.info { "Create invitation from given Did: ${inviterDid.uri}" }
+                inviterDid
+            }
+            else -> {
+                val createdDid = inviter.createDid()
+                log.info { "Create invitation for Did: ${createdDid.uri}" }
+                createdDid
+            }
+        }
 
         val invitationBuilder = InvitationV2.Builder(id, type, invitationDid.uri)
             .goalCode(options["goal_code"] as? String)
@@ -120,7 +130,7 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
 
     fun receiveOutOfBandInvitation(
         invitee: Wallet,
-        did: Did? = null,
+        inviteeDid: Did? = null,
         inviterAlias: String? = null,
         inviterAgent: String? = null
     ): OutOfBandV2Protocol {
@@ -145,7 +155,7 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
 
         // Create Invitee Did + Document
         val inviteeEndpointUrl = invitee.endpointUrl
-        val inviteeDid = did ?: when(inviterDid.method) {
+        val actualInviteeDid = inviteeDid ?: when(inviterDid.method) {
             DidMethod.PEER -> invitee.createDid(inviterDid.method, options = DidPeerOptions(2, inviteeEndpointUrl))
             else -> invitee.createDid(inviterDid.method)
         }
@@ -165,7 +175,7 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
         val pcon = Connection(
             id = "${UUID.randomUUID()}",
             invitationKey = invitationKey,
-            myDid = inviteeDid,
+            myDid = actualInviteeDid,
             myAgent = invitee.agentType.value,
             myRole = ConnectionRole.INVITEE,
             myLabel = invitee.name,

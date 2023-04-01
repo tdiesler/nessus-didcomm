@@ -1,4 +1,4 @@
-package org.nessus.didcomm.test.vc
+package org.nessus.didcomm.test
 
 import id.walt.auditor.VerificationPolicy
 import id.walt.common.prettyPrint
@@ -8,14 +8,13 @@ import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.DidMethod
+import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.trimJson
 import org.nessus.didcomm.util.unionMap
-import org.nessus.didcomm.model.W3CVerifiableCredential
 import java.util.UUID
 
 
@@ -37,7 +36,7 @@ import java.util.UUID
  *
  * https://www.w3.org/TR/vc-use-cases/#international-travel-with-minor-and-upgrade
  */
-class MalathiTravelTest: AbstractAgentTest() {
+class TravelWithMinorTest: AbstractAgentTest() {
     private val log = KotlinLogging.logger {}
 
     @Test
@@ -117,8 +116,8 @@ class MalathiTravelTest: AbstractAgentTest() {
 
         issueTravelPermission(rajeshDid, malathi, malathiDid, """
             {
-                "id": "${anandDid.uri}",
-                "guardian": "${malathiDid.uri}",
+                "id": "${malathiDid.uri}",
+                "minor": "${anandDid.uri}",
                 "location": {
                     "address": {
                         "addressCountry": "CA"
@@ -164,7 +163,7 @@ class MalathiTravelTest: AbstractAgentTest() {
         val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("Passport", mergedData)
+            .fromTemplate("Passport", true, mergedData)
             .validate()
 
         val proofConfig = ProofConfig(
@@ -208,7 +207,7 @@ class MalathiTravelTest: AbstractAgentTest() {
         val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("BirthCertificate", mergedData)
+            .fromTemplate("BirthCertificate", true, mergedData)
             .validate()
 
         val proofConfig = ProofConfig(
@@ -238,7 +237,7 @@ class MalathiTravelTest: AbstractAgentTest() {
         val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("MarriageCertificate", mergedData)
+            .fromTemplate("MarriageCertificate", true, mergedData)
             .validate()
 
         val proofConfig = ProofConfig(
@@ -275,7 +274,7 @@ class MalathiTravelTest: AbstractAgentTest() {
         val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("TravelPermission", mergedData)
+            .fromTemplate("TravelPermission", true, mergedData)
             .validate()
 
         val proofConfig = ProofConfig(
@@ -292,27 +291,30 @@ class MalathiTravelTest: AbstractAgentTest() {
 
     private fun verifyPassportCredential(holder: Wallet, holderDid: Did, verifierDid: Did) {
 
-        val passport = getVerifiableCredential(holder, "Passport")
+        val passportVc = getVerifiableCredential(holder, "Passport")
+        val passportVp = createVerifiablePresentation(holderDid, verifierDid, passportVc)
 
-        verifyCredential(holderDid, verifierDid, passport, listOf(
+        verifyCredential(passportVp, listOf(
             policyService.getPolicy("JsonSchemaPolicy"),
             policyService.getPolicy("SignaturePolicy")))
     }
 
     private fun verifyBirthCertificate(holder: Wallet, holderDid: Did, verifierDid: Did) {
 
-        val birthCertificate = getVerifiableCredential(holder, "BirthCertificate")
+        val birthCertificateVc = getVerifiableCredential(holder, "BirthCertificate")
+        val birthCertificateVp = createVerifiablePresentation(holderDid, verifierDid, birthCertificateVc)
 
-        verifyCredential(holderDid, verifierDid, birthCertificate, listOf(
+        verifyCredential(birthCertificateVp, listOf(
             policyService.getPolicy("JsonSchemaPolicy"),
             policyService.getPolicy("SignaturePolicy")))
     }
 
     private fun verifyMarriageCertificate(holder: Wallet, holderDid: Did, verifierDid: Did) {
 
-        val marriageCertificate = getVerifiableCredential(holder, "MarriageCertificate")
+        val marriageCertificateVc = getVerifiableCredential(holder, "MarriageCertificate")
+        val marriageCertificateVp = createVerifiablePresentation(holderDid, verifierDid, marriageCertificateVc)
 
-        verifyCredential(holderDid, verifierDid, marriageCertificate, listOf(
+        verifyCredential(marriageCertificateVp, listOf(
             policyService.getPolicy("JsonSchemaPolicy"),
             policyService.getPolicy("SignaturePolicy")))
     }
@@ -398,13 +400,13 @@ class MalathiTravelTest: AbstractAgentTest() {
         return vc
     }
 
-    private fun verifyCredential(holderDid: Did, verifierDid: Did, signedVc: W3CVerifiableCredential, policies: List<VerificationPolicy>) {
-        val vp = createVerifiablePresentation(holderDid, verifierDid, signedVc)
+    private fun verifyCredential(vp: W3CVerifiableCredential, policies: List<VerificationPolicy>) {
+        check(vp.isVerifiablePresentation) { "Not a verifiable presentation: ${vp.shortString()}" }
         val verification = auditor.verify(vp, policies)
         verification.result shouldBe true
     }
 
-    private fun createVerifiablePresentation(holderDid: Did, verifierDid: Did, signedVc: W3CVerifiableCredential): String {
+    private fun createVerifiablePresentation(holderDid: Did, verifierDid: Did, signedVc: W3CVerifiableCredential): W3CVerifiableCredential {
         return custodian.createPresentation(
             vcs = listOf(signedVc.encodeJson()),
             holderDid = holderDid.uri,

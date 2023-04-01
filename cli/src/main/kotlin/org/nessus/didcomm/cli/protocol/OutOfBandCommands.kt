@@ -33,7 +33,6 @@ import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 import org.nessus.didcomm.util.encodeJson
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
-import picocli.CommandLine.Parameters
 import java.net.URL
 
 @Command(
@@ -78,9 +77,16 @@ class CreateInvitation: AbstractOutOfBandCommand() {
     @Option(names = ["--inviter" ], description = ["Optional inviter alias"])
     var inviterAlias: String? = null
 
+    @Option(names = ["--inviter-did" ], description = ["Optional inviter Did alias"])
+    var inviterDidAlias: String? = null
+
     override fun call(): Int {
-        val inviter = getContextWallet(inviterAlias)
-        val inviterDid = cliService.findContextDid(inviterAlias)
+        val (inviter, inviterDid) = if (inviterDidAlias != null) {
+            findWalletAndDidFromAlias(inviterAlias, inviterDidAlias)
+        } else {
+            Pair(getContextWallet(inviterAlias), null)
+        }
+        checkNotNull(inviter) { "No inviter wallet" }
         checkWalletEndpoint(inviter)
         val mex = when {
             inviter.useDidCommV2() -> {
@@ -113,19 +119,30 @@ class ReceiveInvitation: AbstractOutOfBandCommand() {
     @Option(names = ["--invitee" ], description = ["Optional invitee alias"])
     var inviteeAlias: String? = null
 
+    @Option(names = ["--invitee-did" ], description = ["Optional invitee Did alias"])
+    var inviteeDidAlias: String? = null
+
     @Option(names = ["-u", "--url" ], description = ["Optional invitation url"])
     var invitationUrl: String? = null
 
     override fun call(): Int {
+
+        // Find Invitation
         val invitation = invitationUrl?.let {
             Invitation(InvitationV2.fromUrl(URL(invitationUrl!!)))
         } ?: let {
             cliService.findContextInvitation()
         }
         checkNotNull(invitation) { "No invitation" }
-        val invitee = getContextWallet(inviteeAlias)
-        val inviteeDid = cliService.findContextDid(inviteeAlias)
-        checkWalletEndpoint(invitee)
+
+        // Find Invitee Wallet and Did
+        val (invitee, inviteeDid) = if (inviteeDidAlias != null) {
+            findWalletAndDidFromAlias(inviteeAlias, inviteeDidAlias)
+        } else {
+            Pair(getContextWallet(inviteeAlias), null)
+        }
+        checkNotNull(invitee) { "No invitee wallet" }
+
         val mex = when {
             invitation.isV2 -> {
                 MessageExchange()
@@ -167,10 +184,10 @@ class ReceiveInvitation: AbstractOutOfBandCommand() {
 @Command(name = "connect", description = ["Combine Invitation and Did Exchange"], mixinStandardHelpOptions = true)
 class InviteAndConnect: AbstractOutOfBandCommand() {
 
-    @Parameters(index = "0", description = ["The inviter alias"])
+    @Option(names = ["--inviter" ], description = ["Optional inviter alias"])
     var inviterAlias: String? = null
 
-    @Parameters(index = "1", description = ["The invitee alias"])
+    @Option(names = ["--invitee" ], description = ["Optional invitee alias"])
     var inviteeAlias: String? = null
 
     @Option(names = ["--method" ], description = ["Optional Did method"])
@@ -179,6 +196,7 @@ class InviteAndConnect: AbstractOutOfBandCommand() {
     override fun call(): Int {
         val inviter = getContextWallet(inviterAlias)
         val invitee = getContextWallet(inviteeAlias)
+        check(inviter != invitee) { "Inviter/Invitee cannot be the same: ${inviter.shortString()}" }
         val dcv2 = inviter.useDidCommV2() && invitee.useDidCommV2()
         checkWalletEndpoint(inviter, invitee)
         val didMethod = method?.let { DidMethod.fromValue(method!!) }

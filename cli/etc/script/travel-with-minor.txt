@@ -23,9 +23,17 @@ did create --wallet Government --method key
 did create --wallet Hospital --method key
 did create --wallet Airport --method key
 
+did set-public Government.Did
+did set-public Hospital.Did
+did set-public Airport.Did
+
 # Issue Verifiable Credentials #########################################################################################
 
 vc template list
+
+# Note, issuing a credential does currently not involve a peer connection
+# The agent must own both wallets. The issued credential is directly placed in the holder wallet
+# [TODO] https://github.com/tdiesler/nessus-didcomm/issues/119
 
 vc issue -t Passport -i Government.Did -s Malathi.Did
     --data {"credentialSubject": {
@@ -85,8 +93,8 @@ vc issue -t MarriageCertificate -i Government.Did -s Malathi.Did
 
 vc issue -t TravelPermission -i Rajesh.Did -s Malathi.Did
     --data {"credentialSubject": {
-        "id": "${Anand.Did}",
-        "guardian": "${Malathi.Did}",
+        "id": "${Malathi.Did}",
+        "minor": "${Anand.Did}",
         "location": {
             "address": {
                 "addressCountry": "CA"
@@ -100,7 +108,11 @@ vc present -h Malathi.Did -y Airport.Did --vc Malathi.BirthCertificate.Vc
 vc present -h Malathi.Did -y Airport.Did --vc Malathi.MarriageCertificate.Vc
 vc present -h Malathi.Did -y Airport.Did --vc Malathi.TravelPermission.Vc
 
-vc present -h Malathi.Did -y Airport.Did --vc Malathi.Passport.Vc --vc Malathi.BirthCertificate.Vc --vc Malathi.MarriageCertificate.Vc --vc Malathi.TravelPermission.Vc
+vc present -h Malathi.Did -y Airport.Did
+    --vc Malathi.Passport.Vc
+    --vc Malathi.BirthCertificate.Vc
+    --vc Malathi.MarriageCertificate.Vc
+    --vc Malathi.TravelPermission.Vc
 
 # Verify ###############################################################################################################
 

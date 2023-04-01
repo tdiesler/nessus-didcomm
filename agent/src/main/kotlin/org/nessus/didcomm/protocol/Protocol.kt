@@ -31,6 +31,8 @@ import org.nessus.didcomm.service.DidDocumentV1Service
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.MessageDispatchService
 import org.nessus.didcomm.service.ModelService
+import org.nessus.didcomm.service.NessusAuditorService
+import org.nessus.didcomm.service.NessusCustodianService
 import org.nessus.didcomm.service.NessusSignatoryService
 import org.nessus.didcomm.service.ProtocolKey
 import org.nessus.didcomm.service.ProtocolService
@@ -40,6 +42,10 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     abstract val log: KLogger
     abstract val protocolUri: String
 
+    val auditor get() = NessusAuditorService.getService()
+    val custodian get() = NessusCustodianService.getService()
+    val signatory get() = NessusSignatoryService.getService()
+
     val didService get() = DidService.getService()
     val didComm get() = DidCommService.getService()
     val diddocV1Service get() = DidDocumentV1Service.getService()
@@ -48,7 +54,6 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     val keyStore get() = KeyStoreService.getService()
     val modelService get() = ModelService.getService()
     val protocolService get() = ProtocolService.getService()
-    val signatory get() = NessusSignatoryService.getService()
 
     abstract val supportedAgentTypes: List<AgentType>
 

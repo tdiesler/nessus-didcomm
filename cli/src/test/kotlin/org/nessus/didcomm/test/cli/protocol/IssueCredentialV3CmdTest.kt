@@ -44,7 +44,7 @@ class IssueCredentialV3CmdTest: AbstractCLITest() {
         cliService.execute("agent start").isSuccess shouldBe true
 
         try {
-            cliService.execute("protocol invitation connect faber alice").isSuccess shouldBe true
+            cliService.execute("protocol invitation connect --inviter=faber").isSuccess shouldBe true
 
             val subjectData = """
             {
@@ -73,6 +73,7 @@ class IssueCredentialV3CmdTest: AbstractCLITest() {
         cliService.execute("wallet create --name Faber").isSuccess shouldBe true
         cliService.execute("wallet create --name Alice").isSuccess shouldBe true
         cliService.execute("wallet create --name Acme").isSuccess shouldBe true
+        cliService.execute("agent start").isSuccess shouldBe true
 
         val faber = modelService.findWalletByName("Faber") as Wallet
         val alice = modelService.findWalletByName("Alice") as Wallet
@@ -80,20 +81,21 @@ class IssueCredentialV3CmdTest: AbstractCLITest() {
 
         try {
 
-            val faberDid = faber.createDid().uri
-            val aliceDid = alice.createDid().uri
-            val acmeDid = acme.createDid().uri
+            cliService.execute("protocol invitation connect --inviter=Acme --invitee=Alice").isSuccess shouldBe true
 
-            cliService.execute("vc issue -t VerifiableId -i $faberDid -s $aliceDid --out target/VerifiableId.json").isSuccess shouldBe true
-            cliService.execute("vc present -h $aliceDid -y $acmeDid -c 1234 --vc target/VerifiableId.json --out target/VerifiablePresentation.json").isSuccess shouldBe true
+            val faberDid = faber.createDid().uri
+
+            cliService.execute("vc issue -t VerifiableId -i $faberDid -s Alice_Acme.myDid --out target/VerifiableId.json").isSuccess shouldBe true
+            cliService.execute("vc present -h Alice_Acme.myDid -y Alice_Acme.theirDid -c 1234 --vc target/VerifiableId.json --out target/VerifiablePresentation.json").isSuccess shouldBe true
 
             val challengePolicy = """ChallengePolicy={"challenges":["1234"],"applyToVC":false}"""
             cliService.execute("vc verify -p SignaturePolicy -p $challengePolicy --vc target/VerifiablePresentation.json").isSuccess shouldBe true
 
         } finally {
-            modelService.removeWallet(acme.id)
-            modelService.removeWallet(alice.id)
-            modelService.removeWallet(faber.id)
+            cliService.execute("agent stop").isSuccess shouldBe true
+            cliService.execute("wallet remove Acme").isSuccess shouldBe true
+            cliService.execute("wallet remove Alice").isSuccess shouldBe true
+            cliService.execute("wallet remove Faber").isSuccess shouldBe true
         }
     }
 }

@@ -19,9 +19,7 @@
  */
 package org.nessus.didcomm.cli
 
-import id.walt.auditor.Auditor
 import id.walt.common.resolveContent
-import id.walt.custodian.Custodian
 import mu.KotlinLogging
 import org.nessus.didcomm.cli.NessusCli.Companion.headless
 import org.nessus.didcomm.model.AgentType
@@ -32,6 +30,8 @@ import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.ModelService
+import org.nessus.didcomm.service.NessusAuditorService
+import org.nessus.didcomm.service.NessusCustodianService
 import org.nessus.didcomm.service.NessusPolicyRegistryService
 import org.nessus.didcomm.service.NessusSignatoryService
 import org.nessus.didcomm.service.WalletService
@@ -48,14 +48,15 @@ abstract class AbstractBaseCommand: Callable<Int> {
         var out: PrintStream = System.out
     }
 
-    val auditor get() = Auditor.getService()
+    val auditor get() = NessusAuditorService.getService()
+    val custodian get() = NessusCustodianService.getService()
+    val signatory get() = NessusSignatoryService.getService()
+
     val cliService get() = CLIService.getService()
-    val custodian get() = Custodian.getService()
     val didService get() = DidService.getService()
     val endpointService get() = EndpointService.getService()
     val modelService get() = ModelService.getService()
     val policyService get() = NessusPolicyRegistryService.getService()
-    val signatory get() = NessusSignatoryService.getService()
     val walletService get() = WalletService.getService()
 
     override fun call(): Int {
@@ -128,13 +129,21 @@ abstract class AbstractBaseCommand: Callable<Int> {
             ?: getContextWallet(alias)
     }
 
-    fun findWalletAndDidFromAlias(didAlias: String, walletAlias: String? = null): Pair<Wallet?, Did?> {
+    fun findWalletAndDidFromAlias(walletAlias: String? = null, didAlias: String? = null): Pair<Wallet?, Did?> {
+
+        val ctxWallet = getContextWallet(walletAlias)
 
         fun loadOrResolveDid(uri: String): Pair<Wallet?, Did?> {
             val did = didService.loadOrResolveDid(uri)
             checkNotNull(did) { "Cannot resolve did: $uri" }
             val wallet = modelService.findWalletByDid(uri)
             return Pair(wallet, did)
+        }
+
+        // Use the current Did from the context wallet
+        if (didAlias == null) {
+            val did = ctxWallet.currentConnection?.myDid ?: ctxWallet.dids.lastOrNull()
+            return Pair(ctxWallet, did)
         }
 
         // Did alias as a reference to a context variable
@@ -145,19 +154,19 @@ abstract class AbstractBaseCommand: Callable<Int> {
         // Did alias as an index into the context wallet did list
         if (didAlias.toIntOrNull() != null) {
             val idx = didAlias.toInt()
-            return getContextWallet(walletAlias).let { w -> Pair(w, w.dids[idx]) }
+            return ctxWallet.let { w -> Pair(w, w.dids[idx]) }
         }
 
         // Find did for the given wallet alias
         if (walletAlias != null) {
-            return getContextWallet(walletAlias).let { w ->
-                Pair(w, w.findDidsByAlias(didAlias).firstOrNull())
+            return ctxWallet.let { w ->
+                Pair(w, w.findDidByAlias(didAlias))
             }
         }
 
         // Did alias as fuzzy uri selector for all wallet dids
         modelService.wallets
-            .map { w -> Pair(w, w.findDidsByAlias(didAlias).firstOrNull()) }
+            .map { w -> Pair(w, w.findDidByAlias(didAlias)) }
             .firstOrNull { p -> p.second != null }
             ?.also { return it }
 

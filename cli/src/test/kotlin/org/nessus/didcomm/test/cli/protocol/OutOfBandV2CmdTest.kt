@@ -20,6 +20,7 @@
 package org.nessus.didcomm.test.cli.protocol
 
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldStartWith
 import org.nessus.didcomm.test.cli.AbstractCLITest
 
 class OutOfBandV2CmdTest: AbstractCLITest() {
@@ -52,10 +53,17 @@ class OutOfBandV2CmdTest: AbstractCLITest() {
 
         try {
 
-            cliService.execute("did create --wallet Faber --method=peer").isSuccess shouldBe true
+            cliService.execute("did create --wallet Faber --method=peer?numalgo=2").isSuccess shouldBe true
+            cliService.execute("did set-public Faber.Did").isSuccess shouldBe true
 
-            cliService.execute("protocol invitation create --inviter Faber").isSuccess shouldBe true
+            val faberDid = cliService.getVar("Faber.Did")
+            faberDid shouldStartWith "did:peer:2"
+
+            cliService.execute("protocol invitation create --inviter-did Faber.Did").isSuccess shouldBe true
             cliService.execute("protocol invitation receive --invitee Alice").isSuccess shouldBe true
+
+            cliService.getVar("Alice_Faber.myDid") shouldStartWith "did:peer:2"
+            cliService.getVar("Alice_Faber.theirDid") shouldBe faberDid
 
         } finally {
             cliService.execute("agent stop").isSuccess shouldBe true

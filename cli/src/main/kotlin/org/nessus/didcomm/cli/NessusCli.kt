@@ -224,7 +224,7 @@ class NessusCli {
                     try {
                         systemRegistry.cleanUp()
                         val line = reader.readLine("\n${prompt()}", rightPrompt(), null as MaskingCallback?, null)
-                        systemRegistry.execute(line)
+                        systemRegistry.execute(cliService.replaceVars(line))
                     } catch (e: Exception) {
                         when(e) {
                             is UnknownCommandException -> { println(e.message) }

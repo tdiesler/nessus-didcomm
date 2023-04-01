@@ -33,7 +33,7 @@ class TrustPingV2CmdTest: AbstractCLITest() {
 
         try {
 
-            cliService.execute("protocol invitation connect acme alice").isSuccess shouldBe true
+            cliService.execute("protocol invitation connect --inviter=acme").isSuccess shouldBe true
 
             cliService.execute("protocol trust-ping send").isSuccess shouldBe true
 

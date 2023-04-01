@@ -32,8 +32,8 @@ open class W3CVerifiableCredential private constructor(jsonObject: Map<String, A
             return W3CVerifiableCredential(jsonStr.decodeJson()).validate()
         }
 
-        fun fromTemplate(path: String, data: Map<String, Any?> = mapOf()): W3CVerifiableCredential {
-            val template = loadTemplate(path)
+        fun fromTemplate(pathOrName: String, stripValues: Boolean = true, data: Map<String, Any?> = mapOf()): W3CVerifiableCredential {
+            val template = loadTemplate(pathOrName, stripValues)
             val effData = data.toMutableMap()
             if ("issuanceDate" !in data)
                 effData["issuanceDate"] = "${dateTimeNow()}"
@@ -93,8 +93,21 @@ open class W3CVerifiableCredential private constructor(jsonObject: Map<String, A
         schemaMap?.run { CredentialSchema(get("id") as String, get("type") as String) }
     }
 
+    /**
+     * List of verifiable credentials when this is a presentation
+     */
+    val verifiableCredentials: List<W3CVerifiableCredential>? get() = run {
+        @Suppress("UNCHECKED_CAST")
+        val vcList = jsonObject["verifiableCredential"] as? List<Map<String, Any?>>
+        vcList?.map { fromJson(it) }
+    }
+
     fun hasType(type: String): Boolean {
-        return types.contains(type)
+        return if (isVerifiablePresentation) {
+            verifiableCredentials?.any { it.types.contains(type) } ?: false
+        } else {
+            types.contains(type)
+        }
     }
 
     // Accidental override: The following declarations have the same JVM signature
@@ -107,6 +120,8 @@ open class W3CVerifiableCredential private constructor(jsonObject: Map<String, A
     // val credentialSubject: CredentialSubject get() = CredentialSubject.getFromJsonLDObject(this)
     // val credentialStatus: CredentialStatus get() = CredentialStatus.getFromJsonLDObject(this)
     // val proof: LdProof get() = super.getLdProof()
+
+    fun shortString() = "$types $id"
 
     fun encodeJson(pretty: Boolean = false): String {
         return toJson(pretty)

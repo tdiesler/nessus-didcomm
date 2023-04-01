@@ -139,7 +139,7 @@
                 "id": {
                     "type": "string"
                 },
-                "guardian": {
+                "minor": {
                     "type": "string"
                 },
                 "location": {
@@ -148,7 +148,7 @@
             },
             "required": [
                 "id",
-                "guardian",
+                "minor",
                 "location"
             ],
             "title": "TravelPermission"

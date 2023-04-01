@@ -215,16 +215,22 @@ class AcapyWalletPlugin: WalletPlugin {
         return createDidInternal(walletClient(wallet), method)
     }
 
-    override fun publicDid(wallet: Wallet): Did? {
+    override fun getPublicDid(wallet: Wallet): Did? {
         val walletClient = walletClient(wallet)
-        val ariesDid = walletClient.walletDidPublic().orElse(null) ?:
-        return null
-        val publicDid = ariesDid.toNessusDid()
-        val keyStore = KeyStoreService.getService()
-        keyStore.getKeyId(publicDid.uri) ?: run {
-            DidService.getService().importDid(publicDid)
+        return walletClient.walletDidPublic().orElse(null)?.let {
+            val publicDid = it.toNessusDid()
+            val keyStore = KeyStoreService.getService()
+            keyStore.getKeyId(publicDid.uri) ?: run {
+                DidService.getService().importDid(publicDid)
+            }
+            publicDid
         }
-        return publicDid
+    }
+
+    override fun setPublicDid(wallet: Wallet, did: Did?) {
+        requireNotNull(did) { "Requires did" }
+        val walletClient = walletClient(wallet)
+        walletClient.walletDidPublic(did.uri).get()
     }
 
     override fun removeConnections(wallet: Wallet) {

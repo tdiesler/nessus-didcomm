@@ -51,6 +51,28 @@ object CLIService: AttachmentSupport() {
         return NessusCli().execute(args, cmdln)
     }
 
+    fun nextCommand(lines: MutableList<String>): String? {
+        if (lines.isEmpty()) return null
+        val regex = Regex("\\s(.*)")
+        val buffer = StringBuffer(lines.removeAt(0))
+        while (lines.isNotEmpty() && regex.matches(lines[0])) {
+            val part = lines.removeAt(0).trim()
+            buffer.append(" $part")
+        }
+        return replaceVars(buffer.toString())
+    }
+
+    fun replaceVars(line: String): String {
+        val regex = Regex("(.*)\\$\\{(.+)}(.*)")
+        val tokens = line.split(Regex("\\s"))
+        return tokens.joinToString(separator = " ") { tok ->
+            regex.matchEntire(tok)?.groupValues?.let { groups ->
+                val value = getVar(groups[2])
+                "${groups[1]}$value${groups[3]}"
+            } ?: tok
+        }
+    }
+
     fun putContextConnection(pcon: Connection?) {
         putAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
         pcon?.also {

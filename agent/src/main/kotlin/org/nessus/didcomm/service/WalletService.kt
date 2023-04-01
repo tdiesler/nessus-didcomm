@@ -107,11 +107,12 @@ object WalletService: ObjectService<WalletService>() {
         return did
     }
 
-    /**
-     * Get the (optional) public Did for the given wallet
-     */
     fun getPublicDid(wallet: Wallet): Did? {
-        return wallet.walletPlugin.publicDid(wallet)
+        return wallet.walletPlugin.getPublicDid(wallet)
+    }
+
+    fun setPublicDid(wallet: Wallet, did: Did?) {
+        wallet.walletPlugin.setPublicDid(wallet, did)
     }
 
     fun removeConnections(wallet: Wallet) {
@@ -201,7 +202,8 @@ interface WalletPlugin {
 
     fun createDid(wallet: Wallet, method: DidMethod?, keyAlias: String? = null, options: DidOptions? = null): Did
 
-    fun publicDid(wallet: Wallet): Did?
+    fun getPublicDid(wallet: Wallet): Did?
+    fun setPublicDid(wallet: Wallet, did: Did?)
 
     fun removeConnections(wallet: Wallet)
 }

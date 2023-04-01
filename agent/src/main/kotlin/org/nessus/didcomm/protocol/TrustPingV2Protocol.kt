@@ -169,7 +169,10 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             didService.importDidDoc(senderDidDoc)
 
             // Rotate the inviter Did
-            val inviterDid = receiver.createDid(invitationDid.method)
+            val inviterDid = when(invitationDid) {
+                receiver.publicDid -> invitationDid
+                else -> receiver.createDid(invitationDid.method)
+            }
             val inviterEndpointUrl = receiver.endpointUrl
 
             pcon.myDid = inviterDid

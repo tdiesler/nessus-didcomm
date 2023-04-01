@@ -8,7 +8,6 @@ import org.nessus.didcomm.util.encodeJson
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters
-import picocli.CommandLine.ScopeType
 
 @Command(
     name = "did",
@@ -17,11 +16,11 @@ import picocli.CommandLine.ScopeType
 )
 class DidCommands: AbstractBaseCommand() {
 
-    @Option(names = ["--wallet"], scope = ScopeType.INHERIT, paramLabel = "wallet", description = ["Optional wallet alias"])
-    var walletAlias: String? = null
-
     @Command(name = "list", description = ["List available Dids"], mixinStandardHelpOptions = true)
     fun listDids(
+        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        walletAlias: String?,
+
         @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
         verbose: Boolean
     ) {
@@ -34,13 +33,16 @@ class DidCommands: AbstractBaseCommand() {
 
     @Command(name = "show", description = ["Show Did details"], mixinStandardHelpOptions = true)
     fun showDid(
+        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        walletAlias: String?,
+
         @Parameters(description = ["The did alias"])
-        alias: String,
+        didAlias: String,
 
         @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
         verbose: Boolean
     ) {
-        findWalletAndDidFromAlias(alias, walletAlias).second?.also { did ->
+        findWalletAndDidFromAlias(walletAlias, didAlias).second?.also { did ->
             if (verbose) echoDidDoc(did)
             else echo(did.encodeJson(true))
         }
@@ -48,6 +50,9 @@ class DidCommands: AbstractBaseCommand() {
 
     @Command(name = "create", description = ["Create a Did for the given wallet"], mixinStandardHelpOptions = true)
     fun createDid(
+        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        walletAlias: String?,
+
         @Option(names = ["-m", "--method"], description = ["The Did method with url parameters (e.g. peer?numalgo=2)"], defaultValue = "key")
         method: String,
 
@@ -85,6 +90,17 @@ class DidCommands: AbstractBaseCommand() {
         cliService.putContextDid(ctxWallet.name, did)
         if (verbose)
             echoDidDoc(did)
+    }
+
+    @Command(name = "set-public", description = ["Set the public Did"], mixinStandardHelpOptions = true)
+    fun setPublic(
+        @Parameters(description = ["The did alias"])
+        didAlias: String,
+    ) {
+        val (wallet, publicDid) = findWalletAndDidFromAlias(didAlias = didAlias)
+        checkNotNull(publicDid) { "CAnnot find Did for: $didAlias" }
+        checkNotNull(wallet) { "No target wallet" }
+        wallet.publicDid = publicDid
     }
 
     @Command(name = "remove", description = ["Remove a Did from the given wallet (tbd)"], mixinStandardHelpOptions = true)

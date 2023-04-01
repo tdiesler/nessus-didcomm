@@ -72,8 +72,12 @@ class NessusWalletPlugin: WalletPlugin {
         return didService.createDid(method ?: DidMethod.KEY, keyAlias, options)
     }
 
-    override fun publicDid(wallet: Wallet): Did? {
-        return null
+    override fun getPublicDid(wallet: Wallet): Did? {
+        return wallet.internalPublicDid
+    }
+
+    override fun setPublicDid(wallet: Wallet, did: Did?) {
+        wallet.internalPublicDid = did
     }
 
     override fun removeConnections(wallet: Wallet) {

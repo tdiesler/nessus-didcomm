@@ -90,8 +90,8 @@ class IssueCredentialV3ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
 
             .withProtocol(ISSUE_CREDENTIAL_PROTOCOL_V3)
             .sendCredentialProposal(
-                holder = alice,
                 issuerDid = issuerDid!!,
+                holder = alice,
                 template = "UniversityTranscript",
                 subjectData = """
                 {
@@ -118,9 +118,10 @@ class IssueCredentialV3ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
         pcon.myLabel shouldBe alice.name
         pcon.myDid shouldBe holderDid
 
-        val vc = alice.findVerifiableCredentialByType("UniversityTranscript", pcon.myDid.uri)
+        val vc = alice.findVerifiableCredentialByType("UniversityTranscript")
+            .first { "${it.credentialSubject.id}" == pcon.myDid.uri }
 
-        val subject = vc?.credentialSubject
+        val subject = vc.credentialSubject
         val claims = subject?.claims as Map<*, *>
         subject.id.toString() shouldBe holderDid?.uri
         claims["givenName"] shouldBe "Alice"
@@ -182,7 +183,8 @@ class IssueCredentialV3ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
         val pcon = mex.getConnection()
         pcon.theirDid shouldBe holderDid
 
-        val vc = alice.findVerifiableCredentialByType("UniversityTranscript", pcon.theirDid.uri)
+        val vc = alice.findVerifiableCredentialByType("UniversityTranscript")
+            .firstOrNull { "${it.credentialSubject.id}" == holderDid!!.uri }
 
         val subject = vc?.credentialSubject
         val claims = subject?.claims as Map<*, *>

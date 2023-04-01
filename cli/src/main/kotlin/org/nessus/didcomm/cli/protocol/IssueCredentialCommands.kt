@@ -29,10 +29,10 @@ import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.W3CVerifiableCredentialValidator.validateCredential
 import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
+import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
 import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
-import org.nessus.didcomm.util.trimJson
 import org.nessus.didcomm.util.unionMap
 import picocli.CommandLine
 import picocli.CommandLine.Command
@@ -44,12 +44,12 @@ import kotlin.io.path.writeText
 
 @Command(
     name = "vc",
-    description = ["Verifiable credential commands"],
+    description = ["Verifiable Credential commands"],
     mixinStandardHelpOptions = true,
     subcommands = [
-        ProposeVerifiableCredential::class,
-        IssueVerifiableCredential::class,
-        PresentVerifiableCredential::class,
+        ProposeCredential::class,
+        IssueCredential::class,
+        PresentCredential::class,
         VerifyCredentialCommand::class,
         PolicyCommands::class,
         TemplateCommands::class,
@@ -71,7 +71,7 @@ class VerifiableCredentialCommands: AbstractBaseCommand() {
     ) {
         val sortedVcps = sortedCredentialsAndPresentations(walletAlias, vcOpt, vpOpt)
         sortedVcps.forEachIndexed { idx, vcp ->
-            echo("[$idx] - ${vcp.types} ${vcp.id}")
+            echo("[$idx] - ${vcp.shortString()}")
         }
     }
 
@@ -113,7 +113,7 @@ class VerifiableCredentialCommands: AbstractBaseCommand() {
     name = "propose",
     description = ["Propose a verifiable credential"],
     mixinStandardHelpOptions = true)
-class ProposeVerifiableCredential: AbstractBaseCommand() {
+class ProposeCredential: AbstractBaseCommand() {
 
     @Option(names = ["-i", "--issuer"], paramLabel = "Did", description = ["DID of the issuer"])
     var issuerAlias: String? = null
@@ -137,8 +137,8 @@ class ProposeVerifiableCredential: AbstractBaseCommand() {
         checkNotNull(template) { "No template" }
         checkNotNull(inputData) { "No input data" }
 
-        val (_, issuerDid) = findWalletAndDidFromAlias(issuerAlias!!)
-        val (subject, subjectDid) = findWalletAndDidFromAlias(subjectAlias!!)
+        val (_, issuerDid) = findWalletAndDidFromAlias(null, issuerAlias!!)
+        val (subject, subjectDid) = findWalletAndDidFromAlias(null, subjectAlias!!)
         checkNotNull(issuerDid) { "Cannot find issuer Did: $issuerAlias" }
         checkNotNull(subjectDid) { "Cannot find subject Did: $subjectAlias" }
         checkNotNull(subject) { "Cannot find subject wallet" }
@@ -152,20 +152,19 @@ class ProposeVerifiableCredential: AbstractBaseCommand() {
             .withAttachment(MessageExchange.CONNECTION_ATTACHMENT_KEY, pcon!!)
             .withProtocol(ISSUE_CREDENTIAL_PROTOCOL_V3)
             .sendCredentialProposal(
-                holder = subject,
                 issuerDid = issuerDid,
+                holder = subject,
                 template = template!!,
                 subjectData = inputData!!.decodeJson(),
-                options = """
-                {
+                options = """{ 
                     "goal_code": "Issue $template Credential"
-                }
-                """.decodeJson()
+                }""".decodeJson()
             )
             .awaitCredentialOffer(subject, issuerDid)
             .awaitIssuedCredential(subject, issuerDid)
 
-        val signedVc = subject.findVerifiableCredentialByType(template!!, subjectDid.uri)
+        val signedVc = subject.findVerifiableCredentialByType(template!!)
+            .firstOrNull { "${it.credentialSubject.id}" == subjectDid.uri }
         checkNotNull(signedVc) { "No credential was issued" }
 
         echo("Holder '${subject.name}' received a '$template' credential")
@@ -191,7 +190,7 @@ class ProposeVerifiableCredential: AbstractBaseCommand() {
     name = "issue",
     description = ["Issue a verifiable credential"],
     mixinStandardHelpOptions = true)
-class IssueVerifiableCredential: AbstractBaseCommand() {
+class IssueCredential: AbstractBaseCommand() {
 
     @Option(names = ["-i", "--issuer"], required = true, paramLabel = "Did", description = ["DID of the issuer"])
     var issuerAlias: String? = null
@@ -225,9 +224,9 @@ class IssueVerifiableCredential: AbstractBaseCommand() {
         if (holderAlias == null)
             holderAlias = subjectAlias
 
-        val (issuer, issuerDid) = findWalletAndDidFromAlias(issuerAlias!!)
-        val (subject, subjectDid) = findWalletAndDidFromAlias(subjectAlias!!)
-        val (holder, holderDid) = findWalletAndDidFromAlias(holderAlias!!)
+        val (issuer, issuerDid) = findWalletAndDidFromAlias(null, issuerAlias!!)
+        val (subject, subjectDid) = findWalletAndDidFromAlias(null, subjectAlias!!)
+        val (holder, holderDid) = findWalletAndDidFromAlias(null, holderAlias!!)
 
         checkNotNull(issuer) { "Cannot find issuer wallet" }
         checkNotNull(subject) { "Cannot find subject wallet" }
@@ -299,7 +298,7 @@ class IssueVerifiableCredential: AbstractBaseCommand() {
     name = "present",
     description = ["Present a verifiable credential"],
     mixinStandardHelpOptions = true)
-class PresentVerifiableCredential: AbstractBaseCommand() {
+class PresentCredential: AbstractBaseCommand() {
 
     @Option(names = ["-h", "--holder"], required = true, paramLabel = "Did", description = ["DID of the holder (owner of the VC)"])
     var holderAlias: String? = null
@@ -324,35 +323,59 @@ class PresentVerifiableCredential: AbstractBaseCommand() {
 
     override fun call(): Int {
 
-        val (holder, holderDid) = findWalletAndDidFromAlias(holderAlias!!)
-        val (verifier, verifierDid) = findWalletAndDidFromAlias(verifierAlias!!)
-
-        checkNotNull(holder) { "Cannot find holder wallet" }
-        checkNotNull(holderDid) { "Cannot find holder Did: $holderAlias" }
-
-        checkNotNull(verifier) { "Cannot find verifier wallet" }
+        val (verifier, verifierDid) = findWalletAndDidFromAlias(null, verifierAlias!!)
+        val (prover, proverDid) = findWalletAndDidFromAlias(null, holderAlias!!)
         checkNotNull(verifierDid) { "Cannot find verifier Did: $verifierAlias" }
+        checkNotNull(proverDid) { "Cannot find prover Did: $holderAlias" }
+        checkNotNull(prover) { "Cannot find prover wallet" }
 
         val vcs = vcAliases.map {
-            val vc = getVcpFromAlias(holder, it)
+            val vc = getVcpFromAlias(prover, it)
             checkNotNull(vc) { "Cannot find vc in holder wallet: $it" }
         }
 
-        val vpJson = custodian.createPresentation(
-            vcs = vcs.map { it.encodeJson() },
-            holderDid = holderDid.uri,
-            verifierDid = verifierDid.uri,
-            challenge= challenge,
-            domain = domain).trimJson()
+        val pcon = prover.findConnection { c -> c.myDid == proverDid && c.theirDid == verifierDid }
 
-        val vp = W3CVerifiableCredential.fromJson(vpJson)
-        verifier.addVerifiableCredential(vp)
+        // Do the verification through the Present Proof Protocol
+        if (pcon != null) {
+
+            check(pcon.state == ConnectionState.ACTIVE) { "Unexpected connection state: ${pcon.shortString()}" }
+            MessageExchange()
+                .withConnection(pcon)
+                .withProtocol(PRESENT_PROOF_PROTOCOL_V3)
+                .sendPresentationProposal(
+                    verifierDid = verifierDid,
+                    prover = prover,
+                    vcs = vcs,
+                    domain = domain,
+                    challenge = challenge,
+                    expirationDate = null)
+                .awaitPresentationRequest(prover, verifierDid)
+                .awaitPresentationAck(prover, verifierDid)
+                .getMessageExchange()
+        }
+
+        // Create the Verifiable Presentation without the Present Proof Protocol
+        else {
+            checkNotNull(verifier) { "No verifier wallet" }
+            val vp = custodian.createPresentation(
+                vcs = vcs.toTypedArray(),
+                holderDid = proverDid.uri,
+                verifierDid = verifierDid.uri,
+                domain = domain,
+                challenge = challenge,
+                expirationDate = null)
+            prover.addVerifiableCredential(vp)
+        }
 
         val templates = vcs.map { it.types.last() }
-        echo("Holder '${holder.name}' presents $templates to verifier '${verifier.name}'")
+        val verifierName = verifier?.name ?: pcon?.theirLabel
+        echo("Prover '${prover.name}' presents $templates to verifier '${verifierName}'")
 
-        val varKey = "${verifier.name}.${holder.name}.${templates.joinToString(separator = "")}.Vp"
-        cliService.putVar("$varKey.json", vpJson)
+        val vp = prover.verifiableCredentials.last { it.isVerifiablePresentation }
+
+        val varKey = "${verifierName}.${prover.name}.${templates.joinToString(separator = "")}.Vp"
+        cliService.putVar("$varKey.json", vp.encodeJson())
         cliService.putVar(varKey, "${vp.id}")
         echo("$varKey=${vp.id}")
 

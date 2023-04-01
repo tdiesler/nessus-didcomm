@@ -15,8 +15,8 @@
   "issuanceDate": "2021-08-31T00:00:00Z",
   "expires": "2021-10-31T00:00:00Z",
   "credentialSubject": {
-    "id": "did:example:8vFBbPrhBUyG6DEzVncBZpzBNsmRrbfsQKXQKPLskBCu",
-    "guardian": "did:example:BcRisGnqV4QPb6bRmDCqEjyuubBarS1Y1nhDwxBMTXY4",
+    "id": "did:example:BcRisGnqV4QPb6bRmDCqEjyuubBarS1Y1nhDwxBMTXY4",
+    "minor": "did:example:8vFBbPrhBUyG6DEzVncBZpzBNsmRrbfsQKXQKPLskBCu",
     "location": {
       "type": "Country",
       "address": {

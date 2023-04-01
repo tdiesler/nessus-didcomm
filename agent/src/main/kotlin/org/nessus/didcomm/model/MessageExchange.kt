@@ -29,7 +29,7 @@ import org.nessus.didcomm.service.ProtocolKey
 import org.nessus.didcomm.service.ProtocolService
 import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.AttachmentSupport
-import java.util.*
+import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 
@@ -212,6 +212,11 @@ class MessageExchange(): AttachmentSupport() {
     fun <T: Any> withAttachment(key: AttachmentKey<T>, value: T): MessageExchange {
         putAttachment(key, value)
         return this
+    }
+
+    fun withConnection(pcon: Connection): MessageExchange {
+        return findByVerkey(pcon.myDid.verkey)
+            ?: MessageExchange().withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
     }
 
     fun showMessages(name: String) {

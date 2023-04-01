@@ -28,7 +28,7 @@ import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.REPORT_PROBLEM_PROTOCOL_V2
 
 /**
- * Nessus DIDComm: Report Problem 2.0
+ * Report Problem 2.0
  * https://identity.foundation/didcomm-messaging/spec/#problem-reports
  */
 class ReportProblemProtocolV2(mex: MessageExchange): Protocol<ReportProblemProtocolV2>(mex) {

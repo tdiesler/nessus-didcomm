@@ -33,7 +33,7 @@ class BasicMessageV2CmdTest: AbstractCLITest() {
 
         try {
 
-            cliService.execute("protocol invitation connect acme alice").isSuccess shouldBe true
+            cliService.execute("protocol invitation connect --inviter=acme").isSuccess shouldBe true
 
             cliService.execute("protocol basic-message send 'Your hovercraft is full of eels'").isSuccess shouldBe true
             cliService.execute("protocol basic-message send 'Your hovercraft is full of eels' --sign").isSuccess shouldBe true

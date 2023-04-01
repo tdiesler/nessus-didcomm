@@ -3,8 +3,8 @@ package org.nessus.didcomm.service
 import id.walt.services.vc.JsonLdCredentialService
 import id.walt.services.vc.JwtCredentialService
 import mu.KotlinLogging
-import org.nessus.didcomm.util.trimJson
 import org.nessus.didcomm.model.W3CVerifiableCredential
+import org.nessus.didcomm.util.trimJson
 import java.time.Instant
 
 object NessusCustodianService: ObjectService<NessusCustodianService>() {
@@ -22,7 +22,7 @@ object NessusCustodianService: ObjectService<NessusCustodianService>() {
         domain: String? = null,
         challenge: String? = null,
         expirationDate: Instant? = null
-    ): String {
+    ): W3CVerifiableCredential {
         return createPresentation(vcs.map { it.encodeJson() }, holderDid, verifierDid, domain, challenge, expirationDate)
     }
 
@@ -33,7 +33,7 @@ object NessusCustodianService: ObjectService<NessusCustodianService>() {
         domain: String? = null,
         challenge: String? = null,
         expirationDate: Instant? = null
-    ): String {
+    ): W3CVerifiableCredential {
 
         val vpJson = when {
             vcs.stream().allMatch { W3CVerifiableCredential.isJWT(it) } -> jwtCredentialService.present(
@@ -55,6 +55,6 @@ object NessusCustodianService: ObjectService<NessusCustodianService>() {
             else -> throw IllegalStateException("All verifiable credentials must be of the same proof type.")
         }
 
-        return vpJson.trimJson()
+        return W3CVerifiableCredential.fromJson(vpJson.trimJson())
     }
 }

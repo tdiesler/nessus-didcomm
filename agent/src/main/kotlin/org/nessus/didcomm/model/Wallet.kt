@@ -100,12 +100,12 @@ abstract class Wallet(
             field = pcon
         }
 
-    private val redactedOptions get() = options.mapValues { (k, v) ->
-        when(k) {
-            "authToken" -> v.substring(0, 6) + "..." + v.substring(v.length - 6)
-            else -> v
-        }
-    }
+    @Transient
+    internal var internalPublicDid: Did? = null
+
+    var publicDid: Did?
+        get() = walletService.getPublicDid(this)
+        set(did) = walletService.setPublicDid(this, did)
 
     fun createDid(method: DidMethod? = null, keyAlias: String? = null, options: DidOptions? = null): Did {
         return walletService.createDid(this, method, keyAlias, options)
@@ -122,10 +122,6 @@ abstract class Wallet(
         return dids.firstOrNull{ it.verkey == verkey }
     }
 
-    fun getPublicDid(): Did? {
-        return walletService.getPublicDid(this)
-    }
-
     fun hasDid(verkey: String): Boolean {
         return getDid(verkey) != null
     }
@@ -134,14 +130,16 @@ abstract class Wallet(
         return dids.firstOrNull(predicate)
     }
 
-    fun findDidsByAlias(alias: String?): List<Did> {
-        alias?.toIntOrNull()?.also {
+    fun findDidByAlias(alias: String?): Did? {
+        if (alias == null)
+            return null
+        alias.toIntOrNull()?.also {
             val idx = alias.toInt()
-            return listOf(dids[idx])
+            return dids[idx]
         }
-        return dids.filter {
+        return dids.firstOrNull {
             val candidates = listOf(it.id, it.uri, it.verkey).map { c -> c.lowercase() }
-            candidates.any { c -> alias == null || c.startsWith(alias.lowercase()) }
+            candidates.any { c -> c.startsWith(alias.lowercase()) }
         }
     }
 
@@ -202,10 +200,16 @@ abstract class Wallet(
         return verifiableCredentialsInternal.firstOrNull(predicate)
     }
 
-    fun findVerifiableCredentialByType(type: String, subjectId: String? = null): W3CVerifiableCredential? {
-        return verifiableCredentialsInternal.firstOrNull {
-            vc -> vc.hasType(type) && subjectId?.equals("${vc.credentialSubject.id}") ?: true
-        }
+    fun findVerifiableCredentialByType(type: String): List<W3CVerifiableCredential> {
+        return verifiableCredentialsInternal
+            .filter { it.isVerifiableCredential }
+            .filter { it.hasType(type) }
+    }
+
+    fun findVerifiablePresentationByType(type: String): List<W3CVerifiableCredential> {
+        return verifiableCredentialsInternal
+            .filter { it.isVerifiablePresentation }
+            .filter { it.hasType(type) }
     }
 
     fun encodeJson(pretty: Boolean = false, redacted: Boolean = true): String {
@@ -230,6 +234,13 @@ abstract class Wallet(
         return "Wallet(id='$id', agent=$agentType, type=$storageType, alias=$name, endpointUrl=$endpointUrl, options=$redactedOptions)"
     }
 
+    private val redactedOptions get() = options.mapValues { (k, v) ->
+        when(k) {
+            "authToken" -> v.substring(0, 6) + "..." + v.substring(v.length - 6)
+            else -> v
+        }
+    }
+
     data class WalletConfig(
         val name: String,
         val agentType: AgentType?,
@@ -242,7 +253,7 @@ abstract class Wallet(
         val mayExist: Boolean,
     )
 
-    data class Builder (var walletName: String) {
+    data class Builder (var name: String) {
         var agentType: AgentType? = AgentType.NESSUS
         var storageType: StorageType? = null
         var options: MutableMap<String, String> = mutableMapOf()
@@ -271,7 +282,7 @@ abstract class Wallet(
             val walletService = WalletService.getService()
             return walletService.createWallet(
                 WalletConfig(
-                    walletName,
+                    name,
                     agentType,
                     storageType,
                     walletKey,
