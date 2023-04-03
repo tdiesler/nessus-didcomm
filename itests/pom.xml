@@ -42,12 +42,9 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.nimbusds</groupId>
-            <artifactId>nimbus-jose-jwt</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.camel</groupId>
-            <artifactId>camel-core</artifactId>
+            <groupId>org.nessus.didcomm</groupId>
+            <artifactId>nessus-didcomm-cli</artifactId>
+            <version>${project.version}</version>
         </dependency>
 
         <!-- Test -->
@@ -65,6 +62,23 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <configuration>
+                    <failOnWarning>true</failOnWarning>
+                    <ignoredUsedUndeclaredDependencies>
+                        <ignore>*</ignore>
+                    </ignoredUsedUndeclaredDependencies>
+                    <ignoredUnusedDeclaredDependencies>
+                        <ignore>ch.qos.logback:logback-classic</ignore>
+                        <ignore>io.kotest:kotest-runner-junit5-jvm</ignore>
+                    </ignoredUnusedDeclaredDependencies>
+                    <ignoredNonTestScopedDependencies>
+                        <ignore>*</ignore>
+                    </ignoredNonTestScopedDependencies>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

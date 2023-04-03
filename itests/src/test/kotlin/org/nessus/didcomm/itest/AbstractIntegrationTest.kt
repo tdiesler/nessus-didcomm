@@ -20,13 +20,11 @@
 package org.nessus.didcomm.itest
 
 import io.kotest.core.spec.style.AnnotationSpec
+import org.nessus.didcomm.cli.CLIService
 import org.nessus.didcomm.model.NessusWalletPlugin
-import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.EndpointService
-import org.nessus.didcomm.service.MessageDispatchService
 import org.nessus.didcomm.service.MessageDispatcher
 import org.nessus.didcomm.service.ServiceMatrixLoader
-import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.Holder
 import org.nessus.didcomm.util.encodeHex
 
@@ -77,15 +75,10 @@ abstract class AbstractIntegrationTest: AnnotationSpec() {
         ServiceMatrixLoader.loadServiceDefinitions(matrixProperties)
     }
 
-    val dispatchService get() = MessageDispatchService.getService()
+    val cliService get() = CLIService.getService()
     val endpointService get() = EndpointService.getService()
-    val walletService get() = WalletService.getService()
 
     private val endpointHandleHolder = Holder<AutoCloseable>()
-
-    fun getWalletByAlias(name: String): Wallet? {
-        return walletService.findWallet(name)
-    }
 
     fun startNessusEndpoint(options: Map<String, Any>, listener: MessageDispatcher? = null): AutoCloseable {
         val endpointUrl = NessusWalletPlugin.getEndpointUrl(options)
@@ -97,9 +90,5 @@ abstract class AbstractIntegrationTest: AnnotationSpec() {
     fun <T: AutoCloseable> stopNessusEndpoint(handle: T? = null) {
         val effHandle = handle ?: endpointHandleHolder.value
         endpointService.stopEndpoint(effHandle!!)
-    }
-
-    fun removeWallet(wallet: Wallet) {
-        walletService.removeWallet(wallet.id)
     }
 }
