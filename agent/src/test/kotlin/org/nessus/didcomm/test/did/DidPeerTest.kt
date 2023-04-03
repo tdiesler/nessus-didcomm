@@ -19,8 +19,11 @@
  */
 package org.nessus.didcomm.test.did
 
+import id.walt.common.resolveContent
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import mu.KotlinLogging
+import org.didcommx.didcomm.message.Message
 import org.didcommx.peerdid.VerificationMaterialAgreement
 import org.didcommx.peerdid.VerificationMaterialAuthentication
 import org.didcommx.peerdid.VerificationMaterialFormatPeerDID
@@ -31,6 +34,7 @@ import org.didcommx.peerdid.isPeerDID
 import org.didcommx.peerdid.resolvePeerDID
 import org.nessus.didcomm.model.SicpaDidDoc
 import org.nessus.didcomm.test.AbstractAgentTest
+import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.trimJson
 
 class DidPeerTest: AbstractAgentTest() {
@@ -72,5 +76,26 @@ class DidPeerTest: AbstractAgentTest() {
 
         val didDoc = SicpaDidDoc.fromJson(diddocJson)
         didDoc.didCommServices[0].serviceEndpoint shouldBe "https://example.com/endpoint"
+    }
+
+    @Test
+    fun decodeRootsPing() {
+
+        val msgJson =resolveContent("class:message/ping_01.json").decodeJson()
+        val msg = Message.parse(msgJson)
+
+        val from = msg.from
+        val to = msg.to?.firstOrNull()
+        from shouldNotBe null
+        to shouldNotBe null
+
+        val fromDidDoc = didService.resolveDidDoc(from!!)
+        log.info { "From DidDoc: ${fromDidDoc?.encodeJson(true)}" }
+
+        val toDidDoc = didService.resolveDidDoc(to!!)
+        log.info { "To DidDoc: ${toDidDoc?.encodeJson(true)}" }
+
+        fromDidDoc shouldNotBe null
+        toDidDoc shouldNotBe null
     }
 }

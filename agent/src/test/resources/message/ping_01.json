@@ -1,0 +1,12 @@
+{
+  "id": "3c3ee322-9fbc-40a2-b953-79bd588210ef",
+  "type": "https://didcomm.org/trust-ping/2.0/ping",
+  "typ": "application/didcomm-plain+json",
+  "from": "did:peer:2.Ez6LSggYU1vrJnZi8LoN468HeMy3fM792z13kXGJGnd6aX94E.Vz6MknJx1EzdEASe7AUXa3EZpUHfmRRoFjgT6xc1nMBu1Rzgz",
+  "to": [
+    "did:peer:2.Ez6LScsZZg2TKwMvExr9CjQiSX6oGMJ7VArkUdHvhycuus9uv.Vz6MkipiuLZk6CkGhiiz7LnYeQTAPjta2wyrFFoDfiUM3SuJb.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovL25lc3N1cy10ZWNoLmlvOjkxMDAifQ"
+  ],
+  "body": {
+    "response_requested": true
+  }
+}
