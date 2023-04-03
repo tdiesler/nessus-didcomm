@@ -79,7 +79,7 @@ class DidCommands: AbstractBaseCommand() {
         val didMethod = DidMethod.fromValue(methodName)
         val didOptions = when (didMethod) {
             DidMethod.PEER -> {
-                val numalgo = didParams["numalgo"]?.toInt() ?: 0
+                val numalgo = didParams["numalgo"]?.toInt() ?: 2
                 val endpointUrl = didParams["url"] ?: ctxWallet.endpointUrl
                 DidPeerOptions(numalgo, endpointUrl)
             }
@@ -88,6 +88,9 @@ class DidCommands: AbstractBaseCommand() {
 
         val did = ctxWallet.createDid(didMethod, options = didOptions)
         cliService.putContextDid(ctxWallet.name, did)
+
+        echo(did.uri)
+
         if (verbose)
             echoDidDoc(did)
     }

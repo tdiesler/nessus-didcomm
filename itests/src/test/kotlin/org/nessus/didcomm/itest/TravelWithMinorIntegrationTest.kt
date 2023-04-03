@@ -24,14 +24,14 @@ import io.kotest.core.annotation.EnabledIf
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
 import org.nessus.didcomm.itest.AbstractIntegrationTest
-import org.nessus.didcomm.util.NessusIsLiveCondition
+import org.nessus.didcomm.util.NessusPlaygroundReachable
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Use Case: International Travel with Minor
  * https://www.w3.org/TR/vc-use-cases/#international-travel-with-minor-and-upgrade
  */
-@EnabledIf(NessusIsLiveCondition::class)
+@EnabledIf(NessusPlaygroundReachable::class)
 class TravelWithMinorIntegrationTest<T: AutoCloseable> : AbstractIntegrationTest() {
     private val log = KotlinLogging.logger { }
 

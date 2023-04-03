@@ -21,7 +21,7 @@ Demonstrate the use of [plain][dcv2-plain-msg], [signed][dcv2-signed-msg] and [e
 {
     "id":"13fa75fb-c6cf-4a8b-a549-2207cd31ddcb",
     "typ":"application/didcomm-plain+json",
-    "type":"https://didcomm.org/basicmessage/2.0-preview/message",
+    "type":"https://didcomm.org/basicmessage/2.0/message",
     "from":"did:key:z6MkorRGtXqsPnD3bwqT6wGbNJDCEeD9zY1DfbnEPkkzFLDz",
     "to":[
         "did:key:z6MksVz8urciusNUhE8SS2BxT3S6fUHJVwbcja6fMb9qBNZX"

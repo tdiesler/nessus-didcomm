@@ -73,4 +73,5 @@ class OutOfBandV2CmdTest: AbstractCLITest() {
             cliService.execute("wallet remove Faber").isSuccess shouldBe true
         }
     }
+
 }

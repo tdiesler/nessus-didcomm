@@ -30,9 +30,9 @@ import org.nessus.didcomm.protocol.TrustPingProtocolV2
 import org.nessus.didcomm.util.AttachmentKey
 import kotlin.reflect.KClass
 
-val TRUST_PING_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/trust_ping/2.0-preview", TrustPingProtocolV2::class)
-val BASIC_MESSAGE_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/basicmessage/2.0-preview", BasicMessageProtocolV2::class)
-val OUT_OF_BAND_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/out-of-band/2.0-preview", OutOfBandV2Protocol::class)
+val TRUST_PING_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/trust-ping/2.0", TrustPingProtocolV2::class)
+val BASIC_MESSAGE_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/basicmessage/2.0", BasicMessageProtocolV2::class)
+val OUT_OF_BAND_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/out-of-band/2.0", OutOfBandV2Protocol::class)
 val ISSUE_CREDENTIAL_PROTOCOL_V3 = ProtocolKey("https://didcomm.org/issue-credential/3.0", IssueCredentialV3Protocol::class)
 val PRESENT_PROOF_PROTOCOL_V3 = ProtocolKey("https://didcomm.org/present_proof/3.0", PresentProofV3Protocol::class)
 val REPORT_PROBLEM_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/report-problem/2.0", ReportProblemProtocolV2::class)

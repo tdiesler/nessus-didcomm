@@ -30,7 +30,7 @@ The first Trust Ping Response, will use `fromPrior` to maintain trust integrity.
 {
   "id":"a1f1a14e-5b50-40fa-a1b2-05fef7a096ce",
   "typ":"application/didcomm-plain+json",
-  "type":"https://didcomm.org/out-of-band/2.0-preview/invitation",
+  "type":"https://didcomm.org/out-of-band/2.0/invitation",
   "from":"did:key:z6MksUtmw8WmEVzL7xiQF7PuMu4mC2cavyU9jbQ4VoBSA6EN",
   "body":{
     "accept":[

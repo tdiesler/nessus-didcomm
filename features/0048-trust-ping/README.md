@@ -23,7 +23,7 @@ Note, the first Trust Ping may contain a Did Document attachment for the Invitee
 {
   "id": "fb05b5e9-7ea7-4f3c-9f14-5477fde333c0",
   "typ": "application/didcomm-plain+json",
-  "type": "https://didcomm.org/trust_ping/2.0-preview/ping",
+  "type": "https://didcomm.org/trust-ping/2.0/ping",
   "from": "did:key:z6Mkp8u4BGkJLBQXKcCESCcGPzuASc5GA4bLYQzt5YYHdF4D",
   "to": [
     "did:key:z6MkmwFcA1vt4BtHv4rDyhRSCG5T3HxsLXAxLNKGY9NjnNME"
@@ -45,7 +45,7 @@ Note, a Trust Ping Response may use `fromPrior` to communicate a change of recip
 {
   "id": "a08ec5d2-2f75-4190-8239-5a87b0fbe860",
   "typ": "application/didcomm-plain+json",
-  "type": "https://didcomm.org/trust_ping/2.0-preview/ping_response",
+  "type": "https://didcomm.org/trust-ping/2.0/ping-response",
   "from": "did:key:z6MkmwFcA1vt4BtHv4rDyhRSCG5T3HxsLXAxLNKGY9NjnNME",
   "to": [
     "did:key:z6Mkp8u4BGkJLBQXKcCESCcGPzuASc5GA4bLYQzt5YYHdF4D"

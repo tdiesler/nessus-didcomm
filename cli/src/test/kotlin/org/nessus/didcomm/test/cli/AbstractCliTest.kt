@@ -27,6 +27,7 @@ import org.nessus.didcomm.cli.NessusCli
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.PropertiesService
 import org.nessus.didcomm.service.ServiceMatrixLoader
+import org.nessus.didcomm.util.NessusPlaygroundReachable
 import picocli.CommandLine
 import picocli.CommandLine.IExecutionExceptionHandler
 import java.io.OutputStream
@@ -49,6 +50,8 @@ abstract class AbstractCLITest: AnnotationSpec() {
 
     val cliService get() = CLIService.getService()
     val modelService get() = ModelService.getService()
+
+    fun isPlaygroundRunning() = NessusPlaygroundReachable().enabled(RunScriptTest::class)
 
     fun safeExecutionCommandLine(): CommandLine {
         val cmdln = NessusCli.defaultCommandLine

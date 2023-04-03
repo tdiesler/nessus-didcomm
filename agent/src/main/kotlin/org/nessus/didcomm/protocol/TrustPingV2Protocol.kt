@@ -55,7 +55,7 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
 
     companion object {
         val TRUST_PING_MESSAGE_TYPE_PING_V2 = "${TRUST_PING_PROTOCOL_V2.uri}/ping"
-        val TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2 = "${TRUST_PING_PROTOCOL_V2.uri}/ping_response"
+        val TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2 = "${TRUST_PING_PROTOCOL_V2.uri}/ping-response"
     }
 
     override val supportedAgentTypes
@@ -95,6 +95,9 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
         val maybeDidPeer = DidPeer.fromUri(senderDid.uri)
 
         if (pcon.state == ConnectionState.INVITATION) {
+            mex.getInvitation()?.also { invitation ->
+                trustPingBuilder.thid(invitation.id)
+            }
             if (maybeDidPeer?.numalgo != 2) {
                 val senderDidDoc = didService.loadDidDoc(senderDid.uri)
                 val senderDidDocAttachment = senderDidDoc.toAttachment()
@@ -183,6 +186,8 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             pcon.theirEndpointUrl = senderDidDoc.serviceEndpoint
             pcon.state = ConnectionState.ACTIVE
             receiver.currentConnection = pcon
+
+            log.info { "Connection ${pcon.state}: ${pcon.encodeJson(true)}"}
         }
 
         val receiverDid = pcon.myDid

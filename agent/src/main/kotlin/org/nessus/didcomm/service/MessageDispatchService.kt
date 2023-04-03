@@ -111,6 +111,12 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
         checkNotNull(msg.to) { "No target did" }
 
         /**
+         * Find protocol key from message type
+         */
+        val protocolKey = protocolService.getProtocolKey(msg.type)
+        checkNotNull(protocolKey) { "Unknown message type: ${msg.type}" }
+
+        /**
          * Find the recipient Wallet and MessageExchange
          */
 
@@ -145,9 +151,6 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
         /**
          * Now, we dispatch to the MessageExchange associated with the recipientVerkey
          */
-
-        val protocolKey = protocolService.getProtocolKey(msg.type)
-        checkNotNull(protocolKey) { "Unknown message type: ${msg.type}" }
 
         mex.addMessage(EndpointMessage.Builder(msg)
             .header(MESSAGE_HEADER_PROTOCOL_URI, protocolKey.name)

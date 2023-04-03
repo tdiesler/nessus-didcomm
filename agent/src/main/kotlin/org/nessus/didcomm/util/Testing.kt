@@ -26,10 +26,10 @@ import java.net.URL
 import kotlin.reflect.KClass
 
 
-class NessusIsLiveCondition : EnabledCondition {
+class NessusPlaygroundReachable : EnabledCondition {
     override fun enabled(kclass: KClass<out Spec>): Boolean {
-        // [TODO] Add a liveness/readiness endpoint to the playground
-        val url = "http://localhost:9100/message/invitation?inviter=Government&method=key"
+        val playgroundUrl = System.getenv("NESSUS_PLAYGROUND_URL") ?: "http://localhost:9100"
+        val url = "$playgroundUrl/message/invitation?inviter=Government&method=key"
         return runCatching { Invitation.fromUrl(URL(url)) }
             .onFailure { /* ignore*/ }
             .isSuccess
