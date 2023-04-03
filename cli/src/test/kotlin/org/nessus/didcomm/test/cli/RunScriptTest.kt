@@ -20,6 +20,7 @@
 package org.nessus.didcomm.test.cli
 
 import io.kotest.matchers.shouldBe
+import org.nessus.didcomm.util.NessusIsLiveCondition
 
 /**
  * Test the boostrap for the playground docker image
@@ -29,7 +30,9 @@ class RunScriptTest: AbstractCLITest() {
     @Test
     fun runTravelWithMinorScript() {
 
-        val result = cliService.execute("run file:etc/script/travel-with-minor-bootstrap.txt")
-        result.isSuccess shouldBe true
+        if (!NessusIsLiveCondition().enabled(RunScriptTest::class)) {
+            val result = cliService.execute("run file:etc/script/travel-with-minor-bootstrap.txt")
+            result.isSuccess shouldBe true
+        }
     }
 }
