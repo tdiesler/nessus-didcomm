@@ -75,7 +75,7 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
         val pcon = connection ?: mex.getAttachment(CONNECTION_ATTACHMENT_KEY)
         checkNotNull(pcon) { "No connection" }
 
-        val sender = modelService.findWalletByVerkey(pcon.myVerkey)
+        val sender = modelService.findWalletByDid(pcon.myDid.uri)
         checkNotNull(sender) { "No sender wallet" }
 
         val senderDid = pcon.myDid
@@ -104,14 +104,11 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
         }
 
         // Use the Connection's MessageExchange
-        val senderMex = MessageExchange.findByVerkey(pcon.myVerkey)
-        checkNotNull(senderMex) { "No message exchange for: ${pcon.myVerkey}" }
+        val senderMex = MessageExchange.findByConnectionId(pcon.id)
+        checkNotNull(senderMex) { "No message exchange for: ${pcon.shortString()}" }
 
         val trustPingMsg = trustPingBuilder.build().toMessage()
         senderMex.addMessage(EndpointMessage.Builder(trustPingMsg).outbound().build())
-
-        // Register the TrustPing Response future
-        senderMex.placeEndpointMessageFuture(TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
 
         log.info { "Sender (${sender.name}) creates TrustPing: ${trustPingMsg.encodeJson(true)}" }
 
@@ -127,6 +124,10 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             EndpointMessage.MESSAGE_HEADER_ID to "${trustPingMsg.id}.packed",
             EndpointMessage.MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
         )).outbound().build()
+
+        // Register the TrustPing Response future
+        senderMex.placeEndpointMessageFuture(TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
+
         log.info { "Sender (${sender.name}) sends TrustPing: ${packedEpm.prettyPrint()}" }
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)

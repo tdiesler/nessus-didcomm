@@ -22,7 +22,11 @@ did create --wallet Anand --method=key
 # Create Connections ###################################################################################################
 
 protocol invitation receive --inviter Government --invitee-did Malathi.Did --url=http://localhost:9100/message/invitation?inviter=Government&method=key
+protocol invitation receive --inviter Hospital --invitee-did Malathi.Did --url=http://localhost:9100/message/invitation?inviter=Hospital&method=key
+protocol invitation receive --inviter Airport --invitee-did Malathi.Did --url=http://localhost:9100/message/invitation?inviter=Airport&method=key
+
 protocol invitation receive --inviter Government --invitee-did Rajesh.Did --url=http://localhost:9100/message/invitation?inviter=Government&method=key
+
 protocol invitation receive --inviter Hospital --invitee-did Anand.Did --url=http://localhost:9100/message/invitation?inviter=Hospital&method=key
 
 protocol invitation connect --inviter-did Rajesh.Did --invitee-did Malathi.Did
@@ -34,8 +38,9 @@ vc propose -t Passport -i Rajesh_Government.theirDid -s Rajesh_Government.myDid 
 
 # Issue BirthCertificate ###############################################################################################
 
-vc propose -t BirthCertificate -i Hospital.Did -s Anand.Did --data
+vc propose -t BirthCertificate -i Hospital.Did -s Malathi.Did --data
     {
+       "id": "${Anand.Did}",
        "givenName": "Anand",
        "familyName": "Hamal",
        "birthDate": "2022-03-29T00:00:00Z",
@@ -95,8 +100,9 @@ vc propose -t TravelPermission -i Rajesh.Did -s Malathi.Did
 
 # Present ##############################################################################################################
 
-vc present -h Malathi.Did -y Airport.Did --vc Malathi.Passport.Vc
-
-# Check Session Variables ##############################################################################################
-
 var list
+
+vc present -h Malathi.Did -y Airport.Did --vc Malathi.Passport.Vc
+vc present -h Malathi.Did -y Airport.Did --vc Malathi.BirthCertificate.Vc
+vc present -h Malathi.Did -y Airport.Did --vc Malathi.MarriageCertificate.Vc
+vc present -h Malathi.Did -y Airport.Did --vc Malathi.TravelPermission.Vc

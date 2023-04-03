@@ -337,8 +337,12 @@ class IssueCredentialV3Protocol(mex: MessageExchange): Protocol<IssueCredentialV
             .build()
         log.info { "Issuer (${issuer.name}) sends credential: ${packedEpm.prettyPrint()}" }
 
-        val holderMex = MessageExchange.findByVerkey(holderDid.verkey)
-        holderMex?.placeEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL)
+        modelService.findWalletByDid(holderDid.uri)?.also { w ->
+            val holderConnection = w.findConnection { c -> c.myDid == holderDid && c.theirDid == issuerDid }
+            checkNotNull(holderConnection) { "No holder connection for: ${pcon.shortString()}" }
+            val holderMex = MessageExchange.findByConnectionId(holderConnection.id)
+            holderMex?.placeEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL)
+        }
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
         return this

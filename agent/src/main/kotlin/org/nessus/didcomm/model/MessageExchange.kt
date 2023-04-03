@@ -61,22 +61,11 @@ class MessageExchange(): AttachmentSupport() {
         // [TODO] MEMORY LEAK - evict outdated messages exchanges
         private val exchangeRegistry: MutableList<MessageExchange> = mutableListOf()
 
-        fun findByVerkey(recipientVerkey: String): MessageExchange? {
+        fun findByConnectionId(id: String): MessageExchange? {
             synchronized(exchangeRegistry) {
                 return exchangeRegistry.firstOrNull {
                     val pcon = it.getAttachment(CONNECTION_ATTACHMENT_KEY)
-                    pcon?.myVerkey == recipientVerkey
-                }
-            }
-        }
-
-        fun findByInvitationKey(invitationKey: String): List<MessageExchange> {
-            return synchronized(exchangeRegistry) {
-                exchangeRegistry.filter {
-                    // It is legal for the exchange ot have an invitation and not (yet) a connection
-                    val pcon = it.getAttachment(CONNECTION_ATTACHMENT_KEY)
-                    val invi = it.getAttachment(INVITATION_ATTACHMENT_KEY)
-                    pcon?.invitationKey == invitationKey || invi?.invitationKey() == invitationKey
+                    pcon?.id == id
                 }
             }
         }
@@ -207,8 +196,8 @@ class MessageExchange(): AttachmentSupport() {
     }
 
     fun withConnection(pcon: Connection): MessageExchange {
-        return findByVerkey(pcon.myDid.verkey)
-            ?: MessageExchange().withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
+        return findByConnectionId(pcon.id) ?:
+            MessageExchange().withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
     }
 
     fun showMessages(name: String) {

@@ -55,7 +55,7 @@ class Connection(
 
     var theirDid: Did = theirDid ?: dummyDid
         set(did) {
-            if (field != dummyDid) {
+            if (field != dummyDid && did.uri != field.uri) {
                 log.info { "Rotate theirDid: ${field.uri} => ${did.uri}" }
             }
             field = did

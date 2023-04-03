@@ -394,8 +394,12 @@ class PresentProofV3Protocol(mex: MessageExchange): Protocol<PresentProofV3Proto
 
         log.info { "Verifier (${verifier.name}) sends presentation ack: ${packedEpm.prettyPrint()}" }
 
-        val proverMex = MessageExchange.findByVerkey(proverDid.verkey)
-        proverMex?.placeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_ACK)
+        modelService.findWalletByDid(proverDid.uri)?.also { w ->
+            val proverConnection = w.findConnection { c -> c.myDid == proverDid && c.theirDid == verifierDid }
+            checkNotNull(proverConnection) { "No prover connection for: ${pcon.shortString()}" }
+            val proverMex = MessageExchange.findByConnectionId(proverConnection.id)
+            proverMex?.placeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_ACK)
+        }
 
         dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
         return this

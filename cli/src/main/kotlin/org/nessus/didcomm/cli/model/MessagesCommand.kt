@@ -30,8 +30,8 @@ class MessageCommands: AbstractBaseCommand() {
         val ctxWallet = cliService.findContextWallet(walletAlias)
         val pcon = ctxWallet?.currentConnection
         checkNotNull(pcon) { "No connection for: $walletAlias" }
-        val mex = MessageExchange.findByVerkey(pcon.myVerkey)
-        checkNotNull(mex) { "No message exchange for: ${pcon.myVerkey}" }
+        val mex = MessageExchange.findByConnectionId(pcon.id)
+        checkNotNull(mex) { "No message exchange for: ${pcon.shortString()}" }
 
         val size = mex.messages.size
         val start = max(0, size - msgCount)
@@ -62,8 +62,8 @@ class MessageCommands: AbstractBaseCommand() {
         val ctxWallet = cliService.findContextWallet(walletAlias)
         val pcon = ctxWallet?.currentConnection
         checkNotNull(pcon) { "No connection for: $walletAlias" }
-        val mex = MessageExchange.findByVerkey(pcon.myVerkey)
-        checkNotNull(mex) { "No message exchange for: ${pcon.myVerkey}" }
+        val mex = MessageExchange.findByConnectionId(pcon.id)
+        checkNotNull(mex) { "No message exchange for: ${pcon.shortString()}" }
 
         val msg = alias.toIntOrNull()?.let { idx -> mex.messages[idx] }
             ?: mex.messages.firstOrNull { m -> m.id.lowercase().startsWith(alias.lowercase()) }

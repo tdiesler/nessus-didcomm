@@ -76,8 +76,8 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
         checkNotNull(sender) { "No sender wallet" }
 
         // Use my previous MessageExchange
-        val senderMex = MessageExchange.findByVerkey(pcon.myVerkey)
-        checkNotNull(senderMex) { "No message exchange for: ${pcon.myVerkey}" }
+        val senderMex = MessageExchange.findByConnectionId(pcon.id)
+        checkNotNull(senderMex) { "No message exchange for: ${pcon.shortString()}" }
 
         val protocol = senderMex.withProtocol(BASIC_MESSAGE_PROTOCOL_V2)
 
@@ -124,8 +124,8 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
         checkNotNull(sender) { "No sender wallet" }
 
         // Use my previous MessageExchange
-        val senderMex = MessageExchange.findByVerkey(pcon.myVerkey)
-        checkNotNull(senderMex) { "No message exchange for: ${pcon.myVerkey}" }
+        val senderMex = MessageExchange.findByConnectionId(pcon.id)
+        checkNotNull(senderMex) { "No message exchange for: ${pcon.shortString()}" }
 
         val protocol = senderMex.withProtocol(BASIC_MESSAGE_PROTOCOL_V2)
 
@@ -172,8 +172,8 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
         checkNotNull(sender) { "No sender wallet" }
 
         // Use my previous MessageExchange
-        val senderMex = MessageExchange.findByVerkey(pcon.myVerkey)
-        checkNotNull(senderMex) { "No message exchange for: ${pcon.myVerkey}" }
+        val senderMex = MessageExchange.findByConnectionId(pcon.id)
+        checkNotNull(senderMex) { "No message exchange for: ${pcon.shortString()}" }
 
         val protocol = senderMex.withProtocol(BASIC_MESSAGE_PROTOCOL_V2)
 

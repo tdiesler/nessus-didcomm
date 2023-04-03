@@ -22,14 +22,14 @@ package org.nessus.didcomm.test.cli
 import io.kotest.matchers.shouldBe
 
 /**
- * run file:script/travel-with-minor.txt
+ * Test the boostrap for the playground docker image
  */
 class RunScriptTest: AbstractCLITest() {
 
     @Test
     fun runTravelWithMinorScript() {
 
-        val result = cliService.execute("run file:etc/script/travel-with-minor.txt")
+        val result = cliService.execute("run file:etc/script/travel-with-minor-bootstrap.txt")
         result.isSuccess shouldBe true
     }
 }

@@ -44,8 +44,8 @@ class EndpointMessage private constructor(
         const val MESSAGE_HEADER_DIRECTION = "MessageDirection"
         const val MESSAGE_HEADER_MEDIA_TYPE = "MessageMediaType"
         const val MESSAGE_HEADER_PROTOCOL_URI = "MessageProtocolUri"
-        const val MESSAGE_HEADER_SENDER_VERKEY = "MessageSenderVerkey"
-        const val MESSAGE_HEADER_RECIPIENT_VERKEY = "MessageRecipientVerkey"
+        const val MESSAGE_HEADER_SENDER_DID = "MessageSenderDid"
+        const val MESSAGE_HEADER_RECIPIENT_DID = "MessageRecipientDid"
         const val MESSAGE_HEADER_PTHID = "MessageParentThid"
         const val MESSAGE_HEADER_THID = "MessageThid"
         const val MESSAGE_HEADER_TYPE = "MessageType"
@@ -84,8 +84,8 @@ class EndpointMessage private constructor(
     val thid = headers[MESSAGE_HEADER_THID] as? String ?: id
     val pthid = headers[MESSAGE_HEADER_PTHID] as? String
     val protocolUri = headers[MESSAGE_HEADER_PROTOCOL_URI] as? String
-    val senderVerkey = headers[MESSAGE_HEADER_SENDER_VERKEY] as? String
-    val recipientVerkey = headers[MESSAGE_HEADER_RECIPIENT_VERKEY] as? String
+    val senderDid = headers[MESSAGE_HEADER_SENDER_DID] as? String
+    val recipientDid = headers[MESSAGE_HEADER_RECIPIENT_DID] as? String
     val messageDirection = headers[MESSAGE_HEADER_DIRECTION]
 
     val bodyAsJson: String get() = run {

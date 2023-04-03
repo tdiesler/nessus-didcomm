@@ -127,7 +127,7 @@ class ProposeCredential: AbstractBaseCommand() {
     @Option(names = ["-d", "--data"], required = true, paramLabel = "json", description = ["Input data that overrides template values"])
     var inputData: String? = null
 
-    @Option(names = ["-o", "--out"], paramLabel = "Path", description = ["The vc output path"])
+    @Option(names = ["-o", "--out"], paramLabel = "Path", description = ["Optional vc output path"])
     var dest: Path? = null
 
     @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
@@ -213,7 +213,7 @@ class IssueCredential: AbstractBaseCommand() {
     @Option(names = ["--proof-purpose"], description = ["Proof purpose to be used"], defaultValue = "assertionMethod")
     var proofPurpose: String = "assertionMethod"
 
-    @Option(names = ["-o", "--out"], paramLabel = "Path", description = ["The vc output path"])
+    @Option(names = ["-o", "--out"], paramLabel = "Path", description = ["Optional vc output path"])
     var dest: Path? = null
 
     @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
@@ -315,7 +315,7 @@ class PresentCredential: AbstractBaseCommand() {
     @Option(names = ["--vc"], required = true, arity = "1..*", paramLabel = "vcs", description = ["The vc input path/ref"])
     var vcAliases: List<String> = mutableListOf()
 
-    @Option(names = ["-o", "--out"], paramLabel = "Path", description = ["The vp output path"])
+    @Option(names = ["-o", "--out"], paramLabel = "Path", description = ["Optional vp output path"])
     var dest: Path? = null
 
     @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])

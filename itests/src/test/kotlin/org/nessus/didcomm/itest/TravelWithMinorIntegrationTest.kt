@@ -21,6 +21,7 @@ package org.nessus.didcomm.test.cli
 
 import id.walt.common.resolveContent
 import io.kotest.core.annotation.EnabledIf
+import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
 import org.nessus.didcomm.itest.AbstractIntegrationTest
 import org.nessus.didcomm.util.NessusIsLiveCondition
@@ -49,7 +50,7 @@ class TravelWithMinorIntegrationTest<T: AutoCloseable> : AbstractIntegrationTest
             if (command != null) {
                 val idx = idxHolder.incrementAndGet()
                 log.info { "\n[${idx}] $command" }
-                cliService.execute(command)
+                cliService.execute(command).isSuccess shouldBe true
             }
         }
     }

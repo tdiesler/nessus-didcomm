@@ -27,13 +27,16 @@ import org.didcommx.didcomm.common.Typ.Plaintext
 import org.didcommx.didcomm.common.Typ.Signed
 import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.model.UnpackParams
+import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_PROTOCOL_URI
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_RECIPIENT_VERKEY
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_SENDER_VERKEY
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_RECIPIENT_DID
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_SENDER_DID
+import org.nessus.didcomm.protocol.TrustPingProtocolV2.Companion.TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2
+import org.nessus.didcomm.protocol.TrustPingProtocolV2.Companion.TRUST_PING_MESSAGE_TYPE_PING_V2
 import org.nessus.didcomm.util.NessusRuntimeException
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.matches
@@ -48,6 +51,7 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
 
     override fun getService() = apply { }
 
+    private val didService get() = DidService.getService()
     private val httpService get() = HttpService.getService()
     private val modelService get() = ModelService.getService()
     private val protocolService get() = ProtocolService.getService()
@@ -107,13 +111,36 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
         checkNotNull(msg.to) { "No target did" }
 
         /**
-         * Find the target Wallet and MessageExchange
+         * Find the recipient Wallet and MessageExchange
          */
 
-        val recipientDids = msg.to!!.map { Did.fromUri(it) }
-            .filter { modelService.findWalletByVerkey(it.verkey) != null }
+        val recipientDids = msg.to!!.mapNotNull { didService.resolveDid(it) }
         check(recipientDids.size < 2) { "Multiple recipients not supported" }
-        check(recipientDids.isNotEmpty()) { "No recipient wallet" }
+        check(recipientDids.isNotEmpty()) { "No recipient Did" }
+        val recipientDid = recipientDids.first()
+
+        val recipientWallet = modelService.findWalletByDid(recipientDid.uri)
+        checkNotNull(recipientWallet) { "No recipient wallet" }
+
+        // We may not have the sender wallet
+        val senderDid = msg.from?.let { Did.fromUri(it) }
+        checkNotNull(senderDid) { "No sender Did" }
+
+        // Find the Connection between sender => recipient
+
+        var pcon = recipientWallet.findConnection { c -> c.myDid == recipientDid && c.theirDid == senderDid }
+        if (pcon == null && msg.type == TRUST_PING_MESSAGE_TYPE_PING_V2) {
+            pcon = recipientWallet.findConnection { c -> c.myDid == recipientDid && c.state == ConnectionState.INVITATION }
+        }
+        if (pcon == null && msg.type == TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2) {
+            pcon = recipientWallet.findConnection { c -> c.myDid == recipientDid  && c.state == ConnectionState.COMPLETED }
+        }
+        checkNotNull(pcon) { "No connection between: ${recipientDid.uri} => ${senderDid.uri}" }
+
+        // Find the message exchange associated with the Connection
+
+        val mex = MessageExchange.findByConnectionId(pcon.id)
+        checkNotNull(mex) { "No message exchange for: ${pcon.shortString()}" }
 
         /**
          * Now, we dispatch to the MessageExchange associated with the recipientVerkey
@@ -122,21 +149,10 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
         val protocolKey = protocolService.getProtocolKey(msg.type)
         checkNotNull(protocolKey) { "Unknown message type: ${msg.type}" }
 
-        val recipientVerkey = recipientDids.first().verkey
-        val recipientWallet = modelService.findWalletByVerkey(recipientVerkey) as Wallet
-
-        val senderVerkey =
-            if (msg.from?.startsWith("did:key") == true)
-                Did.fromUri(msg.from!!).verkey
-            else null
-
-        val mex = MessageExchange.findByVerkey(recipientVerkey)
-        checkNotNull(mex) { "No message exchange for: $recipientVerkey" }
-
         mex.addMessage(EndpointMessage.Builder(msg)
             .header(MESSAGE_HEADER_PROTOCOL_URI, protocolKey.name)
-            .header(MESSAGE_HEADER_SENDER_VERKEY, senderVerkey)
-            .header(MESSAGE_HEADER_RECIPIENT_VERKEY, recipientVerkey)
+            .header(MESSAGE_HEADER_SENDER_DID, senderDid.uri)
+            .header(MESSAGE_HEADER_RECIPIENT_DID, recipientDid.uri)
             .inbound()
             .build())
 
