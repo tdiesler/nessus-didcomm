@@ -37,8 +37,8 @@ class MessageCommands: AbstractBaseCommand() {
         val start = max(0, size - msgCount)
         val msgs = mex.messages.subList(start, size)
         val idxAndDirection = { i: Int, m: EndpointMessage -> when(m.messageDirection) {
-            MessageDirection.IN -> "[$i] >>"
-            MessageDirection.OUT -> "[$i] <<"
+            MessageDirection.IN -> "[$i] <<"
+            MessageDirection.OUT -> "[$i] >>"
             else -> "[$i] .."
         }}
         if (verbose)

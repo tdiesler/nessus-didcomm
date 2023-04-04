@@ -20,7 +20,6 @@
 package org.nessus.didcomm.test.protocol
 
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import org.nessus.didcomm.model.ConnectionState.ACTIVE
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
@@ -30,60 +29,75 @@ import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.test.NESSUS_OPTIONS
+import org.nessus.didcomm.util.Holder
 
 /**
- * Nessus DIDComm RFC0048: Trust Ping Protocol 2.0
+ * Nessus DIDComm: Trust Ping Protocol 2.0
  * https://github.com/tdiesler/nessus-didcomm/tree/main/features/0048-trust-ping
  */
-class TrustPingV2ProtocolTest : AbstractAgentTest() {
+class TrustPingV2ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
+
+    data class Context(
+        val faber: Wallet,
+        val alice: Wallet,
+    )
+
+    private val contextHolder = Holder<Context>()
+
+    @BeforeAll
+    fun startAgent() {
+        startNessusEndpoint(NESSUS_OPTIONS)
+        val faber = Wallet.Builder(Faber.name).build()
+        val alice = Wallet.Builder(Alice.name).build()
+        contextHolder.value = Context(faber = faber, alice = alice)
+    }
+
+    @AfterAll
+    fun stopAgent() {
+        val ctx = contextHolder.value!!
+        removeWallet(ctx.alice)
+        removeWallet(ctx.faber)
+        stopNessusEndpoint<T>()
+    }
 
     @Test
-    fun test_FaberAcapy_AliceNessus() {
+    fun trustPing_DidKey() {
 
-        startNessusEndpoint(NESSUS_OPTIONS).use {
+        val ctx = contextHolder.value!!
 
-            /** Create the wallets */
+        val mex = MessageExchange()
+            .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
+            .createOutOfBandInvitation(ctx.faber)
+            .receiveOutOfBandInvitation(
+                inviterAlias = ctx.faber.name,
+                invitee = ctx.alice)
 
-            val faber = Wallet.Builder(Faber.name)
-                .build()
+            .withProtocol(TRUST_PING_PROTOCOL_V2)
+            .sendTrustPing()
+            .awaitTrustPingResponse()
 
-            val alice = Wallet.Builder(Alice.name)
-                .build()
+            .getMessageExchange()
 
-            try {
-                val mex = MessageExchange()
-                    .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
-                    .createOutOfBandInvitation(faber)
-                    .receiveOutOfBandInvitation(alice, inviterAlias = faber.name)
+        val aliceFaber = mex.getConnection()
+        aliceFaber.state shouldBe ACTIVE
+        aliceFaber.myLabel shouldBe ctx.alice.name
+        aliceFaber.theirLabel shouldBe ctx.faber.name
 
-                    .withProtocol(TRUST_PING_PROTOCOL_V2)
-                    .sendTrustPing()
-                    .awaitTrustPingResponse()
+        // Send an explicit trust ping
+        MessageExchange()
+            .withProtocol(TRUST_PING_PROTOCOL_V2)
+            .sendTrustPing(aliceFaber)
+            .awaitTrustPingResponse()
 
-                    .getMessageExchange()
+        // Send a reverse trust ping
+        val faberAlice = ctx.faber.findConnection{ it.myVerkey == aliceFaber.theirVerkey }
+        faberAlice?.state shouldBe ACTIVE
+        faberAlice?.myLabel shouldBe ctx.faber.name
+        faberAlice?.theirLabel shouldBe ctx.alice.name
 
-                val aliceAcme = mex.getConnection()
-                aliceAcme.state shouldBe ACTIVE
-
-                // Send an explicit trust ping
-                MessageExchange()
-                    .withProtocol(TRUST_PING_PROTOCOL_V2)
-                    .sendTrustPing(aliceAcme)
-                    .awaitTrustPingResponse()
-
-                // Send a reverse trust ping
-                val acmeAlice = faber.findConnection{ it.myVerkey == aliceAcme.theirVerkey }
-                acmeAlice shouldNotBe null
-
-                MessageExchange()
-                    .withProtocol(TRUST_PING_PROTOCOL_V2)
-                    .sendTrustPing(acmeAlice)
-                    .awaitTrustPingResponse()
-
-            } finally {
-                removeWallet(alice)
-                removeWallet(faber)
-            }
-        }
+        MessageExchange()
+            .withProtocol(TRUST_PING_PROTOCOL_V2)
+            .sendTrustPing(faberAlice)
+            .awaitTrustPingResponse()
     }
 }

@@ -89,6 +89,7 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             .createdTime(dateTimeNow())
             .expiresTime(dateTimeNow().plusHours(24))
             .comment("Ping from ${sender.name}")
+            .responseRequested(true)
 
         // FIRST TRUST PING
         // Add the DidDoc attachment when we don't have a did:peer:2
@@ -190,50 +191,53 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             log.info { "Connection ${pcon.state}: ${pcon.encodeJson(true)}"}
         }
 
-        val receiverDid = pcon.myDid
-        val senderDid = pcon.theirDid
+        if (trustPing.responseRequested != false) {
 
-        val trustPingResponse = TrustPingMessageV2.Builder(
-            id = "${UUID.randomUUID()}",
-            type = TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
-            .thid(trustPing.id)
-            .from(receiverDid.uri)
-            .to(listOf(senderDid.uri))
-            .createdTime(dateTimeNow())
-            .expiresTime(dateTimeNow().plusHours(24))
-            .comment("Pong from ${receiver.name}")
-            .build()
+            val receiverDid = pcon.myDid
+            val senderDid = pcon.theirDid
 
-        val trustPingResponseMsg = trustPingResponse.toMessage()
-        mex.addMessage(EndpointMessage.Builder(trustPingResponseMsg).outbound().build()).last
-        log.info { "Receiver (${receiver.name}) creates TrustPing Response: ${trustPingResponseMsg.encodeJson(true)}" }
+            val trustPingResponse = TrustPingMessageV2.Builder(
+                id = "${UUID.randomUUID()}",
+                type = TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
+                .thid(trustPing.id)
+                .from(receiverDid.uri)
+                .to(listOf(senderDid.uri))
+                .createdTime(dateTimeNow())
+                .expiresTime(dateTimeNow().plusHours(24))
+                .comment("Pong from ${receiver.name}")
+                .build()
 
-        val packResult = didComm.packEncrypted(
-            if (fromPriorIssuerKid != null) {
-                PackEncryptedParams.builder(trustPingResponseMsg, senderDid.uri)
-                    .fromPriorIssuerKid(fromPriorIssuerKid)
-                    .signFrom(receiverDid.uri)
-                    .from(receiverDid.uri)
-                    .build()
-            } else {
-                PackEncryptedParams.builder(trustPingResponseMsg, senderDid.uri)
-                    .signFrom(receiverDid.uri)
-                    .from(receiverDid.uri)
-                    .build()
-            }
-        )
+            val trustPingResponseMsg = trustPingResponse.toMessage()
+            mex.addMessage(EndpointMessage.Builder(trustPingResponseMsg).outbound().build()).last
+            log.info { "Receiver (${receiver.name}) creates TrustPing Response: ${trustPingResponseMsg.encodeJson(true)}" }
 
-        val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
-            EndpointMessage.MESSAGE_HEADER_ID to "${trustPingResponseMsg.id}.packed",
-            EndpointMessage.MESSAGE_HEADER_THID to trustPing.id,
-            EndpointMessage.MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
-        )).outbound().build()
-        log.info { "Receiver (${receiver.name}) sends TrustPing Response: ${packedEpm.prettyPrint()}" }
+            val packResult = didComm.packEncrypted(
+                if (fromPriorIssuerKid != null) {
+                    PackEncryptedParams.builder(trustPingResponseMsg, senderDid.uri)
+                        .fromPriorIssuerKid(fromPriorIssuerKid)
+                        .signFrom(receiverDid.uri)
+                        .from(receiverDid.uri)
+                        .build()
+                } else {
+                    PackEncryptedParams.builder(trustPingResponseMsg, senderDid.uri)
+                        .signFrom(receiverDid.uri)
+                        .from(receiverDid.uri)
+                        .build()
+                }
+            )
+
+            val packedMessage = packResult.packedMessage
+            val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
+                EndpointMessage.MESSAGE_HEADER_ID to "${trustPingResponseMsg.id}.packed",
+                EndpointMessage.MESSAGE_HEADER_THID to trustPing.id,
+                EndpointMessage.MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
+            )).outbound().build()
+            log.info { "Receiver (${receiver.name}) sends TrustPing Response: ${packedEpm.prettyPrint()}" }
+
+            dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
+        }
 
         pcon.state = ConnectionState.ACTIVE
-
-        dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
 
         if (mex.hasEndpointMessageFuture(TRUST_PING_MESSAGE_TYPE_PING_V2))
             mex.completeEndpointMessageFuture(TRUST_PING_MESSAGE_TYPE_PING_V2, trustPingEpm)
@@ -264,24 +268,24 @@ class TrustPingMessageV2(
     val id: String,
     val type: String,
     val thid: String?,
-    val pthid: String?,
     val from: String?,
     val to: List<String>?,
     val createdTime: OffsetDateTime?,
     val expiresTime: OffsetDateTime?,
     val comment: String?,
+    val responseRequested: Boolean?,
     val attachments: List<Attachment>?,
 ) {
     internal constructor(builder: Builder): this(
         id = builder.id,
         type = builder.type,
         thid = builder.thid,
-        pthid = builder.pthid,
         from = builder.from,
         to = builder.to,
         createdTime = builder.createdTime,
         expiresTime = builder.expiresTime,
         comment = builder.comment,
+        responseRequested = builder.responseRequested,
         attachments = builder.attachments,
     )
 
@@ -291,14 +295,15 @@ class TrustPingMessageV2(
             val createdTime = msg.createdTime?.run { dateTimeInstant(msg.createdTime!!) }
             val expiresTime = msg.expiresTime?.run { dateTimeInstant(msg.expiresTime!!) }
             val comment = msg.body["comment"] as? String
+            val responseRequested = msg.body["response_requested"] as? Boolean
             return Builder(msg.id, msg.type)
                 .thid(msg.thid)
-                .pthid(msg.pthid)
                 .from(msg.from)
                 .to(msg.to)
                 .createdTime(createdTime)
                 .expiresTime(expiresTime)
                 .comment(comment)
+                .responseRequested(responseRequested)
                 .attachments(msg.attachments)
                 .build()
         }
@@ -306,10 +311,10 @@ class TrustPingMessageV2(
 
     fun toMessage(): Message {
         val body = LinkedHashMap<String, Any>()
-        comment?.also { body["comment"] = comment }
+        comment?.also { body["comment"] = it }
+        responseRequested?.also { body["response_requested"] = it }
         return MessageBuilder(id, body, type)
             .thid(thid)
-            .pthid(pthid)
             .from(from)
             .to(to)
             .createdTime(createdTime?.toInstant()?.epochSecond)
@@ -323,38 +328,22 @@ class TrustPingMessageV2(
         val type: String) {
 
         internal var thid: String? = null
-            private set
-
-        internal var pthid: String? = null
-            private set
-
         internal var from: String? = null
-            private set
-
         internal var to: List<String>? = null
-            private set
-
         internal var createdTime: OffsetDateTime? = null
-            private set
-
         internal var expiresTime: OffsetDateTime? = null
-            private set
-
         internal var comment: String? = null
-            private set
-
+        internal var responseRequested: Boolean? = null
         internal var attachments: List<Attachment>? = null
-            private set
 
         fun thid(thid: String?) = apply { this.thid = thid }
-        fun pthid(pthid: String?) = apply { this.pthid = pthid }
         fun from(from: String?) = apply { this.from = from }
         fun to(to: List<String>?) = apply { this.to = to }
         fun createdTime(createdTime: OffsetDateTime?) = apply { this.createdTime = createdTime }
         fun expiresTime(expiresTime: OffsetDateTime?) = apply { this.expiresTime = expiresTime }
         fun comment(comment: String?) = apply { this.comment = comment }
+        fun responseRequested(responseRequested: Boolean?) = apply { this.responseRequested = responseRequested }
         fun attachments(attachments: List<Attachment>?) = apply { this.attachments = attachments?.toList() }
-
 
         fun build(): TrustPingMessageV2 {
             return TrustPingMessageV2(this)

@@ -1,7 +1,7 @@
 ## Nessus DidComm: Trust Ping 2.0
 
 Related:
-* [Aries RFC0048: Trust Ping Protocol 1.0][rfc0048]
+* [Trust Ping 2.0][dcv2-trust-ping]
 * [DIDComm V2: DIDComm Encrypted Messages][dcv2-encrypted-msg]
 
 ### Summary
@@ -21,17 +21,17 @@ Note, the first Trust Ping may contain a Did Document attachment for the Invitee
 
 ```json
 {
-  "id": "fb05b5e9-7ea7-4f3c-9f14-5477fde333c0",
-  "typ": "application/didcomm-plain+json",
-  "type": "https://didcomm.org/trust-ping/2.0/ping",
-  "from": "did:key:z6Mkp8u4BGkJLBQXKcCESCcGPzuASc5GA4bLYQzt5YYHdF4D",
-  "to": [
-    "did:key:z6MkmwFcA1vt4BtHv4rDyhRSCG5T3HxsLXAxLNKGY9NjnNME"
+  "id":"4d6b6d9b-f6ea-4df4-82f5-fe4b3b07c37b",
+  "type":"https://didcomm.org/trust-ping/2.0/ping",
+  "from":"did:peer:2.Ez6LSg9htFVk4qAuYs17jDEAhhHCx8WqdMTuzhjZ98uVSDa5C.Vz6MkgqCUy43arZurXPMC1q3yHBbN1E1q1e6rDvzbw8pJz8iD.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovL2xvY2FsaG9zdDo5MDAwIn0",
+  "to":[
+    "did:peer:2.Ez6LSndYoiE8pUsWL88uZjvL1g111gvFAZCp74hJBUWG5QoRt.Vz6MktexTRqDqUqkjLYBzjFB2pKXDQUf9TVUoDNEnN6nt7fZb.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovL2xvY2FsaG9zdDo5MDAwIn0"
   ],
-  "created_time": 1676104455,
-  "expires_time": 1676190855,
-  "body": {
-    "comment": "Ping from Alice"
+  "created_time":1680583120,
+  "expires_time":1680669520,
+  "body":{
+    "comment":"Ping from Alice",
+    "response_requested":true
   }
 }
 ```
@@ -43,21 +43,20 @@ Note, a Trust Ping Response may use `fromPrior` to communicate a change of recip
 
 ```json
 {
-  "id": "a08ec5d2-2f75-4190-8239-5a87b0fbe860",
-  "typ": "application/didcomm-plain+json",
-  "type": "https://didcomm.org/trust-ping/2.0/ping-response",
-  "from": "did:key:z6MkmwFcA1vt4BtHv4rDyhRSCG5T3HxsLXAxLNKGY9NjnNME",
-  "to": [
-    "did:key:z6Mkp8u4BGkJLBQXKcCESCcGPzuASc5GA4bLYQzt5YYHdF4D"
-  ],
-  "created_time": 1676104455,
-  "expires_time": 1676190855,
-  "body": {
-    "comment": "Pong from Acme"
-  },
-  "thid": "fb05b5e9-7ea7-4f3c-9f14-5477fde333c0"
+    "id":"40fbdb36-f75f-43f6-ad84-610af6a96b3c",
+    "thid":"4d6b6d9b-f6ea-4df4-82f5-fe4b3b07c37b",
+    "type":"https://didcomm.org/trust-ping/2.0/ping-response",
+    "from":"did:peer:2.Ez6LSgjK6Ud6LWB5gQNBVBxJ2qa9674Tud6orKZeGxH88yH1d.Vz6MkmceKVRBgkx61ejte9iY1R9NauHcjike8xQuJS6NhLsVC.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovL2xvY2FsaG9zdDo5MDAwIn0",
+    "to":[
+        "did:peer:2.Ez6LSg9htFVk4qAuYs17jDEAhhHCx8WqdMTuzhjZ98uVSDa5C.Vz6MkgqCUy43arZurXPMC1q3yHBbN1E1q1e6rDvzbw8pJz8iD.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovL2xvY2FsaG9zdDo5MDAwIn0"
+    ],
+    "created_time":1680583120,
+    "expires_time":1680669520,
+    "body":{
+        "comment":"Pong from Faber"
+    }
 }
 ```
 
 [dcv2-encrypted-msg]: https://identity.foundation/didcomm-messaging/spec/#c3-didcomm-encrypted-messages
-[rfc0048]: https://github.com/hyperledger/aries-rfcs/tree/main/features/0048-trust-ping
+[dcv2-trust-ping]: https://identity.foundation/didcomm-messaging/spec/#trust-ping-protocol-20

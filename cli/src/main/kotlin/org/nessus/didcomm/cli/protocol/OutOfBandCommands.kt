@@ -81,7 +81,9 @@ class CreateInvitation: AbstractOutOfBandCommand() {
         val (inviter, inviterDid) = if (inviterDidAlias != null) {
             findWalletAndDidFromAlias(inviterAlias, inviterDidAlias)
         } else {
-            Pair(getContextWallet(inviterAlias), null)
+            val ctxWallet = getContextWallet(inviterAlias)
+            val ctxDid = cliService.findContextDid(inviterAlias)
+            Pair(ctxWallet, ctxDid)
         }
         checkNotNull(inviter) { "No inviter wallet" }
         checkWalletEndpoint(inviter)
