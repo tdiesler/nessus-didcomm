@@ -126,7 +126,7 @@ abstract class AbstractBaseCommand: Callable<Int> {
 
     fun findWalletAndDidFromAlias(walletAlias: String? = null, didAlias: String? = null): Pair<Wallet?, Did?> {
 
-        val ctxWallet = getContextWallet(walletAlias)
+        val ctxWallet = cliService.findContextWallet(walletAlias)
 
         fun loadOrResolveDid(uri: String): Pair<Wallet?, Did?> {
             val did = didService.loadOrResolveDid(uri)
@@ -136,25 +136,27 @@ abstract class AbstractBaseCommand: Callable<Int> {
         }
 
         // Use the current Did from the context wallet
-        if (didAlias == null) {
+        if (ctxWallet != null && didAlias == null) {
             val did = ctxWallet.currentConnection?.myDid ?: ctxWallet.dids.lastOrNull()
             return Pair(ctxWallet, did)
         }
 
-        // Did alias as a reference to a context variable
-        properties.asString(didAlias)?.also { uri ->
-            return loadOrResolveDid(uri)
+        // Did alias as a reference to a session variable
+        if (didAlias != null) {
+            properties.getVar(didAlias)?.also { uri ->
+                return loadOrResolveDid(uri)
+            }
         }
 
         // Did alias as an index into the context wallet did list
-        if (didAlias.toIntOrNull() != null) {
+        if (ctxWallet != null && didAlias != null && didAlias.toIntOrNull() != null) {
             val idx = didAlias.toInt()
             return ctxWallet.let { w -> Pair(w, w.dids[idx]) }
         }
 
         // Find did for the given wallet alias
         if (walletAlias != null) {
-            return ctxWallet.let { w ->
+            return getContextWallet(walletAlias).let { w ->
                 Pair(w, w.findDidByAlias(didAlias))
             }
         }
@@ -166,7 +168,7 @@ abstract class AbstractBaseCommand: Callable<Int> {
             ?.also { return it }
 
         // Did alias as fully qualified uri
-        if (didAlias.startsWith("did:")) {
+        if (didAlias?.startsWith("did:") == true) {
             return loadOrResolveDid(didAlias)
         }
 
@@ -176,7 +178,7 @@ abstract class AbstractBaseCommand: Callable<Int> {
     fun getVcpFromAlias(holder: Wallet, alias: String): W3CVerifiableCredential? {
 
         // Vc alias as a reference to a context variable
-        properties.asString(alias)?.also {
+        properties.getVar(alias)?.also {
             return holder.getVerifiableCredential(it)
         }
 

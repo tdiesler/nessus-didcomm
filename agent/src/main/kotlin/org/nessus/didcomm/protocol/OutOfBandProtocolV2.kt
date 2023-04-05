@@ -25,6 +25,7 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionRole
 import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.model.DEFAULT_ACCEPT
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.DidPeer
@@ -32,15 +33,18 @@ import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.service.DidOptions
 import org.nessus.didcomm.service.DidPeerOptions
 import org.nessus.didcomm.service.OUT_OF_BAND_PROTOCOL_V2
+import org.nessus.didcomm.service.PropertiesService.PROTOCOL_OUT_OF_BAND_ROUTING_KEY_AS_ENDPOINT_URL
+import org.nessus.didcomm.util.encodeJson
 import java.util.UUID
 
 /**
  * Nessus DIDComm: Out-of-Band Invitation 2.0
  * https://github.com/tdiesler/nessus-didcomm/tree/main/features/0434-oob-invitation
  */
-class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(mex) {
+class OutOfBandProtocolV2(mex: MessageExchange): Protocol<OutOfBandProtocolV2>(mex) {
     override val log = KotlinLogging.logger {}
 
     override val protocolUri = OUT_OF_BAND_PROTOCOL_V2.uri
@@ -60,7 +64,12 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
      * goal_code: String
      * goal: String
      */
-    fun createOutOfBandInvitation(inviter: Wallet, inviterDid: Did? = null, options: Map<String, Any> = mapOf()): OutOfBandV2Protocol {
+    fun createOutOfBandInvitation(
+        inviter: Wallet,
+        inviterDid: Did? = null,
+        didMethod: DidMethod? = null,
+        options: Map<String, Any> = mapOf()
+    ): OutOfBandProtocolV2 {
         checkAgentType(inviter.agentType)
 
         val id = "${UUID.randomUUID()}"
@@ -73,7 +82,7 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
                 inviterDid
             }
             else -> {
-                val createdDid = inviter.createDid()
+                val createdDid = inviter.createDid(didMethod)
                 log.info { "Create invitation for Did: ${createdDid.uri}" }
                 createdDid
             }
@@ -82,7 +91,7 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
         val invitationBuilder = Invitation.Builder(id, type, invitationDid.uri)
             .goalCode(options["goal_code"] as? String)
             .goal(options["goal"] as? String)
-            .accept(Invitation.DEFAULT_ACCEPT)
+            .accept(DEFAULT_ACCEPT)
 
         // Add the DidDoc attachment when we don't have a did:peer:2
         val maybeDidPeer = DidPeer.fromUri(invitationDid.uri)
@@ -112,12 +121,10 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
             myAgent = inviter.agentType.value,
             myRole = ConnectionRole.INVITER,
             myLabel = inviter.name,
-            myEndpointUrl = inviter.endpointUrl,
             theirDid = null,
             theirAgent = null,
             theirRole = ConnectionRole.INVITEE,
             theirLabel = null,
-            theirEndpointUrl = null,
             state = ConnectionState.INVITATION
         )
 
@@ -131,13 +138,14 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
         invitee: Wallet,
         inviteeDid: Did? = null,
         inviterAlias: String? = null,
-        inviterAgent: String? = null
-    ): OutOfBandV2Protocol {
+        inviterAgent: String? = null,
+        fromMediator: Boolean = false,
+    ): OutOfBandProtocolV2 {
         checkAgentType(invitee.agentType)
 
         val invitation = mex.getInvitation()
         checkNotNull(invitation) { "No invitation" }
-        log.info { "Invitee (${invitee.name}) received Invitation: ${invitation.prettyPrint()}"}
+        log.info { "Invitee (${invitee.name}) received Invitation: ${invitation.encodeJson(true)}"}
 
         // [TODO] invitation state for v2
         // check(invitation.state == InvitationState.INITIAL) { "Unexpected invitation state: $invitation" }
@@ -150,11 +158,22 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
         val inviterEndpointUrl = inviterDidDoc.serviceEndpoint
         checkNotNull(inviterEndpointUrl) { "No inviter endpointUrl" }
 
+        var inviteeEndpointUrl = invitee.endpointUrl
+        var routingKeys: List<String>? = null
+
+        // We have routing keys when this invitation is from a mediator
+        if (fromMediator) {
+            if (properties.asBoolean(PROTOCOL_OUT_OF_BAND_ROUTING_KEY_AS_ENDPOINT_URL)) {
+                inviteeEndpointUrl = inviterDid.uri
+            } else {
+                routingKeys = listOf(inviterDid.uri)
+            }
+        }
+
         // Create Invitee Did + Document
-        val inviteeEndpointUrl = invitee.endpointUrl
         val actualInviteeDid = inviteeDid ?: when(inviterDid.method) {
-            DidMethod.PEER -> invitee.createDid(inviterDid.method, options = DidPeerOptions(2, inviteeEndpointUrl))
-            else -> invitee.createDid(inviterDid.method)
+            DidMethod.PEER -> invitee.createDid(inviterDid.method, options = DidPeerOptions(2, inviteeEndpointUrl, routingKeys))
+            else -> invitee.createDid(inviterDid.method, options = DidOptions(inviteeEndpointUrl, routingKeys))
         }
 
         // Start a new MessageExchange
@@ -176,12 +195,10 @@ class OutOfBandV2Protocol(mex: MessageExchange): Protocol<OutOfBandV2Protocol>(m
             myAgent = invitee.agentType.value,
             myRole = ConnectionRole.INVITEE,
             myLabel = invitee.name,
-            myEndpointUrl = inviteeEndpointUrl,
             theirDid = inviterDid,
             theirAgent = inviter?.agentType?.value ?: inviterAgent,
             theirRole = ConnectionRole.INVITER,
             theirLabel = inviter?.name ?: inviterAlias,
-            theirEndpointUrl = inviterEndpointUrl,
             state = ConnectionState.INVITATION
         )
 

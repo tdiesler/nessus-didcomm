@@ -17,7 +17,7 @@ class ConnectionCommands: AbstractBaseCommand() {
 
     @Command(name = "list", description = ["List available Connections"], mixinStandardHelpOptions = true)
     fun listConnections(
-        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        @Option(names = ["-w", "--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
         walletAlias: String?,
 
         @Option(names = ["--alias"], description = ["Optional Connection alias"])
@@ -37,7 +37,7 @@ class ConnectionCommands: AbstractBaseCommand() {
 
     @Command(name = "show", description = ["Show Connection details"], mixinStandardHelpOptions = true)
     fun showConnection(
-        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        @Option(names = ["-w", "--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
         walletAlias: String?,
 
         @Option(names = ["--alias"], description = ["Optional Connection alias"])
@@ -59,7 +59,7 @@ class ConnectionCommands: AbstractBaseCommand() {
 
     @Command(name = "switch", description = ["Switch the current Connection"], mixinStandardHelpOptions = true)
     fun switchConnection(
-        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        @Option(names = ["-w", "--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
         walletAlias: String?,
 
         @Parameters(description = ["The Connection alias (e.g. Acme-Alice)"])

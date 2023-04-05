@@ -22,18 +22,14 @@ package org.nessus.didcomm.protocol
 import com.google.gson.annotations.SerializedName
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
-import org.didcommx.didcomm.common.Typ
 import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.message.MessageBuilder
-import org.didcommx.didcomm.model.PackEncryptedParams
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_ID
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
@@ -48,7 +44,7 @@ import java.util.concurrent.TimeUnit
  * WACI DIDComm: Present Proof Protocol 3.0
  * https://github.com/decentralized-identity/waci-didcomm/blob/main/present_proof/present-proof-v3.md
  */
-class PresentProofV3Protocol(mex: MessageExchange): Protocol<PresentProofV3Protocol>(mex) {
+class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtocolV3>(mex) {
     override val log = KotlinLogging.logger {}
 
     override val protocolUri = PRESENT_PROOF_PROTOCOL_V3.uri
@@ -94,12 +90,11 @@ class PresentProofV3Protocol(mex: MessageExchange): Protocol<PresentProofV3Proto
         challenge: String? = null,
         expirationDate: Instant? = null,
         options: Map<String, Any> = mapOf()
-    ): PresentProofV3Protocol {
-
-        val mex = MessageExchange.findByWallet(prover.name)
-            .first { it.getConnection().theirDid == verifierDid }
+    ): PresentProofProtocolV3 {
 
         val pcon = mex.getConnection()
+        check(pcon.myLabel == prover.name) { "Unexpected prover: ${pcon.shortString()}" }
+        check(pcon.theirDid == verifierDid) { "Unexpected verifier: ${pcon.shortString()}" }
         val proverDid = pcon.myDid
 
         val signedVp = custodian.createPresentation(
@@ -133,30 +128,16 @@ class PresentProofV3Protocol(mex: MessageExchange): Protocol<PresentProofV3Proto
             .attachments(listOf(vpAttachment))
             .build()
 
-        log.info { "Prover (${prover.name}) proposes presentation: ${vpProposalMsg.encodeJson(true)}" }
-
-        val epm = EndpointMessage.Builder(vpProposalMsg).outbound().build()
-        mex.addMessage(epm)
-
-        val packResult = didComm.packEncrypted(
-            PackEncryptedParams.builder(vpProposalMsg, verifierDid.uri)
-                .signFrom(proverDid.uri)
-                .from(proverDid.uri)
-                .build()
-        )
-
-        val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
-                MESSAGE_HEADER_ID to "${vpProposalMsg.id}.packed",
-                MESSAGE_HEADER_TYPE to Typ.Encrypted.typ))
-            .outbound().build()
-
-        log.info { "Prover (${prover.name}) sends credential presentation: ${vpProposalMsg.encodeJson(true)}" }
-
         mex.placeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION)
 
-        dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
-        return PresentProofV3Protocol(mex)
+        mex.addMessage(EndpointMessage.Builder(vpProposalMsg).outbound().build())
+        log.info { "Prover (${prover.name}) creates presentation proposal: ${vpProposalMsg.encodeJson(true)}" }
+
+        dispatchEncryptedMessage(pcon, vpProposalMsg) { packedEpm ->
+            log.info { "Prover (${prover.name}) sends presentation proposal: ${packedEpm.prettyPrint()}" }
+        }
+
+        return PresentProofProtocolV3(mex)
     }
 
     /**
@@ -171,17 +152,19 @@ class PresentProofV3Protocol(mex: MessageExchange): Protocol<PresentProofV3Proto
         verifier: Wallet,
         proverDid: Did,
         vp: W3CVerifiableCredential
-    ): PresentProofV3Protocol {
+    ): PresentProofProtocolV3 {
         check(vp.isVerifiablePresentation) { "Not a verifiable presentation: ${vp.shortString()}" }
 
-        val mex = MessageExchange.findByWallet(verifier.name)
+        val verifierMex = MessageExchange.findByWallet(verifier.name)
             .first { it.getConnection().theirDid == proverDid }
 
-        val pcon = mex.getConnection()
+        val pcon = verifierMex.getConnection()
+        check(pcon.myLabel == verifier.name) { "Unexpected verifier: ${pcon.shortString()}" }
+        check(pcon.theirDid == proverDid) { "Unexpected prover: ${pcon.shortString()}" }
         val verifierDid = pcon.myDid
 
-        val presentationProposalEpm = mex.last
-        val presentationProposalMsg = mex.last.body as Message
+        val presentationProposalEpm = verifierMex.last
+        val presentationProposalMsg = verifierMex.last.body as Message
         presentationProposalEpm.checkMessageType(PRESENT_PROOF_MESSAGE_TYPE_PROPOSE_PRESENTATION)
 
         // Extract the proposal data from the Message
@@ -207,40 +190,26 @@ class PresentProofV3Protocol(mex: MessageExchange): Protocol<PresentProofV3Proto
             .willConfirm(true)
             .build()
 
-        val presentationRequestMsg = MessageBuilder(id, vpRequest.toMap(), type)
+        val vpRequestMsg = MessageBuilder(id, vpRequest.toMap(), type)
             .thid(id)
             .to(listOf(proverDid.uri))
             .from(verifierDid.uri)
             .attachments(listOf(attachment))
             .build()
 
-        log.info { "Verifier (${verifier.name}) created presentation request: ${presentationRequestMsg.encodeJson(true)}" }
+        verifierMex.addMessage(EndpointMessage.Builder(vpRequestMsg).outbound().build())
+        log.info { "Verifier (${verifier.name}) created presentation request: ${vpRequestMsg.encodeJson(true)}" }
 
-        val epm = EndpointMessage.Builder(presentationRequestMsg).outbound().build()
-        mex.addMessage(epm)
+        verifierMex.placeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_PRESENTATION)
 
-        val packResult = didComm.packEncrypted(
-            PackEncryptedParams.builder(presentationRequestMsg, proverDid.uri)
-                .signFrom(verifierDid.uri)
-                .from(verifierDid.uri)
-                .build()
-        )
+        dispatchEncryptedMessage(pcon, vpRequestMsg) { packedEpm ->
+            log.info { "Verifier (${verifier.name}) sends presentation request: ${packedEpm.prettyPrint()}" }
+        }
 
-        val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
-                MESSAGE_HEADER_ID to "${presentationRequestMsg.id}.packed",
-                MESSAGE_HEADER_TYPE to Typ.Encrypted.typ))
-            .outbound()
-            .build()
-        log.info { "Verifier (${verifier.name}) sends presentation request: ${packedEpm.prettyPrint()}" }
-
-        mex.placeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_PRESENTATION)
-
-        dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
-        return PresentProofV3Protocol(mex)
+        return PresentProofProtocolV3(verifierMex)
     }
 
-    fun awaitPresentationRequest(prover: Wallet, verifierDid: Did, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): PresentProofV3Protocol {
+    fun awaitPresentationRequest(prover: Wallet, verifierDid: Did, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): PresentProofProtocolV3 {
         val mex = MessageExchange.findByWallet(prover.name).first { it.getConnection().theirDid == verifierDid }
         mex.awaitEndpointMessage(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION, timeout, unit)
         return this
@@ -249,7 +218,7 @@ class PresentProofV3Protocol(mex: MessageExchange): Protocol<PresentProofV3Proto
     /**
      * Send Presentation
      */
-    fun sendPresentation(prover: Wallet, verifierDid: Did): PresentProofV3Protocol {
+    fun sendPresentation(prover: Wallet, verifierDid: Did): PresentProofProtocolV3 {
 
         val mex = MessageExchange.findByWallet(prover.name)
             .first { it.getConnection().theirDid == verifierDid }
@@ -279,32 +248,17 @@ class PresentProofV3Protocol(mex: MessageExchange): Protocol<PresentProofV3Proto
             .attachments(listOf(attachment))
             .build()
 
-        val epm = EndpointMessage.Builder(vpMsg).outbound().build()
-        mex.addMessage(epm)
+        mex.addMessage(EndpointMessage.Builder(vpMsg).outbound().build())
+        log.info { "Prover (${prover.name}) create presentation: ${vpMsg.encodeJson(true)}" }
 
-        val packResult = didComm.packEncrypted(
-            PackEncryptedParams.builder(vpMsg, verifierDid.uri)
-                .signFrom(issuerDid.uri)
-                .from(issuerDid.uri)
-                .build()
-        )
+        dispatchEncryptedMessage(pcon, vpMsg) { packedEpm ->
+            log.info { "Prover (${prover.name}) sends presentation: ${packedEpm.prettyPrint()}" }
+        }
 
-        val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
-                MESSAGE_HEADER_ID to "${vpMsg.id}.packed",
-                MESSAGE_HEADER_TYPE to Typ.Encrypted.typ))
-            .outbound()
-            .build()
-
-        log.info { "Prover (${prover.name}) sends presentation: ${packedEpm.prettyPrint()}" }
-
-        mex.placeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_ACK)
-
-        dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
         return this
     }
 
-    fun awaitPresentationAck(prover: Wallet, verifierDid: Did, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): PresentProofV3Protocol {
+    fun awaitPresentationAck(prover: Wallet, verifierDid: Did, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): PresentProofProtocolV3 {
         val mex = MessageExchange.findByWallet(prover.name).first { it.getConnection().theirDid == verifierDid }
         mex.awaitEndpointMessage(PRESENT_PROOF_MESSAGE_TYPE_ACK, timeout, unit)
         return this
@@ -312,7 +266,7 @@ class PresentProofV3Protocol(mex: MessageExchange): Protocol<PresentProofV3Proto
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun receivePresentationProposal(verifier: Wallet): PresentProofV3Protocol {
+    private fun receivePresentationProposal(verifier: Wallet): PresentProofProtocolV3 {
 
         val pcon = mex.getConnection()
         val proverDid = pcon.theirDid
@@ -341,7 +295,7 @@ class PresentProofV3Protocol(mex: MessageExchange): Protocol<PresentProofV3Proto
         return sendPresentationRequest(verifier, proverDid, proposedVp)
     }
 
-    private fun receivePresentation(verifier: Wallet): PresentProofV3Protocol {
+    private fun receivePresentation(verifier: Wallet): PresentProofProtocolV3 {
 
         val presentationEpm = mex.last
         val presentationMsg = mex.last.body as Message
@@ -358,7 +312,7 @@ class PresentProofV3Protocol(mex: MessageExchange): Protocol<PresentProofV3Proto
         return sendPresentationAck(verifier, presentationEpm)
     }
 
-    private fun sendPresentationAck(verifier: Wallet, presentationEpm: EndpointMessage): PresentProofV3Protocol {
+    private fun sendPresentationAck(verifier: Wallet, presentationEpm: EndpointMessage): PresentProofProtocolV3 {
 
         val pcon = mex.getConnection()
         val (verifierDid, proverDid) = Pair(pcon.myDid, pcon.theirDid)
@@ -369,49 +323,31 @@ class PresentProofV3Protocol(mex: MessageExchange): Protocol<PresentProofV3Proto
         val id = "${UUID.randomUUID()}"
         val type = PRESENT_PROOF_MESSAGE_TYPE_ACK
 
-        val credentialRequestMsg = MessageBuilder(id, mapOf(), type)
+        val vcRequestMsg = MessageBuilder(id, mapOf(), type)
             .thid(presentationMsg.id)
             .to(listOf(proverDid.uri))
             .from(verifierDid.uri)
             .build()
 
-        val epm = EndpointMessage.Builder(credentialRequestMsg).outbound().build()
-        mex.addMessage(epm)
+        mex.addMessage(EndpointMessage.Builder(vcRequestMsg).outbound().build())
+        log.info { "Verifier (${verifier.name}) creates presentation ack: ${vcRequestMsg.encodeJson(true)}" }
 
-        val packResult = didComm.packEncrypted(
-            PackEncryptedParams.builder(credentialRequestMsg, proverDid.uri)
-                .signFrom(verifierDid.uri)
-                .from(verifierDid.uri)
-                .build()
-        )
-
-        val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage.Builder(
-            packedMessage, mapOf(
-                MESSAGE_HEADER_ID to "${credentialRequestMsg.id}.packed",
-                MESSAGE_HEADER_TYPE to Typ.Encrypted.typ
-            )).outbound().build()
-
-        log.info { "Verifier (${verifier.name}) sends presentation ack: ${packedEpm.prettyPrint()}" }
-
-        modelService.findWalletByDid(proverDid.uri)?.also { w ->
-            val proverConnection = w.findConnection { c -> c.myDid == proverDid && c.theirDid == verifierDid }
-            checkNotNull(proverConnection) { "No prover connection for: ${pcon.shortString()}" }
-            val proverMex = MessageExchange.findByConnectionId(proverConnection.id)
-            proverMex?.placeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_ACK)
+        dispatchEncryptedMessage(pcon, vcRequestMsg) { packedEpm ->
+            log.info { "Verifier (${verifier.name}) sends presentation ack: ${packedEpm.prettyPrint()}" }
         }
 
-        dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
         return this
     }
 
-    private fun receivePresentationRequest(prover: Wallet): PresentProofV3Protocol {
+    private fun receivePresentationRequest(prover: Wallet): PresentProofProtocolV3 {
 
         val vpRequestEpm = mex.last
         val vpRequestMsg = mex.last.body as Message
         vpRequestEpm.checkMessageType(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION)
 
         log.info { "Prover (${prover.name}) received presentation request: ${vpRequestMsg.encodeJson(true)}" }
+
+        mex.placeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_ACK)
 
         mex.completeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION, mex.last)
 
@@ -421,7 +357,7 @@ class PresentProofV3Protocol(mex: MessageExchange): Protocol<PresentProofV3Proto
         return sendPresentation(prover, holderDid)
     }
 
-    private fun receivePresentationAck(prover: Wallet): PresentProofV3Protocol {
+    private fun receivePresentationAck(prover: Wallet): PresentProofProtocolV3 {
 
         val ackEpm = mex.last
         val ackMsg = mex.last.body as Message

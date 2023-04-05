@@ -114,12 +114,15 @@ data class Invitation(
 
     @Suppress("UNCHECKED_CAST")
     companion object {
-        val DEFAULT_ACCEPT = listOf("didcomm/v2") //, "didcomm/aip2;env=rfc587")
 
         fun fromUrl(url: URL): Invitation {
             return with(InputStreamReader(url.openStream())) {
-                fromMessage(Message.parse(readText().decodeJson()))
+                fromJson(readText())
             }
+        }
+
+        fun fromJson(json: String): Invitation {
+            return fromMessage(Message.parse(json.decodeJson()))
         }
 
         fun fromMessage(msg: Message): Invitation {
@@ -136,11 +139,11 @@ data class Invitation(
     private val didService get() = DidService.getService()
     private val modelService get() = ModelService.getService()
 
-    val diddoc: DidDoc
+    val diddoc: DidDocV1
         get() = run {
         val invitationDidDoc = attachments
             ?.firstOrNull { it.mediaType == DID_DOCUMENT_MEDIA_TYPE }
-            ?.let { DidDoc.fromAttachment(it) }
+            ?.let { DidDocV1.fromAttachment(it) }
             ?:let { didService.resolveDidDoc(from) }
         checkNotNull(invitationDidDoc) { "No invitation DidDoc" }
     }

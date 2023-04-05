@@ -21,21 +21,23 @@ package org.nessus.didcomm.service
 
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.protocol.BasicMessageProtocolV2
-import org.nessus.didcomm.protocol.IssueCredentialV3Protocol
-import org.nessus.didcomm.protocol.OutOfBandV2Protocol
-import org.nessus.didcomm.protocol.PresentProofV3Protocol
+import org.nessus.didcomm.protocol.IssueCredentialProtocolV3
+import org.nessus.didcomm.protocol.OutOfBandProtocolV2
+import org.nessus.didcomm.protocol.PresentProofProtocolV3
 import org.nessus.didcomm.protocol.Protocol
 import org.nessus.didcomm.protocol.ReportProblemProtocolV2
+import org.nessus.didcomm.protocol.RoutingProtocolV2
 import org.nessus.didcomm.protocol.TrustPingProtocolV2
 import org.nessus.didcomm.util.AttachmentKey
 import kotlin.reflect.KClass
 
 val TRUST_PING_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/trust-ping/2.0", TrustPingProtocolV2::class)
 val BASIC_MESSAGE_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/basicmessage/2.0", BasicMessageProtocolV2::class)
-val OUT_OF_BAND_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/out-of-band/2.0", OutOfBandV2Protocol::class)
-val ISSUE_CREDENTIAL_PROTOCOL_V3 = ProtocolKey("https://didcomm.org/issue-credential/3.0", IssueCredentialV3Protocol::class)
-val PRESENT_PROOF_PROTOCOL_V3 = ProtocolKey("https://didcomm.org/present_proof/3.0", PresentProofV3Protocol::class)
+val OUT_OF_BAND_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/out-of-band/2.0", OutOfBandProtocolV2::class)
+val ISSUE_CREDENTIAL_PROTOCOL_V3 = ProtocolKey("https://didcomm.org/issue-credential/3.0", IssueCredentialProtocolV3::class)
+val PRESENT_PROOF_PROTOCOL_V3 = ProtocolKey("https://didcomm.org/present_proof/3.0", PresentProofProtocolV3::class)
 val REPORT_PROBLEM_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/report-problem/2.0", ReportProblemProtocolV2::class)
+val ROUTING_PROTOCOL_V2 = ProtocolKey("https://didcomm.org/routing/2.0", RoutingProtocolV2::class)
 
 class ProtocolKey<T: Protocol<T>>(uri: String, type: KClass<T>): AttachmentKey<T>(uri, type) {
     val uri get() = this.name
@@ -47,11 +49,12 @@ object ProtocolService : ObjectService<ProtocolService>() {
 
     private val supportedProtocols: List<ProtocolKey<*>> get() = listOf(
 
-        TRUST_PING_PROTOCOL_V2,
         BASIC_MESSAGE_PROTOCOL_V2,
         ISSUE_CREDENTIAL_PROTOCOL_V3,
         OUT_OF_BAND_PROTOCOL_V2,
         PRESENT_PROOF_PROTOCOL_V3,
+        ROUTING_PROTOCOL_V2,
+        TRUST_PING_PROTOCOL_V2,
     )
 
     fun findProtocolKey(uri: String): ProtocolKey<*> {
@@ -64,11 +67,12 @@ object ProtocolService : ObjectService<ProtocolService>() {
     fun <T: Protocol<T>> getProtocol(key: ProtocolKey<T>, mex: MessageExchange): T {
         return when(key) {
 
-            TRUST_PING_PROTOCOL_V2 -> TrustPingProtocolV2(mex)
             BASIC_MESSAGE_PROTOCOL_V2 -> BasicMessageProtocolV2(mex)
-            ISSUE_CREDENTIAL_PROTOCOL_V3 -> IssueCredentialV3Protocol(mex)
-            OUT_OF_BAND_PROTOCOL_V2 -> OutOfBandV2Protocol(mex)
-            PRESENT_PROOF_PROTOCOL_V3 -> PresentProofV3Protocol(mex)
+            ISSUE_CREDENTIAL_PROTOCOL_V3 -> IssueCredentialProtocolV3(mex)
+            OUT_OF_BAND_PROTOCOL_V2 -> OutOfBandProtocolV2(mex)
+            PRESENT_PROOF_PROTOCOL_V3 -> PresentProofProtocolV3(mex)
+            ROUTING_PROTOCOL_V2 -> RoutingProtocolV2(mex)
+            TRUST_PING_PROTOCOL_V2 -> TrustPingProtocolV2(mex)
 
             else -> throw IllegalStateException("Unknown protocol: $key")
         } as T

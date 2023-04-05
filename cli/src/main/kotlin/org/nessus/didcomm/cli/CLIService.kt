@@ -20,7 +20,7 @@
 package org.nessus.didcomm.cli
 
 import mu.KotlinLogging
-import org.nessus.didcomm.service.PropertiesService.asString
+import org.nessus.didcomm.service.PropertiesService.getVar
 import org.nessus.didcomm.service.PropertiesService.putVar
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Did
@@ -68,7 +68,7 @@ object CLIService: AttachmentSupport() {
         val tokens = line.split(Regex("\\s"))
         return tokens.joinToString(separator = " ") { tok ->
             regex.matchEntire(tok)?.groupValues?.let { groups ->
-                val value = asString(groups[2])
+                val value = getVar(groups[2])
                 "${groups[1]}$value${groups[3]}"
             } ?: tok
         }

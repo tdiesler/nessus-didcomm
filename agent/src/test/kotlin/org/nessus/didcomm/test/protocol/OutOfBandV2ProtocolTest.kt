@@ -19,8 +19,10 @@
  */
 package org.nessus.didcomm.test.protocol
 
+import id.walt.common.resolveContent
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import mu.KotlinLogging
 import org.didcommx.didcomm.message.Message
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionState
@@ -28,7 +30,7 @@ import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.protocol.OutOfBandV2Protocol.Companion.OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
+import org.nessus.didcomm.protocol.OutOfBandProtocolV2.Companion.OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
 import org.nessus.didcomm.service.DidPeerOptions
 import org.nessus.didcomm.service.OUT_OF_BAND_PROTOCOL_V2
 import org.nessus.didcomm.test.AbstractAgentTest
@@ -42,6 +44,7 @@ import org.nessus.didcomm.util.trimJson
  * https://github.com/tdiesler/nessus-didcomm/tree/main/features/0434-oob-invitation
  */
 class OutOfBandV2ProtocolTest: AbstractAgentTest() {
+    private val log = KotlinLogging.logger {}
 
     @Test
     fun testOutOfBoundInvitation_DidKey() {
@@ -58,15 +61,13 @@ class OutOfBandV2ProtocolTest: AbstractAgentTest() {
 
             val mex = MessageExchange()
                 .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
-                .createOutOfBandInvitation(faber, inviterDid, mapOf(
-                    "goal_code" to "issue-vc",
+                .createOutOfBandInvitation(faber, inviterDid, options = mapOf(
                     "goal" to "Employment credential with Acme"))
                 .receiveOutOfBandInvitation(alice, inviteeDid, faber.name, faber.agentType.value)
                 .getMessageExchange()
 
             val invitation = mex.getInvitation() as Invitation
             invitation.type shouldBe OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
-            invitation.goalCode shouldBe "issue-vc"
             invitation.goal shouldBe "Employment credential with Acme"
 
             faber.findInvitation { it.id == invitation.id } shouldNotBe null
@@ -105,15 +106,13 @@ class OutOfBandV2ProtocolTest: AbstractAgentTest() {
 
             val mex = MessageExchange()
                 .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
-                .createOutOfBandInvitation(faber, inviterDid, mapOf(
-                    "goal_code" to "issue-vc",
+                .createOutOfBandInvitation(faber, inviterDid, options = mapOf(
                     "goal" to "Employment credential with Acme"))
                 .receiveOutOfBandInvitation(alice, inviteeDid, faber.name, faber.agentType.value)
                 .getMessageExchange()
 
             val invitation = mex.getInvitation() as Invitation
             invitation.type shouldBe OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
-            invitation.goalCode shouldBe "issue-vc"
             invitation.goal shouldBe "Employment credential with Acme"
 
             faber.findInvitation { it.id == invitation.id } shouldNotBe null
@@ -136,7 +135,7 @@ class OutOfBandV2ProtocolTest: AbstractAgentTest() {
     }
 
     @Test
-    fun testInvitationV2() {
+    fun invitationWithAttachment () {
 
         val exp = """
         {
@@ -164,9 +163,21 @@ class OutOfBandV2ProtocolTest: AbstractAgentTest() {
         """.trimJson()
 
         val expMsg: Message = exp.decodeMessage()
-        val inviV2: Invitation = Invitation.fromMessage(expMsg)
+        val inviV2 = Invitation.fromMessage(expMsg)
 
         val wasMsg: Message = inviV2.toMessage()
         wasMsg.toJSONObject() shouldBe expMsg.toJSONObject()
+    }
+
+
+    @Test
+    fun invitationDidPeer2 () {
+
+        val content = resolveContent("class:message/invitation-didpeer2.json")
+        val inviV2: Invitation = Invitation.fromJson(content)
+
+        val didDoc = inviV2.diddoc
+        log.info { didDoc.encodeJson(true) }
+        didDoc.serviceEndpoint shouldBe "http://host.docker.internal:9100"
     }
 }

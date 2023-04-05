@@ -76,8 +76,6 @@ class IssueCredentialV3CmdTest: AbstractCLITest() {
         cliService.execute("agent start").isSuccess shouldBe true
 
         val faber = modelService.findWalletByName("Faber") as Wallet
-        val alice = modelService.findWalletByName("Alice") as Wallet
-        val acme = modelService.findWalletByName("Acme") as Wallet
 
         try {
 

@@ -17,7 +17,6 @@
  * limitations under the License.
  * #L%
  */
-@file:Suppress("unused")
 
 package org.nessus.didcomm.service
 
@@ -35,11 +34,11 @@ import id.walt.crypto.encodeBase58
 import id.walt.crypto.getMulticodecKeyCode
 import id.walt.crypto.newKeyId
 import id.walt.model.DID_CONTEXT_URL
-import id.walt.model.ServiceEndpoint
 import id.walt.model.VerificationMethod
 import id.walt.services.did.DidService.storeDid
 import id.walt.services.keystore.KeyStoreService
 import mu.KotlinLogging
+import org.didcommx.didcomm.diddoc.DIDCommService
 import org.didcommx.peerdid.VerificationMaterialAgreement
 import org.didcommx.peerdid.VerificationMaterialAuthentication
 import org.didcommx.peerdid.VerificationMaterialFormatPeerDID
@@ -49,36 +48,45 @@ import org.didcommx.peerdid.createPeerDIDNumalgo0
 import org.didcommx.peerdid.createPeerDIDNumalgo2
 import org.didcommx.peerdid.isPeerDID
 import org.didcommx.peerdid.resolvePeerDID
-import org.nessus.didcomm.service.LazySodiumService.convertEd25519toRaw
+import org.nessus.didcomm.model.DEFAULT_ACCEPT
 import org.nessus.didcomm.model.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.Did.Companion.didMethod
-import org.nessus.didcomm.model.DidDoc
+import org.nessus.didcomm.model.DidDocV1
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.DidPeer
 import org.nessus.didcomm.model.KeyAlgorithm
+import org.nessus.didcomm.model.SicpaDidDoc
+import org.nessus.didcomm.model.WaltIdVerificationMethod
+import org.nessus.didcomm.model.toVerificationMethod
+import org.nessus.didcomm.service.LazySodiumService.convertEd25519toRaw
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeBase64
 import org.nessus.didcomm.util.encodeJson
-import org.nessus.didcomm.util.trimJson
 
-typealias WaltIdDidService = id.walt.services.did.DidService
-typealias WaltIdDidMethod = id.walt.model.DidMethod
+// These are actually used
+@Suppress("unused") typealias WaltIdDidService = id.walt.services.did.DidService
+@Suppress("unused") typealias WaltIdDidMethod = id.walt.model.DidMethod
+
 typealias WaltIdDidDoc = id.walt.model.Did
 typealias WaltIdDid = id.walt.model.Did
 
 /** Common Did document options */
 open class DidOptions(
-    val endpointUrl: String?,
+    val endpointUrl: String? = null,
+    val routingKeys: List<String>? = null,
+    val accept: List<String>? = null,
 ) {
-    override fun toString() = "DidOptions(endpointUrl=$endpointUrl)"
+    override fun toString() = "DidOptions(endpointUrl=$endpointUrl, routingKeys=$routingKeys, accept=$accept)"
 }
 
 class DidPeerOptions(
     val numalgo: Int = 0,
     endpointUrl: String? = null,
-): DidOptions(endpointUrl) {
-    override fun toString() = "DidPeerOptions(numalgo=$numalgo, endpointUrl=$endpointUrl)"
+    routingKeys: List<String>? = null,
+    accept: List<String>? = null,
+): DidOptions(endpointUrl, routingKeys, accept) {
+    override fun toString() = "DidPeerOptions(numalgo=$numalgo, endpointUrl=$endpointUrl, routingKeys=$routingKeys, accept=$accept)"
 }
 
 interface DidServicePlugin {
@@ -92,37 +100,6 @@ interface DidServicePlugin {
     fun deleteDid(did: Did) {}
 }
 
-fun WaltIdDidDoc.findServiceEndpoint(): String? {
-    return service?.firstOrNull()?.serviceEndpoint?.firstOrNull()
-}
-
-fun WaltIdDidDoc.withServiceEndpoint(uri: String, endpointUrl: String? = null) = apply {
-
-    // Check already existing serviceEndpoint
-    if (findServiceEndpoint() != null)
-        return this
-
-    // Use given endpointUrl or from a wallet (when found)
-    val serviceEndpoint = if (endpointUrl != null) {
-        endpointUrl
-    } else {
-        val modelService = ModelService.getService()
-        modelService.findWalletByDid(uri)?.endpointUrl
-    }
-
-    // Assign a new service endpoint
-    // Note, WaltIdDidDoc is mutable
-    if (serviceEndpoint != null) {
-        service = listOf(
-            ServiceEndpoint(
-                id = "$uri#didcomm-1",
-                type = "DIDCommMessaging",
-                serviceEndpoint = listOf(serviceEndpoint)
-            )
-        )
-    }
-}
-
 object DidService: ObjectService<DidService>() {
     val log = KotlinLogging.logger {}
 
@@ -132,13 +109,8 @@ object DidService: ObjectService<DidService>() {
     private val cryptoService get() = NessusCryptoService.getService()
     private val keyStore get() = KeyStoreService.getService()
 
-    private fun withPlugin(method: DidMethod): DidServicePlugin {
-        return when(method) {
-            DidMethod.KEY -> DidKeyPlugin
-            DidMethod.PEER -> DidPeerPlugin
-            DidMethod.SOV -> DidSovPlugin
-        }
-    }
+    // The ServiceEndpoint in WaltId is not rich enough to store all required properties
+    private val serviceMapping = mutableMapOf<String, List<DIDCommService>>()
 
     /**
      * A Did may be given an endpointUrl at create time, which is then stored as part of the DidDoc
@@ -150,11 +122,12 @@ object DidService: ObjectService<DidService>() {
     }
 
     fun deleteDid(did: Did) {
+        withPlugin(did.method).deleteDid(did)
+        serviceMapping.remove(did.uri)
         if (hasDid(did.uri)) {
             WaltIdDidService.deleteDid(did.uri)
             keyStore.getKeyId(did.uri)?.also { keyStore.delete(it) }
         }
-        withPlugin(did.method).deleteDid(did)
     }
 
     fun hasDid(uri: String): Boolean {
@@ -171,9 +144,9 @@ object DidService: ObjectService<DidService>() {
     /**
      * Loads a DidDoc that is required to exist in store
      */
-    fun loadDidDoc(uri: String): DidDoc {
+    fun loadDidDoc(uri: String): DidDocV1 {
         val waltDidDoc = withPlugin(didMethod(uri)).loadDidDoc(uri)
-        return DidDoc.fromWaltIdDidDoc(waltDidDoc.withServiceEndpoint(uri))
+        return toNessusDidDoc(waltDidDoc)
     }
 
     fun loadOrResolveDid(uri: String): Did? {
@@ -183,7 +156,7 @@ object DidService: ObjectService<DidService>() {
         }
     }
 
-    fun loadOrResolveDidDoc(uri: String): DidDoc? {
+    fun loadOrResolveDidDoc(uri: String): DidDocV1? {
         return when {
             hasDid(uri) -> loadDidDoc(uri)
             else -> resolveDidDoc(uri)
@@ -192,23 +165,32 @@ object DidService: ObjectService<DidService>() {
 
     fun resolveDid(uri: String): Did? {
         val waltDidDoc = withPlugin(didMethod(uri)).resolveDidDoc(uri)
-        return waltDidDoc?.let { didFromDidDoc(it) }
+        return waltDidDoc?.let { toNessusDid(it) }
     }
 
-    fun resolveDidDoc(uri: String): DidDoc? {
+    fun resolveDidDoc(uri: String): DidDocV1? {
         val waltDidDoc = withPlugin(didMethod(uri)).resolveDidDoc(uri)
-        return waltDidDoc?.let { DidDoc.fromWaltIdDidDoc(it.withServiceEndpoint(uri)) }
+        if (waltDidDoc != null && serviceMapping[uri] == null) {
+            val endpointUrl = modelService.findWalletByDid(uri)?.endpointUrl
+            val didCommServices = endpointUrl?.let {
+                generateDidCommServices(uri, DidOptions(it))
+            } ?: listOf()
+            putServiceMapping(uri, didCommServices)
+        }
+        return waltDidDoc?.let { toNessusDidDoc(it) }
     }
 
     fun importDid(did: Did): KeyId {
+        log.info { "Importing Did: ${did.encodeJson(true)}" }
         return withPlugin(did.method).importDid(did)
     }
 
-    fun importDidDoc(didDoc: DidDoc): KeyId {
+    fun importDidDoc(didDoc: DidDocV1): KeyId {
+        log.info { "Importing DidDoc: ${didDoc.encodeJson(true)}" }
         val method = didMethod(didDoc.id)
         val encodedDoc = didDoc.encodeJson()
         val waltDidDoc = WaltIdDidDoc.decode(encodedDoc)
-        checkNotNull(waltDidDoc?.findServiceEndpoint()) { "No serviceEndpoint in: ${waltDidDoc?.encodeJson()}" }
+        putServiceMapping(didDoc.id, didDoc.didCommServices)
         return withPlugin(method).importDidDoc(waltDidDoc!!)
     }
 
@@ -230,17 +212,20 @@ object DidService: ObjectService<DidService>() {
             val identifier = convertRawKeyToMultiBase58Btc(pubkeyBytes, getMulticodecKeyCode(waltKeyAlgorithm))
             val did = Did(identifier, DidMethod.KEY, verkey)
 
-            val waltDidDoc = WaltIdDidService.resolve(did.uri)
-            storeDid(waltDidDoc.withServiceEndpoint(did.uri, options?.endpointUrl))
+            val didCommServices = generateDidCommServices(did.uri, options)
+            putServiceMapping(did.uri, didCommServices)
 
-            val didDocV2 = DidDoc.fromWaltIdDidDoc(waltDidDoc)
-            appendKeyStoreAliases(keyId, did, didDocV2)
+            val waltDidDoc = WaltIdDidService.resolve(did.uri)
+            storeDid(waltDidDoc)
+
+            val didDocV1 = toNessusDidDoc(waltDidDoc)
+            appendKeyStoreAliases(keyId, did, didDocV1)
 
             return did
         }
 
         override fun loadDid(uri: String): Did {
-            return didFromDidDoc(loadDidDoc(uri))
+            return toNessusDid(loadDidDoc(uri))
         }
 
         override fun loadDidDoc(uri: String): WaltIdDid {
@@ -248,7 +233,7 @@ object DidService: ObjectService<DidService>() {
         }
 
         override fun resolveDid(uri: String): Did {
-            return didFromDidDoc(resolveDidDoc(uri))
+            return toNessusDid(resolveDidDoc(uri))
         }
 
         override fun resolveDidDoc(uri: String): WaltIdDid {
@@ -268,8 +253,8 @@ object DidService: ObjectService<DidService>() {
             storeDid(didDoc)
 
             // Store key aliases referenced from the DidDoc
-            val didDocV2 = DidDoc.fromWaltIdDidDoc(didDoc)
-            appendKeyStoreAliases(keyId, did, didDocV2)
+            val didDocV1 = toNessusDidDoc(didDoc)
+            appendKeyStoreAliases(keyId, did, didDocV1)
 
             return keyId
         }
@@ -277,7 +262,7 @@ object DidService: ObjectService<DidService>() {
         override fun importDidDoc(didDoc: WaltIdDidDoc): KeyId {
 
             // Construct the Did from the DidDoc
-            val did = didFromDidDoc(didDoc)
+            val did = toNessusDid(didDoc)
 
             // Store verification key
             WaltIdDidService.importDidAndKeys(did.uri)
@@ -287,8 +272,8 @@ object DidService: ObjectService<DidService>() {
             storeDid(didDoc)
 
             // Store key aliases referenced from the DidDoc
-            val didDocV2 = DidDoc.fromWaltIdDidDoc(didDoc)
-            appendKeyStoreAliases(keyId, did, didDocV2)
+            val didDocV1 = toNessusDidDoc(didDoc)
+            appendKeyStoreAliases(keyId, did, didDocV1)
 
             return keyId
         }
@@ -336,6 +321,10 @@ object DidService: ObjectService<DidService>() {
                         VerificationMethod(authenticationId, Ed25519VerificationKey2018.name, did.uri, publicKeyBase58 = publicSigningKey),
                         VerificationMethod(keyAgreementId, "X25519KeyAgreementKey2019", did.uri, publicKeyBase58 = publicEncryptionKey)
                     )
+
+                    val didCommServices = generateDidCommServices(did.uri, options)
+                    putServiceMapping(did.uri,  didCommServices)
+
                     val didDoc = WaltIdDidDoc(
                         id = did.uri,
                         context = DID_CONTEXT_URL,
@@ -347,16 +336,15 @@ object DidService: ObjectService<DidService>() {
                 }
 
                 2 -> {
-                    val service = options.endpointUrl?.let { endpointUrl ->
-                        """
-                        { 
-                            "type": "DIDCommMessaging", 
-                            "serviceEndpoint": "$endpointUrl" 
-                        }
-                        """.trimJson()
-                    }
-                    val did = didUriToDid(createPeerDIDNumalgo2(listOf(encryptionKey), listOf(signingKey), service))
-                    val didDoc = WaltIdDidDoc.decode(fixupDidDoc(resolvePeerDID(did.uri)))
+                    val service = mutableMapOf<String, Any>("type" to "DIDCommMessaging")
+                    options.endpointUrl?.also { service["serviceEndpoint"] = it }
+                    options.routingKeys?.also { service["routingKeys"] = it }
+
+                    val did = didUriToDid(createPeerDIDNumalgo2(listOf(encryptionKey), listOf(signingKey), service.encodeJson()))
+                    val sicpaDidDoc = SicpaDidDoc.fromJson(resolvePeerDID(did.uri))
+                    putServiceMapping(did.uri, sicpaDidDoc.didCommServices)
+
+                    val didDoc = WaltIdDidDoc.decode(fixupDidDoc(sicpaDidDoc))
                     Pair(did, didDoc)
                 }
 
@@ -366,17 +354,16 @@ object DidService: ObjectService<DidService>() {
             check(isPeerDID(did.uri)) { "Not a did:peer: ${did.uri}" }
             checkNotNull(waltDidDoc) { "Cannot resolve: ${did.uri}" }
 
-            storeDid(waltDidDoc.withServiceEndpoint(did.uri, options.endpointUrl))
             storeDid(waltDidDoc)
 
-            val didDocV2 = DidDoc.fromWaltIdDidDoc(waltDidDoc)
-            appendKeyStoreAliases(keyId, did, didDocV2)
+            val didDocV1 = toNessusDidDoc(waltDidDoc)
+            appendKeyStoreAliases(keyId, did, didDocV1)
 
             return did
         }
 
         override fun loadDid(uri: String): DidPeer {
-            val did = didFromDidDoc(loadDidDoc(uri))
+            val did = toNessusDid(loadDidDoc(uri))
             return DidPeer(did.id, did.method, did.verkey)
         }
 
@@ -385,11 +372,14 @@ object DidService: ObjectService<DidService>() {
         }
 
         override fun resolveDid(uri: String): Did? {
-            return resolveDidDoc(uri)?.let { didFromDidDoc(it) }
+            return resolveDidDoc(uri)?.let { toNessusDid(it) }
         }
 
         override fun resolveDidDoc(uri: String): WaltIdDidDoc? {
-            val peerDidDoc = fixupDidDoc(resolvePeerDID(uri))
+            val sicpaDidDoc = SicpaDidDoc.fromJson(resolvePeerDID(uri))
+            if (getServiceEndpoint(sicpaDidDoc) != null)
+                putServiceMapping(uri, sicpaDidDoc.didCommServices)
+            val peerDidDoc = fixupDidDoc(sicpaDidDoc)
             return WaltIdDidDoc.decode(peerDidDoc)
         }
 
@@ -401,15 +391,19 @@ object DidService: ObjectService<DidService>() {
                 storePubkeyBytes(pubkeyBytes)
             }
 
+            val sicpaDidDoc = SicpaDidDoc.fromJson(resolvePeerDID(did.uri))
+            if (getServiceEndpoint(sicpaDidDoc) != null)
+                putServiceMapping(did.uri, sicpaDidDoc.didCommServices)
+
             // Generate WaltIdDidDoc
-            val didDoc =  WaltIdDidDoc.decode(resolvePeerDID(did.uri))
+            val didDoc =  WaltIdDidDoc.decode(sicpaDidDoc.encodeJson())
 
             // Store the generated DidDoc
             storeDid(didDoc!!)
 
             // Store key aliases referenced from the DidDoc
-            val didDocV2 = DidDoc.fromWaltIdDidDoc(didDoc)
-            appendKeyStoreAliases(keyId, did, didDocV2)
+            val didDocV1 = toNessusDidDoc(didDoc)
+            appendKeyStoreAliases(keyId, did, didDocV1)
 
             return keyId
         }
@@ -417,7 +411,7 @@ object DidService: ObjectService<DidService>() {
         override fun importDidDoc(didDoc: WaltIdDidDoc): KeyId {
 
             // Construct the Did from the DidDoc
-            val did = didFromDidDoc(didDoc)
+            val did = toNessusDid(didDoc)
 
             // Store verification key
             val keyId = keyStore.getKeyId(did.uri)?.let { KeyId(it) } ?: run {
@@ -429,32 +423,24 @@ object DidService: ObjectService<DidService>() {
             storeDid(didDoc)
 
             // Store key aliases referenced from the DidDoc
-            val didDocV2 = DidDoc.fromWaltIdDidDoc(didDoc)
-            appendKeyStoreAliases(keyId, did, didDocV2)
+            val didDocV1 = toNessusDidDoc(didDoc)
+            appendKeyStoreAliases(keyId, did, didDocV1)
 
             return keyId
         }
 
         // Did Document @context not optional in WaltId
         // https://github.com/walt-id/waltid-ssikit/issues/251
-        private fun fixupDidDoc(didDoc: String): String {
-            val decoded = didDoc.decodeJson().toMutableMap()
+        private fun fixupDidDoc(didDoc: SicpaDidDoc): String {
+            val decoded = didDoc.encodeJson().decodeJson().toMutableMap()
             if ("@context" !in decoded) {
                 decoded["@context"] = DID_CONTEXT_URL
             }
             return decoded.encodeJson()
         }
 
-        private fun resolveFromKey(key: Key): WaltIdDid {
-
-            val pubkeyBytes = key.getPublicKey().convertEd25519toRaw()
-            val identifier = convertRawKeyToMultiBase58Btc(pubkeyBytes, getMulticodecKeyCode(key.algorithm))
-            val verkey = pubkeyBytes.encodeBase58()
-
-            val did = Did("0$identifier", DidMethod.PEER, verkey)
-
-            return generateWaltIdDidDoc(did, pubkeyBytes)
-        }
+        private fun getServiceEndpoint(didDoc: SicpaDidDoc) =
+            didDoc.didCommServices.map { it.serviceEndpoint }.firstOrNull()
     }
 
     object DidSovPlugin: DidServicePlugin {
@@ -473,17 +459,20 @@ object DidService: ObjectService<DidService>() {
 
             val did = Did(identifier, DidMethod.SOV, verkey)
 
-            val waltDidDoc = generateWaltIdDidDoc(did, pubkeyBytes)
-            storeDid(waltDidDoc.withServiceEndpoint(did.uri, options?.endpointUrl))
+            val didCommServices = generateDidCommServices(did.uri, options)
+            putServiceMapping(did.uri, didCommServices)
 
-            val didDocV2 = DidDoc.fromWaltIdDidDoc(waltDidDoc)
-            appendKeyStoreAliases(keyId, did, didDocV2)
+            val waltDidDoc = generateWaltIdDidDoc(did, pubkeyBytes)
+            storeDid(waltDidDoc)
+
+            val didDocV1 = toNessusDidDoc(waltDidDoc)
+            appendKeyStoreAliases(keyId, did, didDocV1)
 
             return did
         }
 
         override fun loadDid(uri: String): Did {
-            return didFromDidDoc(loadDidDoc(uri))
+            return toNessusDid(loadDidDoc(uri))
         }
 
         override fun loadDidDoc(uri: String): WaltIdDid {
@@ -491,7 +480,7 @@ object DidService: ObjectService<DidService>() {
         }
 
         override fun resolveDid(uri: String): Did? {
-            return resolveDidDoc(uri)?.let { didFromDidDoc(it) }
+            return resolveDidDoc(uri)?.let { toNessusDid(it) }
         }
 
         override fun resolveDidDoc(uri: String): WaltIdDid? {
@@ -516,8 +505,8 @@ object DidService: ObjectService<DidService>() {
             storeDid(didDoc)
 
             // Store key aliases referenced from the DidDoc
-            val didDocV2 = DidDoc.fromWaltIdDidDoc(didDoc)
-            appendKeyStoreAliases(keyId, did, didDocV2)
+            val didDocV1 = toNessusDidDoc(didDoc)
+            appendKeyStoreAliases(keyId, did, didDocV1)
 
             return keyId
         }
@@ -525,7 +514,7 @@ object DidService: ObjectService<DidService>() {
         override fun importDidDoc(didDoc: WaltIdDidDoc): KeyId {
 
             // Construct the Did from the DidDoc
-            val did = didFromDidDoc(didDoc)
+            val did = toNessusDid(didDoc)
 
             // Store verification key
             val keyId = keyStore.getKeyId(did.uri)?.let { KeyId(it) } ?: run {
@@ -537,8 +526,8 @@ object DidService: ObjectService<DidService>() {
             storeDid(didDoc)
 
             // Store key aliases referenced from the DidDoc
-            val didDocV2 = DidDoc.fromWaltIdDidDoc(didDoc)
-            appendKeyStoreAliases(keyId, did, didDocV2)
+            val didDocV1 = toNessusDidDoc(didDoc)
+            appendKeyStoreAliases(keyId, did, didDocV1)
 
             return keyId
         }
@@ -556,7 +545,7 @@ object DidService: ObjectService<DidService>() {
         }
     }
 
-    private fun appendKeyStoreAliases(keyId: KeyId, did: Did, didDoc: DidDoc) {
+    private fun appendKeyStoreAliases(keyId: KeyId, did: Did, didDoc: DidDocV1) {
         appendKeyStoreAliases(keyId, did, didDoc.verificationMethods.map { vm -> vm.id })
     }
 
@@ -568,17 +557,19 @@ object DidService: ObjectService<DidService>() {
         verificationMethodKeyIds?.forEach { kid -> keyStore.addAlias(keyId, kid) }
     }
 
-    private fun storePubkeyBytes(pubkeyBytes: ByteArray): KeyId {
-        val key = buildKey(
-            keyId = newKeyId().id,
-            algorithm = "EdDSA_Ed25519",
-            provider = "SUN",
-            publicPart = pubkeyBytes.encodeBase64(),
-            privatePart = null,
-            format = KeyFormat.BASE64_RAW
-        )
-        keyStore.store(key)
-        return key.keyId
+    private fun generateDidCommServices(uri: String, options: DidOptions?): List<DIDCommService> {
+        val didCommServices = mutableListOf<DIDCommService>()
+        options?.also {
+            val endpointUrl = options.endpointUrl
+            checkNotNull(endpointUrl) { "No endpointUrl in: $options" }
+            didCommServices.add(DIDCommService(
+                id = uri,
+                serviceEndpoint = endpointUrl,
+                routingKeys = options.routingKeys ?: listOf(),
+                accept = options.accept ?: DEFAULT_ACCEPT,
+            ))
+        }
+        return didCommServices
     }
 
     private fun generateWaltIdDidDoc(did: Did, pubKey: ByteArray): WaltIdDidDoc {
@@ -613,7 +604,28 @@ object DidService: ObjectService<DidService>() {
             verificationMethods)
     }
 
-    private fun didFromDidDoc(didDoc: WaltIdDidDoc): Did {
+    private fun putServiceMapping(uri: String, services: List<DIDCommService>) {
+        val existing = serviceMapping[uri]
+        if (existing != null && existing != services) {
+            log.warn { "Updating service mapping: $existing => $services" }
+        }
+        serviceMapping[uri] = services
+    }
+
+    private fun storePubkeyBytes(pubkeyBytes: ByteArray): KeyId {
+        val key = buildKey(
+            keyId = newKeyId().id,
+            algorithm = "EdDSA_Ed25519",
+            provider = "SUN",
+            publicPart = pubkeyBytes.encodeBase64(),
+            privatePart = null,
+            format = KeyFormat.BASE64_RAW
+        )
+        keyStore.store(key)
+        return key.keyId
+    }
+
+    private fun toNessusDid(didDoc: WaltIdDidDoc): Did {
         val verificationMethod = didDoc.authentication?.firstOrNull { it.type.startsWith("Ed25519") }
             ?: didDoc.verificationMethod?.firstOrNull { it.type.startsWith("Ed25519") }
         checkNotNull(verificationMethod) {"No suitable verification method: ${didDoc.encode()}"}
@@ -629,6 +641,43 @@ object DidService: ObjectService<DidService>() {
         }
         checkNotNull(verkey) {"No verkey in: ${verificationMethod.id}"}
         return Did.fromUri(verificationMethod.controller, verkey)
+    }
+
+    private fun toNessusDidDoc(docDoc: WaltIdDidDoc): DidDocV1 {
+
+        val verificationMethods = mutableListOf<WaltIdVerificationMethod>()
+        docDoc.verificationMethod?.also { verificationMethods.addAll(it) }
+
+        fun visitVerificationMethod(vm: WaltIdVerificationMethod): String {
+            if (!vm.isReference)
+                verificationMethods.add(vm)
+            return vm.id
+        }
+
+        // All plugins are supposed to store the DIDCommService at create/import time
+        val didCommServices = serviceMapping[docDoc.id]
+        checkNotNull(didCommServices) { "No services for ${docDoc.id}" }
+
+        return DidDocV1(
+            docDoc.id,
+            context = docDoc.context?.let { docDoc.context } ?: listOf(),
+            alsoKnownAs = listOf(),
+            controller = listOf(),
+            authentications = docDoc.authentication?.map { visitVerificationMethod(it) } ?: listOf(),
+            assertionMethods = docDoc.assertionMethod?.map { visitVerificationMethod(it) } ?: listOf(),
+            keyAgreements = docDoc.keyAgreement?.map { visitVerificationMethod(it) } ?: listOf(),
+            capabilityInvocations = docDoc.capabilityInvocation?.map { visitVerificationMethod(it) } ?: listOf(),
+            capabilityDelegations = docDoc.capabilityDelegation?.map { visitVerificationMethod(it) } ?: listOf(),
+            verificationMethods = verificationMethods.map { it.toVerificationMethod() },
+            didCommServices = didCommServices)
+    }
+
+    private fun withPlugin(method: DidMethod): DidServicePlugin {
+        return when(method) {
+            DidMethod.KEY -> DidKeyPlugin
+            DidMethod.PEER -> DidPeerPlugin
+            DidMethod.SOV -> DidSovPlugin
+        }
     }
 }
 

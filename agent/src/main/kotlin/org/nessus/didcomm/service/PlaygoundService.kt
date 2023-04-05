@@ -26,6 +26,7 @@ import org.apache.camel.Exchange
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.util.Holder
+import org.nessus.didcomm.util.ellipsis
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.parameterMap
 import java.net.URI
@@ -67,8 +68,7 @@ object PlaygroundService: ObjectService<PlaygroundService>() {
 
         val invitation = MessageExchange()
             .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
-            .createOutOfBandInvitation(inviter, inviterDid, mapOf(
-                "goal_code" to "issue-vc",
+            .createOutOfBandInvitation(inviter, inviterDid, options = mapOf(
                 "goal" to "Invitation from ${inviter.name}"))
             .getMessageExchange()
             .getInvitation()
@@ -132,38 +132,39 @@ object PlaygroundService: ObjectService<PlaygroundService>() {
         return fromTemplate("class:playground/index.html",
             context.withVcTemplates())
     }
-}
 
-class Context(init: Map<String, Any>): LinkedHashMap<String, Any>(init) {
+    class Context(init: Map<String, Any>): LinkedHashMap<String, Any>(init) {
 
-    private val modelService get() = ModelService.getService()
-    private val templateService get() = VcTemplateService.getService()
+        private val modelService get() = ModelService.getService()
+        private val templateService get() = VcTemplateService.getService()
 
-    init {
-        val buildNumber = resolveContent("class:buildNumber.txt")
-        val nessusVersion = resolveContent("class:version.txt")
-        put("buildNumber", buildNumber)
-        put("nessusVersion", nessusVersion)
-    }
+        init {
+            val buildNumber = resolveContent("class:buildNumber.txt")
+            val nessusVersion = resolveContent("class:version.txt")
+            put("buildNumber", buildNumber)
+            put("nessusVersion", nessusVersion)
+            put("method", "key")
+        }
 
-    fun withVcTemplates() = apply {
-        val vcTemplates = templateService.listTemplates().sortedBy { it.name }
-            .joinToString(separator = "\n") { t ->
-                "<li><a href='/template?name=${t.name}'>${t.name}</a>"
-            }
-        put("vcTemplates", vcTemplates)
-    }
+        fun withVcTemplates() = apply {
+            val vcTemplates = templateService.listTemplates().sortedBy { it.name }
+                .joinToString(separator = "\n") { t ->
+                    "<li><a href='/template?name=${t.name}'>${t.name}</a>"
+                }
+            put("vcTemplates", vcTemplates)
+        }
 
-    fun withWalletDids() = apply {
-        val method = get("method") as String
-        val walletDids = modelService.wallets
-            .filter { w -> w.dids.isNotEmpty() }
-            .map { w -> Pair(w, w.dids.find { d -> d.method == DidMethod.fromValue(method) }) }
-            .joinToString(separator = "\n") { (w, d) ->
-                put("${w.name}.Did", d!!.uri)
-                "<tr><td><b>${w.name}</b></td><td class='code'>${d.uri}</td><td><a href='/message/invitation?inviter=${w.name}&method=$method'>invitation</a></td></tr>"
-            }
+        fun withWalletDids() = apply {
+            val method = get("method") as String
+            val walletDids = modelService.wallets
+                .filter { w -> w.dids.any { d -> d.method == DidMethod.fromValue(method) } }
+                .map { w -> Pair(w, w.dids.first { d -> d.method == DidMethod.fromValue(method) }) }
+                .joinToString(separator = "\n") { (w, d) ->
+                    put("${w.name}.Did", d.uri)
+                    "<tr><td><b>${w.name}</b></td><td class='code'>${d.uri.ellipsis(24)}</td><td><a href='/message/invitation?inviter=${w.name}&method=$method'>invitation</a></td></tr>"
+                }
 
-        put("walletDids", walletDids)
+            put("walletDids", walletDids)
+        }
     }
 }

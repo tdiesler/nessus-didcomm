@@ -21,15 +21,16 @@ package org.nessus.didcomm.test.protocol
 
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.Did
+import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
 import org.nessus.didcomm.service.OUT_OF_BAND_PROTOCOL_V2
+import org.nessus.didcomm.service.PropertiesService.PROTOCOL_TRUST_PING_ROTATE_DID
 import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
-import org.nessus.didcomm.test.NESSUS_OPTIONS
 import org.nessus.didcomm.util.Holder
 import org.nessus.didcomm.util.decodeJson
 
@@ -48,7 +49,7 @@ class IssueCredentialV3ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
 
     @BeforeAll
     fun startAgent() {
-        startNessusEndpoint(NESSUS_OPTIONS)
+        startNessusEndpoint()
         val faber = Wallet.Builder(Faber.name).build()
         val alice = Wallet.Builder(Alice.name).build()
         contextHolder.value = Context(faber = faber, alice = alice)
@@ -73,9 +74,10 @@ class IssueCredentialV3ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
 
         val mex = MessageExchange()
             .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
-            .createOutOfBandInvitation(faber)
+            .createOutOfBandInvitation(faber, didMethod = DidMethod.PEER)
             .receiveOutOfBandInvitation(alice, inviterAlias = faber.name)
 
+            .withProperty(PROTOCOL_TRUST_PING_ROTATE_DID, false)
             .withProtocol(TRUST_PING_PROTOCOL_V2)
             .sendTrustPing()
             .awaitTrustPingResponse()
@@ -147,6 +149,7 @@ class IssueCredentialV3ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
             .createOutOfBandInvitation(faber)
             .receiveOutOfBandInvitation(alice, inviterAlias = faber.name)
 
+            .withProperty(PROTOCOL_TRUST_PING_ROTATE_DID, false)
             .withProtocol(TRUST_PING_PROTOCOL_V2)
             .sendTrustPing()
             .awaitTrustPingResponse()

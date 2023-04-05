@@ -21,6 +21,7 @@ package org.nessus.didcomm.protocol
 
 import id.walt.services.keystore.KeyStoreService
 import mu.KLogger
+import org.didcommx.didcomm.message.Message
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.MessageExchange
@@ -49,7 +50,6 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     val properties get() = PropertiesService.getService()
 
     val didService get() = DidService.getService()
-    val didComm get() = DidCommService.getService()
     val didResolverService get() = DidDocResolverService.getService()
     val dispatchService get() = MessageDispatchService.getService()
     val keyStore get() = KeyStoreService.getService()
@@ -66,10 +66,6 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
         throw IllegalStateException("Dispatch not supported in protocol: $protocolUri")
     }
 
-    fun <T :Protocol<T>> withProtocol(key: ProtocolKey<T>): T {
-        return mex.withProtocol(key)
-    }
-
     fun getMessageExchange(): MessageExchange {
         return mex
     }
@@ -78,11 +74,23 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
         return mex.getConnection()
     }
 
-    @Suppress("UNCHECKED_CAST")
-    fun dispatchToEndpoint(url: String?, epm: EndpointMessage): T {
-        requireNotNull(url) { "No endpoint url" }
-        check(epm.messageDirection == MessageDirection.OUT) { "Unexpected message direction: ${epm.messageDirection}" }
-        dispatchService.dispatchToEndpoint(url, epm)
-        return this as T
+    fun dispatchPlainMessage(pcon: Connection, msg: Message, fromPrior: String? = null, consumer: (EndpointMessage) -> Unit) {
+        dispatchService.dispatchPlainMessage(pcon, msg, fromPrior, consumer)
+    }
+
+    fun dispatchSignedMessage(pcon: Connection, msg: Message, fromPrior: String? = null, consumer: (EndpointMessage) -> Unit) {
+        dispatchService.dispatchSignedMessage(pcon, msg, fromPrior, consumer)
+    }
+
+    fun dispatchEncryptedMessage(pcon: Connection, msg: Message, fromPrior: String? = null, consumer: (EndpointMessage) -> Unit) {
+        dispatchService.dispatchEncryptedMessage(pcon, msg, fromPrior, consumer)
+    }
+
+    fun withProperty(key: String, value: Any) = apply {
+        properties.putVar(key, value)
+    }
+
+    fun <T :Protocol<T>> withProtocol(key: ProtocolKey<T>): T {
+        return mex.withProtocol(key)
     }
 }

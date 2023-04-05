@@ -28,7 +28,8 @@ import org.nessus.didcomm.service.DidCommService
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.EndpointService
 import org.nessus.didcomm.service.MessageDispatchService
-import org.nessus.didcomm.service.MessageDispatcher
+import org.nessus.didcomm.service.MessageReceiver
+import org.nessus.didcomm.service.MessageReceiverService
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.NessusAuditorService
 import org.nessus.didcomm.service.NessusCryptoService
@@ -99,6 +100,7 @@ abstract class AbstractAgentTest: AnnotationSpec() {
     val keyStore get() = KeyStoreService.getService()
     val modelService get() = ModelService.getService()
     val policyService get() = NessusPolicyRegistryService.getService()
+    val receiverService get() = MessageReceiverService.getService()
     val secretResolver get() = SecretResolverService.getService()
     val signatory get() = NessusSignatoryService.getService()
     val templateService get() = VcTemplateService.getService()
@@ -112,9 +114,9 @@ abstract class AbstractAgentTest: AnnotationSpec() {
         return url.readText()
     }
 
-    fun startNessusEndpoint(options: Map<String, Any>, listener: MessageDispatcher? = null): AutoCloseable {
-        val endpointUrl = getEndpointUrl(options)
-        val handle = endpointService.startEndpoint(endpointUrl, listener)
+    fun startNessusEndpoint(listener: MessageReceiver? = null): AutoCloseable {
+        val effectiveEndpointUrl = getEndpointUrl()
+        val handle = endpointService.startEndpoint(effectiveEndpointUrl, listener)
         endpointHandle.set(handle)
         return handle
     }

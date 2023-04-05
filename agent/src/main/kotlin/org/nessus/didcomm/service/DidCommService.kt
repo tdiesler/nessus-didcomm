@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.service
 
+import mu.KotlinLogging
 import org.didcommx.didcomm.DIDComm
 import org.didcommx.didcomm.model.PackEncryptedParams
 import org.didcommx.didcomm.model.PackEncryptedResult
@@ -30,6 +31,7 @@ import org.didcommx.didcomm.model.UnpackParams
 import org.didcommx.didcomm.model.UnpackResult
 
 object DidCommService: ObjectService<DidCommService>() {
+    val log = KotlinLogging.logger {}
 
     override fun getService() = apply { }
 
@@ -38,19 +40,27 @@ object DidCommService: ObjectService<DidCommService>() {
     private val didComm get() = DIDComm(didDocResolver, secretResolver)
 
     fun packPlaintext(params: PackPlaintextParams): PackPlaintextResult {
-        return didComm.packPlaintext(params)
+        return runCatching { didComm.packPlaintext(params) }
+            .onFailure { th -> log.error(th) { "Error packing: ${params.message}" } }
+            .getOrThrow()
     }
 
     fun packSigned(params: PackSignedParams): PackSignedResult {
-        return didComm.packSigned(params)
+        return runCatching { didComm.packSigned(params) }
+            .onFailure { th -> log.error(th) { "Error packing: ${params.message}" } }
+            .getOrThrow()
     }
 
     fun packEncrypted(params: PackEncryptedParams): PackEncryptedResult {
-        return didComm.packEncrypted(params)
+        return runCatching { didComm.packEncrypted(params) }
+            .onFailure { th -> log.error(th) { "Error packing: ${params.message}" } }
+            .getOrThrow()
     }
 
     fun unpack(params: UnpackParams): UnpackResult {
-        return didComm.unpack(params)
+        return runCatching { didComm.unpack(params) }
+            .onFailure { th -> log.error(th) { "Error unpacking: ${params.packedMessage}" } }
+            .getOrThrow()
     }
 }
 

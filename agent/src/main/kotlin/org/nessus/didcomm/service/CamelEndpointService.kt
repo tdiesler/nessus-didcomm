@@ -28,24 +28,26 @@ import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.util.encodeJson
 import java.io.PrintWriter
 import java.io.StringWriter
+import java.net.HttpURLConnection.HTTP_INTERNAL_ERROR
+import java.net.HttpURLConnection.HTTP_OK
 
 class CamelEndpointService: EndpointService<CamelContext>() {
     private val log = KotlinLogging.logger {}
 
     private val playground get() = PlaygroundService.getService()
+    private val receiverService get() = MessageReceiverService.getService()
 
-    override fun startEndpoint(endpointUrl: String, listener: MessageDispatcher?): CamelContext {
+    override fun startEndpoint(endpointUrl: String, dispatcher: MessageReceiver?): CamelContext {
         log.info("Starting Camel endpoint on: $endpointUrl")
         val camelctx: CamelContext = DefaultCamelContext()
-        val dispatcher = listener ?: MessageDispatchService.getService()
         camelctx.addRoutes(object: RouteBuilder(camelctx) {
             override fun configure() {
                 from("undertow:$endpointUrl?matchOnUriPrefix=true")
                     .process { exchange ->
                         val headers = exchange.message.headers
                         when(val httpMethod = headers["CamelHttpMethod"]) {
-                            "GET" -> handleHttpGet(exchange)
-                            "POST" -> handleHttpPost(exchange, dispatcher)
+                            "GET" -> processHttpGet(exchange)
+                            "POST" -> processHttpPost(exchange, dispatcher)
                             else -> throw IllegalStateException("Unsupported HTTP method: $httpMethod")
                         }
                     }
@@ -57,7 +59,7 @@ class CamelEndpointService: EndpointService<CamelContext>() {
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun handleHttpGet(exchange: Exchange) {
+    private fun processHttpGet(exchange: Exchange) {
         val headers = exchange.message.headers
         when(headers["CamelHttpUri"]) {
             "/message/invitation" -> playground.showInvitation(exchange)
@@ -67,7 +69,7 @@ class CamelEndpointService: EndpointService<CamelContext>() {
         }
     }
 
-    private fun handleHttpPost(exchange: Exchange, dispatcher: MessageDispatcher) {
+    private fun processHttpPost(exchange: Exchange, messageReceiver: MessageReceiver?) {
         val headers = exchange.message.headers
         val body = exchange.message.getBody(String::class.java)
         checkNotNull(body) { "No message body" }
@@ -75,9 +77,12 @@ class CamelEndpointService: EndpointService<CamelContext>() {
             val epm = EndpointMessage.Builder(body, headers)
                 .inbound()
                 .build()
-            dispatcher.invoke(epm)
+            (messageReceiver ?: receiverService).invoke(epm)
+            headers[Exchange.HTTP_RESPONSE_CODE] = HTTP_OK
+            headers[Exchange.CONTENT_TYPE] = "application/json"
+            exchange.message.body = "{}"
         }.onFailure { th ->
-            headers[Exchange.HTTP_RESPONSE_CODE] = 500 // Internal Server Error
+            headers[Exchange.HTTP_RESPONSE_CODE] = HTTP_INTERNAL_ERROR // Internal Server Error
             headers[Exchange.CONTENT_TYPE] = "application/json"
             val sw = StringWriter()
             th.printStackTrace(PrintWriter(sw))

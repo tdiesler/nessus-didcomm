@@ -21,53 +21,82 @@ package org.nessus.didcomm.service
 
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
-import okhttp3.MediaType.Companion.toMediaType
-import org.didcommx.didcomm.common.Typ.Encrypted
-import org.didcommx.didcomm.common.Typ.Plaintext
-import org.didcommx.didcomm.common.Typ.Signed
+import org.didcommx.didcomm.common.Typ
+import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
-import org.didcommx.didcomm.model.UnpackParams
-import org.nessus.didcomm.model.ConnectionState
-import org.nessus.didcomm.model.Did
-import org.nessus.didcomm.model.MessageExchange
-import org.nessus.didcomm.model.Wallet
+import org.didcommx.didcomm.model.PackEncryptedParams
+import org.didcommx.didcomm.model.PackPlaintextParams
+import org.didcommx.didcomm.model.PackSignedParams
+import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.protocol.EndpointMessage
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_PROTOCOL_URI
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_RECIPIENT_DID
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_SENDER_DID
-import org.nessus.didcomm.protocol.TrustPingProtocolV2.Companion.TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2
-import org.nessus.didcomm.protocol.TrustPingProtocolV2.Companion.TRUST_PING_MESSAGE_TYPE_PING_V2
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_ENDPOINT_URL
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_ID
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_THID
+import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
+import org.nessus.didcomm.protocol.ForwardMessageV2
+import org.nessus.didcomm.protocol.RoutingProtocolV2.Companion.ROUTING_MESSAGE_TYPE_FORWARD_V2
 import org.nessus.didcomm.util.NessusRuntimeException
+import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
-import org.nessus.didcomm.util.matches
-
-typealias MessageDispatcher = (msg: EndpointMessage) -> MessageExchange?
+import java.util.UUID
 
 /**
- * The MessageDispatchService is the entry point for all messages
+ * The MessageDispatchService handles all outgoing messages
  */
-object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageDispatcher {
+object MessageDispatchService: ObjectService<MessageDispatchService>() {
     private val log = KotlinLogging.logger {}
 
     override fun getService() = apply { }
 
+    private val didComm get() = DidCommService.getService()
     private val didService get() = DidService.getService()
     private val httpService get() = HttpService.getService()
-    private val modelService get() = ModelService.getService()
-    private val protocolService get() = ProtocolService.getService()
 
-    /**
-     * Entry point for all external messages sent to the agent
-     */
-    override fun invoke(epm: EndpointMessage): MessageExchange? {
-        val contentType = epm.headers["Content-Type"] as? String
-        checkNotNull(contentType) { "No 'Content-Type' header"}
-        return dispatchDidCommV2Envelope(epm, contentType)
+    fun dispatchPlainMessage(pcon: Connection, origMsg: Message, fromPrior: String? = null, consumer: (EndpointMessage) -> Unit) {
+
+        val builder = PackPlaintextParams.builder(origMsg)
+        fromPrior?.also { builder.fromPriorIssuerKid(it) }
+
+        val packResult = didComm.packPlaintext(builder.build())
+
+        val ctx = DispatchContext(pcon, origMsg, packResult.packedMessage)
+        consumer(ctx.packedEpm)
+
+        dispatchToRemoteEndpoint(ctx)
     }
 
-    fun dispatchToEndpoint(url: String, epm: EndpointMessage): Boolean {
+    fun dispatchSignedMessage(pcon: Connection, origMsg: Message, fromPrior: String? = null, consumer: (EndpointMessage) -> Unit) {
+
+        val builder = PackSignedParams.builder(origMsg, pcon.myDid.uri)
+        fromPrior?.also { builder.fromPriorIssuerKid(it) }
+
+        val packResult = didComm.packSigned(builder.build())
+
+        val ctx = DispatchContext(pcon, origMsg, packResult.packedMessage)
+        consumer(ctx.packedEpm)
+
+        dispatchToRemoteEndpoint(ctx)
+    }
+
+    fun dispatchEncryptedMessage(pcon: Connection, origMsg: Message, fromPrior: String? = null, consumer: (EndpointMessage) -> Unit) {
+
+        val builder = PackEncryptedParams.builder(origMsg, pcon.theirDid.uri)
+            .signFrom(pcon.myDid.uri)
+            .from(pcon.myDid.uri)
+            .forward(false)
+        fromPrior?.also { builder.fromPriorIssuerKid(it) }
+
+        val packResult = didComm.packEncrypted(builder.build())
+        val ctx = DispatchContext(pcon, origMsg, packResult.packedMessage)
+
+        consumer(ctx.packedEpm)
+
+        dispatchToRemoteEndpoint(ctx)
+    }
+
+    fun dispatchToRemoteEndpoint(endpointUrl: String, epm: EndpointMessage): Boolean {
         val httpClient = httpService.httpClient()
-        val res = httpClient.post(url, epm.body, headers = epm.headers.mapValues { (_, v) -> v.toString() })
+        val res = httpClient.post(endpointUrl, epm.body, headers = epm.headers.mapValues { (_, v) -> v.toString() })
         if (!res.isSuccessful) {
             val error = res.body?.string()
             log.error { error?.prettyPrint() }
@@ -81,85 +110,97 @@ object MessageDispatchService: ObjectService<MessageDispatchService>(), MessageD
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    /**
-     * Routes the message to a given target wallet through it's associated protocol.
-     */
-    private fun dispatchToWallet(target: Wallet, mex: MessageExchange): Boolean {
-
-        val protocolUri = mex.last.protocolUri
-        val messageType = mex.last.type
-        checkNotNull(protocolUri) { "No protocol uri" }
-        checkNotNull(messageType) { "No message type" }
-
-        val protocolService = ProtocolService.getService()
-        val key = protocolService.findProtocolKey(protocolUri)
-        val protocol = protocolService.getProtocol(key, mex)
-        return protocol.invokeMethod(target, messageType)
-    }
-
-    private fun dispatchDidCommV2Envelope(epm: EndpointMessage, contentType: String): MessageExchange? {
-        check(setOf(Plaintext, Signed, Encrypted).any { it.typ.toMediaType().matches(contentType) }) { "Unknown content type: $contentType" }
-        val unpackResult = DidCommService.getService().unpack(
-            UnpackParams.Builder(epm.bodyAsJson).build()
-        )
-        return dispatchUnpackedMessage(unpackResult.message)
-    }
-
-    private fun dispatchUnpackedMessage(msg: Message): MessageExchange {
-
-        log.info { "Unpacked Message\n${msg.encodeJson(true)}" }
-        checkNotNull(msg.to) { "No target did" }
-
-        /**
-         * Find protocol key from message type
-         */
-        val protocolKey = protocolService.getProtocolKey(msg.type)
-        checkNotNull(protocolKey) { "Unknown message type: ${msg.type}" }
-
-        /**
-         * Find the recipient Wallet and MessageExchange
-         */
-
-        val recipientDids = msg.to!!.mapNotNull { didService.resolveDid(it) }
-        check(recipientDids.size < 2) { "Multiple recipients not supported" }
-        check(recipientDids.isNotEmpty()) { "No recipient Did" }
-        val recipientDid = recipientDids.first()
-
-        val recipientWallet = modelService.findWalletByDid(recipientDid.uri)
-        checkNotNull(recipientWallet) { "No recipient wallet" }
-
-        // We may not have the sender wallet
-        val senderDid = msg.from?.let { Did.fromUri(it) }
-        checkNotNull(senderDid) { "No sender Did" }
-
-        // Find the Connection between sender => recipient
-
-        var pcon = recipientWallet.findConnection { c -> c.myDid == recipientDid && c.theirDid == senderDid }
-        if (pcon == null && msg.type == TRUST_PING_MESSAGE_TYPE_PING_V2) {
-            pcon = recipientWallet.findConnection { c -> c.myDid == recipientDid && c.state == ConnectionState.INVITATION }
+    private fun dispatchToRemoteEndpoint(ctx: DispatchContext): Boolean {
+        val epm = ctx.effectiveEpm
+        val effectiveEndpointUrl = ctx.effectiveEndpointUrl
+        if (effectiveEndpointUrl != ctx.pcon.theirEndpointUrl) {
+            log.info { "Routing redirect: ${ctx.pcon.theirEndpointUrl} => $effectiveEndpointUrl" }
         }
-        if (pcon == null && msg.type == TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2) {
-            pcon = recipientWallet.findConnection { c -> c.myDid == recipientDid  && c.state == ConnectionState.COMPLETED }
-        }
-        checkNotNull(pcon) { "No connection between: ${recipientDid.uri} => ${senderDid.uri}" }
-
-        // Find the message exchange associated with the Connection
-
-        val mex = MessageExchange.findByConnectionId(pcon.id)
-        checkNotNull(mex) { "No message exchange for: ${pcon.shortString()}" }
-
-        /**
-         * Now, we dispatch to the MessageExchange associated with the recipientVerkey
-         */
-
-        mex.addMessage(EndpointMessage.Builder(msg)
-            .header(MESSAGE_HEADER_PROTOCOL_URI, protocolKey.name)
-            .header(MESSAGE_HEADER_SENDER_DID, senderDid.uri)
-            .header(MESSAGE_HEADER_RECIPIENT_DID, recipientDid.uri)
-            .inbound()
-            .build())
-
-        dispatchToWallet(recipientWallet, mex)
-        return mex
+        return dispatchToRemoteEndpoint(effectiveEndpointUrl, epm)
     }
+
+    private class DispatchContext(val pcon: Connection, val origMsg: Message, val packedMsg: String) {
+
+        val packedJson = packedMsg.decodeJson()
+        val typ = when {
+            packedJson["ciphertext"] != null -> Typ.Encrypted.typ
+            packedJson["signatures"] != null -> Typ.Signed.typ
+            packedJson["typ"] != null -> Typ.Plaintext.typ
+            else -> "unsupported-message-typ"
+         }
+
+        val recipientDidDoc = checkNotNull(didService.loadOrResolveDidDoc(pcon.theirDid.uri)) {
+            "Cannot resolve recipient DidDoc: ${pcon.shortString()}"
+        }
+
+        val recipientDidCommService get() = checkNotNull(recipientDidDoc.didCommServices.firstOrNull()) {
+            "No recipient DIDComm Service"
+        }
+
+        val recipientEndpointUrl = recipientDidCommService.serviceEndpoint
+
+        val packedEpm = EndpointMessage.Builder(packedMsg, mapOf(
+                MESSAGE_HEADER_ENDPOINT_URL to recipientEndpointUrl,
+                MESSAGE_HEADER_ID to "${origMsg.id}.packed",
+                MESSAGE_HEADER_THID to origMsg.thid,
+                MESSAGE_HEADER_TYPE to typ))
+            .outbound().build()
+
+        val routingKey get() = getEffectiveRoutingKey()
+
+        val mediatorDidDoc get() = routingKey?.let { rk ->
+            checkNotNull(didService.loadOrResolveDidDoc(routingKey!!)) { "Cannot resolve routing DidDoc for: $rk" }
+        }
+
+        val mediatorDidCommService get() = mediatorDidDoc?.let {
+            checkNotNull(it.didCommServices.firstOrNull()) { "No mediator DIDComm Service" }
+        }
+
+        val effectiveDidCommService get() = mediatorDidCommService ?: recipientDidCommService
+        val effectiveEndpointUrl get () = effectiveDidCommService.serviceEndpoint
+
+        val effectiveEpm get() = run {
+            val routingKey = getEffectiveRoutingKey()
+            if (routingKey != null) {
+                log.info { "Effective routing key: $routingKey" }
+                val jsonData = Attachment.Data.Json.parse(mapOf("json" to packedMsg.decodeJson()))
+                val attachment = Attachment.Builder("${UUID.randomUUID()}", jsonData).build()
+                val forwardMsg = ForwardMessageV2.Builder("${UUID.randomUUID()}", ROUTING_MESSAGE_TYPE_FORWARD_V2)
+                    .to(listOf(routingKey))
+                    .next(pcon.theirDid.uri)
+                    .attachments(listOf(attachment))
+                    .build().toMessage()
+                log.info { "Forward message: ${forwardMsg.encodeJson(true)}" }
+                val packParams = PackEncryptedParams.builder(forwardMsg, routingKey)
+                    .signFrom(pcon.myDid.uri)
+                    .from(pcon.myDid.uri)
+                    .build()
+                val packResult = didComm.packEncrypted(packParams)
+                val packedForwardMsg = packResult.packedMessage
+                EndpointMessage.Builder(packedForwardMsg, mapOf(
+                        MESSAGE_HEADER_ENDPOINT_URL to effectiveEndpointUrl,
+                        MESSAGE_HEADER_ID to "${forwardMsg.id}.packed",
+                        MESSAGE_HEADER_THID to origMsg.thid,
+                        MESSAGE_HEADER_TYPE to Typ.Encrypted.typ))
+                    .outbound().build()
+            } else {
+                packedEpm
+            }
+        }
+
+        private fun getEffectiveRoutingKey(): String? {
+            val isDid = { x:String -> x.startsWith("did:") }
+            val firstRoutingKey = recipientDidCommService.routingKeys.firstOrNull()
+            if (firstRoutingKey != null) {
+                check(isDid(firstRoutingKey)) { "Unexpected routing key: $firstRoutingKey" }
+                return firstRoutingKey
+            }
+            val endpointUrl = recipientDidCommService.serviceEndpoint
+            if (isDid(endpointUrl)) {
+                return endpointUrl
+            }
+            return null
+        }
+    }
+
 }

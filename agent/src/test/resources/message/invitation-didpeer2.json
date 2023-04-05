@@ -1,0 +1,13 @@
+{
+  "id": "f7d31098-19fa-4493-91c6-4bc86c89b511",
+  "typ": "application/didcomm-plain+json",
+  "type": "https://didcomm.org/out-of-band/2.0/invitation",
+  "from": "did:peer:2.Ez6LSryURPescJfhY5kvYHLtWEKPoEF9WKp82Y416o8mbrZ7i.Vz6MksKiCAFzN5BXaHmLVgBR4ScKQ9tLugS9Xev8u5LB1rM93.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovL2hvc3QuZG9ja2VyLmludGVybmFsOjkxMDAifQ",
+  "body": {
+    "goal_code": "issue-vc",
+    "goal": "Invitation from Faber",
+    "accept": [
+      "didcomm/v2"
+    ]
+  }
+}

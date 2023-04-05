@@ -26,11 +26,11 @@ import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.OUT_OF_BAND_PROTOCOL_V2
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
+import org.nessus.didcomm.service.PropertiesService
 import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
-import org.nessus.didcomm.test.NESSUS_OPTIONS
 import org.nessus.didcomm.util.Holder
 import org.nessus.didcomm.util.decodeJson
 
@@ -49,7 +49,7 @@ class PresentProofV3ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
 
     @BeforeAll
     fun startAgent() {
-        startNessusEndpoint(NESSUS_OPTIONS)
+        startNessusEndpoint()
         val faber = Wallet.Builder(Faber.name).build()
         val alice = Wallet.Builder(Alice.name).build()
         contextHolder.value = Context(faber = faber, alice = alice)
@@ -81,6 +81,7 @@ class PresentProofV3ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
             .createOutOfBandInvitation(faber)
             .receiveOutOfBandInvitation(alice, inviterAlias = faber.name)
 
+            .withProperty(PropertiesService.PROTOCOL_TRUST_PING_ROTATE_DID, false)
             .withProtocol(TRUST_PING_PROTOCOL_V2)
             .sendTrustPing()
             .awaitTrustPingResponse()

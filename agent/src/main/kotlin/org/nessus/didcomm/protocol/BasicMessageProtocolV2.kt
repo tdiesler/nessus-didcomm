@@ -19,21 +19,16 @@
  */
 package org.nessus.didcomm.protocol
 
+import id.walt.common.prettyPrint
 import mu.KotlinLogging
-import org.didcommx.didcomm.common.Typ
 import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.message.MessageBuilder
-import org.didcommx.didcomm.model.PackEncryptedParams
-import org.didcommx.didcomm.model.PackPlaintextParams
-import org.didcommx.didcomm.model.PackSignedParams
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_ID
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.service.BASIC_MESSAGE_PROTOCOL_V2
 import org.nessus.didcomm.util.dateTimeInstant
 import org.nessus.didcomm.util.dateTimeNow
@@ -93,23 +88,13 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
             .content(message)
             .build()
 
-        val basicMessageMsg = basicMessage.toMessage()
-        senderMex.addMessage(EndpointMessage.Builder(basicMessageMsg).outbound().build()).last
-        log.info { "Sender (${sender.name}) creates Basic Message: ${basicMessageMsg.encodeJson(true)}" }
+        val basicMsg = basicMessage.toMessage()
+        senderMex.addMessage(EndpointMessage.Builder(basicMsg).outbound().build()).last
+        log.info { "Sender (${sender.name}) creates Basic Message: ${basicMsg.encodeJson(true)}" }
 
-        val packResult = didComm.packPlaintext(
-            PackPlaintextParams.builder(basicMessageMsg)
-                .build()
-        )
-
-        val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
-                MESSAGE_HEADER_ID to "${basicMessageMsg.id}.packed",
-                MESSAGE_HEADER_TYPE to Typ.Plaintext.typ))
-            .outbound()
-            .build()
-
-        dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
+        dispatchPlainMessage(pcon, basicMsg) { packedEpm ->
+            log.info { "Sender (${sender.name}) sends Basic Message: ${packedEpm.prettyPrint()}" }
+        }
         return protocol
     }
 
@@ -141,23 +126,13 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
             .content(message)
             .build()
 
-        val basicMessageMsg = basicMessage.toMessage()
-        senderMex.addMessage(EndpointMessage.Builder(basicMessageMsg).outbound().build()).last
-        log.info { "Sender (${sender.name}) creates Basic Message: ${basicMessageMsg.encodeJson(true)}" }
+        val basicMsg = basicMessage.toMessage()
+        senderMex.addMessage(EndpointMessage.Builder(basicMsg).outbound().build()).last
+        log.info { "Sender (${sender.name}) creates Basic Message: ${basicMsg.encodeJson(true)}" }
 
-        val packResult = didComm.packSigned(
-            PackSignedParams.builder(basicMessageMsg, senderDid.uri)
-                .build()
-        )
-
-        val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
-                MESSAGE_HEADER_ID to "${basicMessageMsg.id}.packed",
-                MESSAGE_HEADER_TYPE to Typ.Signed.typ))
-            .outbound()
-            .build()
-
-        dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
+        dispatchSignedMessage(pcon, basicMsg) { packedEpm ->
+            log.info { "Sender (${sender.name}) sends Basic Message: ${packedEpm.prettyPrint()}" }
+        }
         return protocol
     }
 
@@ -189,25 +164,13 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
             .content(message)
             .build()
 
-        val basicMessageMsg = basicMessage.toMessage()
-        senderMex.addMessage(EndpointMessage.Builder(basicMessageMsg).outbound().build()).last
-        log.info { "Sender (${sender.name}) creates Basic Message: ${basicMessageMsg.encodeJson(true)}" }
+        val basicMsg = basicMessage.toMessage()
+        senderMex.addMessage(EndpointMessage.Builder(basicMsg).outbound().build())
+        log.info { "Sender (${sender.name}) created Basic Message: ${basicMsg.encodeJson(true)}" }
 
-        val packResult = didComm.packEncrypted(
-            PackEncryptedParams.builder(basicMessageMsg, recipientDid.uri)
-                .signFrom(senderDid.uri)
-                .from(senderDid.uri)
-                .build()
-        )
-
-        val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
-                MESSAGE_HEADER_ID to "${basicMessageMsg.id}.packed",
-                MESSAGE_HEADER_TYPE to Typ.Encrypted.typ))
-            .outbound()
-            .build()
-
-        dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
+        dispatchEncryptedMessage(pcon, basicMsg) { packedEpm ->
+            log.info { "Sender (${sender.name}) sends Basic Message: ${packedEpm.prettyPrint()}" }
+        }
         return protocol
     }
 

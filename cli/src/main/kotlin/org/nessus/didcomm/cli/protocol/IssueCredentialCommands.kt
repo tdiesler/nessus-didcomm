@@ -60,7 +60,7 @@ class VerifiableCredentialCommands: AbstractBaseCommand() {
     @Command(name = "list", description = ["List verifiable credentials"], mixinStandardHelpOptions = true)
     fun listVerifiableCredentials(
 
-        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        @Option(names = ["-w", "--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
         walletAlias: String?,
 
         @Option(names = ["--vc"], paramLabel = "vc", description = ["Select Verifiable Credentials"])
@@ -78,7 +78,7 @@ class VerifiableCredentialCommands: AbstractBaseCommand() {
     @Command(name = "show", description = ["Show a verifiable credential"], mixinStandardHelpOptions = true)
     fun showVerifiableCredential(
 
-        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        @Option(names = ["-w", "--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
         walletAlias: String?,
 
         @Option(names = ["--vc"], paramLabel = "vc", description = ["Select Verifiable Credentials"])
@@ -408,7 +408,7 @@ class VerifyCredentialCommand: AbstractBaseCommand() {
     override fun call(): Int {
         check(policySpecs!!.isNotEmpty()) { "No policies" }
 
-        val vcp = properties.asString(src!!)
+        val vcp = properties.getVar(src!!)
             ?.let { W3CVerifiableCredential.fromJson(it) }
             ?: resolveContent(src!!).let { W3CVerifiableCredential.fromJson(it) }
 

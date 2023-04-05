@@ -18,7 +18,7 @@ class MessageCommands: AbstractBaseCommand() {
 
     @Command(name = "list", description = ["List connection messages"], mixinStandardHelpOptions = true)
     fun listMessages(
-        @Option(names = ["--wallet"], description = ["Optional wallet alias"])
+        @Option(names = ["-w", "--wallet"], description = ["Optional wallet alias"])
         walletAlias: String?,
 
         @Option(names = ["-n", "--tail"], description = ["Optional number of (tail) messages"], defaultValue = "12")
@@ -28,10 +28,18 @@ class MessageCommands: AbstractBaseCommand() {
         verbose: Boolean
     ): Int {
         val ctxWallet = cliService.findContextWallet(walletAlias)
+
         val pcon = ctxWallet?.currentConnection
-        checkNotNull(pcon) { "No connection for: $walletAlias" }
+        if (pcon == null) {
+            echo("No connection for: ${ctxWallet?.name}")
+            return 0
+        }
+
         val mex = MessageExchange.findByConnectionId(pcon.id)
-        checkNotNull(mex) { "No message exchange for: ${pcon.shortString()}" }
+        if (mex == null) {
+            echo("No message exchange for: ${pcon.shortString()}")
+            return 0
+        }
 
         val size = mex.messages.size
         val start = max(0, size - msgCount)
@@ -50,7 +58,7 @@ class MessageCommands: AbstractBaseCommand() {
 
     @Command(name = "show", description = ["Show connection message"], mixinStandardHelpOptions = true)
     fun showMessage(
-        @Option(names = ["--wallet"], description = ["Optional wallet alias"])
+        @Option(names = ["-w", "--wallet"], description = ["Optional wallet alias"])
         walletAlias: String?,
 
         @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])

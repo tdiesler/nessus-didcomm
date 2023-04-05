@@ -32,8 +32,9 @@ class NessusWallet(
     agentType: AgentType,
     storageType: StorageType,
     endpointUrl: String,
-    options: Map<String, String> = mapOf(),
-): Wallet(id, name, agentType, storageType, endpointUrl, options) {
+    routingKeys: List<String>? = null,
+    options: Map<String, String>? = null,
+): Wallet(id, name, agentType, storageType, endpointUrl, routingKeys, options) {
 
     override val walletPlugin get() = NessusWalletPlugin()
 
@@ -44,10 +45,9 @@ class NessusWalletPlugin: WalletPlugin {
     val log = KotlinLogging.logger {}
 
     companion object {
-        fun getEndpointUrl(options: Map<String, Any> = mapOf()): String {
-            return options["endpointUrl"] as? String ?: let {
-                val agentHost = System.getenv("NESSUS_AGENT_HOST") ?: "localhost"
-                val userHost = System.getenv("NESSUS_USER_HOST") ?: agentHost
+        fun getEndpointUrl(endpointUrl: String? = null): String {
+            return endpointUrl ?: let {
+                val userHost = System.getenv("NESSUS_USER_HOST") ?: "localhost"
                 val userPort = System.getenv("NESSUS_USER_PORT") ?: "9000"
                 "http://$userHost:$userPort"
             }
@@ -58,9 +58,10 @@ class NessusWalletPlugin: WalletPlugin {
         val walletId = "${UUID.randomUUID()}"
         val walletName = config.name
         val agentType = AgentType.NESSUS
-        val endpointUrl = getEndpointUrl(config.options)
-        val storageType = config.storageType ?: StorageType.IN_MEMORY
-        return NessusWallet(walletId, walletName, agentType, storageType, endpointUrl, options = config.options)
+        val endpointUrl = getEndpointUrl(config.endpointUrl)
+        val routingKeys = config.routingKeys
+        val storageType = config.storageType
+        return NessusWallet(walletId, walletName, agentType, storageType, endpointUrl, routingKeys, options = config.options)
     }
 
     override fun removeWallet(wallet: Wallet) {

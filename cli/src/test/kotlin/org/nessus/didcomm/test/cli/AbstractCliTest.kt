@@ -24,6 +24,7 @@ import mu.KotlinLogging
 import org.nessus.didcomm.cli.AbstractBaseCommand
 import org.nessus.didcomm.cli.CLIService
 import org.nessus.didcomm.cli.NessusCli
+import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.PropertiesService
 import org.nessus.didcomm.service.ServiceMatrixLoader
@@ -49,6 +50,7 @@ abstract class AbstractCLITest: AnnotationSpec() {
     val properties get() = PropertiesService.getService()
 
     val cliService get() = CLIService.getService()
+    val didService get() = DidService.getService()
     val modelService get() = ModelService.getService()
 
     fun isPlaygroundRunning() = NessusPlaygroundReachable().enabled(RunScriptTest::class)

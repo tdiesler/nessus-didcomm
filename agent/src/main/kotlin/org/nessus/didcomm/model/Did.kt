@@ -51,9 +51,11 @@ open class Did(id: String, val method: DidMethod, val verkey: String) {
 
     companion object {
         fun didMethod(uri: String): DidMethod {
+            require(uri.startsWith("did:")) { "Invalid did uri: $uri" }
             return DidMethod.fromValue(DidUrl.from(uri).method)
         }
         fun fromUri(uri: String, verkey: String? = null): Did {
+            require(uri.startsWith("did:")) { "Invalid did uri: $uri" }
             val did = if (verkey != null) {
                 val didUrl = DidUrl.from(uri)
                 val didMethod = DidMethod.fromValue(didUrl.method)
@@ -66,7 +68,6 @@ open class Did(id: String, val method: DidMethod, val verkey: String) {
             return did
         }
     }
-
 
     @Transient
     private val fingerprint = "$uri.$verkey"

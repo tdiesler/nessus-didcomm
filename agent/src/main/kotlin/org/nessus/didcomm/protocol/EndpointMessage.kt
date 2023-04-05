@@ -42,6 +42,7 @@ class EndpointMessage private constructor(
          */
         const val MESSAGE_HEADER_ID = "MessageId"
         const val MESSAGE_HEADER_DIRECTION = "MessageDirection"
+        const val MESSAGE_HEADER_ENDPOINT_URL = "MessageEndpointUrl"
         const val MESSAGE_HEADER_MEDIA_TYPE = "MessageMediaType"
         const val MESSAGE_HEADER_PROTOCOL_URI = "MessageProtocolUri"
         const val MESSAGE_HEADER_SENDER_DID = "MessageSenderDid"

@@ -176,7 +176,12 @@ fun Message.shortString(): String {
  * String
  */
 
-fun String.ellipsis(n: Int = 8) = let { take(n) + "..." }
+fun String.ellipsis(n: Int = 8): String {
+    return when {
+        2*n+3 < length -> take(n) + "..." + takeLast(n)
+        else -> this
+    }
+}
 
 /***********************************************************************************************************************
  * URI

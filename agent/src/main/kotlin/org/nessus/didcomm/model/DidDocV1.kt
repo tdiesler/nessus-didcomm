@@ -14,7 +14,6 @@ import org.didcommx.didcomm.diddoc.DIDDocEncoder
 import org.didcommx.didcomm.diddoc.VerificationMethod
 import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
-import org.nessus.didcomm.service.WaltIdDidDoc
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.jsonData
@@ -22,9 +21,10 @@ import java.util.UUID
 
 typealias SicpaDidDoc = org.didcommx.didcomm.diddoc.DIDDoc
 typealias WaltIdVerificationMethod = id.walt.model.VerificationMethod
-typealias WaltIdServiceEndpoint = id.walt.model.ServiceEndpoint
 
-data class DidDoc(
+val DEFAULT_ACCEPT = listOf("didcomm/v2") //, "didcomm/aip2;env=rfc587")
+
+data class DidDocV1(
     val id: String,
     val context: List<String>,
     val alsoKnownAs: List<String>,
@@ -39,7 +39,7 @@ data class DidDoc(
 ) {
     companion object {
 
-        fun fromSicpaDidDoc(doc: SicpaDidDoc) = DidDoc(
+        fun fromSicpaDidDoc(doc: SicpaDidDoc) = DidDocV1(
             doc.did,
             context = doc.context,
             alsoKnownAs = doc.alsoKnownAs,
@@ -53,38 +53,13 @@ data class DidDoc(
             didCommServices = doc.didCommServices
         )
 
-        fun fromWaltIdDidDoc(doc: WaltIdDidDoc): DidDoc {
-
-            val verificationMethods = mutableListOf<WaltIdVerificationMethod>()
-            doc.verificationMethod?.also { verificationMethods.addAll(it) }
-
-            fun visitVerificationMethod(vm: WaltIdVerificationMethod): String {
-                if (!vm.isReference)
-                    verificationMethods.add(vm)
-                return vm.id
-            }
-
-            return DidDoc(
-                doc.id,
-                context = doc.context?.let { doc.context } ?: listOf(),
-                alsoKnownAs = listOf(),
-                controller = listOf(),
-                authentications = doc.authentication?.map { visitVerificationMethod(it) } ?: listOf(),
-                assertionMethods = doc.assertionMethod?.map { visitVerificationMethod(it) } ?: listOf(),
-                keyAgreements = doc.keyAgreement?.map { visitVerificationMethod(it) } ?: listOf(),
-                capabilityInvocations = doc.capabilityInvocation?.map { visitVerificationMethod(it) } ?: listOf(),
-                capabilityDelegations = doc.capabilityDelegation?.map { visitVerificationMethod(it) } ?: listOf(),
-                verificationMethods = verificationMethods.map { it.toVerificationMethod() },
-                didCommServices = doc.service?.map { it.toDIDCommService() } ?: listOf())
-        }
-
-        fun fromMessage(message: Message): DidDoc? {
+        fun fromMessage(message: Message): DidDocV1? {
             return message.attachments
                 ?.firstOrNull { it.mediaType == DID_DOCUMENT_MEDIA_TYPE }
                 ?.let { fromAttachment(it) }
         }
 
-        fun fromAttachment(attachment: Attachment): DidDoc {
+        fun fromAttachment(attachment: Attachment): DidDocV1 {
             require(attachment.mediaType == DID_DOCUMENT_MEDIA_TYPE) { "Unexpected media_type: ${attachment.mediaType} "}
             val didDocAttachment = gson.toJson(attachment.data.jsonData())
             checkNotNull(didDocAttachment) {"Cannot find attached did document"}
@@ -164,12 +139,3 @@ fun WaltIdVerificationMethod.toVerificationMethod() = VerificationMethod(
     },
     controller = controller
 )
-
-fun WaltIdServiceEndpoint.toDIDCommService(): DIDCommService {
-    return DIDCommService(
-        id = id,
-        accept = null,
-        routingKeys = listOf(),
-        serviceEndpoint = serviceEndpoint.first(),
-    )
-}

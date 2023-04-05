@@ -21,16 +21,14 @@ package org.nessus.didcomm.protocol
 
 import id.walt.common.prettyPrint
 import mu.KotlinLogging
-import org.didcommx.didcomm.common.Typ
 import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.message.MessageBuilder
-import org.didcommx.didcomm.model.PackEncryptedParams
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Did
-import org.nessus.didcomm.model.DidDoc
+import org.nessus.didcomm.model.DidDocV1
 import org.nessus.didcomm.model.DidPeer
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
@@ -113,28 +111,15 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
 
         val trustPingMsg = trustPingBuilder.build().toMessage()
         senderMex.addMessage(EndpointMessage.Builder(trustPingMsg).outbound().build())
-
         log.info { "Sender (${sender.name}) creates TrustPing: ${trustPingMsg.encodeJson(true)}" }
-
-        val packResult = didComm.packEncrypted(
-            PackEncryptedParams.builder(trustPingMsg, recipientDid.uri)
-                .signFrom(senderDid.uri)
-                .from(senderDid.uri)
-                .build()
-        )
-
-        val packedMessage = packResult.packedMessage
-        val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
-            EndpointMessage.MESSAGE_HEADER_ID to "${trustPingMsg.id}.packed",
-            EndpointMessage.MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
-        )).outbound().build()
 
         // Register the TrustPing Response future
         senderMex.placeEndpointMessageFuture(TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
 
-        log.info { "Sender (${sender.name}) sends TrustPing: ${packedEpm.prettyPrint()}" }
+        dispatchEncryptedMessage(pcon, trustPingMsg) { packedEpm ->
+            log.info { "Sender (${sender.name}) sends TrustPing: ${packedEpm.prettyPrint()}" }
+        }
 
-        dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
         return senderMex.withProtocol(TRUST_PING_PROTOCOL_V2)
     }
 
@@ -168,7 +153,7 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             fromPriorIssuerKid = invitationDidDoc.authentications.first()
 
             val senderDid = Did.fromUri(trustPing.from as String)
-            val senderDidDoc = DidDoc.fromMessage(trustPingMsg) ?: didService.resolveDidDoc(senderDid.uri)
+            val senderDidDoc = DidDocV1.fromMessage(trustPingMsg) ?: didService.resolveDidDoc(senderDid.uri)
             checkNotNull(senderDidDoc) { "No sender DidDoc" }
 
             didService.importDidDoc(senderDidDoc)
@@ -178,64 +163,18 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
                 true -> receiver.createDid(invitationDid.method)
                 false -> invitationDid
             }
-            val inviterEndpointUrl = receiver.endpointUrl
 
             pcon.myDid = inviterDid
-            pcon.myEndpointUrl = inviterEndpointUrl
             pcon.theirDid = senderDid
             pcon.theirLabel = modelService.findWalletByDid(senderDid.uri)?.name
-            pcon.theirEndpointUrl = senderDidDoc.serviceEndpoint
             pcon.state = ConnectionState.ACTIVE
             receiver.currentConnection = pcon
 
             log.info { "Connection ${pcon.state}: ${pcon.encodeJson(true)}"}
         }
 
-        if (trustPing.responseRequested != false) {
-
-            val receiverDid = pcon.myDid
-            val senderDid = pcon.theirDid
-
-            val trustPingResponse = TrustPingMessageV2.Builder(
-                id = "${UUID.randomUUID()}",
-                type = TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
-                .thid(trustPing.id)
-                .from(receiverDid.uri)
-                .to(listOf(senderDid.uri))
-                .createdTime(dateTimeNow())
-                .expiresTime(dateTimeNow().plusHours(24))
-                .comment("Pong from ${receiver.name}")
-                .build()
-
-            val trustPingResponseMsg = trustPingResponse.toMessage()
-            mex.addMessage(EndpointMessage.Builder(trustPingResponseMsg).outbound().build()).last
-            log.info { "Receiver (${receiver.name}) creates TrustPing Response: ${trustPingResponseMsg.encodeJson(true)}" }
-
-            val packResult = didComm.packEncrypted(
-                if (fromPriorIssuerKid != null) {
-                    PackEncryptedParams.builder(trustPingResponseMsg, senderDid.uri)
-                        .fromPriorIssuerKid(fromPriorIssuerKid)
-                        .signFrom(receiverDid.uri)
-                        .from(receiverDid.uri)
-                        .build()
-                } else {
-                    PackEncryptedParams.builder(trustPingResponseMsg, senderDid.uri)
-                        .signFrom(receiverDid.uri)
-                        .from(receiverDid.uri)
-                        .build()
-                }
-            )
-
-            val packedMessage = packResult.packedMessage
-            val packedEpm = EndpointMessage.Builder(packedMessage, mapOf(
-                EndpointMessage.MESSAGE_HEADER_ID to "${trustPingResponseMsg.id}.packed",
-                EndpointMessage.MESSAGE_HEADER_THID to trustPing.id,
-                EndpointMessage.MESSAGE_HEADER_TYPE to Typ.Encrypted.typ,
-            )).outbound().build()
-            log.info { "Receiver (${receiver.name}) sends TrustPing Response: ${packedEpm.prettyPrint()}" }
-
-            dispatchToEndpoint(pcon.theirEndpointUrl, packedEpm)
-        }
+        if (trustPing.responseRequested != false)
+            sendTrustPingResponse(receiver, trustPing.id, fromPriorIssuerKid)
 
         pcon.state = ConnectionState.ACTIVE
 
@@ -243,6 +182,31 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             mex.completeEndpointMessageFuture(TRUST_PING_MESSAGE_TYPE_PING_V2, trustPingEpm)
 
         return this
+    }
+
+    private fun sendTrustPingResponse(receiver: Wallet, threadId: String, fromPriorIssuerKid: String?) {
+        val pcon = mex.getConnection()
+        val receiverDid = pcon.myDid
+        val senderDid = pcon.theirDid
+
+        val trustPingResponse = TrustPingMessageV2.Builder(
+                id = "${UUID.randomUUID()}",
+                type = TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
+            .thid(threadId)
+            .from(receiverDid.uri)
+            .to(listOf(senderDid.uri))
+            .createdTime(dateTimeNow())
+            .expiresTime(dateTimeNow().plusHours(24))
+            .comment("Pong from ${receiver.name}")
+            .build()
+
+        val trustPingResponseMsg = trustPingResponse.toMessage()
+        mex.addMessage(EndpointMessage.Builder(trustPingResponseMsg).outbound().build())
+        log.info { "Receiver (${receiver.name}) creates TrustPing Response: ${trustPingResponseMsg.encodeJson(true)}" }
+
+        dispatchEncryptedMessage(pcon, trustPingResponseMsg, fromPriorIssuerKid) { packedEpm ->
+            log.info { "Receiver (${receiver.name}) sends TrustPing Response: ${packedEpm.prettyPrint()}" }
+        }
     }
 
     private fun receiveTrustPingResponse(receiver: Wallet): TrustPingProtocolV2 {

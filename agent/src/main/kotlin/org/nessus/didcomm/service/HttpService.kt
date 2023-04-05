@@ -33,12 +33,12 @@ import org.nessus.didcomm.service.HttpService.HttpClient.Companion.createHttpLog
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
 import org.slf4j.event.Level
+import java.net.HttpURLConnection.HTTP_ACCEPTED
+import java.net.HttpURLConnection.HTTP_OK
 import java.util.concurrent.TimeUnit
 
 
 object HttpService: ObjectService<HttpService>() {
-
-    val DEFAULT_HTTP_LOGGING_LEVEL = Level.INFO
 
     override fun getService() = apply { }
 
@@ -51,23 +51,14 @@ object HttpService: ObjectService<HttpService>() {
     }
 
     class HttpClient(loggingInterceptor: HttpLoggingInterceptor? = null, httpClient: OkHttpClient? = null) {
-        val log = KotlinLogging.logger {}
 
         private val httpClient: OkHttpClient
-        init {
-            this.httpClient = httpClient ?: OkHttpClient.Builder()
-                .writeTimeout(60, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
-                .connectTimeout(60, TimeUnit.SECONDS)
-                .callTimeout(60, TimeUnit.SECONDS)
-                .addInterceptor(loggingInterceptor ?: createHttpLoggingInterceptor())
-                .build()
-        }
 
         companion object {
+            private val DEFAULT_HTTP_LOGGING_LEVEL = Level.DEBUG
+            val log = KotlinLogging.logger {}
             fun createHttpLoggingInterceptor(level: Level? = null): HttpLoggingInterceptor {
                 val effLevel = level ?: DEFAULT_HTTP_LOGGING_LEVEL
-                val log = KotlinLogging.logger {}
                 fun log(spec: String, msg: String) {
                     when(effLevel) {
                         Level.ERROR -> log.error(spec, msg)
@@ -93,19 +84,27 @@ object HttpService: ObjectService<HttpService>() {
                 return interceptor
             }
         }
-        
-        fun get(reqUrl: String, params: Map<String, Any>? = null, headers: Map<String, String> = mapOf()): Response {
 
-            val builder = requestBuilder(reqUrl, params, headers)
+        init {
+            this.httpClient = httpClient ?: OkHttpClient.Builder()
+                .writeTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .connectTimeout(60, TimeUnit.SECONDS)
+                .callTimeout(60, TimeUnit.SECONDS)
+                .addInterceptor(loggingInterceptor ?: createHttpLoggingInterceptor())
+                .build()
+        }
+
+        fun get(reqUrl: String, params: Map<String, Any>? = null): Response {
+            val builder = requestBuilder(reqUrl, params)
             val req = builder.get().build()
             val res = httpClient.newCall(req).execute()
-            log.debug { "code=${res.code} message=${res.message}" }
-            return res
+            return processResponse(res)
         }
-        
+
         fun post(reqUrl: String, body: Any, params: Map<String, Any>? = null, headers: Map<String, String> = mapOf()): Response {
 
-            val builder = requestBuilder(reqUrl, params, headers)
+            val builder = requestBuilder(reqUrl, params)
 
             // The given Content-Type or JSON by default
             var contentType = headers["Content-Type"] ?: headers[MESSAGE_HEADER_MEDIA_TYPE]
@@ -124,24 +123,26 @@ object HttpService: ObjectService<HttpService>() {
 
             val req = builder.post(reqBody).build()
             val res = httpClient.newCall(req).execute()
-            log.debug { "code=${res.code} message=${res.message}" }
+            return processResponse(res)
+        }
+
+        private fun processResponse(res: Response): Response {
+            when (res.code) {
+                HTTP_OK, HTTP_ACCEPTED -> log.info { "HttpResponse[code=${res.code}, body=${res.body?.string()}]" }
+                else -> log.warn { "HttpResponse[code=${res.code}, body=${res.body?.string()}]" }
+            }
             return res
         }
-    }
 
-    private fun requestBuilder(reqUrl: String, params: Map<String, Any>?, headers: Map<String, String> ): Request.Builder {
+        private fun requestBuilder(reqUrl: String, params: Map<String, Any>?): Request.Builder {
 
-        var actUrl = reqUrl
-        if (params != null) {
-            actUrl += "?"
-            params.forEach { (k, v) -> actUrl += "$k=$v&" }
-            actUrl = actUrl.dropLast(1)
+            var actUrl = reqUrl
+            if (params != null) {
+                actUrl += "?"
+                params.forEach { (k, v) -> actUrl += "$k=$v&" }
+                actUrl = actUrl.dropLast(1)
+            }
+            return Request.Builder().url(actUrl)
         }
-        val builder = Request.Builder().url(actUrl)
-
-        headers.filterKeys { it !in listOf("Content-Type", MESSAGE_HEADER_MEDIA_TYPE) }
-            .forEach { (k, v) -> builder.header(k, v) }
-
-        return builder
     }
 }

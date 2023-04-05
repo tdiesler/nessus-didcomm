@@ -56,7 +56,7 @@ class OutOfBandV2CmdTest: AbstractCLITest() {
             cliService.execute("did create --wallet Faber --method=peer?numalgo=2").isSuccess shouldBe true
             cliService.execute("did set-public Faber.Did").isSuccess shouldBe true
 
-            val faberDid = properties.asString("Faber.Did")
+            val faberDid = properties.getVar("Faber.Did")
             faberDid shouldStartWith "did:peer:2"
 
             cliService.execute("var set --key=protocol.trust-ping.rotate-did --val=false").isSuccess shouldBe true
@@ -64,8 +64,8 @@ class OutOfBandV2CmdTest: AbstractCLITest() {
             cliService.execute("protocol invitation create --inviter-did Faber.Did").isSuccess shouldBe true
             cliService.execute("protocol invitation receive --invitee Alice").isSuccess shouldBe true
 
-            properties.asString("Alice_Faber.myDid") shouldStartWith "did:peer:2"
-            properties.asString("Alice_Faber.theirDid") shouldBe faberDid
+            properties.getVar("Alice_Faber.myDid") shouldStartWith "did:peer:2"
+            properties.getVar("Alice_Faber.theirDid") shouldBe faberDid
 
         } finally {
             cliService.execute("agent stop").isSuccess shouldBe true

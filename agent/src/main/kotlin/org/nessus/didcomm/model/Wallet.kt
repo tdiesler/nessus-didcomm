@@ -65,7 +65,8 @@ abstract class Wallet(
     val agentType: AgentType,
     val storageType: StorageType,
     val endpointUrl: String,
-    val options: Map<String, String> = mapOf(),
+    val routingKeys: List<String>? = null,
+    val options: Map<String, String>? = null,
 
     @Transient
     private val didsInternal: MutableList<Did> = mutableListOf(),
@@ -83,8 +84,9 @@ abstract class Wallet(
         private val log = KotlinLogging.logger {}
     }
 
-    internal val walletService get() = WalletService.getService()
     internal abstract val walletPlugin: WalletPlugin
+
+    private val walletService get() = WalletService.getService()
 
     val dids get() = didsInternal.toList()
     val invitations get() = invitationsInternal.toList()
@@ -213,22 +215,22 @@ abstract class Wallet(
     fun encodeJson(pretty: Boolean = false, redacted: Boolean = true): String {
         val encoded = gson.toJson(this)
         val jsonObj = gson.fromJson(encoded, JsonObject::class.java)
-        if (redacted && options.isNotEmpty()) {
-            val redactedElement = redactedOptions.entries.fold(JsonObject()) { r, (k, v) -> r.addProperty(k, v); r }
+        if (redacted && options?.isNotEmpty() == true) {
+            val redactedElement = redactedOptions!!.entries.fold(JsonObject()) { r, (k, v) -> r.addProperty(k, v); r }
             jsonObj.add("options", redactedElement)
         }
         return if (pretty) gsonPretty.toJson(jsonObj) else gson.toJson(jsonObj)
     }
 
     fun shortString(): String {
-        return "$name [agent=${agentType.value}, type=$storageType, url=$endpointUrl]"
+        return "$name [agent=${agentType.value}, type=$storageType, endpointUrl=$endpointUrl]"
     }
 
     override fun toString(): String {
-        return "Wallet(id='$id', agent=$agentType, type=$storageType, alias=$name, endpointUrl=$endpointUrl, options=$redactedOptions)"
+        return "Wallet(id='$id', agent=$agentType, type=$storageType, alias=$name, endpointUrl=$endpointUrl, routing-keys=$routingKeys, options=$redactedOptions)"
     }
 
-    private val redactedOptions get() = options.mapValues { (k, v) ->
+    private val redactedOptions get() = options?.mapValues { (k, v) ->
         when(k) {
             "authToken" -> v.substring(0, 6) + "..." + v.substring(v.length - 6)
             else -> v
@@ -237,20 +239,25 @@ abstract class Wallet(
 
     data class WalletConfig(
         val name: String,
-        val agentType: AgentType?,
-        val storageType: StorageType?,
-        val options: Map<String, String>,
+        val agentType: AgentType,
+        val storageType: StorageType,
+        val endpointUrl: String?,
+        val routingKeys: List<String>?,
+        val options: Map<String, String>?,
     )
 
     data class Builder (var name: String) {
-        var agentType: AgentType? = AgentType.NESSUS
-        var storageType: StorageType? = null
-        var options: MutableMap<String, String> = mutableMapOf()
+        private var agentType: AgentType = AgentType.NESSUS
+        private var storageType: StorageType = StorageType.IN_MEMORY
+        private var endpointUrl: String? = null
+        private var routingKeys: List<String>? = null
+        private var options: Map<String, String>? = null
 
-        fun agentType(agentType: AgentType?) = apply { this.agentType = agentType }
-        fun endpointUrl(url: String?) = apply { url?.also { options["endpointUrl"] = url }}
-        fun options(options: Map<String, String>) = apply { this.options.putAll(options) }
-        fun storageType(storageType: StorageType?) = apply { this.storageType = storageType }
+        fun agentType(agentType: AgentType) = apply { this.agentType = agentType }
+        fun storageType(storageType: StorageType) = apply { this.storageType = storageType }
+        fun endpointUrl(endpointUrl: String?) = apply { this.endpointUrl = endpointUrl }
+        fun routingKeys(routingKeys: List<String>?) = apply { this.routingKeys = routingKeys }
+        fun options(options: Map<String, String>?) = apply { this.options = options }
 
         fun build(): Wallet {
             val walletService = WalletService.getService()
@@ -259,9 +266,12 @@ abstract class Wallet(
                     name,
                     agentType,
                     storageType,
-                    options.toMap(),
+                    endpointUrl,
+                    routingKeys,
+                    options,
                 )
             )
         }
+
     }
 }

@@ -63,7 +63,7 @@ class AgentCommands: AbstractBaseCommand() {
     private fun getEndpointSpec(uri: String?): EndpointSpec {
         if (uri != null)
             return EndpointSpec.valueOf(uri)
-        val agentHost = System.getenv("NESSUS_AGENT_HOST") ?: "localhost"
+        val agentHost = System.getenv("NESSUS_AGENT_HOST") ?: "0.0.0.0"
         val userPort = System.getenv("NESSUS_USER_PORT") ?: "9000"
         return EndpointSpec.valueOf("${agentHost}:${userPort}")
     }
@@ -90,7 +90,7 @@ data class EndpointSpec(
             return when (toks.size) {
                 3 -> EndpointSpec(checkType(toks[0]), checkHost(toks[1]), toks[2].toInt())
                 2 -> EndpointSpec(DEFAULT_ENDPOINT_TYPE, checkHost(toks[0]), toks[1].toInt())
-                1 -> EndpointSpec(DEFAULT_ENDPOINT_TYPE,"localhost", toks[0].toInt())
+                1 -> EndpointSpec(DEFAULT_ENDPOINT_TYPE,"0.0.0.0", toks[0].toInt())
                 else -> throw IllegalArgumentException("Invalid URI spec: $uri")
             }
         }

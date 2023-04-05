@@ -77,6 +77,9 @@ class CreateInvitation: AbstractOutOfBandCommand() {
     @Option(names = ["--inviter-did" ], description = ["Optional inviter Did alias"])
     var inviterDidAlias: String? = null
 
+    @Option(names = ["--method" ], description = ["Optional Did method"])
+    var method: String? = null
+
     override fun call(): Int {
         val (inviter, inviterDid) = if (inviterDidAlias != null) {
             findWalletAndDidFromAlias(inviterAlias, inviterDidAlias)
@@ -87,9 +90,13 @@ class CreateInvitation: AbstractOutOfBandCommand() {
         }
         checkNotNull(inviter) { "No inviter wallet" }
         checkWalletEndpoint(inviter)
+
+        // Use given or created Dids
+        val didMethod = method?.let { DidMethod.fromValue(method!!) } ?: DidMethod.PEER
+
         val mex = MessageExchange()
             .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
-            .createOutOfBandInvitation(inviter, inviterDid)
+            .createOutOfBandInvitation(inviter, inviterDid, didMethod)
             .getMessageExchange()
 
         val invitation = mex.getInvitation() as Invitation
@@ -112,6 +119,9 @@ class ReceiveInvitation: AbstractOutOfBandCommand() {
     @Option(names = ["--invitee-did" ], description = ["Optional invitee Did alias"])
     var inviteeDidAlias: String? = null
 
+    @Option(names = ["--mediator" ], description = ["Optional inviter alias when mediator"])
+    var mediatorAlias: String? = null
+
     @Option(names = ["-u", "--url" ], description = ["Optional invitation url"])
     var invitationUrl: String? = null
 
@@ -132,10 +142,13 @@ class ReceiveInvitation: AbstractOutOfBandCommand() {
         }
         checkNotNull(invitee) { "No invitee wallet" }
 
+        val effectiveInviter = mediatorAlias ?: inviterAlias
+        val isMediatorInvitation = mediatorAlias != null
+
         val mex = MessageExchange()
             .withAttachment(INVITATION_ATTACHMENT_KEY, invitation)
             .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
-            .receiveOutOfBandInvitation(invitee, inviteeDid, inviterAlias)
+            .receiveOutOfBandInvitation(invitee, inviteeDid, effectiveInviter, fromMediator = isMediatorInvitation)
             .withProtocol(TRUST_PING_PROTOCOL_V2)
             .sendTrustPing()
             .awaitTrustPingResponse()
@@ -194,10 +207,14 @@ class InviteAndConnect: AbstractOutOfBandCommand() {
         checkNotNull(invitee) { "No invitee wallet" }
         check(inviter != invitee) { "Inviter/Invitee cannot be the same: ${inviter.shortString()}" }
 
+        // Check the wallet endpoints
         checkWalletEndpoint(inviter, invitee)
-        val didMethod = method?.let { DidMethod.fromValue(method!!) }
-        var inviterDid: Did = inviterDidAux ?: inviter.createDid(didMethod)
-        var inviteeDid: Did = inviteeDidAux ?: invitee.createDid(didMethod)
+
+        // Use given or created Dids
+        val didMethodAux = method?.let { DidMethod.fromValue(method!!) } ?: DidMethod.PEER
+        var inviterDid: Did = inviterDidAux ?: inviter.createDid(didMethodAux)
+        var inviteeDid: Did = inviteeDidAux ?: invitee.createDid(didMethodAux)
+
         val pcon = MessageExchange()
             .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
             .createOutOfBandInvitation(inviter, inviterDid)

@@ -36,10 +36,12 @@ class VarCommands: AbstractBaseCommand() {
     fun listVars() {
         if (properties.getVars().isNotEmpty()) {
             val maxKeyLength = Collections.max(properties.getVars().keys.mapIndexed { idx, k -> "[$idx] [$k]".length })
-            sortedEntries.forEachIndexed { idx, (k, v) ->
-                val valStr = if (v.length > 96) "${v.take(48)}...${v.takeLast(48)}" else v
-                echo("${"[$idx] [$k]".padEnd(maxKeyLength)} $valStr")
-            }
+            sortedEntries
+                .map { (k, v) -> Pair(k, v.toString()) }
+                .forEachIndexed { idx, (k, v) ->
+                    val valStr = if (v.length > 96) "${v.take(48)}...${v.takeLast(48)}" else v
+                    echo("${"[$idx] [$k]".padEnd(maxKeyLength)} $valStr")
+                }
         }
     }
 
@@ -55,7 +57,7 @@ class VarCommands: AbstractBaseCommand() {
             properties.getVars().keys.firstOrNull { it.contains(alias.lowercase()) }
         }
         key?.also { k ->
-            val v = properties.asString(k)
+            val v = properties.getVar(k)
             echo("$k=${v?.prettyPrint()}")
         }
     }
@@ -67,8 +69,11 @@ class VarCommands: AbstractBaseCommand() {
         @Option(names = ["--val" ], required = true, description = ["Var value"])
         value: String
     ) {
-        properties.putVar(key, value)
-        echo("$key=${value.prettyPrint()}")
+        val old = properties.getVar(key)
+        if (old != value) {
+            properties.putVar(key, value)
+            echo("Var: $key=$value")
+        }
     }
 
     private val sortedEntries get() =

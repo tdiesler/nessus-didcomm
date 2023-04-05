@@ -21,18 +21,34 @@ package org.nessus.didcomm.test.cli
 
 import io.kotest.core.annotation.EnabledIf
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import org.nessus.didcomm.util.NessusPlaygroundReachable
+
+/*
+
+docker run --detach --name didcomm \
+  -p 9100:9100 \
+  -e NESSUS_USER_PORT=9100 \
+  nessusio/nessus-didcomm:dev \
+    run --headless script/travel-with-minor-bootstrap.txt
+
+docker logs -fn400 didcomm
+
+*/
 
 @EnabledIf(NessusPlaygroundReachable::class)
 class PlaygroundCLITest: AbstractCLITest() {
 
     @Test
-    fun oobInvitationV2_DidPeer() {
+    fun invitationV2_DidPeer() {
 
         val agentUri = "0.0.0.0:9000"
 
-        val playgroundUrl = "http://88.70.30.236:9100"
-        val userUrl = "http://88.70.30.236:9000"
+        val externalIp = System.getenv("EXTERNAL_IP")
+        externalIp shouldNotBe null
+
+        val playgroundUrl = "http://$externalIp:9100"
+        val userUrl = "http://$externalIp:9000"
 
         cliService.execute("agent start --uri $agentUri").isSuccess shouldBe true
         cliService.execute("wallet create --name Malathi --url=$userUrl").isSuccess shouldBe true

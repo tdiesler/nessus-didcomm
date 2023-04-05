@@ -26,13 +26,12 @@ import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.protocol.BasicMessageProtocolV2.Companion.BASIC_MESSAGE_TYPE_V2
 import org.nessus.didcomm.service.BASIC_MESSAGE_PROTOCOL_V2
-import org.nessus.didcomm.service.MessageDispatcher
+import org.nessus.didcomm.service.MessageReceiver
 import org.nessus.didcomm.service.OUT_OF_BAND_PROTOCOL_V2
 import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
-import org.nessus.didcomm.test.NESSUS_OPTIONS
 import org.nessus.didcomm.util.Holder
 
 /**
@@ -47,15 +46,15 @@ class BasicMessageV2ProtocolTest : AbstractAgentTest() {
         /** Setup a message listener */
 
         val messageHolder = Holder<Message>(null)
-        val listener: MessageDispatcher = { epm ->
-            dispatchService.invoke(epm)?.also {
-                if (it.last.type == BASIC_MESSAGE_TYPE_V2) {
-                    messageHolder.value = it.last.body as Message
+        val listener: MessageReceiver = { epm ->
+            receiverService.invoke(epm).also {
+                if (it.type == BASIC_MESSAGE_TYPE_V2) {
+                    messageHolder.value = it
                 }
             }
         }
 
-        startNessusEndpoint(NESSUS_OPTIONS, listener).use {
+        startNessusEndpoint(listener).use {
 
             /** Create the wallets */
 

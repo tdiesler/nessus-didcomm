@@ -3,6 +3,7 @@ package org.nessus.didcomm.cli.model
 import org.nessus.didcomm.cli.AbstractBaseCommand
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.DidMethod
+import org.nessus.didcomm.service.DidOptions
 import org.nessus.didcomm.service.DidPeerOptions
 import org.nessus.didcomm.util.encodeJson
 import picocli.CommandLine.Command
@@ -18,7 +19,7 @@ class DidCommands: AbstractBaseCommand() {
 
     @Command(name = "list", description = ["List available Dids"], mixinStandardHelpOptions = true)
     fun listDids(
-        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        @Option(names = ["-w", "--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
         walletAlias: String?,
 
         @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
@@ -33,7 +34,7 @@ class DidCommands: AbstractBaseCommand() {
 
     @Command(name = "show", description = ["Show Did details"], mixinStandardHelpOptions = true)
     fun showDid(
-        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        @Option(names = ["-w", "--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
         walletAlias: String?,
 
         @Parameters(description = ["The did alias"])
@@ -50,11 +51,14 @@ class DidCommands: AbstractBaseCommand() {
 
     @Command(name = "create", description = ["Create a Did for the given wallet"], mixinStandardHelpOptions = true)
     fun createDid(
-        @Option(names = ["--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
+        @Option(names = ["-w", "--wallet"], paramLabel = "wallet", description = ["Optional wallet alias"])
         walletAlias: String?,
 
         @Option(names = ["-m", "--method"], description = ["The Did method with url parameters (e.g. peer?numalgo=2)"], defaultValue = "key")
         method: String,
+
+        @Option(names = ["-r", "--routing-key"], arity = "0..*", description = ["Optional routing key"])
+        routingKeys: List<String>?,
 
         @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
         verbose: Boolean
@@ -73,17 +77,27 @@ class DidCommands: AbstractBaseCommand() {
 
         val ctxWallet = getContextWallet(walletAlias)
         val (methodName, didParams) = parseMethodOptions()
+
         val allowed = DidMethod.values().map { it.name.lowercase() }
         require(methodName in allowed) { "Invalid value for option '--method': expected one of $allowed" }
+
+        // Validate the routing keys
+        val effectiveRoutingKeys = (routingKeys ?: ctxWallet.routingKeys)?.map {
+            val (_, mediatorDid) = findWalletAndDidFromAlias(null, it)
+            checkNotNull(mediatorDid?.uri) { "Cannot find mediator Did for: $it" }
+        } ?: listOf()
+
+        val effectiveEndpointUrl = didParams["url"] ?: ctxWallet.endpointUrl
 
         val didMethod = DidMethod.fromValue(methodName)
         val didOptions = when (didMethod) {
             DidMethod.PEER -> {
                 val numalgo = didParams["numalgo"]?.toInt() ?: 2
-                val endpointUrl = didParams["url"] ?: ctxWallet.endpointUrl
-                DidPeerOptions(numalgo, endpointUrl)
+                DidPeerOptions(numalgo, effectiveEndpointUrl, effectiveRoutingKeys)
             }
-            else -> null
+            else -> {
+                DidOptions(effectiveEndpointUrl, effectiveRoutingKeys)
+            }
         }
 
         val did = ctxWallet.createDid(didMethod, options = didOptions)

@@ -28,7 +28,6 @@ import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
-import org.nessus.didcomm.test.NESSUS_OPTIONS
 import org.nessus.didcomm.util.Holder
 
 /**
@@ -46,7 +45,7 @@ class TrustPingV2ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
 
     @BeforeAll
     fun startAgent() {
-        startNessusEndpoint(NESSUS_OPTIONS)
+        startNessusEndpoint()
         val faber = Wallet.Builder(Faber.name).build()
         val alice = Wallet.Builder(Alice.name).build()
         contextHolder.value = Context(faber = faber, alice = alice)

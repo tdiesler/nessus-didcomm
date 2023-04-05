@@ -23,6 +23,9 @@ import org.nessus.didcomm.cli.AbstractBaseCommand
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.MessageExchange
+import org.nessus.didcomm.model.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
+import org.nessus.didcomm.model.MessageExchange.Companion.DID_ATTACHMENT_KEY
+import org.nessus.didcomm.model.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.model.Wallet
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
@@ -50,13 +53,13 @@ class WalletCommands: AbstractBaseCommand() {
     @Command(name = "show", description = ["Show wallet details"], mixinStandardHelpOptions = true)
     fun showWallet(
 
-        @Parameters(description = ["The wallet alias"])
-        alias: String,
+        @Parameters(description = ["The wallet alias"], arity = "0..1")
+        alias: String?,
 
         @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
         verbose: Boolean = false,
     ) {
-        val w = getWalletFromAlias(alias)
+        val w = getContextWallet(alias)
         if (verbose)
             echo(w.encodeJson(true))
         else
@@ -74,11 +77,22 @@ class WalletCommands: AbstractBaseCommand() {
         @Option(names = ["-u", "--url"], description = ["The wallet's endpoint url"])
         endpointUrl: String?,
 
+        @Option(names = ["-r", "--routing-key"], arity = "0..*", description = ["Optional routing key"])
+        routingKeys: List<String>?,
+
         @Option(names = ["-v", "--verbose"], description = ["Verbose terminal output"])
         verbose: Boolean = false
     ) {
+
+        // Validate the routing keys
+        val effectiveRoutingKeys = routingKeys?.map {
+            val (_, mediatorDid) = findWalletAndDidFromAlias(null, it)
+            checkNotNull(mediatorDid?.uri) { "Cannot find mediator Did for: $it" }
+        } ?: listOf()
+
         val wallet = Wallet.Builder(name)
             .agentType(AgentType.fromValue(agent!!))
+            .routingKeys(effectiveRoutingKeys)
             .endpointUrl(endpointUrl)
             .build()
         cliService.putContextWallet(wallet)
@@ -99,6 +113,9 @@ class WalletCommands: AbstractBaseCommand() {
                 cliService.removeAttachment(MessageExchange.WALLET_ATTACHMENT_KEY)
             }
             walletService.removeWallet(wallet.id)
+            cliService.putAttachment(CONNECTION_ATTACHMENT_KEY, null)
+            cliService.putAttachment(WALLET_ATTACHMENT_KEY, null)
+            cliService.putAttachment(DID_ATTACHMENT_KEY, null)
             echo("Wallet removed: ${wallet.shortString()}")
         }
     }

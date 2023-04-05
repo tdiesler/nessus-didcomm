@@ -32,7 +32,7 @@ class DidDocumentServiceTest: AbstractAgentTest() {
     val log = KotlinLogging.logger {}
 
     @Test
-    fun testDidDocV2() {
+    fun testDidDocV1() {
 
         val alice = Wallet.Builder(Alice.name).build()
         try {
@@ -41,11 +41,11 @@ class DidDocumentServiceTest: AbstractAgentTest() {
             val didDoc: WaltIdDid = WaltIdDidService.load(didA.uri)
             log.info { "WaltIdDid: ${didDoc.encodePretty()}" }
 
-            val didDocV2 = didService.loadDidDoc(didA.uri)
-            log.info { "DidDocV2: ${didDocV2.encodeJson(true)}" }
-            didDocV2.serviceEndpoint shouldBe alice.endpointUrl
+            val didDocV1 = didService.loadDidDoc(didA.uri)
+            log.info { "DidDocV1: ${didDocV1.encodeJson(true)}" }
+            didDocV1.serviceEndpoint shouldBe alice.endpointUrl
 
-            val sicpaDidDoc = didDocV2.toSicpaDidDoc()
+            val sicpaDidDoc = didDocV1.toSicpaDidDoc()
             log.info { "SicpaDidDoc: ${sicpaDidDoc.encodeJson(true)}" }
 
             val didB = didService.loadDid(didA.uri)

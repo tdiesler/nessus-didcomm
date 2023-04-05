@@ -2,19 +2,17 @@ package org.nessus.didcomm.model
 
 import id.walt.crypto.encodeBase58
 import mu.KotlinLogging
+import org.nessus.didcomm.service.DidService
+import org.nessus.didcomm.util.ellipsis
 import org.nessus.didcomm.util.gson
 
 enum class ConnectionRole {
     INVITER,
-    INVITEE,
-    RESPONDER,
-    REQUESTER;
+    INVITEE;
 }
 
 enum class ConnectionState {
     INVITATION,
-    REQUEST,
-    RESPONSE,
     COMPLETED,
     ACTIVE,
     CLOSED,
@@ -31,19 +29,22 @@ class Connection(
     val myAgent: String?,
     var myRole: ConnectionRole,
     var myLabel: String,
-    var myEndpointUrl: String,
 
     theirDid: Did?,
     val theirAgent: String?,
     var theirRole: ConnectionRole,
     var theirLabel: String?,
-    var theirEndpointUrl: String?,
 
     var state: ConnectionState,
 ) {
     companion object {
         private val log = KotlinLogging.logger {}
+        private val didService get() = DidService.getService()
     }
+
+    private var theirDidDoc: DidDocV1? = null
+
+    val alias get() = "${myLabel}_${theirLabel}"
 
     var myDid: Did = myDid
         set(did) {
@@ -61,16 +62,24 @@ class Connection(
             field = did
         }
 
-    val alias get() = "${myLabel}_${theirLabel}"
     val myVerkey get() = myDid.verkey
     val theirVerkey get() = theirDid.verkey
+
+    val theirEndpointUrl get() = run {
+        if (theirDidDoc == null)
+            theirDidDoc = didService.loadOrResolveDidDoc(theirDid.uri)
+        val theirDidCommService = theirDidDoc?.didCommServices?.firstOrNull()
+        checkNotNull(theirDidCommService) { "No recipient DIDComm Service" }
+        theirDidCommService.serviceEndpoint
+    }
 
     fun close() {
         state = ConnectionState.CLOSED
     }
 
     fun shortString(): String {
-        return "$alias [id=$id, myDid=${myDid.uri}, theirDid=${theirDid.uri}, state=$state]"
+        val ellipses = { did: Did -> did.uri.ellipsis(24) }
+        return "$alias [id=$id, myDid=${ellipses(myDid)}, theirDid=${ellipses(theirDid)}, state=$state]"
     }
 
     override fun toString(): String {

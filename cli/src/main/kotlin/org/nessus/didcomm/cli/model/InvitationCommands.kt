@@ -23,7 +23,7 @@ class InvitationCommands
  */
 open class AbstractInvitationCommand: AbstractBaseCommand() {
 
-    @Option(names = ["--wallet"], scope = INHERIT, paramLabel = "wallet", description = ["Optional wallet alias"])
+    @Option(names = ["-w", "--wallet"], scope = INHERIT, paramLabel = "wallet", description = ["Optional wallet alias"])
     var walletAlias: String? = null
 
     @Option(names = ["-v", "--verbose"], scope = INHERIT, description = ["Verbose terminal output"])

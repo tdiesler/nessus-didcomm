@@ -27,7 +27,6 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.NessusWalletPlugin
-import org.nessus.didcomm.model.StorageType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.Wallet.WalletConfig
 import java.nio.file.Files
@@ -46,15 +45,21 @@ object WalletService: ObjectService<WalletService>() {
 
     fun createWallet(config: WalletConfig): Wallet {
         val maybeWallet = findWallet(config.name)
-        val agentType = config.agentType ?: AgentType.NESSUS
-        val storageType = config.storageType ?: StorageType.IN_MEMORY
+        val agentType = config.agentType
+        val storageType = config.storageType
         if (maybeWallet != null) {
             check(maybeWallet.agentType == agentType) {"Wallet ${config.name} exists, with other agent: ${maybeWallet.agentType}"}
             check(maybeWallet.storageType == storageType)  {"Wallet ${config.name} exists, with other type: ${maybeWallet.storageType}"}
             return maybeWallet
         }
 
-        val wallet = when(config.agentType!!) {
+        // Verify routing keys
+        config.routingKeys?.forEach {
+            val mediatorDid = didService.loadOrResolveDid(it)
+            checkNotNull(mediatorDid) { "Cannot resolve mediator Did: $it" }
+        }
+
+        val wallet = when(config.agentType) {
             AgentType.NESSUS -> NessusWalletPlugin().createWallet(config)
         }
 
@@ -87,8 +92,8 @@ object WalletService: ObjectService<WalletService>() {
      */
     fun createDid(wallet: Wallet, method: DidMethod? = null, keyAlias: String? = null, options: DidOptions? = null): Did {
         val auxOptions = options ?: when(method) {
-            DidMethod.PEER -> DidPeerOptions(numalgo = 2, wallet.endpointUrl)
-            else -> DidOptions(wallet.endpointUrl)
+            DidMethod.PEER -> DidPeerOptions(numalgo = 2, wallet.endpointUrl, wallet.routingKeys)
+            else -> DidOptions(wallet.endpointUrl, wallet.routingKeys)
         }
         val did = wallet.walletPlugin.createDid(wallet, method, keyAlias, auxOptions)
         wallet.addDid(did)

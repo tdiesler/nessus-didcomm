@@ -36,7 +36,7 @@ abstract class EndpointService<T: AutoCloseable>: BaseService() {
      *
      * @return A handle specific to the endpoint implementation
      */
-    open fun startEndpoint(endpointUrl: String, listener: MessageDispatcher? = null): T {
+    open fun startEndpoint(endpointUrl: String, dispatcher: MessageReceiver? = null): T {
         throw IllegalStateException("Override startEndpoint")
     }
 

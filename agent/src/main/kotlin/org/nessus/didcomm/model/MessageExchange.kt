@@ -22,7 +22,7 @@ package org.nessus.didcomm.model
 import mu.KotlinLogging
 import org.didcommx.didcomm.message.Message
 import org.nessus.didcomm.protocol.EndpointMessage
-import org.nessus.didcomm.protocol.OutOfBandV2Protocol.Companion.OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
+import org.nessus.didcomm.protocol.OutOfBandProtocolV2.Companion.OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
 import org.nessus.didcomm.protocol.Protocol
 import org.nessus.didcomm.service.ProtocolKey
 import org.nessus.didcomm.service.ProtocolService
@@ -130,8 +130,7 @@ class MessageExchange(): AttachmentSupport() {
 
     fun addMessage(msg: EndpointMessage): MessageExchange {
         synchronized(exchangeRegistry) {
-            val pcon = getAttachment(CONNECTION_ATTACHMENT_KEY)
-            val logMsg = "Add message [id=${msg.id}, type=${msg.type}] to mex=$id associated with ${pcon?.shortString()}"
+            val logMsg = "Add message [id=${msg.id}, type=${msg.type}] to ${shortString()}"
             checkNotNull(msg.type) { "No message type" }
             if (messageStore.isEmpty()) {
                 check(msg.type == OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2) { "Unexpected message type: ${msg.type}" }
@@ -160,18 +159,18 @@ class MessageExchange(): AttachmentSupport() {
     fun placeEndpointMessageFuture(messageType: String) {
         val futureKey = getFutureKey(messageType)
         putAttachment(futureKey, CompletableFuture<EndpointMessage>())
-        log.info("Placed future ${futureKey.name} on mex=$id")
+        log.info("Placed future ${futureKey.name} on ${shortString()}")
     }
 
     fun awaitEndpointMessage(messageType: String, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): EndpointMessage {
         val futureKey = getFutureKey(messageType)
         val future = getAttachment(futureKey)
-        checkNotNull(future) { "No Future ${futureKey.name} on mex=$id" }
+        checkNotNull(future) { "No Future ${futureKey.name} on ${shortString()}" }
         try {
-            log.info {"Wait for future ${futureKey.name} on mex=$id"}
+            log.info {"Wait for future ${futureKey.name} on ${shortString()}"}
             return future.get(timeout.toLong(), unit) as EndpointMessage
         } finally {
-            log.info {"Remove future ${futureKey.name} from mex=$id"}
+            log.info {"Remove future ${futureKey.name} from ${shortString()}"}
             removeAttachment(futureKey)
         }
     }
@@ -180,8 +179,8 @@ class MessageExchange(): AttachmentSupport() {
     fun completeEndpointMessageFuture(messageType: String, epm: EndpointMessage) {
         val futureKey = getFutureKey(messageType)
         val future = getAttachment(futureKey) as? CompletableFuture<EndpointMessage>
-        checkNotNull(future) { "No Future ${futureKey.name} on mex=$id" }
-        log.info {"Complete future ${futureKey.name} on mex=$id"}
+        checkNotNull(future) { "No Future ${futureKey.name} on ${shortString()}" }
+        log.info {"Complete future ${futureKey.name} on ${shortString()}"}
         future.complete(epm)
     }
 
@@ -200,16 +199,14 @@ class MessageExchange(): AttachmentSupport() {
             MessageExchange().withAttachment(CONNECTION_ATTACHMENT_KEY, pcon)
     }
 
-    fun showMessages(name: String) {
-        log.info { "MessageExchange ($name) - $id" }
-        messages.forEach {
-            log.info { "+ (id=${it.id}, thid=${it.thid}) - ${it.type}" }
-        }
+    fun shortString(): String {
+        val pcon = getAttachment(CONNECTION_ATTACHMENT_KEY)
+        return "[mex=$id associated with ${pcon?.shortString()}]"
     }
-
+    
     override fun toString(): String {
         val pcon = getAttachment(CONNECTION_ATTACHMENT_KEY)
-        return "MessageExchange(id=${id}, size=${messageStore.size}, verkey=${pcon?.myVerkey})"
+        return "MessageExchange(id=${id}, size=${messageStore.size}, pcon=${pcon?.shortString()})"
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
