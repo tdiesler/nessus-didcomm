@@ -20,8 +20,6 @@
 package org.nessus.didcomm.cli
 
 import mu.KotlinLogging
-import org.nessus.didcomm.service.PropertiesService.getVar
-import org.nessus.didcomm.service.PropertiesService.putVar
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.Invitation
@@ -31,6 +29,8 @@ import org.nessus.didcomm.model.MessageExchange.Companion.INVITATION_ATTACHMENT_
 import org.nessus.didcomm.model.MessageExchange.Companion.WALLET_ATTACHMENT_KEY
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.ModelService
+import org.nessus.didcomm.service.PropertiesService.getVar
+import org.nessus.didcomm.service.PropertiesService.putVar
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.AttachmentSupport
 import picocli.CommandLine
@@ -68,8 +68,8 @@ object CLIService: AttachmentSupport() {
         val tokens = line.split(Regex("\\s"))
         return tokens.joinToString(separator = " ") { tok ->
             regex.matchEntire(tok)?.groupValues?.let { groups ->
-                val value = getVar(groups[2])
-                "${groups[1]}$value${groups[3]}"
+                val value = getVar(groups[2]) ?: System.getenv(groups[2])
+                value?.let { "${groups[1]}$value${groups[3]}" } ?: tok
             } ?: tok
         }
     }

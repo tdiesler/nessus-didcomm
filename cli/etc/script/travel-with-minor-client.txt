@@ -1,4 +1,9 @@
 
+# export NESSUS_PLAYGROUND_HOST=nessus-tech.io
+# export NESSUS_USER_HOST=$EXTERNAL_IP
+#
+# didcomm run script/travel-with-minor-client.txt
+
 # Start the agent ######################################################################################################
 
 agent start --uri 0.0.0.0:9000
@@ -9,11 +14,8 @@ var set --key protocol.trust-ping.rotate-did --val=false
 
 # Runtime Properties ###################################################################################################
 
-# var set --key nessus.playground.url --val=http://nessus-tech.io:9100
-# var set --key nessus.client.url --val=http://88.70.30.236:9000
-
-var set --key nessus.playground.url --val=http://localhost:9100
-var set --key nessus.client.url --val=http://192.168.0.10:9000
+var set --key nessus.playground.url --val=http://${NESSUS_PLAYGROUND_HOST}:9100
+var set --key nessus.client.url --val=http://${NESSUS_USER_HOST}:9000
 
 # Create Wallets and Dids ##############################################################################################
 
