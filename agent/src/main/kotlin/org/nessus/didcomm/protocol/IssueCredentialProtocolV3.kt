@@ -29,6 +29,7 @@ import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.message.MessageBuilder
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Did
+import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
@@ -264,9 +265,8 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val pcon = mex.getConnection()
         val issuerDid = pcon.myDid
 
-        val vcRequestEpm = mex.last
         val vcRequestMsg = mex.last.body as Message
-        vcRequestEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL)
+        mex.checkLastMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL)
 
         val id = "${UUID.randomUUID()}"
         val type = ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL
@@ -309,9 +309,8 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val pcon = mex.getConnection()
         val holderDid = pcon.theirDid
 
-        val vcProposalEpm = mex.last
         val vcProposalMsg = mex.last.body as Message
-        vcProposalEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_PROPOSE_CREDENTIAL)
+        mex.checkLastMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_PROPOSE_CREDENTIAL)
 
         log.info { "Issuer (${issuer.name}) received credential proposal: ${vcProposalMsg.encodeJson(true)}" }
 
@@ -374,7 +373,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
 
         val vcOfferEpm = mex.last
         val vcOfferMsg = mex.last.body as Message
-        vcOfferEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL)
+        mex.checkLastMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL)
 
         val offer = OfferMetaData.fromMap(vcOfferMsg.body)
         
@@ -417,9 +416,8 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
 
     private fun receiveCredentialRequest(issuer: Wallet): IssueCredentialProtocolV3 {
 
-        val vcRequestEpm = mex.last
         val vcRequestMsg = mex.last.body as Message
-        vcRequestEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL)
+        mex.checkLastMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL)
 
         log.info { "Issuer (${issuer.name}) received credential request: ${vcRequestMsg.encodeJson(true)}" }
 
@@ -433,9 +431,8 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
 
     private fun receiveIssuedCredential(holder: Wallet): IssueCredentialProtocolV3 {
 
-        val issuedVcEpm = mex.last
         val issuedVcMsg = mex.last.body as Message
-        issuedVcEpm.checkMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL)
+        mex.checkLastMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL)
 
         val attachment = issuedVcMsg.attachments?.firstOrNull { at -> at.format == null || at.format == CREDENTIAL_ATTACHMENT_FORMAT }
         checkNotNull(attachment) { "No credential attachment" }

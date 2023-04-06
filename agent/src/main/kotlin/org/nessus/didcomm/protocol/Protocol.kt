@@ -24,9 +24,9 @@ import mu.KLogger
 import org.didcommx.didcomm.message.Message
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.service.DidCommService
 import org.nessus.didcomm.service.DidDocResolverService
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.MessageDispatchService

@@ -22,6 +22,10 @@ package org.nessus.didcomm.test.cli
 import io.kotest.core.annotation.EnabledIf
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldStartWith
+import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.util.NessusPlaygroundReachable
 
 /*
@@ -44,20 +48,45 @@ class PlaygroundCLITest: AbstractCLITest() {
 
         val agentUri = "0.0.0.0:9000"
 
-        val externalIp = System.getenv("EXTERNAL_IP")
-        externalIp shouldNotBe null
+        val internalIp = System.getenv("INTERNAL_IP")
+        internalIp shouldNotBe null
 
-        val playgroundUrl = "http://$externalIp:9100"
-        val userUrl = "http://$externalIp:9000"
+        val playgroundUrl = "http://$internalIp:9100"
+        val userUrl = "http://$internalIp:9000"
 
         cliService.execute("agent start --uri $agentUri").isSuccess shouldBe true
         cliService.execute("wallet create --name Malathi --url=$userUrl").isSuccess shouldBe true
         cliService.execute("did create --wallet Malathi --method=peer").isSuccess shouldBe true
 
         try {
+            val malathi = modelService.findWalletByName("Malathi") as Wallet
+            val malathiDid = properties.getVar("Malathi.Did")
+            malathiDid shouldStartWith "did:peer:2"
 
-            val invitationUrl = "$playgroundUrl/message/invitation?inviter=Government&method=peer"
-            cliService.execute("protocol invitation receive --inviter Government --invitee-did Malathi.Did --url=$invitationUrl").isSuccess shouldBe true
+            val govInvitationUrl = "$playgroundUrl/invitation?inviter=Government&method=peer"
+            cliService.execute("protocol invitation receive --inviter Government --invitee-did Malathi.Did --url=$govInvitationUrl").isSuccess shouldBe true
+
+            val malathiGovCon = malathi.findConnection { it.alias == "Malathi_Government" } as Connection
+            properties.getVar("Malathi_Government.myDid") shouldBe malathiDid
+            malathiGovCon.state shouldBe ConnectionState.ACTIVE
+
+            val malathiPassportData = """{"givenName": "Malathi", "familyName": "Hamal", "citizenship": "US"}"""
+            cliService.execute("vc propose -t Passport -i Malathi_Government.theirDid -s Malathi_Government.myDid --data $malathiPassportData").isSuccess shouldBe true
+
+            val vcPassport = malathi.findVerifiableCredentialByType("Passport").firstOrNull()
+            properties.getVar("Malathi.Passport.Vc") shouldNotBe null
+            "${vcPassport?.credentialSubject?.id}" shouldBe malathiDid
+
+            val airInvitationUrl = "$playgroundUrl/invitation?inviter=Airport&method=peer"
+            cliService.execute("protocol invitation receive --inviter Airport --invitee-did Malathi.Did --url=$airInvitationUrl").isSuccess shouldBe true
+
+            val malathiAirCon = malathi.findConnection { it.alias == "Malathi_Airport" } as Connection
+            properties.getVar("Malathi_Airport.myDid") shouldBe malathiDid
+            malathiAirCon.state shouldBe ConnectionState.ACTIVE
+
+            cliService.execute("vc present -h Malathi.Did -y Airport.Did --vc Malathi.Passport.Vc").isSuccess shouldBe true
+
+            cliService.execute("protocol basic-message send 'Your hovercraft is full of eels'").isSuccess shouldBe true
 
         } finally {
             cliService.execute("wallet remove Malathi").isSuccess shouldBe true

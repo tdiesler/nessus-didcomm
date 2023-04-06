@@ -3,7 +3,7 @@
     <link rel="stylesheet" href="/index.css"/>
 </head>
 <body>
-    <a href="/playground?method=${method}" style="font-size:smaller;">Home</a>
+    <a href="/dashboard?method=${method}" style="font-size:smaller;">Home</a>
 
     <h2>Basic Message</h2>
 
@@ -25,7 +25,7 @@
 
     >> wallet create --name Malathi
 
-    Malathi>> protocol invitation receive --inviter=Government --url=http://${Host}/message/invitation?inviter=Government&method=${method}
+    Malathi>> protocol invitation receive --inviter=Government --url=http://${Host}/invitation?inviter=Government&method=${method}
 
     Malathi>> protocol basic-message send "This worked great. Looking forward to doing more of this exciting Trust over IP"
 

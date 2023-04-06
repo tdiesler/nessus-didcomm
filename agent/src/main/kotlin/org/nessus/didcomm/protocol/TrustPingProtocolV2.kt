@@ -30,6 +30,7 @@ import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.DidDocV1
 import org.nessus.didcomm.model.DidPeer
+import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.model.Wallet
@@ -87,6 +88,7 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             .createdTime(dateTimeNow())
             .expiresTime(dateTimeNow().plusHours(24))
             .comment("Ping from ${sender.name}")
+            .label(sender.name)
             .responseRequested(true)
 
         // FIRST TRUST PING
@@ -137,8 +139,9 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
 
         val trustPingEpm = mex.last
         val trustPingMsg = mex.last.body as Message
-        trustPingEpm.checkMessageType(TRUST_PING_MESSAGE_TYPE_PING_V2)
-        val trustPing = TrustPingMessageV2.fromMessage(trustPingMsg)
+        mex.checkLastMessageType(TRUST_PING_MESSAGE_TYPE_PING_V2)
+
+        val trustPingV2 = TrustPingMessageV2.fromMessage(trustPingMsg)
 
         // FIRST TRUST PING
         // Update the Inviter Did + Document + Connection
@@ -152,7 +155,7 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             val invitationDidDoc = didService.loadDidDoc(invitationDid.uri)
             fromPriorIssuerKid = invitationDidDoc.authentications.first()
 
-            val senderDid = Did.fromUri(trustPing.from as String)
+            val senderDid = Did.fromUri(trustPingV2.from as String)
             val senderDidDoc = DidDocV1.fromMessage(trustPingMsg) ?: didService.resolveDidDoc(senderDid.uri)
             checkNotNull(senderDidDoc) { "No sender DidDoc" }
 
@@ -164,17 +167,20 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
                 false -> invitationDid
             }
 
+            val theirWallet = modelService.findWalletByDid(senderDid.uri)
+            val theirLabel = theirWallet?.name ?: trustPingV2.label
+
             pcon.myDid = inviterDid
             pcon.theirDid = senderDid
-            pcon.theirLabel = modelService.findWalletByDid(senderDid.uri)?.name
+            pcon.theirLabel = theirLabel
             pcon.state = ConnectionState.ACTIVE
             receiver.currentConnection = pcon
 
             log.info { "Connection ${pcon.state}: ${pcon.encodeJson(true)}"}
         }
 
-        if (trustPing.responseRequested != false)
-            sendTrustPingResponse(receiver, trustPing.id, fromPriorIssuerKid)
+        if (trustPingV2.responseRequested != false)
+            sendTrustPingResponse(receiver, trustPingV2.id, fromPriorIssuerKid)
 
         pcon.state = ConnectionState.ACTIVE
 
@@ -189,7 +195,7 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
         val receiverDid = pcon.myDid
         val senderDid = pcon.theirDid
 
-        val trustPingResponse = TrustPingMessageV2.Builder(
+        val trustPingV2 = TrustPingMessageV2.Builder(
                 id = "${UUID.randomUUID()}",
                 type = TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
             .thid(threadId)
@@ -198,9 +204,10 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             .createdTime(dateTimeNow())
             .expiresTime(dateTimeNow().plusHours(24))
             .comment("Pong from ${receiver.name}")
+            .label(receiver.name)
             .build()
 
-        val trustPingResponseMsg = trustPingResponse.toMessage()
+        val trustPingResponseMsg = trustPingV2.toMessage()
         mex.addMessage(EndpointMessage.Builder(trustPingResponseMsg).outbound().build())
         log.info { "Receiver (${receiver.name}) creates TrustPing Response: ${trustPingResponseMsg.encodeJson(true)}" }
 
@@ -211,15 +218,19 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
 
     private fun receiveTrustPingResponse(receiver: Wallet): TrustPingProtocolV2 {
 
-        val trustPingResponseEpm = mex.last
         val trustPingResponseMsg = mex.last.body as Message
-        trustPingResponseEpm.checkMessageType(TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
-
-        val trustPingResponse = TrustPingMessageV2.fromMessage(trustPingResponseMsg)
+        mex.checkLastMessageType(TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
 
         val pcon = mex.getConnection()
-        pcon.theirDid = Did.fromUri(trustPingResponse.from as String)
+
+        val trustPingV2 = TrustPingMessageV2.fromMessage(trustPingResponseMsg)
+        val theirDid = Did.fromUri(trustPingV2.from as String)
+        val theirLabel = pcon.theirLabel ?: trustPingV2.label
+
+        pcon.theirDid = theirDid
+        pcon.theirLabel = theirLabel
         pcon.state = ConnectionState.ACTIVE
+
         receiver.currentConnection = pcon
 
         mex.completeEndpointMessageFuture(TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2, mex.last)
@@ -237,6 +248,7 @@ class TrustPingMessageV2(
     val createdTime: OffsetDateTime?,
     val expiresTime: OffsetDateTime?,
     val comment: String?,
+    val label: String?,
     val responseRequested: Boolean?,
     val attachments: List<Attachment>?,
 ) {
@@ -249,6 +261,7 @@ class TrustPingMessageV2(
         createdTime = builder.createdTime,
         expiresTime = builder.expiresTime,
         comment = builder.comment,
+        label = builder.label,
         responseRequested = builder.responseRequested,
         attachments = builder.attachments,
     )
@@ -259,6 +272,7 @@ class TrustPingMessageV2(
             val createdTime = msg.createdTime?.run { dateTimeInstant(msg.createdTime!!) }
             val expiresTime = msg.expiresTime?.run { dateTimeInstant(msg.expiresTime!!) }
             val comment = msg.body["comment"] as? String
+            val label = msg.body["suggested_label"] as? String
             val responseRequested = msg.body["response_requested"] as? Boolean
             return Builder(msg.id, msg.type)
                 .thid(msg.thid)
@@ -267,6 +281,7 @@ class TrustPingMessageV2(
                 .createdTime(createdTime)
                 .expiresTime(expiresTime)
                 .comment(comment)
+                .label(label)
                 .responseRequested(responseRequested)
                 .attachments(msg.attachments)
                 .build()
@@ -276,6 +291,7 @@ class TrustPingMessageV2(
     fun toMessage(): Message {
         val body = LinkedHashMap<String, Any>()
         comment?.also { body["comment"] = it }
+        label?.also { body["suggested_label"] = it }
         responseRequested?.also { body["response_requested"] = it }
         return MessageBuilder(id, body, type)
             .thid(thid)
@@ -297,6 +313,7 @@ class TrustPingMessageV2(
         internal var createdTime: OffsetDateTime? = null
         internal var expiresTime: OffsetDateTime? = null
         internal var comment: String? = null
+        internal var label: String? = null
         internal var responseRequested: Boolean? = null
         internal var attachments: List<Attachment>? = null
 
@@ -305,6 +322,7 @@ class TrustPingMessageV2(
         fun to(to: List<String>?) = apply { this.to = to }
         fun createdTime(createdTime: OffsetDateTime?) = apply { this.createdTime = createdTime }
         fun expiresTime(expiresTime: OffsetDateTime?) = apply { this.expiresTime = expiresTime }
+        fun label(label: String?) = apply { this.label = label }
         fun comment(comment: String?) = apply { this.comment = comment }
         fun responseRequested(responseRequested: Boolean?) = apply { this.responseRequested = responseRequested }
         fun attachments(attachments: List<Attachment>?) = apply { this.attachments = attachments?.toList() }

@@ -1,0 +1,71 @@
+{
+  "id": "e3934b2c-7223-4cd9-b30e-0b3e2741e0bb",
+  "type": "https://didcomm.org/present_proof/3.0/presentation",
+  "typ": "Plaintext",
+  "from": "did:peer:2.Ez6LSnhqPvymzi4G638sfzZzrZwDqVjbsmFz1gRYokKdgETbf.Vz6MkwLyVMQ3erAcnbDpfETD3vnyhrUUS5wKH5pWgDQznLp2k.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovLzE5Mi4xNjguMC4xMDo5MDAwIn0",
+  "to": [
+    "did:peer:2.Ez6LSm65jwExzzfWhvD46BRgN25yQzdYPfpw4HbzYjAMjbQQs.Vz6MkezDpYjWgTdEHDVUoZ6RUTZF2FN5Sg8cD4RocwKhcFtsj.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovLzE5Mi4xNjguMC4xMDo5MTAwIn0"
+  ],
+  "attachments": [
+    {
+      "id": "cea4dc65-5889-41f6-9815-aad34af3f0b2",
+      "data": {
+        "json": {
+          "type": [
+            "VerifiablePresentation"
+          ],
+          "@context": [
+            "https://www.w3.org/2018/credentials/v1",
+            "https://w3id.org/security/suites/jws-2020/v1"
+          ],
+          "id": "urn:uuid:31ce5153-aac6-436a-b1e3-ce85601f4a5e",
+          "holder": "did:peer:2.Ez6LSnhqPvymzi4G638sfzZzrZwDqVjbsmFz1gRYokKdgETbf.Vz6MkwLyVMQ3erAcnbDpfETD3vnyhrUUS5wKH5pWgDQznLp2k.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovLzE5Mi4xNjguMC4xMDo5MDAwIn0",
+          "verifiableCredential": [
+            {
+              "type": [
+                "VerifiableCredential",
+                "Passport"
+              ],
+              "@context": [
+                "https://www.w3.org/2018/credentials/v1",
+                "https://w3id.org/security/suites/jws-2020/v1"
+              ],
+              "id": "urn:uuid:8549c3a7-a4ad-48df-8922-962259038647",
+              "issuer": "did:peer:2.Ez6LSjKbH9TJwaQYJEXfrobbXRq8xVZBFYwEXRs7ePjXcfmWu.Vz6MkqNifbxnFbaTbDDtvzjdy4q3zvd6FpQFGReWbKUf6rTsn.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovLzE5Mi4xNjguMC4xMDo5MTAwIn0",
+              "issuanceDate": "2023-04-06T06:13:07.070873Z",
+              "proof": {
+                "type": "JsonWebSignature2020",
+                "creator": "did:peer:2.Ez6LSjKbH9TJwaQYJEXfrobbXRq8xVZBFYwEXRs7ePjXcfmWu.Vz6MkqNifbxnFbaTbDDtvzjdy4q3zvd6FpQFGReWbKUf6rTsn.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovLzE5Mi4xNjguMC4xMDo5MTAwIn0",
+                "created": "2023-04-06T06:13:07Z",
+                "proofPurpose": "assertionMethod",
+                "verificationMethod": "did:peer:2.Ez6LSjKbH9TJwaQYJEXfrobbXRq8xVZBFYwEXRs7ePjXcfmWu.Vz6MkqNifbxnFbaTbDDtvzjdy4q3zvd6FpQFGReWbKUf6rTsn.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovLzE5Mi4xNjguMC4xMDo5MTAwIn0",
+                "jws": "eyJiNjQiOmZhbHNlLCJjcml0IjpbImI2NCJdLCJhbGciOiJFZERTQSJ9..h9pI9P-m5QSJd9TqonTk9brGyKfsO6WDAvL690PXcX2w-uFV-_YnB4PBs-xS_CEnXndAYCPamCxIPr9w6gmYDA"
+              },
+              "credentialSchema": {
+                "id": "class:nessus/schema/PassportSchema-draft-01.json",
+                "type": "JsonSchemaValidator2018"
+              },
+              "credentialSubject": {
+                "id": "did:peer:2.Ez6LSnhqPvymzi4G638sfzZzrZwDqVjbsmFz1gRYokKdgETbf.Vz6MkwLyVMQ3erAcnbDpfETD3vnyhrUUS5wKH5pWgDQznLp2k.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovLzE5Mi4xNjguMC4xMDo5MDAwIn0",
+                "givenName": "Malathi",
+                "familyName": "Hamal",
+                "citizenship": "US"
+              }
+            }
+          ],
+          "proof": {
+            "type": "JsonWebSignature2020",
+            "creator": "did:peer:2.Ez6LSnhqPvymzi4G638sfzZzrZwDqVjbsmFz1gRYokKdgETbf.Vz6MkwLyVMQ3erAcnbDpfETD3vnyhrUUS5wKH5pWgDQznLp2k.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovLzE5Mi4xNjguMC4xMDo5MDAwIn0",
+            "created": "2023-04-06T06:13:08Z",
+            "proofPurpose": "authentication",
+            "verificationMethod": "did:peer:2.Ez6LSnhqPvymzi4G638sfzZzrZwDqVjbsmFz1gRYokKdgETbf.Vz6MkwLyVMQ3erAcnbDpfETD3vnyhrUUS5wKH5pWgDQznLp2k.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovLzE5Mi4xNjguMC4xMDo5MDAwIn0#6MkwLyVMQ3erAcnbDpfETD3vnyhrUUS5wKH5pWgDQznLp2k",
+            "jws": "eyJiNjQiOmZhbHNlLCJjcml0IjpbImI2NCJdLCJhbGciOiJFZERTQSJ9..J4iuNl7n8DWQ_FNVqESsuQz9Wj4wpqrKo7yK9zKOacyzUnuPO2hwIQviom4kI2gJLFzlHfijzzmtQF9u6fVuAw"
+          }
+        }
+      },
+      "mediaType": "application/json",
+      "format": "https://www.w3.org/TR/vc-data-model/"
+    }
+  ],
+  "thid": "78266038-78ff-4f4d-89c9-d75db19c3ac1"
+}

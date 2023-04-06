@@ -28,11 +28,11 @@ import org.didcommx.didcomm.model.PackEncryptedParams
 import org.didcommx.didcomm.model.PackPlaintextParams
 import org.didcommx.didcomm.model.PackSignedParams
 import org.nessus.didcomm.model.Connection
-import org.nessus.didcomm.protocol.EndpointMessage
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_ENDPOINT_URL
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_ID
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_THID
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
+import org.nessus.didcomm.model.EndpointMessage
+import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_ENDPOINT_URL
+import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_ID
+import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_THID
+import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.protocol.ForwardMessageV2
 import org.nessus.didcomm.protocol.RoutingProtocolV2.Companion.ROUTING_MESSAGE_TYPE_FORWARD_V2
 import org.nessus.didcomm.util.NessusRuntimeException

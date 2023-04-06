@@ -73,7 +73,7 @@ class LaboratoryCLITest: AbstractCLITest() {
         try {
             val malathi = modelService.findWalletByName("Malathi") as Wallet
 
-            val mediatorInvitation = "$mediatorUrl/message/invitation?inviter=Mediator&method=peer"
+            val mediatorInvitation = "$mediatorUrl/invitation?inviter=Mediator&method=peer"
             cliService.execute("protocol invitation receive --mediator=Mediator --invitee=Malathi --url=$mediatorInvitation").isSuccess shouldBe true
 
             val malathiDid = properties.getVar("Malathi.Did")
@@ -84,7 +84,7 @@ class LaboratoryCLITest: AbstractCLITest() {
             val malathiDidDoc = didService.loadDidDoc(malathiDid as String)
             malathiDidDoc.didCommServices.first().routingKeys shouldBe listOf(mediatorDid)
 
-            val governmentInvitation = "$playgroundUrl/message/invitation?inviter=Government&method=peer"
+            val governmentInvitation = "$playgroundUrl/invitation?inviter=Government&method=peer"
             cliService.execute("protocol invitation receive --inviter=Government --invitee-did=Malathi.Did --url=$governmentInvitation").isSuccess shouldBe true
 
             val malathiGov = malathi.findConnection { c -> c.alias == "Malathi_Government" } as Connection

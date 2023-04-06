@@ -21,7 +21,6 @@ package org.nessus.didcomm.model
 
 import mu.KotlinLogging
 import org.didcommx.didcomm.message.Message
-import org.nessus.didcomm.protocol.EndpointMessage
 import org.nessus.didcomm.protocol.OutOfBandProtocolV2.Companion.OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
 import org.nessus.didcomm.protocol.Protocol
 import org.nessus.didcomm.service.ProtocolKey

@@ -3,7 +3,7 @@
     <link rel="stylesheet" href="/index.css"/>
 </head>
 <body>
-    <h1>Nessus DIDComm - Playground</h1>
+    <h1>Nessus DIDComm - Dashboard</h1>
         <div>
             Version: ${nessusVersion}
             <div style="padding-top:5px;font-size:smaller;color:grey;">Rev: ${buildNumber}</div>
@@ -12,7 +12,7 @@
             ${walletDids}
             </table>
             <p/>
-            <a href='/playground?method=peer'>did:peer</a>, <a href='/playground?method=key'>did:key</a>
+            <a href='/dashboard?method=peer'>did:peer</a>, <a href='/dashboard?method=key'>did:key</a>
         </div>
 
     <h2>Supported Features/Protocols</h2>
@@ -20,12 +20,12 @@
         <p/>
         <div style="padding-left:20px">
             <ul>
-                <li><a href='/playground/oob-invitation?method=${method}'>out-of-bound invitation</a></li>
-                <li><a href='/playground/trust-ping?method=${method}'>trust ping</a></li>
-                <li><a href='/playground/basic-message?method=${method}'>basic message</a></li>
-                <li><a href='/playground/propose-credential?method=${method}'>propose credential</a></li>
-                <li><a href='/playground/present-credential'>present credential</a></li>
-                <li><a href='/playground/problem-reports' style="color:grey;">problem reports (tbd)</a></li>
+                <li><a href='/dashboard/protocol/oob-invitation?method=${method}'>out-of-bound invitation</a></li>
+                <li><a href='/dashboard/protocol/trust-ping?method=${method}'>trust ping</a></li>
+                <li><a href='/dashboard/protocol/basic-message?method=${method}'>basic message</a></li>
+                <li><a href='/dashboard/protocol/issue-credential?method=${method}'>issue credential</a></li>
+                <li><a href='/dashboard/protocol/present-proof'>present proof</a></li>
+                <li><a href='/dashboard/protocol/problem-reports' style="color:grey;">problem reports (tbd)</a></li>
             </ul>
         </div>
 

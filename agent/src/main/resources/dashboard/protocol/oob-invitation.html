@@ -3,18 +3,14 @@
     <link rel="stylesheet" href="/index.css"/>
 </head>
 <body>
-    <a href="/playground?method=${method}" style="font-size:smaller;">Home</a>
-
-    <p/>
-    <ul>
-        <li><a href='/playground?method=peer'>did:peer</a></li>
-        <li><a href='/playground?method=key'>did:key</a></li>
-    </ul>
+    <a href="/dashboard?method=${method}" style="font-size:smaller;">Home</a>
 
     <p/>
     <table>
     ${walletDids}
     </table>
+    <p/>
+    <a href='./oob-invitation?method=peer'>did:peer</a>, <a href='./oob-invitation?method=key'>did:key</a>
 
     <h2>Out-of-Band Invitation</h2>
 
@@ -41,7 +37,7 @@
 
     >> wallet create --name Malathi
 
-    Malathi>> protocol invitation receive --inviter=Government --url=http://${Host}/message/invitation?inviter=Government&amp;method=${method}
+    Malathi>> protocol invitation receive --inviter=Government --url=http://${Host}/invitation?inviter=Government&amp;method=${method}
 
     Malathi>> message list
         </code></pre>

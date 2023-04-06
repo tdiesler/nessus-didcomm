@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.protocol
+package org.nessus.didcomm.model
 
 import org.didcommx.didcomm.message.Message
 import org.nessus.didcomm.util.ellipsis

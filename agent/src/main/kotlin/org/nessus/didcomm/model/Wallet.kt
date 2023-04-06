@@ -113,21 +113,21 @@ abstract class Wallet(
 
     fun addDid(did: Did) {
         // We currently don't support multiple representations for the same verification key
-        check(getDid(did.verkey) == null) { "Did already added" }
+        check(findDidByUri(did.uri) == null) { "Did already added" }
         log.info { "Add Did for ${name}: $did" }
         didsInternal.add(did)
     }
 
-    fun getDid(verkey: String): Did? {
-        return dids.firstOrNull{ it.verkey == verkey }
-    }
-
-    fun hasDid(verkey: String): Boolean {
-        return getDid(verkey) != null
+    fun getDid(uri: String): Did {
+        return checkNotNull(findDidByUri(uri)) { "No Did for: $uri" }
     }
 
     fun findDid(predicate: (d: Did) -> Boolean): Did? {
         return dids.firstOrNull(predicate)
+    }
+
+    fun findDidByUri(uri: String): Did? {
+        return findDid { it.uri == uri }
     }
 
     fun findDidByAlias(alias: String?): Did? {
@@ -148,12 +148,16 @@ abstract class Wallet(
     }
 
     fun addConnection(con: Connection) {
-        check(getConnection(con.id) == null) { "Connection already added" }
+        check(findConnectionById(id) == null) { "Connection already added" }
         connectionsInternal.add(con)
     }
 
-    fun getConnection(id: String): Connection? {
-        return connectionsInternal.firstOrNull { it.id == id }
+    fun getConnection(id: String): Connection {
+        return checkNotNull(findConnectionById(id)) { "No connection for: $id" }
+    }
+
+    fun findConnectionById(id: String): Connection? {
+        return findConnection { it.id == id }
     }
 
     fun findConnection(predicate: (c: Connection) -> Boolean): Connection? {
@@ -161,7 +165,7 @@ abstract class Wallet(
     }
 
     fun removeConnection(id: String) {
-        getConnection(id)?.also {
+        findConnectionById(id)?.also {
             connectionsInternal.remove(it)
         }
     }
@@ -172,12 +176,16 @@ abstract class Wallet(
     }
 
     fun addInvitation(invitation: Invitation) {
-        check(getInvitation(invitation.id) == null) { "Invitation already added" }
+        check(findInvitationById(invitation.id) == null) { "Invitation already added" }
         invitationsInternal.add(invitation)
     }
 
-    fun getInvitation(id: String): Invitation? {
-        return findInvitation { it.id == id }
+    fun getInvitation(id: String): Invitation {
+        return checkNotNull(findInvitationById(id)) { "No Invitation for: $id" }
+    }
+
+    fun findInvitationById(id: String): Invitation? {
+        return findInvitation { it.id == id}
     }
 
     fun findInvitation(predicate: (i: Invitation) -> Boolean): Invitation? {
@@ -185,19 +193,23 @@ abstract class Wallet(
     }
 
     fun removeInvitation(id: String) {
-        getInvitation(id)?.run { invitationsInternal.remove(this) }
+        findInvitationById(id)?.run { invitationsInternal.remove(this) }
     }
 
     fun addVerifiableCredential(vc: W3CVerifiableCredential) {
         verifiableCredentialsInternal.add(vc)
     }
 
-    fun getVerifiableCredential(id: String): W3CVerifiableCredential? {
-        return findVerifiableCredential { "${it.id}" == id }
+    fun getVerifiableCredential(id: String): W3CVerifiableCredential {
+        return checkNotNull(findVerifiableCredentialById(id)) { "No verifiable credential for: $id" }
     }
 
     fun findVerifiableCredential(predicate: (vc: W3CVerifiableCredential) -> Boolean): W3CVerifiableCredential? {
         return verifiableCredentialsInternal.firstOrNull(predicate)
+    }
+
+    fun findVerifiableCredentialById(id: String): W3CVerifiableCredential? {
+        return findVerifiableCredential { "${it.id}" == id }
     }
 
     fun findVerifiableCredentialByType(type: String): List<W3CVerifiableCredential> {

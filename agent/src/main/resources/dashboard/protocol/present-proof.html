@@ -1,0 +1,34 @@
+<html>
+<head>
+    <link rel="stylesheet" href="/index.css"/>
+</head>
+<body>
+    <a href="/dashboard?method=${method}" style="font-size:smaller;">Home</a>
+
+    <h2>Present Proof</h2>
+
+    <div style="padding-left:20px;">
+
+        <a href="https://github.com/decentralized-identity/waci-didcomm/blob/main/present_proof/present-proof-v3.md" target="_blank" style="font-size:smaller;">
+            https://github.com/decentralized-identity/.../present_proof/present-proof-v3.md</a>
+
+        <div>
+        <pre><code>
+    Nessus DIDComm CLI
+    Version: ${nessusVersion}
+
+    Malathi>> vc present -h Malathi.Did -y Airport.Did --vc Malathi.Passport.Vc
+        </code></pre>
+        </div>
+
+        <h3>Example Messages</h3>
+        <div style="padding-left:20px">
+            <ul>
+                <li><a href="/dashboard/messages/present_proof/3.0/propose-presentation.json">https://didcomm.org/present_proof/3.0/propose-presentation</a></li>
+                <li><a href="/dashboard/messages/present_proof/3.0/request-presentation.json">https://didcomm.org/present_proof/3.0/request-presentation</a></li>
+                <li><a href="/dashboard/messages/present_proof/3.0/presentation.json">https://didcomm.org/present_proof/3.0/presentation</a></li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

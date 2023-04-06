@@ -29,6 +29,7 @@ import org.nessus.didcomm.model.DEFAULT_ACCEPT
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.DidPeer
+import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.MessageExchange.Companion.WALLET_ATTACHMENT_KEY

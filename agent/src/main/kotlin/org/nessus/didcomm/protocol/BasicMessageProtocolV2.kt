@@ -26,6 +26,7 @@ import org.didcommx.didcomm.message.MessageBuilder
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.MessageExchange.Companion.CONNECTION_ATTACHMENT_KEY
 import org.nessus.didcomm.model.Wallet
@@ -178,9 +179,8 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
 
     private fun receiveMessage(): BasicMessageProtocolV2 {
 
-        val basicMessageEpm = mex.last
         val basicMessageMsg = mex.last.body as Message
-        basicMessageEpm.checkMessageType(BASIC_MESSAGE_TYPE_V2)
+        mex.checkLastMessageType(BASIC_MESSAGE_TYPE_V2)
 
         BasicMessageV2.fromMessage(basicMessageMsg)
         log.info { "Received basic message: ${basicMessageMsg.encodeJson(true)}" }

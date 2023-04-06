@@ -1,0 +1,13 @@
+{
+  "id": "59a6d579-04e1-4e0e-9f05-0e673d4154a0",
+  "body": {
+    "content": "Your hovercraft is full of eels"
+  },
+  "type": "https://didcomm.org/basicmessage/2.0/message",
+  "typ": "Plaintext",
+  "from": "did:peer:2.Ez6LSpTMAUWLEEqxeW6eLFnxWRueeXUBS2MWjfw7YKTE1YQGK.Vz6Mkt5FwZTcBUvmU6hL6w1h7seoNdTfeTu2qj1GjNvfnHg4L.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovLzE5Mi4xNjguMC4xMDo5MDAwIn0",
+  "to": [
+    "did:peer:2.Ez6LSdn8TVnx5phw4Y6MFDaNozYHLLVonzYPkxGVT1XqJ8RA7.Vz6MknTPMLEY8dVEkYZAyCz6oVtzZHysFiwkC5nwzuuZaU4iY.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovLzE5Mi4xNjguMC4xMDo5MTAwIn0"
+  ],
+  "createdTime": 1680763623
+}

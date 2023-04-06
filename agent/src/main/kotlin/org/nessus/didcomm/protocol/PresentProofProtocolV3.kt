@@ -27,6 +27,7 @@ import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.message.MessageBuilder
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Did
+import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
@@ -163,9 +164,8 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         check(pcon.theirDid == proverDid) { "Unexpected prover: ${pcon.shortString()}" }
         val verifierDid = pcon.myDid
 
-        val presentationProposalEpm = verifierMex.last
         val presentationProposalMsg = verifierMex.last.body as Message
-        presentationProposalEpm.checkMessageType(PRESENT_PROOF_MESSAGE_TYPE_PROPOSE_PRESENTATION)
+        mex.checkLastMessageType(PRESENT_PROOF_MESSAGE_TYPE_PROPOSE_PRESENTATION)
 
         // Extract the proposal data from the Message
 
@@ -226,9 +226,8 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         val pcon = mex.getConnection()
         val issuerDid = pcon.myDid
 
-        val vpRequestEpm = mex.last
         val vpRequestMsg = mex.last.body as Message
-        vpRequestEpm.checkMessageType(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION)
+        mex.checkLastMessageType(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION)
 
         val id = "${UUID.randomUUID()}"
         val type = PRESENT_PROOF_MESSAGE_TYPE_PRESENTATION
@@ -271,9 +270,8 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         val pcon = mex.getConnection()
         val proverDid = pcon.theirDid
 
-        val presentationProposalEpm = mex.last
         val presentationProposalMsg = mex.last.body as Message
-        presentationProposalEpm.checkMessageType(PRESENT_PROOF_MESSAGE_TYPE_PROPOSE_PRESENTATION)
+        mex.checkLastMessageType(PRESENT_PROOF_MESSAGE_TYPE_PROPOSE_PRESENTATION)
 
         log.info { "Verifier (${verifier.name}) received presentation proposal: ${presentationProposalMsg.encodeJson(true)}" }
 
@@ -299,7 +297,7 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
 
         val presentationEpm = mex.last
         val presentationMsg = mex.last.body as Message
-        presentationEpm.checkMessageType(PRESENT_PROOF_MESSAGE_TYPE_PRESENTATION)
+        mex.checkLastMessageType(PRESENT_PROOF_MESSAGE_TYPE_PRESENTATION)
 
         val attachmentsFormats = presentationMsg.attachments?.map { it.format } ?: listOf(PRESENTATION_ATTACHMENT_FORMAT)
         check(PRESENTATION_ATTACHMENT_FORMAT in attachmentsFormats) { "Incompatible attachment formats: $attachmentsFormats" }
@@ -313,12 +311,12 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
     }
 
     private fun sendPresentationAck(verifier: Wallet, presentationEpm: EndpointMessage): PresentProofProtocolV3 {
+        presentationEpm.checkMessageType(PRESENT_PROOF_MESSAGE_TYPE_PRESENTATION)
+
+        val presentationMsg = mex.last.body as Message
 
         val pcon = mex.getConnection()
         val (verifierDid, proverDid) = Pair(pcon.myDid, pcon.theirDid)
-
-        val presentationMsg = mex.last.body as Message
-        presentationEpm.checkMessageType(PRESENT_PROOF_MESSAGE_TYPE_PRESENTATION)
 
         val id = "${UUID.randomUUID()}"
         val type = PRESENT_PROOF_MESSAGE_TYPE_ACK
@@ -341,9 +339,8 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
 
     private fun receivePresentationRequest(prover: Wallet): PresentProofProtocolV3 {
 
-        val vpRequestEpm = mex.last
         val vpRequestMsg = mex.last.body as Message
-        vpRequestEpm.checkMessageType(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION)
+        mex.checkLastMessageType(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION)
 
         log.info { "Prover (${prover.name}) received presentation request: ${vpRequestMsg.encodeJson(true)}" }
 
@@ -359,9 +356,8 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
 
     private fun receivePresentationAck(prover: Wallet): PresentProofProtocolV3 {
 
-        val ackEpm = mex.last
         val ackMsg = mex.last.body as Message
-        ackEpm.checkMessageType(PRESENT_PROOF_MESSAGE_TYPE_ACK)
+        mex.checkLastMessageType(PRESENT_PROOF_MESSAGE_TYPE_ACK)
 
         log.info { "Prover (${prover.name}) received presentation ack: ${ackMsg.encodeJson(true)}" }
 

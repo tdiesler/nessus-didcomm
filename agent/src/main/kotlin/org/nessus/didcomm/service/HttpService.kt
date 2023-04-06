@@ -27,8 +27,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import org.didcommx.didcomm.message.Message
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
+import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
+import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.service.HttpService.HttpClient.Companion.createHttpLoggingInterceptor
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson

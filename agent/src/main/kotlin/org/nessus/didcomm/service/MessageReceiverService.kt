@@ -10,8 +10,8 @@ import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.protocol.EndpointMessage
-import org.nessus.didcomm.protocol.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
+import org.nessus.didcomm.model.EndpointMessage
+import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.protocol.ForwardMessageV2
 import org.nessus.didcomm.protocol.RoutingProtocolV2.Companion.ROUTING_MESSAGE_TYPE_FORWARD_V2
 import org.nessus.didcomm.protocol.TrustPingProtocolV2
@@ -99,6 +99,7 @@ object MessageReceiverService: ObjectService<MessageReceiverService>(), MessageR
             .build()
 
         val endpointUrl = pcon.theirEndpointUrl
+        checkNotNull(endpointUrl)
         dispatchService.dispatchToRemoteEndpoint(endpointUrl, wrapperEpm)
 
         return true

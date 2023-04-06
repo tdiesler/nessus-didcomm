@@ -24,7 +24,7 @@ import org.apache.camel.CamelContext
 import org.apache.camel.Exchange
 import org.apache.camel.builder.RouteBuilder
 import org.apache.camel.impl.DefaultCamelContext
-import org.nessus.didcomm.protocol.EndpointMessage
+import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.util.encodeJson
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -34,7 +34,7 @@ import java.net.HttpURLConnection.HTTP_OK
 class CamelEndpointService: EndpointService<CamelContext>() {
     private val log = KotlinLogging.logger {}
 
-    private val playground get() = PlaygroundService.getService()
+    private val dashboard get() = DashboardService.getService()
     private val receiverService get() = MessageReceiverService.getService()
 
     override fun startEndpoint(endpointUrl: String, dispatcher: MessageReceiver?): CamelContext {
@@ -46,8 +46,8 @@ class CamelEndpointService: EndpointService<CamelContext>() {
                     .process { exchange ->
                         val headers = exchange.message.headers
                         when(val httpMethod = headers["CamelHttpMethod"]) {
-                            "GET" -> processHttpGet(exchange)
-                            "POST" -> processHttpPost(exchange, dispatcher)
+                            "GET" -> dashboard.processHttpGet(exchange)
+                            "POST" -> processDidCommMessage(exchange, dispatcher)
                             else -> throw IllegalStateException("Unsupported HTTP method: $httpMethod")
                         }
                     }
@@ -59,17 +59,7 @@ class CamelEndpointService: EndpointService<CamelContext>() {
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun processHttpGet(exchange: Exchange) {
-        val headers = exchange.message.headers
-        when(headers["CamelHttpUri"]) {
-            "/message/invitation" -> playground.showInvitation(exchange)
-            "/template" -> playground.showVcTemplate(exchange)
-            "/favicon.ico" -> {}
-            else -> playground.showDashboard(exchange)
-        }
-    }
-
-    private fun processHttpPost(exchange: Exchange, messageReceiver: MessageReceiver?) {
+    private fun processDidCommMessage(exchange: Exchange, messageReceiver: MessageReceiver?) {
         val headers = exchange.message.headers
         val body = exchange.message.getBody(String::class.java)
         checkNotNull(body) { "No message body" }

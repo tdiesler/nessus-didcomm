@@ -29,7 +29,7 @@ import kotlin.reflect.KClass
 class NessusPlaygroundReachable : EnabledCondition {
     override fun enabled(kclass: KClass<out Spec>): Boolean {
         val playgroundUrl = System.getenv("NESSUS_PLAYGROUND_URL") ?: "http://localhost:9100"
-        val url = "$playgroundUrl/message/invitation?inviter=Government&method=key"
+        val url = "$playgroundUrl/invitation?inviter=Government&method=key"
         return runCatching { Invitation.fromUrl(URL(url)) }
             .onFailure { /* ignore*/ }
             .isSuccess

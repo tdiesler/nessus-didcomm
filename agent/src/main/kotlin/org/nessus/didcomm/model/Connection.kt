@@ -44,7 +44,7 @@ class Connection(
 
     private var theirDidDoc: DidDocV1? = null
 
-    val alias get() = "${myLabel}_${theirLabel}"
+    val alias get() = "${myLabel}_${theirLabel ?: "Anonymous"}"
 
     var myDid: Did = myDid
         set(did) {
@@ -65,12 +65,14 @@ class Connection(
     val myVerkey get() = myDid.verkey
     val theirVerkey get() = theirDid.verkey
 
-    val theirEndpointUrl get() = run {
+    val theirEndpointUrl: String? get() = run {
         if (theirDidDoc == null)
             theirDidDoc = didService.loadOrResolveDidDoc(theirDid.uri)
         val theirDidCommService = theirDidDoc?.didCommServices?.firstOrNull()
-        checkNotNull(theirDidCommService) { "No recipient DIDComm Service" }
-        theirDidCommService.serviceEndpoint
+        val endpointUrl = theirDidCommService?.serviceEndpoint
+        if (endpointUrl == null)
+            log.warn { "No serviceEndpoint in: ${theirDidDoc?.encodeJson(true)}" }
+        endpointUrl
     }
 
     fun close() {

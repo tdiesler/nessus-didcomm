@@ -3,8 +3,8 @@ package org.nessus.didcomm.cli.model
 import id.walt.common.prettyPrint
 import org.nessus.didcomm.cli.AbstractBaseCommand
 import org.nessus.didcomm.model.MessageExchange
-import org.nessus.didcomm.protocol.EndpointMessage
-import org.nessus.didcomm.protocol.MessageDirection
+import org.nessus.didcomm.model.EndpointMessage
+import org.nessus.didcomm.model.MessageDirection
 import picocli.CommandLine.Command
 import picocli.CommandLine.Option
 import picocli.CommandLine.Parameters

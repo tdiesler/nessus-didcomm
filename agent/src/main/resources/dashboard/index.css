@@ -35,3 +35,8 @@ td, th, li {
 .code {
     font-family: Courier New;
 }
+
+.code_small {
+    font-family: Courier New;
+    font-size: 0.8em;
+}
