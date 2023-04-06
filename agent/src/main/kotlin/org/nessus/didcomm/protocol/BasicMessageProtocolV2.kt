@@ -116,7 +116,7 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
         val protocol = senderMex.withProtocol(BASIC_MESSAGE_PROTOCOL_V2)
 
         val senderDid = pcon.myDid
-        val recipientDid = pcon.theirDid
+         val recipientDid = pcon.theirDid
 
         val basicMessage = BasicMessageV2.Builder(
                 id = "${UUID.randomUUID()}",
@@ -210,7 +210,6 @@ class BasicMessageV2(
 
     companion object {
         fun fromMessage(msg: Message): BasicMessageV2 {
-            requireNotNull(msg.from) { "No from" }
             val createdTime = msg.createdTime?.run { dateTimeInstant(msg.createdTime!!) }
             val content = msg.body["content"] as? String
             return Builder(msg.id, msg.type)

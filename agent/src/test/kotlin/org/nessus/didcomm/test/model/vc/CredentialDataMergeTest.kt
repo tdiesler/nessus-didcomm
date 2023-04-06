@@ -1,4 +1,4 @@
-package org.nessus.didcomm.test.vc
+package org.nessus.didcomm.test.model.vc
 
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain

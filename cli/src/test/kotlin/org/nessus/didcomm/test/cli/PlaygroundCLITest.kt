@@ -52,10 +52,10 @@ class PlaygroundCLITest: AbstractCLITest() {
         internalIp shouldNotBe null
 
         val playgroundUrl = "http://$internalIp:9100"
-        val userUrl = "http://$internalIp:9000"
+        val userUrl = ""
 
         cliService.execute("agent start --uri $agentUri").isSuccess shouldBe true
-        cliService.execute("wallet create --name Malathi --url=$userUrl").isSuccess shouldBe true
+        cliService.execute("wallet create --name Malathi --url=http://$internalIp:9000").isSuccess shouldBe true
         cliService.execute("did create --wallet Malathi --method=peer").isSuccess shouldBe true
 
         try {

@@ -43,12 +43,14 @@ class EndpointMessage private constructor(
         const val MESSAGE_HEADER_ID = "MessageId"
         const val MESSAGE_HEADER_DIRECTION = "MessageDirection"
         const val MESSAGE_HEADER_ENDPOINT_URL = "MessageEndpointUrl"
+        const val MESSAGE_HEADER_FROM = "MessageFrom"
         const val MESSAGE_HEADER_MEDIA_TYPE = "MessageMediaType"
         const val MESSAGE_HEADER_PROTOCOL_URI = "MessageProtocolUri"
         const val MESSAGE_HEADER_SENDER_DID = "MessageSenderDid"
         const val MESSAGE_HEADER_RECIPIENT_DID = "MessageRecipientDid"
         const val MESSAGE_HEADER_PTHID = "MessageParentThid"
         const val MESSAGE_HEADER_THID = "MessageThid"
+        const val MESSAGE_HEADER_TO = "MessageTo"
         const val MESSAGE_HEADER_TYPE = "MessageType"
     }
 
@@ -79,6 +81,10 @@ class EndpointMessage private constructor(
         }
         this.headers = effHeaders.toSortedMap()
     }
+
+    @Suppress("UNCHECKED_CAST")
+    val to = headers[MESSAGE_HEADER_TO] as? List<String>
+    val from = headers[MESSAGE_HEADER_FROM] as? String
 
     val id = headers[MESSAGE_HEADER_ID] as String
     val type = headers[MESSAGE_HEADER_TYPE] as? String

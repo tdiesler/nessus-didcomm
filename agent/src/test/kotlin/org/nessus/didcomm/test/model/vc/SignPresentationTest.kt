@@ -1,4 +1,4 @@
-package org.nessus.didcomm.test.vc
+package org.nessus.didcomm.test.model.vc
 
 import com.danubetech.verifiablecredentials.VerifiablePresentation
 import com.danubetech.verifiablecredentials.validation.Validation

@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.test.did
+package org.nessus.didcomm.test.model
 
 import id.walt.common.resolveContent
 import io.kotest.matchers.shouldBe

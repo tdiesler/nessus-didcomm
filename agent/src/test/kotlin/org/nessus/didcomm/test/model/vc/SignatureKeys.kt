@@ -1,4 +1,4 @@
-package org.nessus.didcomm.test.vc
+package org.nessus.didcomm.test.model.vc
 
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.codec.binary.Hex

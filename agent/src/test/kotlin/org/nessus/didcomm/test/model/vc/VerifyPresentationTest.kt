@@ -1,4 +1,4 @@
-package org.nessus.didcomm.test.vc
+package org.nessus.didcomm.test.model.vc
 
 import com.danubetech.keyformats.crypto.provider.Ed25519Provider
 import com.danubetech.keyformats.crypto.provider.RandomProvider

@@ -1,4 +1,4 @@
-package org.nessus.didcomm.test.vc
+package org.nessus.didcomm.test.model.vc
 
 import id.walt.custodian.Custodian
 import id.walt.signatory.ProofConfig

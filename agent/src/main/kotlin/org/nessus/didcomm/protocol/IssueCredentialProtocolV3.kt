@@ -70,7 +70,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
             ISSUE_CREDENTIAL_MESSAGE_TYPE_PROPOSE_CREDENTIAL -> receiveCredentialProposal(to)
             ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL -> receiveCredentialOffer(to)
             ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL -> receiveCredentialRequest(to)
-            ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL -> receiveIssuedCredential(to)
+            ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL -> receiveCredential(to)
             else -> throw IllegalStateException("Unsupported message type: $messageType")
         }
         return true
@@ -429,7 +429,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         return issueCredential(issuer, holderDid)
     }
 
-    private fun receiveIssuedCredential(holder: Wallet): IssueCredentialProtocolV3 {
+    private fun receiveCredential(holder: Wallet): IssueCredentialProtocolV3 {
 
         val issuedVcMsg = mex.last.body as Message
         mex.checkLastMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL)

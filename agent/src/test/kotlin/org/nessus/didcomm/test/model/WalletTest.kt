@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.test.wallet
+package org.nessus.didcomm.test.model
 
 import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyType

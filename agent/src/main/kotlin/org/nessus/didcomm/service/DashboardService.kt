@@ -48,13 +48,69 @@ object DashboardService: ObjectService<DashboardService>() {
         when(headers["CamelHttpUri"]) {
             "/invitation" -> showInvitation(exchange)
             "/message" -> showMessage(exchange)
-            "/template" -> showVcTemplate(exchange)
+            "/template" -> showTemplate(exchange)
             "/favicon.ico" -> {}
             else -> showDashboard(exchange)
         }
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
+
+    private fun createContext(exchange: Exchange): Context {
+        val ctx = Context(exchange)
+        val httpQuery = "${ctx["CamelHttpQuery"]}"
+        if (httpQuery.isNotEmpty()) {
+            val httpUrl = "${ctx["CamelHttpUrl"]}"
+            val fullUri = URI("$httpUrl?$httpQuery")
+            ctx.putAll(fullUri.parameterMap())
+        }
+        if (ctx["method"] == null)
+            ctx["method"] = "key"
+        return ctx
+    }
+
+    private fun fromPath(path: String, ctx: Context): String {
+        val (resourcePath, contentType) = when {
+            path.endsWith(".css") -> Pair("class:$path", "text/css")
+            path.endsWith(".html") -> Pair("class:$path", "text/html")
+            path.endsWith(".json") -> Pair("class:$path", "application/json")
+            else -> Pair("class:${path}.html", "text/html")
+        }
+        val content = resolveContent(resourcePath)
+        check(content != resourcePath) { "No content for: $resourcePath" }
+        val contentHolder = Holder(content)
+        ctx.forEach { (k, v) ->
+            val input = contentHolder.value as String
+            contentHolder.value = input.replace("\${$k}", "$v")
+        }
+        ctx.exchange.message.headers["Content-Type"] = contentType
+        return contentHolder.value as String
+    }
+
+    private fun showConnections(path: String, ctx: Context): String {
+
+        val walletName = ctx["walletName"] as String
+        val wallet = modelService.findWalletByName(walletName) as Wallet
+        if (wallet.connections.isEmpty()) {
+            ctx["walletConnectionRows"] = "None"
+            return fromPath(path, ctx)
+        }
+        val walletConnectionRows = wallet.connections
+            .mapIndexed { idx, con -> Pair(idx, con) }
+            .filter { (_, con) -> con.state == ConnectionState.ACTIVE }
+            .joinToString(separator = "\n") { (idx, con) ->
+                """
+                <tr>
+                    <td class='code'>${idx}</td>
+                    <td class='code'><a href='/dashboard/messages?walletName=${walletName}&pconId=${con.id}'>${con.alias}</a></td>
+                    <td class='code'>${con.theirDid.uri.ellipsis(24)}</td>
+                    <td class='code'>${con.theirEndpointUrl}</td>
+                </tr>
+                """.trimIndent()
+            }
+        ctx["walletConnectionRows"] = walletConnectionRows
+        return fromPath(path, ctx)
+    }
 
     private fun showDashboard(exchange: Exchange) {
 
@@ -63,11 +119,15 @@ object DashboardService: ObjectService<DashboardService>() {
 
         exchange.message.body = when(httpUri) {
             "/", "/dashboard"  -> showHomePage(ctx)
-            "/index.css" -> showFromPath("/dashboard/index.css", ctx)
+            "/index.css" -> fromPath("/dashboard/index.css", ctx)
             "/dashboard/connections"  -> showConnections(httpUri, ctx)
             "/dashboard/messages"  -> showMessages(httpUri, ctx)
-            else -> showFromPath(httpUri, ctx)
+            else -> fromPath(httpUri, ctx)
         }
+    }
+
+    private fun showHomePage(ctx: Context): String {
+        return fromPath("/dashboard/index.html", ctx.withVcTemplates())
     }
 
     private fun showInvitation(exchange: Exchange) {
@@ -98,102 +158,6 @@ object DashboardService: ObjectService<DashboardService>() {
         exchange.message.body = invitationMessage.encodeJson(true)
     }
 
-    private fun showMessage(exchange: Exchange) {
-
-        val ctx = createContext(exchange)
-
-        val pconId = ctx["pconId"] as String
-        val epmId = ctx["epmId"] as String
-        val mex = MessageExchange.findByConnectionId(pconId) as MessageExchange
-        val epm = mex.messages.find { it.id == epmId } as EndpointMessage
-
-        exchange.message.headers["Content-Type"] = "application/json"
-        exchange.message.body = epm.body.encodeJson(true)
-    }
-
-    private fun showVcTemplate(exchange: Exchange) {
-
-        val ctx = createContext(exchange)
-
-        val templateName = ctx["name"] as String
-        val vcTemplate = templateService.getTemplate(templateName)
-
-        exchange.message.headers["Content-Type"] = "application/json"
-        exchange.message.body = vcTemplate.encodeJson(true)
-    }
-
-    private fun createContext(exchange: Exchange): Context {
-        val ctx = Context(exchange)
-        val httpQuery = "${ctx["CamelHttpQuery"]}"
-        if (httpQuery.isNotEmpty()) {
-            val httpUrl = "${ctx["CamelHttpUrl"]}"
-            val fullUri = URI("$httpUrl?$httpQuery")
-            ctx.putAll(fullUri.parameterMap())
-        }
-        if (ctx["method"] == null)
-            ctx["method"] = "key"
-        return ctx
-    }
-
-    private fun fromTemplate(path: String, ctx: Map<String, Any> = mapOf()): String {
-        val content = resolveContent(path)
-        check(content != path) { "No content for: $path" }
-        val contentHolder = Holder(content)
-        ctx.forEach { (k, v) ->
-            val input = contentHolder.value as String
-            contentHolder.value = input.replace("\${$k}", "$v")
-        }
-        return contentHolder.value as String
-    }
-
-    private fun showFromPath(path: String, ctx: Context): String {
-        val (resourcePath, contentType) = when {
-            path.endsWith(".css") -> Pair("class:$path", "text/css")
-            path.endsWith(".html") -> Pair("class:$path", "text/html")
-            path.endsWith(".json") -> Pair("class:$path", "application/json")
-            else -> Pair("class:${path}.html", "text/html")
-        }
-        val content = resolveContent(resourcePath)
-        check(content != resourcePath) { "No content for: $resourcePath" }
-        val contentHolder = Holder(content)
-        ctx.forEach { (k, v) ->
-            val input = contentHolder.value as String
-            contentHolder.value = input.replace("\${$k}", "$v")
-        }
-        ctx.exchange.message.headers["Content-Type"] = contentType
-        return contentHolder.value as String
-    }
-
-    private fun showHomePage(ctx: Context): String {
-        return fromTemplate("class:dashboard/index.html",
-            ctx.withVcTemplates())
-    }
-
-    private fun showConnections(path: String, ctx: Context): String {
-
-        val walletName = ctx["walletName"] as String
-        val wallet = modelService.findWalletByName(walletName) as Wallet
-        if (wallet.connections.isEmpty()) {
-            ctx["walletConnectionRows"] = "None"
-            return showFromPath(path, ctx)
-        }
-        val walletConnectionRows = wallet.connections
-            .mapIndexed { idx, con -> Pair(idx, con) }
-            .filter { (_, con) -> con.state == ConnectionState.ACTIVE }
-            .joinToString(separator = "\n") { (idx, con) ->
-                """
-                <tr>
-                    <td class='code'>${idx}</td>
-                    <td class='code'><a href='/dashboard/messages?walletName=${walletName}&pconId=${con.id}'>${con.alias}</a></td>
-                    <td class='code'>${con.theirDid.uri.ellipsis(24)}</td>
-                    <td class='code'>${con.theirEndpointUrl}</td>
-                </tr>
-                """.trimIndent()
-        }
-        ctx["walletConnectionRows"] = walletConnectionRows
-        return showFromPath(path, ctx)
-    }
-
     private fun showMessages(path: String, ctx: Context): String {
 
         val walletName = ctx["walletName"] as String
@@ -205,7 +169,7 @@ object DashboardService: ObjectService<DashboardService>() {
         val messages = mex?.messages
         if (messages.isNullOrEmpty()) {
             ctx["pconAlias"] = pcon.alias
-            return showFromPath(path, ctx)
+            return fromPath(path, ctx)
         }
 
         val idxAndDirection = { i: Int, m: EndpointMessage -> when(m.messageDirection) {
@@ -226,7 +190,31 @@ object DashboardService: ObjectService<DashboardService>() {
             }
         ctx["pconAlias"] = pcon.alias
         ctx["epmRows"] = epmRows
-        return showFromPath(path, ctx)
+        return fromPath(path, ctx)
+    }
+
+    private fun showMessage(exchange: Exchange) {
+
+        val ctx = createContext(exchange)
+
+        val pconId = ctx["pconId"] as String
+        val epmId = ctx["epmId"] as String
+        val mex = MessageExchange.findByConnectionId(pconId) as MessageExchange
+        val epm = mex.messages.find { it.id == epmId } as EndpointMessage
+
+        exchange.message.headers["Content-Type"] = "application/json"
+        exchange.message.body = epm.body.encodeJson(true)
+    }
+
+    private fun showTemplate(exchange: Exchange) {
+
+        val ctx = createContext(exchange)
+
+        val templateName = ctx["name"] as String
+        val vcTemplate = templateService.getTemplate(templateName)
+
+        exchange.message.headers["Content-Type"] = "application/json"
+        exchange.message.body = vcTemplate.encodeJson(true)
     }
 
     class Context(val exchange: Exchange): LinkedHashMap<String, Any>(exchange.message.headers) {

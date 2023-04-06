@@ -6,12 +6,18 @@ import okhttp3.MediaType.Companion.toMediaType
 import org.didcommx.didcomm.common.Typ
 import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.model.UnpackParams
+import org.didcommx.didcomm.model.UnpackResult
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Did
+import org.nessus.didcomm.model.EndpointMessage
+import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_FROM
+import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_PROTOCOL_URI
+import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_RECIPIENT_DID
+import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_SENDER_DID
+import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_TO
+import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.model.EndpointMessage
-import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.protocol.ForwardMessageV2
 import org.nessus.didcomm.protocol.RoutingProtocolV2.Companion.ROUTING_MESSAGE_TYPE_FORWARD_V2
 import org.nessus.didcomm.protocol.TrustPingProtocolV2
@@ -54,14 +60,14 @@ object MessageReceiverService: ObjectService<MessageReceiverService>(), MessageR
         val unpackResult = DidCommService.unpack(
             UnpackParams.Builder(epm.bodyAsJson).build()
         )
-        processUnpackedMessage(unpackResult.message)
+        processUnpackedMessage(unpackResult)
         return unpackResult.message
     }
 
-    private fun processUnpackedMessage(msg: Message): Boolean {
+    private fun processUnpackedMessage(unpackResult: UnpackResult) {
 
+        val msg = unpackResult.message
         log.info { "Unpacked Message\n${msg.encodeJson(true)}" }
-        checkNotNull(msg.to) { "No target did" }
 
         /**
          * Find protocol key from message type
@@ -69,14 +75,26 @@ object MessageReceiverService: ObjectService<MessageReceiverService>(), MessageR
         val protocolKey = ProtocolService.getProtocolKey(msg.type)
         checkNotNull(protocolKey) { "Unknown message type: ${msg.type}" }
 
-        return when(msg.type) {
-            ROUTING_MESSAGE_TYPE_FORWARD_V2 -> processForwardMessage(msg)
-            else -> processTargetWalletMessage(protocolKey, msg)
+        val kidToDid = { kid: String -> didService.loadOrResolveDid(kid) }
+        val msgTo = unpackResult.metadata.encryptedTo?.map { kidToDid(it)?.uri }
+        val msgFrom = unpackResult.metadata.signFrom?.let { kidToDid(it)?.uri }
+
+        val epm = EndpointMessage.Builder(msg, mapOf(
+            MESSAGE_HEADER_PROTOCOL_URI to protocolKey.name,
+            MESSAGE_HEADER_FROM to (msgFrom ?: msg.from),
+            MESSAGE_HEADER_TO to (msgTo ?: msg.to),
+        )).inbound().build()
+
+        when(msg.type) {
+            ROUTING_MESSAGE_TYPE_FORWARD_V2 -> processForwardMessage(epm)
+            else -> processTargetWalletMessage(protocolKey, epm)
         }
     }
 
-    private fun processForwardMessage(msg: Message): Boolean {
+    private fun processForwardMessage(epm: EndpointMessage): Boolean {
+        epm.checkMessageType(ROUTING_MESSAGE_TYPE_FORWARD_V2)
 
+        val msg = epm.body as Message
         val forwardV2 = ForwardMessageV2.fromMessage(msg)
         val attachments = forwardV2.attachments
 
@@ -105,23 +123,24 @@ object MessageReceiverService: ObjectService<MessageReceiverService>(), MessageR
         return true
     }
 
-    private fun processTargetWalletMessage(protocolKey: ProtocolKey<*>, msg: Message): Boolean {
+    private fun processTargetWalletMessage(protocolKey: ProtocolKey<*>, epm: EndpointMessage): Boolean {
 
         /**
          * Find the recipient Wallet and MessageExchange
          */
 
-        val recipientDids = msg.to!!.mapNotNull { didService.resolveDid(it) }
+        val msg = epm.body as Message
+        val recipientDids = epm.to?.mapNotNull { uri -> didService.resolveDid(uri) }
+        check(!recipientDids.isNullOrEmpty()) { "Cannot resolve recipient Did from: ${epm.to}" }
         check(recipientDids.size < 2) { "Multiple recipients not supported" }
-        check(recipientDids.isNotEmpty()) { "Cannot resolve recipient Did from: ${msg.to}" }
         val recipientDid = recipientDids.first()
 
         val recipientWallet = ModelService.findWalletByDid(recipientDid.uri)
         checkNotNull(recipientWallet) { "No recipient wallet for: ${recipientDid.uri}" }
 
         // We may not have the sender wallet
-        val senderDid = msg.from?.let { Did.fromUri(it) }
-        checkNotNull(senderDid) { "Cannot derive sender Did from: ${msg.from}" }
+        val senderDid = epm.from?.let { Did.fromUri(it) }
+        checkNotNull(senderDid) { "Cannot derive sender Did from: ${epm.from}" }
 
         // Find the Connection between sender => recipient
 
@@ -144,13 +163,13 @@ object MessageReceiverService: ObjectService<MessageReceiverService>(), MessageR
          */
 
         executor.execute {
-            mex.addMessage(
-                EndpointMessage.Builder(msg)
-                    .header(EndpointMessage.MESSAGE_HEADER_PROTOCOL_URI, protocolKey.name)
-                    .header(EndpointMessage.MESSAGE_HEADER_SENDER_DID, senderDid.uri)
-                    .header(EndpointMessage.MESSAGE_HEADER_RECIPIENT_DID, recipientDid.uri)
-                    .inbound()
-                    .build())
+
+            mex.addMessage(EndpointMessage.Builder(msg, mapOf(
+                    MESSAGE_HEADER_PROTOCOL_URI to protocolKey.name,
+                    MESSAGE_HEADER_SENDER_DID to senderDid.uri,
+                    MESSAGE_HEADER_RECIPIENT_DID to recipientDid.uri,
+                )).inbound().build())
+
             dispatchToWallet(recipientWallet, mex)
         }
 
