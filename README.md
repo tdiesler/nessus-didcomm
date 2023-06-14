@@ -143,3 +143,44 @@ docker run -it --name=didcomm \
     assertEquals("https://didcomm.org/basicmessage/1.0/message", epm.type)
     assertEquals(userMessage, epm.bodyAsJson.selectJson("content"))
 ```
+### Build the Project
+
+The build currently depends on a number of external (snapshot) projects that need to be built first
+
+#### Build WaltId - SSI Kit
+
+Build with JDK11
+
+```
+find ~/.m2/repository/id/walt -name "*.jar"
+
+git clone https://github.com/tdiesler/waltid-ssikit.git
+git checkout nessus
+./gradlew clean test publishToMavenLocal
+```
+
+#### Build Sicpa - DIDComm JVM & PeerDID
+
+Build with JDK11
+
+```
+find ~/.m2/repository/org/didcommx -name "*.jar"
+
+git clone https://github.com/tdiesler/didcomm-jvm.git
+git checkout nessus
+./gradlew clean test publishToMavenLocal
+
+git clone https://github.com/tdiesler/peer-did-jvm.git
+git checkout nessus
+./gradlew clean test publishToMavenLocal
+```
+
+#### Build Danube Tech - Verifiable Credentials 
+
+```
+find ~/.m2/repository/com/danubetech -name "*.jar"
+
+git clone https://github.com/tdiesler/verifiable-credentials-java.git
+git checkout nessus
+mvn clean install
+```

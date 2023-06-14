@@ -17,13 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.test.cli
+package org.nessus.didcomm.itest
 
 import id.walt.common.resolveContent
 import io.kotest.core.annotation.EnabledIf
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.nessus.didcomm.itest.AbstractIntegrationTest
 import org.nessus.didcomm.util.NessusPlaygroundReachable
 import java.util.concurrent.atomic.AtomicInteger
 

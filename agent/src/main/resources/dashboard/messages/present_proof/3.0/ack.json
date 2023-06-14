@@ -1,10 +1,11 @@
 {
-  "id": "c61a9870-d38f-4b12-8217-ef157d428d41",
-  "type": "https://didcomm.org/present_proof/3.0/ack",
-  "typ": "Plaintext",
-  "from": "did:peer:2.Ez6LSm65jwExzzfWhvD46BRgN25yQzdYPfpw4HbzYjAMjbQQs.Vz6MkezDpYjWgTdEHDVUoZ6RUTZF2FN5Sg8cD4RocwKhcFtsj.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovLzE5Mi4xNjguMC4xMDo5MTAwIn0",
-  "to": [
-    "did:peer:2.Ez6LSnhqPvymzi4G638sfzZzrZwDqVjbsmFz1gRYokKdgETbf.Vz6MkwLyVMQ3erAcnbDpfETD3vnyhrUUS5wKH5pWgDQznLp2k.SeyJ0IjoiZG0iLCJzIjoiaHR0cDovLzE5Mi4xNjguMC4xMDo5MDAwIn0"
+  "id":"df149c7b-c4bc-4fe1-accc-a57a356fbe94",
+  "typ":"application/didcomm-plain+json",
+  "type":"https://didcomm.org/present_proof/3.0/ack",
+  "from":"did:key:z6MksAceU4V1TKAXERAeHi3ZUSC4G8MH9FQiBi62SXeHXkmJ",
+  "to":[
+    "did:key:z6MkpZicxNN54y4uux9wfn7TcE9hhrhmaTgNRsN7DZ16jU6g"
   ],
-  "thid": "e3934b2c-7223-4cd9-b30e-0b3e2741e0bb"
+  "body":{},
+  "thid":"26fa7f6d-9f38-451e-b32e-868d20afd554"
 }

@@ -135,7 +135,7 @@
             </dependency>
             <dependency>
                 <groupId>id.walt.servicematrix</groupId>
-                <artifactId>waltid-servicematrix</artifactId>
+                <artifactId>WaltID-ServiceMatrix</artifactId>
                 <version>${version.waltid.servicematrix}</version>
             </dependency>
             <dependency>
