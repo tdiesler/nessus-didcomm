@@ -32,6 +32,7 @@ import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
+import org.nessus.didcomm.util.JSON_MIME_TYPE
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.gson
@@ -111,7 +112,7 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         val jsonData = Attachment.Data.Json.parse(mapOf("json" to signedVp.jsonObject))
         val vpAttachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
             .format(PRESENTATION_ATTACHMENT_FORMAT)
-            .mediaType("application/json")
+            .mediaType(JSON_MIME_TYPE)
             .build()
 
         val id = "${UUID.randomUUID()}"

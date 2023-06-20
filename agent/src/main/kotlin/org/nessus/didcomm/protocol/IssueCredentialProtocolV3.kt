@@ -34,6 +34,7 @@ import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
+import org.nessus.didcomm.util.JSON_MIME_TYPE
 import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
@@ -127,7 +128,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val jsonData = Attachment.Data.Json.parse(mapOf("json" to unsignedVc.jsonObject))
         val vcAttachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
             .format(CREDENTIAL_ATTACHMENT_FORMAT)
-            .mediaType("application/json")
+            .mediaType(JSON_MIME_TYPE)
             .build()
 
         val vcProposalMsg = MessageBuilder(id, proposal.toMap(), type)
@@ -213,7 +214,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val jsonData = Attachment.Data.Json.parse(mapOf("json" to signedVc.jsonObject))
         val vcAttachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
             .format(CREDENTIAL_ATTACHMENT_FORMAT)
-            .mediaType("application/json")
+            .mediaType(JSON_MIME_TYPE)
             .build()
 
         val vcOfferMsg = MessageBuilder(id, offerMeta.toMap(), type)
@@ -271,6 +272,9 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val id = "${UUID.randomUUID()}"
         val type = ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL
 
+        val attachmentsFormats = vcRequestMsg.attachments?.map { it.format ?: CREDENTIAL_ATTACHMENT_FORMAT } ?: emptyList()
+        check(CREDENTIAL_ATTACHMENT_FORMAT in attachmentsFormats) { "Incompatible attachment formats: $attachmentsFormats" }
+
         val attachment = vcRequestMsg.attachments?.firstOrNull { at -> at.format == null || at.format == CREDENTIAL_ATTACHMENT_FORMAT }
         checkNotNull(attachment) { "No credential attachment" }
 
@@ -320,7 +324,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
 
         // Extract the attached credential
 
-        val attachmentsFormats = vcProposalMsg.attachments?.map { it.format } ?: listOf(CREDENTIAL_ATTACHMENT_FORMAT)
+        val attachmentsFormats = vcProposalMsg.attachments?.map { it.format ?: CREDENTIAL_ATTACHMENT_FORMAT } ?: emptyList()
         check(CREDENTIAL_ATTACHMENT_FORMAT in attachmentsFormats) { "Incompatible attachment formats: $attachmentsFormats" }
 
         val attachment = vcProposalMsg.attachments?.firstOrNull { at -> at.format == null || at.format == CREDENTIAL_ATTACHMENT_FORMAT }
@@ -376,8 +380,8 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         mex.checkLastMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL)
 
         val offer = OfferMetaData.fromMap(vcOfferMsg.body)
-        
-        val attachmentsFormats = vcOfferMsg.attachments?.map { it.format } ?: listOf(CREDENTIAL_ATTACHMENT_FORMAT)
+
+        val attachmentsFormats = vcOfferMsg.attachments?.map { it.format ?: CREDENTIAL_ATTACHMENT_FORMAT } ?: emptyList()
         check(CREDENTIAL_ATTACHMENT_FORMAT in attachmentsFormats) { "Incompatible attachment formats: $attachmentsFormats" }
 
         val attachment = vcOfferMsg.attachments?.firstOrNull { at -> at.format == null || at.format == CREDENTIAL_ATTACHMENT_FORMAT }
@@ -433,6 +437,9 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
 
         val issuedVcMsg = mex.last.body as Message
         mex.checkLastMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL)
+
+        val attachmentsFormats = issuedVcMsg.attachments?.map { it.format ?: CREDENTIAL_ATTACHMENT_FORMAT } ?: emptyList()
+        check(CREDENTIAL_ATTACHMENT_FORMAT in attachmentsFormats) { "Incompatible attachment formats: $attachmentsFormats" }
 
         val attachment = issuedVcMsg.attachments?.firstOrNull { at -> at.format == null || at.format == CREDENTIAL_ATTACHMENT_FORMAT }
         checkNotNull(attachment) { "No credential attachment" }

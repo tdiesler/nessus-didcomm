@@ -25,6 +25,7 @@ import org.apache.camel.Exchange
 import org.apache.camel.builder.RouteBuilder
 import org.apache.camel.impl.DefaultCamelContext
 import org.nessus.didcomm.model.EndpointMessage
+import org.nessus.didcomm.util.JSON_MIME_TYPE
 import org.nessus.didcomm.util.encodeJson
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -69,11 +70,11 @@ class CamelEndpointService: EndpointService<CamelContext>() {
                 .build()
             (messageReceiver ?: receiverService).invoke(epm)
             headers[Exchange.HTTP_RESPONSE_CODE] = HTTP_OK
-            headers[Exchange.CONTENT_TYPE] = "application/json"
+            headers[Exchange.CONTENT_TYPE] = JSON_MIME_TYPE
             exchange.message.body = "{}"
         }.onFailure { th ->
             headers[Exchange.HTTP_RESPONSE_CODE] = HTTP_INTERNAL_ERROR // Internal Server Error
-            headers[Exchange.CONTENT_TYPE] = "application/json"
+            headers[Exchange.CONTENT_TYPE] = JSON_MIME_TYPE
             val sw = StringWriter()
             th.printStackTrace(PrintWriter(sw))
             val traceLines = "$sw".lines().map { it.trim() }.find { it.isNotEmpty() }

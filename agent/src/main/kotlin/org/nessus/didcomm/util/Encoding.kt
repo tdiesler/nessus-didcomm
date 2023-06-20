@@ -32,7 +32,8 @@ import okhttp3.MediaType.Companion.toMediaType
 import org.didcommx.didcomm.message.Message
 import org.json.JSONObject
 import java.lang.reflect.Type
-import java.util.*
+import java.util.Base64
+import java.util.HexFormat
 
 /***********************************************************************************************************************
  * Message
@@ -56,6 +57,10 @@ fun String.decodeMessage(): Message {
 /***********************************************************************************************************************
  * JSON
  */
+
+// A simple MimeType constant without charset parameter
+const val JSON_MIME_TYPE = "application/json"
+
 val gsonBuilder: GsonBuilder = GsonBuilder()
     .registerTypeHierarchyAdapter(Collection::class.java, CollectionAdapter())
     .registerTypeHierarchyAdapter(Map::class.java, MapAdapter())

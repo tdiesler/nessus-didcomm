@@ -30,6 +30,7 @@ import org.didcommx.didcomm.message.Message
 import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
 import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.service.HttpService.HttpClient.Companion.createHttpLoggingInterceptor
+import org.nessus.didcomm.util.JSON_MIME_TYPE
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
 import org.slf4j.event.Level
@@ -112,7 +113,7 @@ object HttpService: ObjectService<HttpService>() {
                 contentType = headers[MESSAGE_HEADER_TYPE]
             }
 
-            val mediaType = contentType?.toMediaType() ?: "application/json".toMediaType()
+            val mediaType = contentType?.toMediaType() ?: JSON_MIME_TYPE.toMediaType()
 
             val reqBody = when (body) {
                 is String -> body.toRequestBody(mediaType)
