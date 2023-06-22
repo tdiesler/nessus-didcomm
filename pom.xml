@@ -28,12 +28,13 @@
         <version.danubtech.vcj>1.1-SNAPSHOT</version.danubtech.vcj>
         <version.didcommx.didcomm>0.3.3-SNAPSHOT</version.didcommx.didcomm>
         <version.didcommx.peerdid>0.4.0-SNAPSHOT</version.didcommx.peerdid>
-        <version.fasterxml.jackson>2.14.1</version.fasterxml.jackson>
+        <version.fasterxml.jackson>2.14.3</version.fasterxml.jackson>
         <version.fusesource.jansi>2.4.0</version.fusesource.jansi>
         <version.hyperledger.indy>1.16.0</version.hyperledger.indy>
         <version.kotest>5.5.5</version.kotest>
         <version.kotlin.logging>3.0.4</version.kotlin.logging>
         <version.kotlinx.coroutines>1.6.4</version.kotlinx.coroutines>
+        <version.kotlinx.serialization>1.5.1</version.kotlinx.serialization>
         <version.nimbus.jose>9.28</version.nimbus.jose>
         <version.picocli>4.7.1</version.picocli>
         <version.squareup.okhttp3>4.10.0</version.squareup.okhttp3>
@@ -69,6 +70,7 @@
         <module>agent</module>
         <module>cli</module>
         <module>itests</module>
+        <module>json</module>
     </modules>
 
     <dependencyManagement>
@@ -92,6 +94,11 @@
                 <groupId>com.danubetech</groupId>
                 <artifactId>verifiable-credentials-java</artifactId>
                 <version>${version.danubtech.vcj}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${version.fasterxml.jackson}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -213,6 +220,11 @@
                 <version>${version.kotlinx.coroutines}</version>
             </dependency>
             <dependency>
+                <groupId>org.jetbrains.kotlinx</groupId>
+                <artifactId>kotlinx-serialization-json</artifactId>
+                <version>${version.kotlinx.serialization}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>${version.slf4j}</version>
@@ -322,6 +334,21 @@
                             </goals>
                         </execution>
                     </executions>
+                    <configuration>
+                        <compilerPlugins>
+                            <plugin>kotlinx-serialization</plugin>
+                        </compilerPlugins>
+                        <args>
+                            <arg>-opt-in=kotlinx.serialization.ExperimentalSerializationApi</arg>
+                        </args>
+                    </configuration>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.jetbrains.kotlin</groupId>
+                            <artifactId>kotlin-maven-serialization</artifactId>
+                            <version>${version.kotlin}</version>
+                        </dependency>
+                    </dependencies>
                 </plugin>
             </plugins>
         </pluginManagement>

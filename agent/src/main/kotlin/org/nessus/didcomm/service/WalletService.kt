@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import mu.KotlinLogging
-import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.NessusWalletPlugin
@@ -60,7 +59,7 @@ object WalletService: ObjectService<WalletService>() {
         }
 
         val wallet = when(config.agentType) {
-            AgentType.NESSUS -> NessusWalletPlugin().createWallet(config)
+            else -> NessusWalletPlugin().createWallet(config)
         }
 
         addWallet(wallet)
@@ -71,17 +70,28 @@ object WalletService: ObjectService<WalletService>() {
         modelService.addWallet(wallet)
     }
 
-    fun removeWallet(id: String): Wallet? {
-        return modelService.getWallet(id)?.also { wallet ->
+    fun removeWallet(id: String): Boolean {
+        val wallet = modelService.getWallet(id)
+        wallet?.also {
             wallet.dids.forEach { didService.deleteDid(it) }
             wallet.walletPlugin.removeWallet(wallet)
             modelService.removeWallet(wallet.id)
+            return true
         }
+        return false
     }
 
     fun findWallet(alias: String): Wallet? {
+        val tst = alias.lowercase()
         return modelService.findWallet {
-            it.id == alias || it.name.lowercase() == alias.lowercase()
+            it.id.lowercase().startsWith(tst) || it.name.lowercase().startsWith(tst)
+        }
+    }
+
+    fun findWallets(alias: String?): List<Wallet> {
+        val tst = alias?.lowercase()
+        return wallets.filter {
+            tst == null || it.id.lowercase().startsWith(tst) || it.name.lowercase().startsWith(tst)
         }
     }
 

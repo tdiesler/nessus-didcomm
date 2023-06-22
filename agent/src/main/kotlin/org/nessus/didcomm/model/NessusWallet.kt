@@ -21,6 +21,7 @@
 package org.nessus.didcomm.model
 
 import mu.KotlinLogging
+import org.nessus.didcomm.model.Wallet.WalletConfig
 import org.nessus.didcomm.service.DidOptions
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.WalletPlugin
@@ -31,10 +32,11 @@ class NessusWallet(
     name: String,
     agentType: AgentType,
     storageType: StorageType,
+    walletRole: WalletRole,
     endpointUrl: String,
     routingKeys: List<String>? = null,
     options: Map<String, String>? = null,
-): Wallet(id, name, agentType, storageType, endpointUrl, routingKeys, options) {
+): Wallet(id, name, agentType, storageType, walletRole, endpointUrl, routingKeys, options) {
 
     override val walletPlugin get() = NessusWalletPlugin()
 
@@ -54,14 +56,15 @@ class NessusWalletPlugin: WalletPlugin {
         }
     }
 
-    override fun createWallet(config: Wallet.WalletConfig): NessusWallet {
+    override fun createWallet(config: WalletConfig): NessusWallet {
         val walletId = "${UUID.randomUUID()}"
         val walletName = config.name
         val agentType = AgentType.NESSUS
+        val storageType = config.storageType ?: StorageType.IN_MEMORY
+        val walletRole = config.walletRole ?: WalletRole.CLIENT
         val endpointUrl = getEndpointUrl(config.endpointUrl)
         val routingKeys = config.routingKeys
-        val storageType = config.storageType
-        return NessusWallet(walletId, walletName, agentType, storageType, endpointUrl, routingKeys, options = config.options)
+        return NessusWallet(walletId, walletName, agentType, storageType, walletRole, endpointUrl, routingKeys, options = config.options)
     }
 
     override fun removeWallet(wallet: Wallet) {

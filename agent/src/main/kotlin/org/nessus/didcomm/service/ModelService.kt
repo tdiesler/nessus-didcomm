@@ -42,7 +42,8 @@ object ModelService: ObjectService<ModelService>() {
     }
 
     fun findWallet(predicate: (w: Wallet) -> Boolean): Wallet? {
-        return wallets.firstOrNull(predicate)
+        val result = wallets.filter(predicate)
+        return if (result.size == 1) result[0] else null
     }
 
     fun findWalletByName(name: String): Wallet? {

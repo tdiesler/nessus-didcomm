@@ -45,25 +45,45 @@ enum class StorageType(val value: String) {
     }
 }
 
-enum class LedgerRole {
+enum class WalletRole {
+    /**
+     * Can create wallets with ENDORSER privilege
+     */
     TRUSTEE,
-    ENDORSER
+
+    /**
+     * Can create wallets with ISSUER privilege
+     */
+    ENDORSER,
+
+    /**
+     * Can create wallets with USER privilege
+     * Can create credential schemas
+     * Can issue/revoke credentials
+     */
+    ISSUER,
+
+    /**
+     * Can hold/verify credentials
+     */
+    CLIENT,
 }
 
 /**
- * A Wallet provides access to general wallet functionality.
+ * Provides access to general wallet functionality.
  *
- * All work is delegated to the WalletService, which maintains the set
- * of all wallets known by the system.
+ * Work is generally delegated to the WalletService, which maintains the set
+ * of all wallets known to the system.
  *
  * Agent specific functionality is handled by a WalletPlugin which is a
- * stateful entity associated with this wallet
+ * stateful entity associated with a wallet
  */
 abstract class Wallet(
     val id: String,
     val name: String,
     val agentType: AgentType,
     val storageType: StorageType,
+    val walletRole: WalletRole,
     val endpointUrl: String,
     val routingKeys: List<String>? = null,
     val options: Map<String, String>? = null,
@@ -251,8 +271,9 @@ abstract class Wallet(
 
     data class WalletConfig(
         val name: String,
-        val agentType: AgentType,
-        val storageType: StorageType,
+        val agentType: AgentType?,
+        val storageType: StorageType?,
+        val walletRole: WalletRole?,
         val endpointUrl: String?,
         val routingKeys: List<String>?,
         val options: Map<String, String>?,
@@ -261,12 +282,14 @@ abstract class Wallet(
     data class Builder (var name: String) {
         private var agentType: AgentType = AgentType.NESSUS
         private var storageType: StorageType = StorageType.IN_MEMORY
+        private var walletRole: WalletRole = WalletRole.CLIENT
         private var endpointUrl: String? = null
         private var routingKeys: List<String>? = null
         private var options: Map<String, String>? = null
 
         fun agentType(agentType: AgentType) = apply { this.agentType = agentType }
         fun storageType(storageType: StorageType) = apply { this.storageType = storageType }
+        fun walletRole(walletRole: WalletRole) = apply { this.walletRole = walletRole }
         fun endpointUrl(endpointUrl: String?) = apply { this.endpointUrl = endpointUrl }
         fun routingKeys(routingKeys: List<String>?) = apply { this.routingKeys = routingKeys }
         fun options(options: Map<String, String>?) = apply { this.options = options }
@@ -278,6 +301,7 @@ abstract class Wallet(
                     name,
                     agentType,
                     storageType,
+                    walletRole,
                     endpointUrl,
                     routingKeys,
                     options,
