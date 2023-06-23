@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.json.model
+package org.nessus.didcomm.json
 
 import mu.KotlinLogging
 import org.nessus.didcomm.service.ObjectService
@@ -38,6 +38,8 @@ object RpcCommandService: ObjectService<RpcCommandService>() {
         val caller = walletService.findWallet(callerId)?.name ?: "Anonymous"
         log.info { "Json-RPC $caller: $path $payload" }
         val obj: Any? = when (path) {
+            "/did/create" -> DidCommandHandler.createDid(callerId, payload)
+            "/did/list" -> DidCommandHandler.listDids(callerId, payload)
             "/wallet/create" -> WalletCommandHandler.createWallet(callerId, payload)
             "/wallet/find" -> WalletCommandHandler.findWallet(callerId, payload)
             "/wallet/list" -> WalletCommandHandler.listWallets(callerId, payload)

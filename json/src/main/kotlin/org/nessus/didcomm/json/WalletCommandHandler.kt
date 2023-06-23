@@ -17,18 +17,14 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.json.model
+package org.nessus.didcomm.json
 
 import kotlinx.serialization.json.Json
-import mu.KotlinLogging
+import org.nessus.didcomm.json.model.WalletData
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.WalletRole
-import org.nessus.didcomm.service.WalletService
 
-object WalletCommandHandler {
-    private val log = KotlinLogging.logger {}
-
-    private val walletService get() = WalletService.getService()
+object WalletCommandHandler: AbstractCommandHandler() {
 
     fun createWallet(callerId: String, payload: String): Wallet {
         val data = Json.decodeFromString<WalletData>(payload)
@@ -37,8 +33,7 @@ object WalletCommandHandler {
             return walletService.createWallet(data.toWalletConfig())
         }
         val walletRole = data.walletRole ?: WalletRole.CLIENT
-        val callerRole = walletService.findWallet(callerId)?.walletRole
-        checkNotNull(callerRole) { "No caller role" }
+        val callerRole = assertCallerWallet(callerId).walletRole
         check(callerRole.ordinal <= WalletRole.ENDORSER.ordinal) { "$callerRole cannot create $walletRole wallet" }
         return walletService.createWallet(data.toWalletConfig())
     }
@@ -56,9 +51,8 @@ object WalletCommandHandler {
 
     fun removeWallet(callerId: String, payload: String): Boolean {
         val data = Json.decodeFromString<WalletData>(payload)
-        val callerRole = walletService.findWallet(callerId)?.walletRole
+        val callerRole = assertCallerWallet(callerId).walletRole
         checkNotNull(data.id) { "No wallet id" }
-        checkNotNull(callerRole) { "No caller role" }
         walletService.findWallet(data.id)?.also { wallet ->
             val walletRole = wallet.walletRole
             check(callerId == wallet.id || callerRole.ordinal < walletRole.ordinal) { "$callerRole cannot remove $walletRole wallet" }

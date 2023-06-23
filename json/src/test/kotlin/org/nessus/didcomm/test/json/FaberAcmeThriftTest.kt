@@ -19,21 +19,12 @@
  */
 package org.nessus.didcomm.test.json
 
-import io.kotest.core.spec.style.AnnotationSpec
-import io.kotest.matchers.result.shouldBeSuccess
-import mu.KotlinLogging
-import org.nessus.didcomm.json.model.RpcCommandService
-import org.nessus.didcomm.json.model.WalletData
-import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.WalletRole
 
 /**
  * It should be possible to drive Nessus DIDComm entirely through JSON-RPC
  */
-class FaberAcmeThriftTest: AnnotationSpec() {
-    private val log = KotlinLogging.logger {}
-
-    private val rpcService get() = RpcCommandService.getService()
+class FaberAcmeThriftTest: AbstractJsonRPCTest() {
 
     @Test
     fun faberAcmeThrift() {
@@ -44,25 +35,13 @@ class FaberAcmeThriftTest: AnnotationSpec() {
         val alice = createWallet(gov.id,"Alice", WalletRole.CLIENT)
         try {
 
+
         } finally {
-            removeWallet(gov, alice)
-            removeWallet(gov, thrift)
-            removeWallet(gov, acme)
-            removeWallet(gov, faber)
-            removeWallet(gov, gov)
+            removeWallet(alice)
+            removeWallet(thrift)
+            removeWallet(acme)
+            removeWallet(faber)
+            removeWallet(gov)
         }
-    }
-
-    private fun createWallet(caller: String, alias: String, role: WalletRole): Wallet {
-        val path = "/wallet/create"
-        val data = WalletData(alias = alias, walletRole = role)
-        val res = rpcService.dispatchRpcCommand(caller, path, data.toJson())
-        return res.shouldBeSuccess() as Wallet
-    }
-
-    private fun removeWallet(caller: Wallet, target: Wallet) {
-        val path = "/wallet/remove"
-        val data = WalletData(id = target.id)
-        rpcService.dispatchRpcCommand(caller.id, path, data.toJson()).shouldBeSuccess()
     }
 }
