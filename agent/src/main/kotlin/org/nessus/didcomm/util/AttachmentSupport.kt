@@ -22,10 +22,9 @@ package org.nessus.didcomm.util
 @Suppress("UNCHECKED_CAST")
 open class AttachmentSupport : Attachments {
 
-    private val attachments = HashMap<AttachmentKey<out Any>, Any>()
+    private val attachments = HashMap<AttachmentKey<*>, Any>()
 
-    override val attachmentKeys: Set<AttachmentKey<out Any>>
-        get() = attachments.keys
+    override val attachmentKeys: Set<AttachmentKey<*>> get() = attachments.keys
 
     override fun <T: Any> putAttachment(key: AttachmentKey<T>, value: T?): T? {
         return if (value != null)

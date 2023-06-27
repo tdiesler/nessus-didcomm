@@ -34,7 +34,7 @@ import org.nessus.didcomm.util.Holder
  * Nessus DIDComm: Trust Ping Protocol 2.0
  * https://github.com/tdiesler/nessus-didcomm/tree/main/features/0048-trust-ping
  */
-class TrustPingV2ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
+class TrustPingV2ProtocolTest: AbstractAgentTest() {
 
     data class Context(
         val faber: Wallet,
@@ -56,7 +56,7 @@ class TrustPingV2ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
         val ctx = contextHolder.value!!
         removeWallet(ctx.alice)
         removeWallet(ctx.faber)
-        stopNessusEndpoint<T>()
+        stopNessusEndpoint()
     }
 
     @Test

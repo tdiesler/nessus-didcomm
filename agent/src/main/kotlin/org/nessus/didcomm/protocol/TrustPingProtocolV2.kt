@@ -28,7 +28,7 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Did
-import org.nessus.didcomm.model.DidDocV1
+import org.nessus.didcomm.model.DidDoc
 import org.nessus.didcomm.model.DidPeer
 import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.MessageExchange
@@ -156,7 +156,7 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             fromPriorIssuerKid = invitationDidDoc.authentications.first()
 
             val senderDid = Did.fromUri(trustPingV2.from as String)
-            val senderDidDoc = DidDocV1.fromMessage(trustPingMsg) ?: didService.resolveDidDoc(senderDid.uri)
+            val senderDidDoc = DidDoc.fromMessage(trustPingMsg) ?: didService.resolveDidDoc(senderDid.uri)
             checkNotNull(senderDidDoc) { "No sender DidDoc" }
 
             didService.importDidDoc(senderDidDoc)

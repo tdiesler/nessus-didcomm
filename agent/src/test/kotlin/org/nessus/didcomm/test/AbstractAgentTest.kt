@@ -22,7 +22,7 @@ package org.nessus.didcomm.test
 import id.walt.credentials.w3c.templates.VcTemplateService
 import id.walt.services.keystore.KeyStoreService
 import io.kotest.core.spec.style.AnnotationSpec
-import org.nessus.didcomm.model.NessusWalletPlugin.Companion.getEndpointUrl
+import org.nessus.didcomm.model.NessusWalletPlugin
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.DidCommService
 import org.nessus.didcomm.service.DidService
@@ -115,13 +115,13 @@ abstract class AbstractAgentTest: AnnotationSpec() {
     }
 
     fun startNessusEndpoint(listener: MessageReceiver? = null): AutoCloseable {
-        val effectiveEndpointUrl = getEndpointUrl()
-        val handle = endpointService.startEndpoint(effectiveEndpointUrl, listener)
+        val endpointUrl = NessusWalletPlugin.getEndpointUrl()
+        val handle = endpointService.startEndpoint(endpointUrl, listener)
         endpointHandle.set(handle)
         return handle
     }
 
-    fun <T: AutoCloseable> stopNessusEndpoint(handle: T? = null) {
+    fun stopNessusEndpoint(handle: AutoCloseable? = null) {
         val effHandle = handle ?: endpointHandle.get()
         endpointService.stopEndpoint(effHandle!!)
     }

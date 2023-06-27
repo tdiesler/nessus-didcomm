@@ -225,8 +225,7 @@ class InviteAndConnect: AbstractOutOfBandCommand() {
             .receiveOutOfBandInvitation(
                 invitee,
                 inviteeDid = inviteeDid,
-                inviterAlias = inviter.name,
-                inviterAgent = inviter.agentType.value)
+                inviterAlias = inviter.name)
             .also {
                 val invitation = it.getMessageExchange().getInvitation()
                 echoReceiveInvitation(invitee.name, invitation!!)

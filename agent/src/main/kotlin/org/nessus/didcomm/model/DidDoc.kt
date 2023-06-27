@@ -24,7 +24,7 @@ typealias WaltIdVerificationMethod = id.walt.model.VerificationMethod
 
 val DEFAULT_ACCEPT = listOf("didcomm/v2") //, "didcomm/aip2;env=rfc587")
 
-data class DidDocV1(
+data class DidDoc(
     val id: String,
     val context: List<String>,
     val alsoKnownAs: List<String>,
@@ -39,7 +39,7 @@ data class DidDocV1(
 ) {
     companion object {
 
-        fun fromSicpaDidDoc(doc: SicpaDidDoc) = DidDocV1(
+        fun fromSicpaDidDoc(doc: SicpaDidDoc) = DidDoc(
             doc.did,
             context = doc.context,
             alsoKnownAs = doc.alsoKnownAs,
@@ -53,13 +53,13 @@ data class DidDocV1(
             didCommServices = doc.didCommServices
         )
 
-        fun fromMessage(message: Message): DidDocV1? {
+        fun fromMessage(message: Message): DidDoc? {
             return message.attachments
                 ?.firstOrNull { it.mediaType == DID_DOCUMENT_MEDIA_TYPE }
                 ?.let { fromAttachment(it) }
         }
 
-        fun fromAttachment(attachment: Attachment): DidDocV1 {
+        fun fromAttachment(attachment: Attachment): DidDoc {
             require(attachment.mediaType == DID_DOCUMENT_MEDIA_TYPE) { "Unexpected media_type: ${attachment.mediaType} "}
             val didDocAttachment = gson.toJson(attachment.data.jsonData())
             checkNotNull(didDocAttachment) {"Cannot find attached did document"}

@@ -23,23 +23,7 @@ interface Attachments {
     /**
      * Get the set of available keys.
      */
-    val attachmentKeys: Set<AttachmentKey<out Any>>
-
-    /**
-     * Attach an arbitrary object with this element.
-     * @return The previous attachment object or null
-     */
-    fun <T: Any> putAttachment(key: AttachmentKey<T>, value: T?): T?
-
-    /**
-     * Copy all attachments from sourse to target.
-     */
-    fun putAllAttachments(source: Attachments)
-
-    /**
-     * True if there is an attached object for a given key
-     */
-    fun <T: Any> hasAttachment(key: AttachmentKey<T>): Boolean
+    val attachmentKeys: Set<AttachmentKey<*>>
 
     /**
      * Get the attached object for a given key
@@ -52,6 +36,22 @@ interface Attachments {
      * @return The attached object
      */
     fun <T: Any> getAttachment(key: AttachmentKey<T>, defaultValue: T): T
+
+    /**
+     * True if there is an attached object for a given key
+     */
+    fun <T: Any> hasAttachment(key: AttachmentKey<T>): Boolean
+
+    /**
+     * Attach an arbitrary object with this element.
+     * @return The previous attachment object or null
+     */
+    fun <T: Any> putAttachment(key: AttachmentKey<T>, value: T?): T?
+
+    /**
+     * Copy all attachments from source to target.
+     */
+    fun putAllAttachments(source: Attachments)
 
     /**
      * Remove an attached object for a given key

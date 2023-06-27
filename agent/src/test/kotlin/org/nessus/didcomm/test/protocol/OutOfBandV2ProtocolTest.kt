@@ -63,7 +63,7 @@ class OutOfBandV2ProtocolTest: AbstractAgentTest() {
                 .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
                 .createOutOfBandInvitation(faber, inviterDid, options = mapOf(
                     "goal" to "Employment credential with Acme"))
-                .receiveOutOfBandInvitation(alice, inviteeDid, faber.name, faber.agentType.value)
+                .receiveOutOfBandInvitation(alice, inviteeDid, faber.name)
                 .getMessageExchange()
 
             val invitation = mex.getInvitation() as Invitation
@@ -108,7 +108,7 @@ class OutOfBandV2ProtocolTest: AbstractAgentTest() {
                 .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
                 .createOutOfBandInvitation(faber, inviterDid, options = mapOf(
                     "goal" to "Employment credential with Acme"))
-                .receiveOutOfBandInvitation(alice, inviteeDid, faber.name, faber.agentType.value)
+                .receiveOutOfBandInvitation(alice, inviteeDid, faber.name)
                 .getMessageExchange()
 
             val invitation = mex.getInvitation() as Invitation

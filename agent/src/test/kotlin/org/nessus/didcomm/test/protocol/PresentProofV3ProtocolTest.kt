@@ -38,7 +38,7 @@ import org.nessus.didcomm.util.decodeJson
  * WACI DIDComm: Present Proof Protocol 3.0
  * https://github.com/decentralized-identity/waci-didcomm/blob/main/present_proof/present-proof-v3.md
  */
-class PresentProofV3ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
+class PresentProofV3ProtocolTest: AbstractAgentTest() {
 
     data class Context(
         val faber: Wallet,
@@ -60,7 +60,7 @@ class PresentProofV3ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
         val ctx = contextHolder.value!!
         removeWallet(ctx.alice)
         removeWallet(ctx.faber)
-        stopNessusEndpoint<T>()
+        stopNessusEndpoint()
     }
 
     @Test

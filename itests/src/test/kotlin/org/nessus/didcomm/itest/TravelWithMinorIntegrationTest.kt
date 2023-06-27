@@ -31,7 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * https://www.w3.org/TR/vc-use-cases/#international-travel-with-minor-and-upgrade
  */
 @EnabledIf(NessusPlaygroundReachable::class)
-class TravelWithMinorIntegrationTest<T: AutoCloseable> : AbstractIntegrationTest() {
+class TravelWithMinorIntegrationTest : AbstractIntegrationTest() {
     private val log = KotlinLogging.logger { }
 
     @Test

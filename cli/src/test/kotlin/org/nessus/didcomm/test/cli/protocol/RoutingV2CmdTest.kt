@@ -21,7 +21,7 @@ package org.nessus.didcomm.test.cli.protocol
 
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldStartWith
-import org.nessus.didcomm.model.DidDocV1
+import org.nessus.didcomm.model.DidDoc
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.test.cli.AbstractCLITest
 
@@ -51,7 +51,7 @@ class RoutingV2CmdTest: AbstractCLITest() {
             faberDid shouldStartWith "did:peer:2"
             aliceDid shouldStartWith "did:peer:2"
 
-            val didDoc: DidDocV1 = didService.loadDidDoc(aliceDid)
+            val didDoc: DidDoc = didService.loadDidDoc(aliceDid)
             val service = didDoc.didCommServices.firstOrNull()
             service?.routingKeys shouldBe listOf(mediatorDid)
 

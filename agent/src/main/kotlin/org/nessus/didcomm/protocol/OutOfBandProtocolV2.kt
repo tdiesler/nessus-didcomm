@@ -80,6 +80,7 @@ class OutOfBandProtocolV2(mex: MessageExchange): Protocol<OutOfBandProtocolV2>(m
         val invitationDid = when {
             inviterDid != null -> {
                 log.info { "Create invitation from given Did: ${inviterDid.uri}" }
+                checkNotNull(inviter.getDid(inviterDid.uri)) { "Inviter does not own ${inviterDid.uri}" }
                 inviterDid
             }
             else -> {
@@ -139,20 +140,20 @@ class OutOfBandProtocolV2(mex: MessageExchange): Protocol<OutOfBandProtocolV2>(m
         invitee: Wallet,
         inviteeDid: Did? = null,
         inviterAlias: String? = null,
-        inviterAgent: String? = null,
+        invitation: Invitation? = null,
         fromMediator: Boolean = false,
     ): OutOfBandProtocolV2 {
         checkAgentType(invitee.agentType)
 
-        val invitation = mex.getInvitation()
-        checkNotNull(invitation) { "No invitation" }
-        log.info { "Invitee (${invitee.name}) received Invitation: ${invitation.encodeJson(true)}"}
+        val effInvitation = invitation ?: mex.getInvitation()
+        checkNotNull(effInvitation) { "No invitation" }
+        log.info { "Invitee (${invitee.name}) received Invitation: ${effInvitation.encodeJson(true)}"}
 
         // [TODO] invitation state for v2
         // check(invitation.state == InvitationState.INITIAL) { "Unexpected invitation state: $invitation" }
 
         // Extract Inviter Did + Document
-        val inviterDidDoc = invitation.diddoc
+        val inviterDidDoc = effInvitation.diddoc
         didService.importDidDoc(inviterDidDoc)
 
         val inviterDid = Did.fromUri(inviterDidDoc.id)
@@ -181,12 +182,12 @@ class OutOfBandProtocolV2(mex: MessageExchange): Protocol<OutOfBandProtocolV2>(m
         val inviteeMex = MessageExchange()
         inviteeMex.putAttachment(WALLET_ATTACHMENT_KEY, invitee)
 
-        val epm = EndpointMessage.Builder(invitation.toMessage()).inbound().build()
+        val epm = EndpointMessage.Builder(effInvitation.toMessage()).inbound().build()
         inviteeMex.addMessage(epm)
 
         // Create and attach the Connection
 
-        val invitationKey = invitation.invitationKey()
+        val invitationKey = effInvitation.invitationKey()
         val inviter = modelService.findWalletByDid(inviterDid.uri)
 
         val pcon = Connection(
@@ -197,7 +198,7 @@ class OutOfBandProtocolV2(mex: MessageExchange): Protocol<OutOfBandProtocolV2>(m
             myRole = ConnectionRole.INVITEE,
             myLabel = invitee.name,
             theirDid = inviterDid,
-            theirAgent = inviter?.agentType?.value ?: inviterAgent,
+            theirAgent = inviter?.agentType?.value,
             theirRole = ConnectionRole.INVITER,
             theirLabel = inviter?.name ?: inviterAlias,
             state = ConnectionState.INVITATION
@@ -207,7 +208,7 @@ class OutOfBandProtocolV2(mex: MessageExchange): Protocol<OutOfBandProtocolV2>(m
         invitee.addConnection(pcon)
 
         // Associate this invitation with the invitee wallet
-        invitee.addInvitation(invitation)
+        invitee.addInvitation(effInvitation)
 
         // Returns an instance of this protocol associated with another MessageExchange
         return inviteeMex.withProtocol(OUT_OF_BAND_PROTOCOL_V2)

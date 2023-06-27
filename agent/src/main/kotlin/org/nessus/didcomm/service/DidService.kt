@@ -52,7 +52,7 @@ import org.nessus.didcomm.model.DEFAULT_ACCEPT
 import org.nessus.didcomm.model.DEFAULT_KEY_ALGORITHM
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.Did.Companion.didMethod
-import org.nessus.didcomm.model.DidDocV1
+import org.nessus.didcomm.model.DidDoc
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.DidPeer
 import org.nessus.didcomm.model.KeyAlgorithm
@@ -144,7 +144,7 @@ object DidService: ObjectService<DidService>() {
     /**
      * Loads a DidDoc that is required to exist in store
      */
-    fun loadDidDoc(uri: String): DidDocV1 {
+    fun loadDidDoc(uri: String): DidDoc {
         val waltDidDoc = withPlugin(didMethod(uri)).loadDidDoc(uri)
         return toNessusDidDoc(waltDidDoc)
     }
@@ -156,7 +156,7 @@ object DidService: ObjectService<DidService>() {
         }
     }
 
-    fun loadOrResolveDidDoc(uri: String): DidDocV1? {
+    fun loadOrResolveDidDoc(uri: String): DidDoc? {
         return when {
             hasDid(uri) -> loadDidDoc(uri)
             else -> resolveDidDoc(uri)
@@ -168,7 +168,7 @@ object DidService: ObjectService<DidService>() {
         return waltDidDoc?.let { toNessusDid(it) }
     }
 
-    fun resolveDidDoc(uri: String): DidDocV1? {
+    fun resolveDidDoc(uri: String): DidDoc? {
         val waltDidDoc = withPlugin(didMethod(uri)).resolveDidDoc(uri)
         if (waltDidDoc != null && serviceMapping[uri] == null) {
             val endpointUrl = modelService.findWalletByDid(uri)?.endpointUrl
@@ -185,7 +185,7 @@ object DidService: ObjectService<DidService>() {
         return withPlugin(did.method).importDid(did)
     }
 
-    fun importDidDoc(didDoc: DidDocV1): KeyId {
+    fun importDidDoc(didDoc: DidDoc): KeyId {
         log.info { "Importing DidDoc: ${didDoc.encodeJson(true)}" }
         val method = didMethod(didDoc.id)
         val encodedDoc = didDoc.encodeJson()
@@ -545,7 +545,7 @@ object DidService: ObjectService<DidService>() {
         }
     }
 
-    private fun appendKeyStoreAliases(keyId: KeyId, did: Did, didDoc: DidDocV1) {
+    private fun appendKeyStoreAliases(keyId: KeyId, did: Did, didDoc: DidDoc) {
         appendKeyStoreAliases(keyId, did, didDoc.verificationMethods.map { vm -> vm.id })
     }
 
@@ -643,7 +643,7 @@ object DidService: ObjectService<DidService>() {
         return Did.fromUri(verificationMethod.controller, verkey)
     }
 
-    private fun toNessusDidDoc(docDoc: WaltIdDidDoc): DidDocV1 {
+    private fun toNessusDidDoc(docDoc: WaltIdDidDoc): DidDoc {
 
         val verificationMethods = mutableListOf<WaltIdVerificationMethod>()
         docDoc.verificationMethod?.also { verificationMethods.addAll(it) }
@@ -658,7 +658,7 @@ object DidService: ObjectService<DidService>() {
         val didCommServices = serviceMapping[docDoc.id]
         checkNotNull(didCommServices) { "No services for ${docDoc.id}" }
 
-        return DidDocV1(
+        return DidDoc(
             docDoc.id,
             context = docDoc.context?.let { docDoc.context } ?: listOf(),
             alsoKnownAs = listOf(),

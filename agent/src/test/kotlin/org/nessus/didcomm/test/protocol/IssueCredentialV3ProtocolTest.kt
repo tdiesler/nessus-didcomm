@@ -38,7 +38,7 @@ import org.nessus.didcomm.util.decodeJson
  * WACI DIDComm: Issue Credential Protocol 3.0
  * https://github.com/decentralized-identity/waci-didcomm/tree/main/issue_credential
  */
-class IssueCredentialV3ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
+class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
 
     data class Context(
         val faber: Wallet,
@@ -60,7 +60,7 @@ class IssueCredentialV3ProtocolTest<T: AutoCloseable>: AbstractAgentTest() {
         val ctx = contextHolder.value!!
         removeWallet(ctx.alice)
         removeWallet(ctx.faber)
-        stopNessusEndpoint<T>()
+        stopNessusEndpoint()
     }
 
     @Test

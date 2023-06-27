@@ -24,7 +24,10 @@ import org.didcommx.didcomm.message.Message
 import org.didcommx.didcomm.message.MessageBuilder
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.ModelService
+import org.nessus.didcomm.util.decodeBase64Url
 import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.encodeBase64Url
+import org.nessus.didcomm.util.encodeJson
 import java.io.InputStreamReader
 import java.net.URL
 
@@ -121,6 +124,10 @@ data class Invitation(
             }
         }
 
+        fun fromBase64(encoded: String): Invitation {
+            return fromJson(String(encoded.decodeBase64Url()))
+        }
+
         fun fromJson(json: String): Invitation {
             return fromMessage(Message.parse(json.decodeJson()))
         }
@@ -139,11 +146,11 @@ data class Invitation(
     private val didService get() = DidService.getService()
     private val modelService get() = ModelService.getService()
 
-    val diddoc: DidDocV1
+    val diddoc: DidDoc
         get() = run {
         val invitationDidDoc = attachments
             ?.firstOrNull { it.mediaType == DID_DOCUMENT_MEDIA_TYPE }
-            ?.let { DidDocV1.fromAttachment(it) }
+            ?.let { DidDoc.fromAttachment(it) }
             ?:let { didService.resolveDidDoc(from) }
         checkNotNull(invitationDidDoc) { "No invitation DidDoc" }
     }
@@ -171,6 +178,13 @@ data class Invitation(
             .from(from)
             .attachments(attachments)
             .build()
+    }
+
+    /**
+     * https://identity.foundation/didcomm-messaging/spec/#standard-message-encoding
+     */
+    fun encodeBase64(): String {
+        return toMessage().encodeJson().toByteArray().encodeBase64Url()
     }
 
     fun shortString(): String {
