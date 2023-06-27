@@ -61,7 +61,7 @@ class NessusWalletPlugin: WalletPlugin {
         val walletName = config.name
         val agentType = AgentType.NESSUS
         val storageType = config.storageType ?: StorageType.IN_MEMORY
-        val walletRole = config.walletRole ?: WalletRole.CLIENT
+        val walletRole = config.walletRole ?: WalletRole.USER
         val endpointUrl = getEndpointUrl(config.endpointUrl)
         val routingKeys = config.routingKeys
         return NessusWallet(walletId, walletName, agentType, storageType, walletRole, endpointUrl, routingKeys, options = config.options)

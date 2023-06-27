@@ -28,9 +28,7 @@ abstract class AbstractCommandHandler {
 
     val walletService get() = WalletService.getService()
 
-    fun assertCallerWallet(callerId: String): Wallet {
-        val caller = walletService.findWallet(callerId)
-        checkNotNull(caller) { "No wallet for: $callerId" }
-        return caller
+    fun assertWallet(id: String): Wallet {
+        return walletService.getWallet(id)
     }
 }

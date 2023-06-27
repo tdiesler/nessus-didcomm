@@ -22,40 +22,29 @@ package org.nessus.didcomm.json
 import kotlinx.serialization.json.Json
 import org.nessus.didcomm.json.model.WalletData
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.model.WalletRole
 
 object WalletCommandHandler: AbstractCommandHandler() {
 
-    fun createWallet(callerId: String, payload: String): Wallet {
+    fun createWallet(payload: String): Wallet {
         val data = Json.decodeFromString<WalletData>(payload)
-        if (data.walletRole == WalletRole.TRUSTEE) {
-            check(walletService.wallets.isEmpty() && callerId.isEmpty()) { "The TRUSTEE wallet must be the first to create" }
-            return walletService.createWallet(data.toWalletConfig())
-        }
-        val walletRole = data.walletRole ?: WalletRole.CLIENT
-        val callerRole = assertCallerWallet(callerId).walletRole
-        check(callerRole.ordinal <= WalletRole.ENDORSER.ordinal) { "$callerRole cannot create $walletRole wallet" }
         return walletService.createWallet(data.toWalletConfig())
     }
 
-    fun findWallet(callerId: String, payload: String): Wallet? {
+    fun findWallet(payload: String): Wallet? {
         val data = Json.decodeFromString<WalletData>(payload)
         checkNotNull(data.alias) { "No wallet alias" }
         return walletService.findWallet(data.alias)
     }
 
-    fun listWallets(callerId: String, payload: String): List<Wallet> {
+    fun listWallets(payload: String): List<Wallet> {
         val data = Json.decodeFromString<WalletData>(payload)
         return walletService.findWallets(data.alias)
     }
 
-    fun removeWallet(callerId: String, payload: String): Boolean {
+    fun removeWallet(payload: String): Boolean {
         val data = Json.decodeFromString<WalletData>(payload)
-        val callerRole = assertCallerWallet(callerId).walletRole
         checkNotNull(data.id) { "No wallet id" }
         walletService.findWallet(data.id)?.also { wallet ->
-            val walletRole = wallet.walletRole
-            check(callerId == wallet.id || callerRole.ordinal < walletRole.ordinal) { "$callerRole cannot remove $walletRole wallet" }
             return walletService.removeWallet(wallet.id)
         }
         return false

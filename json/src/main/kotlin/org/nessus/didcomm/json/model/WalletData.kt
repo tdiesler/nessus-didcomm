@@ -37,19 +37,20 @@ data class WalletData(
     val walletRole: WalletRole? = null,
     val endpointUrl: String? = null,
     val routingKeys: List<String>? = null,
-    val options: Map<String, String>? = null) {
+    val options: Map<String, String>? = null,
+) {
 
     companion object {
         fun fromWallet(wallet: Wallet): WalletData {
             return WalletData(
-                wallet.id,
-                wallet.name,
-                wallet.agentType,
-                wallet.storageType,
-                wallet.walletRole,
-                wallet.endpointUrl,
-                wallet.routingKeys?.toList(),
-                wallet.options?.toMap(),
+                id = wallet.id,
+                alias = wallet.name,
+                agentType = wallet.agentType,
+                storageType = wallet.storageType,
+                walletRole = wallet.walletRole,
+                endpointUrl = wallet.endpointUrl,
+                routingKeys = wallet.routingKeys?.toList(),
+                options = wallet.options?.toMap(),
             )
         }
     }

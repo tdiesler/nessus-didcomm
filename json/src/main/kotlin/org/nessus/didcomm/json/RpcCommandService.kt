@@ -22,6 +22,30 @@ package org.nessus.didcomm.json
 import mu.KotlinLogging
 import org.nessus.didcomm.service.ObjectService
 import org.nessus.didcomm.service.WalletService
+import org.nessus.didcomm.util.AttachmentKey
+import org.nessus.didcomm.util.AttachmentSupport
+import kotlin.reflect.KClass
+
+open class RpcContext(headers: Map<String, String> = emptyMap()): AttachmentSupport() {
+
+    init {
+        headers.entries.forEach { (k, v) -> putAttachment(k, String::class, v) }
+    }
+
+    fun <T: Any> getAttachment(name: String, type: KClass<T>): T? {
+        return getAttachment(AttachmentKey(name, type))
+    }
+
+    fun <T: Any> putAttachment(name: String, type: KClass<T>, obj: T?): T? {
+        return putAttachment(AttachmentKey(name, type), obj)
+    }
+
+    class Builder {
+        private val content = mutableMapOf<String, String>()
+        fun attach(key: String, value: String) = also { content[key] = value }
+        fun build() = RpcContext(content)
+    }
+}
 
 object RpcCommandService: ObjectService<RpcCommandService>() {
     private val log = KotlinLogging.logger {}
@@ -30,20 +54,17 @@ object RpcCommandService: ObjectService<RpcCommandService>() {
 
     private val walletService get() = WalletService.getService()
 
-    fun dispatchRpcCommand(callerId: String, path: String, payload: String): Result<Any?> {
-        return dispatchRpcCommand(callerId, emptyMap(), path, payload)
-    }
-
-    fun dispatchRpcCommand(callerId: String, headers: Map<String, String>, path: String, payload: String): Result<Any?> {
-        val caller = walletService.findWallet(callerId)?.name ?: "Anonymous"
-        log.info { "Json-RPC $caller: $path $payload" }
+    fun dispatchRpcCommand(path: String, payload: String): Result<Any?> {
         val obj: Any? = when (path) {
-            "/did/create" -> DidCommandHandler.createDid(callerId, payload)
-            "/did/list" -> DidCommandHandler.listDids(callerId, payload)
-            "/wallet/create" -> WalletCommandHandler.createWallet(callerId, payload)
-            "/wallet/find" -> WalletCommandHandler.findWallet(callerId, payload)
-            "/wallet/list" -> WalletCommandHandler.listWallets(callerId, payload)
-            "/wallet/remove" -> WalletCommandHandler.removeWallet(callerId, payload)
+            "/did/create" -> DidCommandHandler.createDid(payload)
+            "/did/list" -> DidCommandHandler.listDids(payload)
+            "/invitation/create" -> InvitationCommandHandler.createInvitation(payload)
+            "/invitation/receive" -> InvitationCommandHandler.receiveInvitation(payload)
+            "/invitation/exchange" -> InvitationCommandHandler.exchangeInvitation(payload)
+            "/wallet/create" -> WalletCommandHandler.createWallet(payload)
+            "/wallet/find" -> WalletCommandHandler.findWallet(payload)
+            "/wallet/list" -> WalletCommandHandler.listWallets(payload)
+            "/wallet/remove" -> WalletCommandHandler.removeWallet(payload)
             else -> throw IllegalStateException("Unsupported command path: $path")
         }
         return Result.success(obj)

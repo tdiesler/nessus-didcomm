@@ -70,15 +70,8 @@ object WalletService: ObjectService<WalletService>() {
         modelService.addWallet(wallet)
     }
 
-    fun removeWallet(id: String): Boolean {
-        val wallet = modelService.getWallet(id)
-        wallet?.also {
-            wallet.dids.forEach { didService.deleteDid(it) }
-            wallet.walletPlugin.removeWallet(wallet)
-            modelService.removeWallet(wallet.id)
-            return true
-        }
-        return false
+    fun getWallet(id: String): Wallet {
+        return modelService.getWallet(id)
     }
 
     fun findWallet(alias: String): Wallet? {
@@ -93,6 +86,16 @@ object WalletService: ObjectService<WalletService>() {
         return wallets.filter {
             tst == null || it.id.lowercase().startsWith(tst) || it.name.lowercase().startsWith(tst)
         }
+    }
+
+    fun removeWallet(id: String): Boolean {
+        modelService.getWallet(id)?.also { wallet ->
+            wallet.dids.forEach { didService.deleteDid(it) }
+            wallet.walletPlugin.removeWallet(wallet)
+            modelService.removeWallet(wallet.id)
+            return true
+        }
+        return false
     }
 
     /**

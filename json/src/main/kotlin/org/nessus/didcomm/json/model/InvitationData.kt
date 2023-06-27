@@ -26,13 +26,46 @@ import org.nessus.didcomm.json.AnyValueSerializer
 import org.nessus.didcomm.model.DidMethod
 
 @Serializable
-data class DidData(
-    val ownerId: String? = null,
-    val id: String? = null,
-    val method: DidMethod? = null,
-    val verkey: String? = null,
-    val options: Map<String, @Serializable(with = AnyValueSerializer::class) Any> = emptyMap()
-) {
+data class InvitationData(
+    /**
+     * Optional inviter id
+     */
+    val inviterId: String? = null,
 
+    /**
+     * Optional inviter id
+     */
+    val inviteeId: String? = null,
+
+    /**
+     * Optional inviter alias
+     */
+    val inviterAlias: String? = null,
+
+    /**
+     * Inviter/Invitee Did URL
+     */
+    val didUri: String? = null,
+
+    /**
+     * Inviter/Invitee DidMethod, when Did is not given
+     */
+    val method: DidMethod? = null,
+
+    /**
+     * Supported options
+     * -----------------
+     * goal: String
+     * goal_code: String
+     *
+     * https://identity.foundation/didcomm-messaging/spec/v2.0/#goal-codes
+     */
+    val options: Map<String, @Serializable(with = AnyValueSerializer::class) Any> = emptyMap(),
+
+    /**
+     * https://identity.foundation/didcomm-messaging/spec/#standard-message-encoding
+     */
+    val urlEncoded: String? = null
+) {
     fun toJson() = Json.encodeToString(this)
 }

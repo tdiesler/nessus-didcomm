@@ -32,30 +32,28 @@ class WalletCommandsTest: AbstractJsonRPCTest() {
 
         // Create Trustee wallet
 
-        val wallet: Wallet = createWallet("", "Government", WalletRole.TRUSTEE)
-        val callerId = wallet.id
-        log.info { wallet }
+        val gov: Wallet = createWallet("Government", WalletRole.TRUSTEE)
+        log.info { gov }
 
-        val data = WalletData.fromWallet(wallet)
-        assertEquals(callerId, data.id)
+        val data = WalletData.fromWallet(gov)
         assertEquals("Government", data.alias)
         assertEquals(WalletRole.TRUSTEE, data.walletRole)
 
         // Find wallet
 
-        var res = rpcService.dispatchRpcCommand(callerId, "/wallet/find", WalletData(alias = "gov").toJson())
+        var res = rpcService.dispatchRpcCommand("/wallet/find", WalletData(alias = "gov").toJson())
         val found = res.shouldBeSuccess() as? Wallet
-        assertEquals(wallet.id, found?.id)
+        assertEquals(gov.id, found?.id)
 
         // List wallets
 
-        res = rpcService.dispatchRpcCommand(callerId, "/wallet/list", WalletData().toJson())
+        res = rpcService.dispatchRpcCommand("/wallet/list", WalletData().toJson())
         val wallets = res.shouldBeSuccess() as List<*>
         assertEquals(1, wallets.size)
-        assertEquals(wallet.id, (wallets[0] as Wallet).id)
+        assertEquals(gov.id, (wallets[0] as Wallet).id)
 
         // Remove wallet
 
-        removeWallet(wallet)
+        removeWallet(gov)
     }
 }

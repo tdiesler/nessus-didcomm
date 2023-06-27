@@ -21,11 +21,7 @@ package org.nessus.didcomm.itest
 
 import io.kotest.core.spec.style.AnnotationSpec
 import org.nessus.didcomm.cli.CLIService
-import org.nessus.didcomm.model.NessusWalletPlugin.Companion.getEndpointUrl
-import org.nessus.didcomm.service.EndpointService
-import org.nessus.didcomm.service.MessageReceiver
 import org.nessus.didcomm.service.ServiceMatrixLoader
-import org.nessus.didcomm.util.Holder
 import org.nessus.didcomm.util.encodeHex
 
 val NESSUS_OPTIONS = mapOf(
@@ -76,19 +72,4 @@ abstract class AbstractIntegrationTest: AnnotationSpec() {
     }
 
     val cliService get() = CLIService.getService()
-    val endpointService get() = EndpointService.getService()
-
-    private val endpointHandleHolder = Holder<AutoCloseable>()
-
-    fun startNessusEndpoint(listener: MessageReceiver? = null): AutoCloseable {
-        val endpointUrl = getEndpointUrl()
-        val handle = endpointService.startEndpoint(endpointUrl, listener)
-        endpointHandleHolder.value = handle
-        return handle
-    }
-
-    fun <T: AutoCloseable> stopNessusEndpoint(handle: T? = null) {
-        val effHandle = handle ?: endpointHandleHolder.value
-        endpointService.stopEndpoint(effHandle!!)
-    }
 }

@@ -28,10 +28,11 @@ import org.nessus.didcomm.service.DidPeerOptions
 
 object DidCommandHandler: AbstractCommandHandler() {
 
-    fun createDid(callerId: String, payload: String): Did {
+    fun createDid(payload: String): Did {
         val data = Json.decodeFromString<DidData>(payload)
-        val caller = assertCallerWallet(callerId)
-        val endpointUrl = caller.endpointUrl
+        checkNotNull(data.ownerId) { "No ownerId" }
+        val owner = assertWallet(data.ownerId)
+        val endpointUrl = owner.endpointUrl
         val options = when (data.method) {
             DidMethod.PEER -> {
                 val numalgo = data.options["numalgo"] as? Int ?: 2
@@ -41,12 +42,13 @@ object DidCommandHandler: AbstractCommandHandler() {
                 DidOptions(endpointUrl = endpointUrl)
             }
         }
-        return caller.createDid(data.method, options = options)
+        return owner.createDid(data.method, options = options)
     }
 
-    fun listDids(callerId: String, payload: String): List<Did> {
-        val caller = assertCallerWallet(callerId)
+    fun listDids(payload: String): List<Did> {
         val data = Json.decodeFromString<DidData>(payload)
-        return caller.dids.filter { data.method == null || it.method == data.method }
+        checkNotNull(data.ownerId) { "No ownerId" }
+        val owner = assertWallet(data.ownerId)
+        return owner.dids.filter { data.method == null || it.method == data.method }
     }
 }

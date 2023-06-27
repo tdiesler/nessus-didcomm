@@ -30,30 +30,30 @@ class DIDCommandsTest: AbstractJsonRPCTest() {
 
     @Test
     fun createFindRemoveDid() {
-        val gov = createWallet("","Government", WalletRole.TRUSTEE)
+        val gov = createWallet("Government", WalletRole.TRUSTEE)
         try {
-            val didKey = createDid(gov.id, DidMethod.KEY)
+            val didKey = createDid(gov, DidMethod.KEY)
             assertEquals(DidMethod.KEY, didKey.method)
             log.info { didKey.uri }
 
-            val didPeer0 = createDid(gov.id, DidMethod.PEER, mapOf("numalgo" to 0))
+            val didPeer0 = createDid(gov, DidMethod.PEER, mapOf("numalgo" to 0))
             assertEquals(DidMethod.PEER, didPeer0.method)
             log.info { didPeer0.uri }
 
-            val didPeer2 = createDid(gov.id, DidMethod.PEER)
+            val didPeer2 = createDid(gov, DidMethod.PEER)
             assertEquals(DidMethod.PEER, didPeer2.method)
             log.info { didPeer2.uri }
 
-            val didSov = createDid(gov.id, DidMethod.SOV)
+            val didSov = createDid(gov, DidMethod.SOV)
             assertEquals(DidMethod.SOV, didSov.method)
             log.info { didSov.uri }
 
-            var res = rpcService.dispatchRpcCommand(gov.id, "/did/list", "{}")
+            var res = rpcService.dispatchRpcCommand("/did/list", DidData(ownerId = gov.id).toJson())
             var dids = res.shouldBeSuccess() as List<*>
             dids.forEach { log.info { (it as Did).uri } }
 
-            val data = DidData(method = DidMethod.PEER)
-            res = rpcService.dispatchRpcCommand(gov.id, "/did/list", data.toJson())
+            res = rpcService.dispatchRpcCommand("/did/list",
+                DidData(ownerId = gov.id, method = DidMethod.PEER).toJson())
             dids = res.shouldBeSuccess() as List<*>
             dids.forEach { log.info { (it as Did).uri } }
 

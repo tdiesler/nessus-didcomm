@@ -52,21 +52,16 @@ enum class WalletRole {
     TRUSTEE,
 
     /**
-     * Can create wallets with ISSUER privilege
+     * Can create wallets with lesser privilege
+     * Can create credential schemas
+     * Can issue/revoke credentials
      */
     ENDORSER,
 
     /**
-     * Can create wallets with USER privilege
-     * Can create credential schemas
-     * Can issue/revoke credentials
-     */
-    ISSUER,
-
-    /**
      * Can hold/verify credentials
      */
-    CLIENT,
+    USER
 }
 
 /**
@@ -282,7 +277,7 @@ abstract class Wallet(
     data class Builder (var name: String) {
         private var agentType: AgentType = AgentType.NESSUS
         private var storageType: StorageType = StorageType.IN_MEMORY
-        private var walletRole: WalletRole = WalletRole.CLIENT
+        private var walletRole: WalletRole = WalletRole.USER
         private var endpointUrl: String? = null
         private var routingKeys: List<String>? = null
         private var options: Map<String, String>? = null
