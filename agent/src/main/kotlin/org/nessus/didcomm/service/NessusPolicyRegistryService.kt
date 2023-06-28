@@ -1,13 +1,13 @@
 package org.nessus.didcomm.service
 
-import id.walt.auditor.ChallengePolicy
-import id.walt.auditor.ChallengePolicyArg
-import id.walt.auditor.JsonSchemaPolicy
-import id.walt.auditor.JsonSchemaPolicyArg
 import id.walt.auditor.PolicyRegistryService
-import id.walt.auditor.SignaturePolicy
 import id.walt.auditor.dynamic.DynamicPolicy
 import id.walt.auditor.dynamic.DynamicPolicyArg
+import id.walt.auditor.policies.ChallengePolicy
+import id.walt.auditor.policies.ChallengePolicyArg
+import id.walt.auditor.policies.JsonSchemaPolicy
+import id.walt.auditor.policies.JsonSchemaPolicyArg
+import id.walt.auditor.policies.SignaturePolicy
 import id.walt.servicematrix.ServiceProvider
 import id.walt.servicematrix.ServiceRegistry
 
