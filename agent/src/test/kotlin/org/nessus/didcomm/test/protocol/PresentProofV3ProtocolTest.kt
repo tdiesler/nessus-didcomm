@@ -56,11 +56,11 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
     }
 
     @AfterAll
-    fun stopAgent() {
+    override fun stopAgent() {
         val ctx = contextHolder.value!!
         removeWallet(ctx.alice)
         removeWallet(ctx.faber)
-        stopNessusEndpoint()
+        super.stopAgent()
     }
 
     @Test
@@ -109,7 +109,7 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
         pcon.myLabel shouldBe alice.name
         pcon.myDid shouldBe proverDid
 
-        val vp = alice.findVerifiablePresentationByType("UniversityTranscript").first()
+        val vp = alice.findVerifiablePresentationsByType("UniversityTranscript").first()
         val vc = vp.verifiableCredentials?.firstOrNull()
 
         val subject = vc?.credentialSubject

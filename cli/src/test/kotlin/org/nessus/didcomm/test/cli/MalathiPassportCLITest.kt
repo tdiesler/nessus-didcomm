@@ -41,10 +41,10 @@ docker logs -fn400 didcomm
 */
 
 @EnabledIf(NessusPlaygroundReachable::class)
-class PlaygroundCLITest: AbstractCLITest() {
+class MalathiPassportCLITest: AbstractCLITest() {
 
     @Test
-    fun invitationV2_DidPeer() {
+    fun malathiPresentsPassport() {
 
         val agentUri = "0.0.0.0:9000"
 
@@ -52,7 +52,6 @@ class PlaygroundCLITest: AbstractCLITest() {
         internalIp shouldNotBe null
 
         val playgroundUrl = "http://$internalIp:9100"
-        val userUrl = ""
 
         cliService.execute("agent start --uri $agentUri").isSuccess shouldBe true
         cliService.execute("wallet create --name Malathi --url=http://$internalIp:9000").isSuccess shouldBe true
@@ -73,7 +72,7 @@ class PlaygroundCLITest: AbstractCLITest() {
             val malathiPassportData = """{"givenName": "Malathi", "familyName": "Hamal", "citizenship": "US"}"""
             cliService.execute("vc propose -t Passport -i Malathi_Government.theirDid -s Malathi_Government.myDid --data $malathiPassportData").isSuccess shouldBe true
 
-            val vcPassport = malathi.findVerifiableCredentialByType("Passport").firstOrNull()
+            val vcPassport = malathi.findVerifiableCredentialsByType("Passport").firstOrNull()
             properties.getVar("Malathi.Passport.Vc") shouldNotBe null
             "${vcPassport?.credentialSubject?.id}" shouldBe malathiDid
 
@@ -85,8 +84,6 @@ class PlaygroundCLITest: AbstractCLITest() {
             malathiAirCon.state shouldBe ConnectionState.ACTIVE
 
             cliService.execute("vc present -h Malathi.Did -y Airport.Did --vc Malathi.Passport.Vc").isSuccess shouldBe true
-
-            cliService.execute("protocol basic-message send 'Your hovercraft is full of eels'").isSuccess shouldBe true
 
         } finally {
             cliService.execute("wallet remove Malathi").isSuccess shouldBe true

@@ -227,13 +227,13 @@ abstract class Wallet(
         return findVerifiableCredential { "${it.id}" == id }
     }
 
-    fun findVerifiableCredentialByType(type: String): List<W3CVerifiableCredential> {
+    fun findVerifiableCredentialsByType(type: String): List<W3CVerifiableCredential> {
         return verifiableCredentialsInternal
             .filter { it.isVerifiableCredential }
             .filter { it.hasType(type) }
     }
 
-    fun findVerifiablePresentationByType(type: String): List<W3CVerifiableCredential> {
+    fun findVerifiablePresentationsByType(type: String): List<W3CVerifiableCredential> {
         return verifiableCredentialsInternal
             .filter { it.isVerifiablePresentation }
             .filter { it.hasType(type) }

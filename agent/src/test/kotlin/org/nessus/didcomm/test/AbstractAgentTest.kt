@@ -41,11 +41,6 @@ import org.nessus.didcomm.service.ServiceMatrixLoader
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
 
-val NESSUS_OPTIONS = mapOf(
-    "NESSUS_USER_HOST" to System.getenv("NESSUS_USER_HOST"),
-    "NESSUS_USER_PORT" to System.getenv("NESSUS_USER_PORT"),
-)
-
 object Government {
     val name = "Government"
     val seed = "000000000000000000000000Trustee1"
@@ -62,15 +57,6 @@ object Faber {
     val didkey = "did:key:z6Mkr54o55jYrJJCHqoFSgeoH6RWZd6ur7P1BNgAN5Wku97K"
     val didsov = "did:sov:NKGKtcNwssToP5f7uhsEs4"
 }
-object Alice {
-    val name = "Alice"
-    val seed = "00000000000000000000000000Alice1"
-    val seedHex = seed.toByteArray().encodeHex()
-    val verkey = "ESqH2YuYRRXMMfg5qQh1A23nzBaUvAMCEXLtBr2uDHbY"
-    val didkey = "did:key:z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv"
-    val didpeer0 = "did:peer:0z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv"
-    val didsov = "did:sov:RfoA7oboFMiFuJPEtPdvKP"
-}
 object Acme {
     val name = "Acme"
     val seed = "000000000000000000000000000Acme1"
@@ -80,14 +66,28 @@ object Acme {
     val didpeer = "did:peer:0z6MkiMXeC8GAeCad1E3N9HgceLSWhCUJKD2zMFaBKpYx12gS"
     val didsov = "did:sov:8A9VYDjAVEqWrsfjLA3VDc"
 }
+object Alice {
+    val name = "Alice"
+    val seed = "00000000000000000000000000Alice1"
+    val seedHex = seed.toByteArray().encodeHex()
+    val verkey = "ESqH2YuYRRXMMfg5qQh1A23nzBaUvAMCEXLtBr2uDHbY"
+    val didkey = "did:key:z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv"
+    val didpeer0 = "did:peer:0z6Mksu6Kco9yky1pUAWnWyer17bnokrLL3bYvYFp27zv8WNv"
+    val didsov = "did:sov:RfoA7oboFMiFuJPEtPdvKP"
+}
 
 @Suppress("MemberVisibilityCanBePrivate")
 abstract class AbstractAgentTest: AnnotationSpec() {
 
     @BeforeAll
-    fun beforeAll() {
+    open fun beforeAll() {
         val matrixProperties = "src/test/resources/config/service-matrix.properties"
         ServiceMatrixLoader.loadServiceDefinitions(matrixProperties)
+    }
+
+    @AfterAll
+    open fun stopAgent() {
+        stopNessusEndpoint()
     }
 
     val auditor get() = NessusAuditorService.getService()
@@ -123,7 +123,11 @@ abstract class AbstractAgentTest: AnnotationSpec() {
 
     fun stopNessusEndpoint(handle: AutoCloseable? = null) {
         val effHandle = handle ?: endpointHandle.get()
-        endpointService.stopEndpoint(effHandle!!)
+        effHandle?.also { endpointService.stopEndpoint(it) }
+    }
+
+    fun removeWallets(vararg wallets: Wallet) {
+        wallets.forEach { removeWallet(it) }
     }
 
     fun removeWallet(wallet: Wallet?) {

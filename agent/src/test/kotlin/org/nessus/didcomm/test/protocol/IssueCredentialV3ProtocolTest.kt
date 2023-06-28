@@ -56,11 +56,11 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
     }
 
     @AfterAll
-    fun stopAgent() {
+    override fun stopAgent() {
         val ctx = contextHolder.value!!
         removeWallet(ctx.alice)
         removeWallet(ctx.faber)
-        stopNessusEndpoint()
+        super.stopAgent()
     }
 
     @Test
@@ -120,7 +120,7 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
         pcon.myLabel shouldBe alice.name
         pcon.myDid shouldBe holderDid
 
-        val vc = alice.findVerifiableCredentialByType("UniversityTranscript")
+        val vc = alice.findVerifiableCredentialsByType("UniversityTranscript")
             .first { "${it.credentialSubject.id}" == pcon.myDid.uri }
 
         val subject = vc.credentialSubject
@@ -186,7 +186,7 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
         val pcon = mex.getConnection()
         pcon.theirDid shouldBe holderDid
 
-        val vc = alice.findVerifiableCredentialByType("UniversityTranscript")
+        val vc = alice.findVerifiableCredentialsByType("UniversityTranscript")
             .firstOrNull { "${it.credentialSubject.id}" == holderDid!!.uri }
 
         val subject = vc?.credentialSubject

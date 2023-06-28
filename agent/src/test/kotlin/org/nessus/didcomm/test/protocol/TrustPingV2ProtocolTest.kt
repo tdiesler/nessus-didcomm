@@ -52,11 +52,11 @@ class TrustPingV2ProtocolTest: AbstractAgentTest() {
     }
 
     @AfterAll
-    fun stopAgent() {
+    override fun stopAgent() {
         val ctx = contextHolder.value!!
         removeWallet(ctx.alice)
         removeWallet(ctx.faber)
-        stopNessusEndpoint()
+        super.stopAgent()
     }
 
     @Test

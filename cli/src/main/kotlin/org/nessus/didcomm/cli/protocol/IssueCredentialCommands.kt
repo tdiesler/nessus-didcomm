@@ -163,7 +163,7 @@ class ProposeCredential: AbstractBaseCommand() {
             .awaitCredentialOffer(subject, issuerDid)
             .awaitIssuedCredential(subject, issuerDid)
 
-        val signedVc = subject.findVerifiableCredentialByType(template!!)
+        val signedVc = subject.findVerifiableCredentialsByType(template!!)
             .firstOrNull { "${it.credentialSubject.id}" == subjectDid.uri }
         checkNotNull(signedVc) { "No credential was issued" }
 
