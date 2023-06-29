@@ -22,8 +22,9 @@ package org.nessus.didcomm.test.protocol
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.MessageExchange
-import org.nessus.didcomm.model.W3CVerifiableCredential
+import org.nessus.didcomm.model.W3CVerifiableCredentialHelper
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.model.verifiableCredential
 import org.nessus.didcomm.service.OUT_OF_BAND_PROTOCOL_V2
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
 import org.nessus.didcomm.service.PropertiesService
@@ -32,7 +33,6 @@ import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.util.Holder
-import org.nessus.didcomm.util.decodeJson
 
 /**
  * WACI DIDComm: Present Proof Protocol 3.0
@@ -72,7 +72,7 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
         var verifierDid: Did?
         var proverDid: Did?
 
-        val unsignedVc = W3CVerifiableCredential.fromTemplate(
+        val unsignedVc = W3CVerifiableCredentialHelper.fromTemplate(
             pathOrName = "UniversityTranscript",
             stripValues = false)
 
@@ -99,7 +99,7 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
                 verifierDid = verifierDid!!,
                 prover = alice,
                 vcs = listOf(unsignedVc),
-                options = """{ "goal_code": "Verify University Transcript" }""".decodeJson()
+                options = mapOf("goal_code" to "Verify University Transcript")
             )
             .awaitPresentationRequest(alice, verifierDid!!)
             .awaitPresentationAck(alice, verifierDid!!)
@@ -110,10 +110,10 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
         pcon.myDid shouldBe proverDid
 
         val vp = alice.findVerifiablePresentationsByType("UniversityTranscript").first()
-        val vc = vp.verifiableCredentials?.firstOrNull()
+        val vc = vp.verifiableCredential!!.first()
 
-        val subject = vc?.credentialSubject
-        val claims = subject?.claims as Map<*, *>
+        val subject = vc.credentialSubject!!
+        val claims = subject.properties
         claims["givenName"] shouldBe "Alice"
         claims["familyName"] shouldBe "Garcia"
         claims["ssn"] shouldBe "123-45-6789"

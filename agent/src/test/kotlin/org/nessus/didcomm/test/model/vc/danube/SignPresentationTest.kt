@@ -1,6 +1,5 @@
-package org.nessus.didcomm.test.model.vc
+package org.nessus.didcomm.test.model.vc.danube
 
-import com.danubetech.verifiablecredentials.VerifiablePresentation
 import com.danubetech.verifiablecredentials.validation.Validation
 import foundation.identity.jsonld.JsonLDUtils
 import info.weboftrust.ldsignatures.signer.RsaSignature2018LdSigner
@@ -9,14 +8,16 @@ import info.weboftrust.ldsignatures.verifier.RsaSignature2018LdVerifier
 import io.javalin.core.util.FileUtil.readResource
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import org.nessus.didcomm.model.DanubeTechVerifiablePresentation
+import org.nessus.didcomm.test.model.vc.SignatureKeys
 import java.net.URI
 
 class SignPresentationTest {
 
     @Test
     fun testSignLd() {
-        val verifiablePresentation = VerifiablePresentation.fromJson(
-            readResource("/example/vc/input.vp.jsonld"))
+        val verifiablePresentation = DanubeTechVerifiablePresentation.fromJson(
+            readResource("/vc/input.vp.jsonld"))
 
         val verificationMethod = URI.create("did:sov:1yvXbmgPoUm4dl66D7KhyD#keys-1")
         val created = JsonLDUtils.DATE_FORMAT.parse("2018-01-01T21:19:10Z")

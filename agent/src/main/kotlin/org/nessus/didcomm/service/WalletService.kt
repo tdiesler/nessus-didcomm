@@ -89,7 +89,8 @@ object WalletService: ObjectService<WalletService>() {
     }
 
     fun removeWallet(id: String): Boolean {
-        modelService.getWallet(id)?.also { wallet ->
+        val wallet = modelService.findWallet { it.id == id }
+        if (wallet != null) {
             wallet.dids.forEach { didService.deleteDid(it) }
             wallet.walletPlugin.removeWallet(wallet)
             modelService.removeWallet(wallet.id)

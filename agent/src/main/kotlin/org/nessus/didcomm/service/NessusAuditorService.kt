@@ -14,6 +14,6 @@ object NessusAuditorService: ObjectService<NessusAuditorService>() {
     }
 
     fun verify(vc: W3CVerifiableCredential, policies: List<VerificationPolicy>): VerificationResult {
-        return verify(vc.encodeJson(), policies)
+        return verify(vc.toJson(), policies)
     }
 }

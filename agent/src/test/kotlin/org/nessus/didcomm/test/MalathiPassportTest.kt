@@ -24,11 +24,12 @@ import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.model.verifiableCredential
 import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
 import org.nessus.didcomm.service.OUT_OF_BAND_PROTOCOL_V2
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
 import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
-import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.toValueMap
 
 
 class MalathiPassportTest: AbstractAgentTest() {
@@ -69,7 +70,6 @@ class MalathiPassportTest: AbstractAgentTest() {
                 .getMessageExchange()
                 .getConnection()
             malathiAirCon.state shouldBe ConnectionState.ACTIVE
-            val malathiAirDid = malathiAirCon.myDid
             val airportDid = malathiAirCon.theirDid
 
             MessageExchange()
@@ -85,14 +85,14 @@ class MalathiPassportTest: AbstractAgentTest() {
                         "familyName": "Hamal", 
                         "citizenship": 
                         "US"
-                    }""".decodeJson(),
+                    }""".toValueMap(),
                 )
                 .awaitCredentialOffer(malathi, govDid)
                 .awaitIssuedCredential(malathi, govDid)
                 .getMessageExchange()
 
             val vc = malathi.findVerifiableCredentialsByType("Passport").first()
-            "${vc.credentialSubject.id}" shouldBe malathiGovDid.uri
+            "${vc.credentialSubject?.id}" shouldBe malathiGovDid.uri
 
             MessageExchange()
                 .withConnection(malathiAirCon)
@@ -107,7 +107,7 @@ class MalathiPassportTest: AbstractAgentTest() {
                 .getMessageExchange()
 
             val vp = malathi.findVerifiablePresentationsByType("Passport").first()
-            val vpc = vp.verifiableCredentials?.firstOrNull()
+            val vpc = vp.verifiableCredential?.first()
             "${vpc?.credentialSubject?.id}" shouldBe malathiGovDid.uri
 
         } finally {

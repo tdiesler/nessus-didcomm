@@ -6,10 +6,11 @@ import id.walt.signatory.ProofType
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
 import org.nessus.didcomm.model.DidMethod
+import org.nessus.didcomm.model.W3CVerifiableCredentialHelper
+import org.nessus.didcomm.model.validate
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.trimJson
-import org.nessus.didcomm.model.W3CVerifiableCredential
 
 class VerificationPoliciesTest: AbstractAgentTest() {
     private val log = KotlinLogging.logger {}
@@ -21,7 +22,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         val holderDid = didService.createDid(DidMethod.KEY)
         val verifierDid = didService.createDid(DidMethod.KEY)
 
-        val vc = W3CVerifiableCredential
+        val vc = W3CVerifiableCredentialHelper
             .fromTemplate(
                 "VerifiableId",
                 true,
@@ -44,7 +45,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // create VP
         val vp = custodian.createPresentation(
-            vcs = listOf(signedVc.encodeJson()),
+            vcs = listOf(signedVc.toJson()),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri)
 
@@ -63,7 +64,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         val verifierDid = didService.createDid(DidMethod.KEY)
 
         // issue VC
-        val vc = W3CVerifiableCredential
+        val vc = W3CVerifiableCredentialHelper
             .fromTemplate(
                 "VerifiableId",
                 true,
@@ -86,7 +87,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // create VP
         val vp = custodian.createPresentation(
-            vcs = listOf(signedVc.encodeJson()),
+            vcs = listOf(signedVc.toJson()),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri,
             challenge = "1234",
@@ -116,7 +117,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
           }
         }""".decodeJson()
 
-        val vc = W3CVerifiableCredential
+        val vc = W3CVerifiableCredentialHelper
             .fromTemplate("VerifiableId", true, mergeData)
             .validate()
 
@@ -130,7 +131,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // create VP
         val vp = Custodian.getService().createPresentation(
-            vcs = listOf(signedVc.encodeJson()),
+            vcs = listOf(signedVc.toJson()),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri,
         )

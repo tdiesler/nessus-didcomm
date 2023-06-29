@@ -1,6 +1,5 @@
-package org.nessus.didcomm.test.model.vc
+package org.nessus.didcomm.test.model.vc.danube
 
-import com.danubetech.verifiablecredentials.VerifiableCredential
 import com.danubetech.verifiablecredentials.validation.Validation
 import foundation.identity.jsonld.JsonLDUtils
 import info.weboftrust.ldsignatures.signer.RsaSignature2018LdSigner
@@ -8,8 +7,9 @@ import info.weboftrust.ldsignatures.suites.SignatureSuites
 import info.weboftrust.ldsignatures.verifier.RsaSignature2018LdVerifier
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
+import org.nessus.didcomm.model.DanubeTechVerifiableCredential
 import org.nessus.didcomm.test.AbstractAgentTest
+import org.nessus.didcomm.test.model.vc.SignatureKeys
 import java.net.URI
 
 class SignCredentialTest: AbstractAgentTest() {
@@ -17,8 +17,8 @@ class SignCredentialTest: AbstractAgentTest() {
     @Test
     fun testSignJsonLd() {
 
-        val verifiableCredential = VerifiableCredential.fromJson(
-            readResource("/example/vc/input.vc.jsonld"))
+        val verifiableCredential = DanubeTechVerifiableCredential.fromJson(
+            readResource("/vc/input.vc.jsonld"))
 
         val verificationMethod = URI.create("did:sov:1yvXbmgPoUm4dl66D7KhyD#keys-1")
         val created = JsonLDUtils.DATE_FORMAT.parse("2018-01-01T21:19:10Z")
@@ -52,8 +52,8 @@ class SignCredentialTest: AbstractAgentTest() {
     @Test
     fun testSignJson() {
 
-        val verifiableCredential = VerifiableCredential.fromJson(
-            readResource("/example/vc/input.vc.json"))
+        val verifiableCredential = DanubeTechVerifiableCredential.fromJson(
+            readResource("/vc/input.vc.json"))
 
         val verificationMethod = URI.create("did:sov:1yvXbmgPoUm4dl66D7KhyD#keys-1")
         val created = JsonLDUtils.DATE_FORMAT.parse("2018-01-01T21:19:10Z")

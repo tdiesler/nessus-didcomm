@@ -86,6 +86,11 @@ fun Map<String, Any?>.selectJson(path: String): Any? {
  */
 
 @Suppress("UNCHECKED_CAST")
+fun Map<String, Any?>.toValueMap(): Map<String, Any> {
+    return filterValues { it != null } as Map<String, Any>
+}
+
+@Suppress("UNCHECKED_CAST")
 fun Map<String, Any?>.unionMap(other: Map<String, Any?>): Map<String, Any?> {
     val unionMap = mutableMapOf<String, Any?>()
     for (k in this.keys + other.keys) {

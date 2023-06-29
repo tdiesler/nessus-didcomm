@@ -32,14 +32,17 @@ import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.W3CVerifiableCredential
+import org.nessus.didcomm.model.W3CVerifiableCredentialHelper
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.model.toJsonData
+import org.nessus.didcomm.model.validate
 import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
 import org.nessus.didcomm.util.JSON_MIME_TYPE
 import org.nessus.didcomm.util.dateTimeNow
-import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.jsonData
+import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.unionMap
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -113,7 +116,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
 
         val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
-        val unsignedVc = W3CVerifiableCredential
+        val unsignedVc = W3CVerifiableCredentialHelper
             .fromTemplate(template, true, mergedData)
 
         val id = "${UUID.randomUUID()}"
@@ -125,7 +128,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
             .credentialPreview(subjectData)
             .build()
 
-        val jsonData = Attachment.Data.Json.parse(mapOf("json" to unsignedVc.jsonObject))
+        val jsonData = Attachment.Data.Json.parse(mapOf("json" to unsignedVc.toJsonData()))
         val vcAttachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
             .format(CREDENTIAL_ATTACHMENT_FORMAT)
             .mediaType(JSON_MIME_TYPE)
@@ -163,7 +166,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         issuer: Wallet,
         holderDid: Did,
         template: String,
-        subjectData: Map<String, Any>,
+        subjectData: Map<String, Any?>,
         options: Map<String, Any> = mapOf()
     ): IssueCredentialProtocolV3 {
 
@@ -188,7 +191,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
 
         val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
-        val unsignedVc = W3CVerifiableCredential
+        val unsignedVc = W3CVerifiableCredentialHelper
             .fromTemplate(template, true, mergedData)
             .validate()
 
@@ -199,7 +202,8 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
             proofType = ProofType.LD_PROOF)
 
         val signedVc = signatory.issue(unsignedVc, proofConfig, false)
-        val subjectDataFull = signedVc.credentialSubject.jsonObject
+        checkNotNull(signedVc.credentialSubject) { "No credentialSubject" }
+        val subjectDataFull = signedVc.credentialSubject!!.properties
 
         val id = "${UUID.randomUUID()}"
         val type = ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL
@@ -211,7 +215,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
             .replacementId(options["replacement_id"] as? String)
             .build()
 
-        val jsonData = Attachment.Data.Json.parse(mapOf("json" to signedVc.jsonObject))
+        val jsonData = Attachment.Data.Json.parse(mapOf("json" to signedVc.toJsonData()))
         val vcAttachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
             .format(CREDENTIAL_ATTACHMENT_FORMAT)
             .mediaType(JSON_MIME_TYPE)
@@ -333,17 +337,19 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val attachmentData = attachment.data.jsonData()
         checkNotNull(attachmentData) { "No attachment data" }
 
-        val proposedVc = W3CVerifiableCredential.fromJson(attachmentData)
+        val proposedVc = W3CVerifiableCredential.fromJson(attachmentData.encodeJson())
         val proposedSchema = proposedVc.credentialSchema
         checkNotNull(proposedSchema) { "No credential schema" }
 
         // Verify that the proposal data matches the subject data in the attached credential
 
-        val proposedSubjectData = proposedVc.credentialSubject.claims
+        val credentialSubject = proposedVc.credentialSubject
+        checkNotNull(credentialSubject) { "No credentialSubject" }
+        val proposedSubjectData = credentialSubject.properties
 
         val nonMatchingProposalData = proposalMeta.credentialPreview.filter { (pn, pv, _) ->
             when(pn) {
-                "id" -> pv != "${proposedVc.credentialSubject.id}"
+                "id" -> pv != "${credentialSubject.id}"
                 else -> pv != proposedSubjectData[pn]
             }}
         check(nonMatchingProposalData.isEmpty()) { "Non matching data: ${nonMatchingProposalData.encodeJson()}" }
@@ -595,8 +601,8 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
             fun comment(comment: String?) = apply { this.comment = comment }
             fun replacementId(replacementId: String?) = apply { this.replacementId = replacementId }
 
-            fun credentialPreview(entries: Map<String, Any>) = apply {
-                credentialPreview = entries.map { (k, v) -> PreviewAttribute(k, v) }
+            fun credentialPreview(entries: Map<String, Any?>) = apply {
+                credentialPreview = entries.map { (k, v) -> PreviewAttribute(k, v ?: "") }
             }
             fun credentialPreview(entries: List<Map<String, Any>>) = apply {
                 credentialPreview = entries.map { el -> PreviewAttribute.fromJson(el.encodeJson()) }

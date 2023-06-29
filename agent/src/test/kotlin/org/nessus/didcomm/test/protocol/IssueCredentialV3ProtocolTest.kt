@@ -33,6 +33,7 @@ import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.util.Holder
 import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.toValueMap
 
 /**
  * WACI DIDComm: Issue Credential Protocol 3.0
@@ -104,12 +105,12 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
                     "status": "graduated",
                     "year": "2015",
                     "average": "5"
-                }""".decodeJson(),
+                }""".toValueMap(),
                 options = """
                 {
                     "goal_code": "Issue University Transcript Credential"
                 }
-                """.decodeJson()
+                """.toValueMap()
             )
             .awaitCredentialOffer(alice, issuerDid!!)
             .awaitIssuedCredential(alice, issuerDid!!)
@@ -121,10 +122,10 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
         pcon.myDid shouldBe holderDid
 
         val vc = alice.findVerifiableCredentialsByType("UniversityTranscript")
-            .first { "${it.credentialSubject.id}" == pcon.myDid.uri }
+            .first { "${it.credentialSubject?.id}" == pcon.myDid.uri }
 
-        val subject = vc.credentialSubject
-        val claims = subject?.claims as Map<*, *>
+        val subject = vc.credentialSubject!!
+        val claims = subject.properties
         subject.id.toString() shouldBe holderDid?.uri
         claims["givenName"] shouldBe "Alice"
         claims["familyName"] shouldBe "Garcia"
@@ -187,10 +188,10 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
         pcon.theirDid shouldBe holderDid
 
         val vc = alice.findVerifiableCredentialsByType("UniversityTranscript")
-            .firstOrNull { "${it.credentialSubject.id}" == holderDid!!.uri }
+            .first { "${it.credentialSubject?.id}" == holderDid!!.uri }
 
-        val subject = vc?.credentialSubject
-        val claims = subject?.claims as Map<*, *>
+        val subject = vc.credentialSubject!!
+        val claims = subject.properties
         subject.id.toString() shouldBe holderDid?.uri
         claims["givenName"] shouldBe "Alice"
         claims["familyName"] shouldBe "Garcia"

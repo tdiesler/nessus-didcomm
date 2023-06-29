@@ -31,12 +31,15 @@ import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
+import org.nessus.didcomm.model.isVerifiablePresentation
+import org.nessus.didcomm.model.shortString
+import org.nessus.didcomm.model.toJsonData
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
 import org.nessus.didcomm.util.JSON_MIME_TYPE
-import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.jsonData
+import org.nessus.didcomm.util.decodeJson
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -109,7 +112,7 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
 
         prover.addVerifiableCredential(signedVp)
 
-        val jsonData = Attachment.Data.Json.parse(mapOf("json" to signedVp.jsonObject))
+        val jsonData = Attachment.Data.Json.parse(mapOf("json" to signedVp.toJsonData()))
         val vpAttachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
             .format(PRESENTATION_ATTACHMENT_FORMAT)
             .mediaType(JSON_MIME_TYPE)
@@ -287,7 +290,7 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         val attachmentData = attachment.data.jsonData()
         checkNotNull(attachmentData) { "No attachment data" }
 
-        val proposedVp = W3CVerifiableCredential.fromJson(attachmentData)
+        val proposedVp = W3CVerifiableCredential.fromJson(attachmentData.encodeJson())
 
         log.info { "Verifier (${verifier.name}) accepts presentation proposal" }
 

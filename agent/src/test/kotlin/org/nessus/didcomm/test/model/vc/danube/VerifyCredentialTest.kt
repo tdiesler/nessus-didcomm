@@ -1,20 +1,21 @@
-package org.nessus.didcomm.test.model.vc
+package org.nessus.didcomm.test.model.vc.danube
 
-import com.danubetech.verifiablecredentials.VerifiableCredential
 import com.danubetech.verifiablecredentials.validation.Validation
 import info.weboftrust.ldsignatures.verifier.RsaSignature2018LdVerifier
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.nessus.didcomm.model.DanubeTechVerifiableCredential
 import org.nessus.didcomm.test.AbstractAgentTest
+import org.nessus.didcomm.test.model.vc.SignatureKeys
 
 class VerifyCredentialTest: AbstractAgentTest() {
 
     @Test
     fun testVerify() {
 
-        val verifiableCredential = VerifiableCredential.fromJson(
-            readResource("/example/vc/signed.good.vc.jsonld"))
+        val verifiableCredential = DanubeTechVerifiableCredential.fromJson(
+            readResource("/vc/signed.good.vc.jsonld"))
 
         Validation.validateJsonLd(verifiableCredential)
         val verifier = RsaSignature2018LdVerifier(SignatureKeys.testRSAPublicKey)
@@ -29,8 +30,8 @@ class VerifyCredentialTest: AbstractAgentTest() {
     @Test
     fun testBadVerify() {
 
-        val verifiableCredential = VerifiableCredential.fromJson(
-            readResource("/example/vc/signed.bad.vc.jsonld"))
+        val verifiableCredential = DanubeTechVerifiableCredential.fromJson(
+            readResource("/vc/signed.bad.vc.jsonld"))
 
         Validation.validateJsonLd(verifiableCredential)
 

@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.json
 
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.nessus.didcomm.json.model.WalletData
 import org.nessus.didcomm.model.Wallet

@@ -1,4 +1,4 @@
-package org.nessus.didcomm.test.model.vc
+package org.nessus.didcomm.test.model.vc.danube
 
 import com.danubetech.keyformats.crypto.provider.Ed25519Provider
 import com.danubetech.keyformats.crypto.provider.RandomProvider
@@ -6,12 +6,11 @@ import com.danubetech.keyformats.crypto.provider.SHA256Provider
 import com.danubetech.keyformats.crypto.provider.impl.JavaRandomProvider
 import com.danubetech.keyformats.crypto.provider.impl.JavaSHA256Provider
 import com.danubetech.keyformats.crypto.provider.impl.TinkEd25519Provider
-import com.danubetech.verifiablecredentials.VerifiableCredential
-import com.danubetech.verifiablecredentials.VerifiablePresentation
 import com.danubetech.verifiablecredentials.validation.Validation
 import info.weboftrust.ldsignatures.verifier.Ed25519Signature2018LdVerifier
 import org.bitcoinj.core.Base58
 import org.junit.jupiter.api.Assertions
+import org.nessus.didcomm.model.DanubeTechVerifiablePresentation
 import org.nessus.didcomm.test.AbstractAgentTest
 
 class VerifyPresentationTest: AbstractAgentTest() {
@@ -20,14 +19,14 @@ class VerifyPresentationTest: AbstractAgentTest() {
     private val publicKeyPresentation2: ByteArray = Base58.decode("5yKdnU7ToTjAoRNDzfuzVTfWBH38qyhE1b9xh4v8JaWF")
     private val publicKeyCredential1: ByteArray = Base58.decode("5TVraf9itbKXrRvt2DSS95Gw4vqU3CHAdetoufdcKazA")
     private val publicKeyCredential2: ByteArray = Base58.decode("5yKdnU7ToTjAoRNDzfuzVTfWBH38qyhE1b9xh4v8JaWF")
-    private val verifiablePresentationGood1 = VerifiablePresentation.fromJson(readResource("/example/vc/signed.good.vp1.jsonld"))
-    private val verifiablePresentationGood2 = VerifiablePresentation.fromJson(readResource("/example/vc/signed.good.vp2.jsonld"))
-    private val verifiablePresentationBad1 = VerifiablePresentation.fromJson(readResource("/example/vc/signed.bad.vp1.jsonld"))
-    private val verifiablePresentationBad2 = VerifiablePresentation.fromJson(readResource("/example/vc/signed.bad.vp2.jsonld"))
-    private val verifiableCredentialGood1: VerifiableCredential = verifiablePresentationGood1.verifiableCredential
-    private val verifiableCredentialGood2: VerifiableCredential = verifiablePresentationGood2.verifiableCredential
-    private val verifiableCredentialBad1: VerifiableCredential = verifiablePresentationBad1.verifiableCredential
-    private val verifiableCredentialBad2: VerifiableCredential = verifiablePresentationBad2.verifiableCredential
+    private val verifiablePresentationGood1 = DanubeTechVerifiablePresentation.fromJson(readResource("/vc/signed.good.vp1.jsonld"))
+    private val verifiablePresentationGood2 = DanubeTechVerifiablePresentation.fromJson(readResource("/vc/signed.good.vp2.jsonld"))
+    private val verifiablePresentationBad1 = DanubeTechVerifiablePresentation.fromJson(readResource("/vc/signed.bad.vp1.jsonld"))
+    private val verifiablePresentationBad2 = DanubeTechVerifiablePresentation.fromJson(readResource("/vc/signed.bad.vp2.jsonld"))
+    private val verifiableCredentialGood1 = verifiablePresentationGood1.verifiableCredential
+    private val verifiableCredentialGood2 = verifiablePresentationGood2.verifiableCredential
+    private val verifiableCredentialBad1 = verifiablePresentationBad1.verifiableCredential
+    private val verifiableCredentialBad2 = verifiablePresentationBad2.verifiableCredential
 
     @BeforeEach
     fun before() {

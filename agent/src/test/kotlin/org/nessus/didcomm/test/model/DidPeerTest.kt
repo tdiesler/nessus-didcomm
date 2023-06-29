@@ -23,7 +23,6 @@ import id.walt.common.resolveContent
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import mu.KotlinLogging
-import org.didcommx.didcomm.message.Message
 import org.didcommx.peerdid.VerificationMaterialAgreement
 import org.didcommx.peerdid.VerificationMaterialAuthentication
 import org.didcommx.peerdid.VerificationMaterialFormatPeerDID
@@ -34,7 +33,7 @@ import org.didcommx.peerdid.isPeerDID
 import org.didcommx.peerdid.resolvePeerDID
 import org.nessus.didcomm.model.SicpaDidDoc
 import org.nessus.didcomm.test.AbstractAgentTest
-import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.decodeMessage
 import org.nessus.didcomm.util.trimJson
 
 class DidPeerTest: AbstractAgentTest() {
@@ -81,8 +80,8 @@ class DidPeerTest: AbstractAgentTest() {
     @Test
     fun decodeRootsPing() {
 
-        val msgJson =resolveContent("class:message/ping_01.json").decodeJson()
-        val msg = Message.parse(msgJson)
+        val msgJson = resolveContent("class:message/ping_01.json")
+        val msg = msgJson.decodeMessage()
 
         val from = msg.from
         val to = msg.to?.firstOrNull()

@@ -14,9 +14,9 @@ import org.didcommx.didcomm.diddoc.DIDDocEncoder
 import org.didcommx.didcomm.diddoc.VerificationMethod
 import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
-import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.jsonData
+import org.nessus.didcomm.util.decodeJson
 import java.util.UUID
 
 typealias SicpaDidDoc = org.didcommx.didcomm.diddoc.DIDDoc

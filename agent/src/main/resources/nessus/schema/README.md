@@ -3,9 +3,9 @@
 https://app.quicktype.io
 
 ```shell
-quicktype -l schema agent/src/test/resources/example/schema/passport.json
-quicktype -l schema agent/src/test/resources/example/schema/birth-certificate.json
-quicktype -l schema agent/src/test/resources/example/schema/mariage-certificate.json
-quicktype -l schema agent/src/test/resources/example/schema/travel-permission.json
-quicktype -l schema agent/src/test/resources/example/schema/university-transcript.json
+quicktype -l schema agent/src/test/resources/schema/passport.json
+quicktype -l schema agent/src/test/resources/schema/birth-certificate.json
+quicktype -l schema agent/src/test/resources/schema/mariage-certificate.json
+quicktype -l schema agent/src/test/resources/schema/travel-permission.json
+quicktype -l schema agent/src/test/resources/schema/university-transcript.json
 ```

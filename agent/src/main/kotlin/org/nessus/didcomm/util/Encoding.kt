@@ -26,7 +26,6 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
-import id.walt.credentials.w3c.VerifiableCredential
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
 import org.didcommx.didcomm.message.Message
@@ -51,7 +50,7 @@ fun Message.encodeJson(pretty: Boolean = false): String {
 }
 
 fun String.decodeMessage(): Message {
-    return Message.parse(decodeJson())
+    return Message.parse(toValueMap())
 }
 
 /***********************************************************************************************************************
@@ -92,14 +91,19 @@ fun String.isJson(): Boolean {
 }
 
 @Suppress("UNCHECKED_CAST")
-fun String.decodeJson(): Map<String, Any> {
-    // Naive decoding of int values may produce double
+fun String.decodeJson(): Map<String, Any?> {
+    check(isJson()) { "Not a json string: $this" }
     return runCatching { gson.fromJson(this, Map::class.java).mapValues{ (_, v) ->
+        // Naive decoding of int values may produce double
         if (v is Double && v % 1 == 0.0) v.toInt() else v
     }}.onFailure {
         throw IllegalStateException("Cannot parse: $this", it)
-    }.getOrThrow() as Map<String, Any>
+    }.getOrThrow() as Map<String, Any?>
 }
+
+fun String.toValueMap(): Map<String, Any> {
+    return decodeJson().toValueMap()
+} 
 
 fun String.trimJson(): String {
     return gson.toJson(gson.fromJson(this, JsonObject::class.java))
@@ -168,13 +172,4 @@ fun MediaType.matches(contentType: String?): Boolean {
         val other = contentType.toMediaType()
         this.type == other.type && this.subtype == other .subtype
     } else false
-}
-
-/***********************************************************************************************************************
- * VerifiableCredential
- */
-
-fun VerifiableCredential.encodeJson(pretty: Boolean = false): String {
-    val mapEncoded = gson.fromJson(encode(), Map::class.java)
-    return mapEncoded.encodeJson(pretty)
 }

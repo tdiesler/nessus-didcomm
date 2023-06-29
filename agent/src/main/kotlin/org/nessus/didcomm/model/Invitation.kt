@@ -25,7 +25,7 @@ import org.didcommx.didcomm.message.MessageBuilder
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.util.decodeBase64Url
-import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.decodeMessage
 import org.nessus.didcomm.util.encodeBase64Url
 import org.nessus.didcomm.util.encodeJson
 import java.io.InputStreamReader
@@ -129,7 +129,7 @@ data class Invitation(
         }
 
         fun fromJson(json: String): Invitation {
-            return fromMessage(Message.parse(json.decodeJson()))
+            return fromMessage(json.decodeMessage())
         }
 
         fun fromMessage(msg: Message): Invitation {

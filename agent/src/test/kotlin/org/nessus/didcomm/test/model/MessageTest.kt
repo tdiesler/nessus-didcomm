@@ -21,9 +21,8 @@ package org.nessus.didcomm.test.model
 
 import id.walt.common.resolveContent
 import mu.KotlinLogging
-import org.didcommx.didcomm.message.Message
 import org.nessus.didcomm.test.AbstractAgentTest
-import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.decodeMessage
 import java.io.File
 
 class MessageTest: AbstractAgentTest() {
@@ -37,7 +36,7 @@ class MessageTest: AbstractAgentTest() {
             .filter { it.isFile }
             .forEach { f ->
                 val json = resolveContent(f.canonicalPath)
-                val m = runCatching { Message.parse(json.decodeJson()) }
+                val m = runCatching { json.decodeMessage() }
                     .onFailure { throw IllegalStateException("Cannot parse: $f", it) }
                 log.info { m }
             }
