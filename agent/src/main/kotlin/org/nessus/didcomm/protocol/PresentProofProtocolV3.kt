@@ -36,10 +36,10 @@ import org.nessus.didcomm.model.shortString
 import org.nessus.didcomm.model.toJsonData
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
 import org.nessus.didcomm.util.JSON_MIME_TYPE
+import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.jsonData
-import org.nessus.didcomm.util.decodeJson
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.TimeUnit

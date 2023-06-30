@@ -1,5 +1,6 @@
 package org.nessus.didcomm.test.model.vc
 
+import id.walt.credentials.w3c.PresentableCredential
 import id.walt.custodian.Custodian
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
@@ -45,7 +46,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // create VP
         val vp = custodian.createPresentation(
-            vcs = listOf(signedVc.toJson()),
+            vcs = listOf(PresentableCredential(signedVc)),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri)
 
@@ -87,7 +88,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // create VP
         val vp = custodian.createPresentation(
-            vcs = listOf(signedVc.toJson()),
+            vcs = listOf(PresentableCredential(signedVc)),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri,
             challenge = "1234",
@@ -131,7 +132,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // create VP
         val vp = Custodian.getService().createPresentation(
-            vcs = listOf(signedVc.toJson()),
+            vcs = listOf(PresentableCredential(signedVc)),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri,
         )

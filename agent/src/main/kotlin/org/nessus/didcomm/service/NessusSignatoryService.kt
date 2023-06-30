@@ -10,8 +10,8 @@ import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
 import id.walt.signatory.Signatory
 import mu.KotlinLogging
-import org.nessus.didcomm.util.trimJson
 import org.nessus.didcomm.model.W3CVerifiableCredential
+import org.nessus.didcomm.util.trimJson
 
 fun VcTemplate.shortString(): String {
     return "${name}[mutable=$mutable]"
@@ -32,7 +32,7 @@ object NessusSignatoryService: ObjectService<NessusSignatoryService>() {
 
         val signedVcJson = when (config.proofType) {
             ProofType.LD_PROOF -> JsonLdCredentialService.getService().sign(vc.toJson(), config)
-            ProofType.JWT -> JwtCredentialService.getService().sign(vc.toJson(), config)
+            ProofType.JWT, ProofType.SD_JWT -> JwtCredentialService.getService().sign(vc.toJson(), config)
         }.trimJson()
 
         log.info { "Signed Credential: ${signedVcJson.prettyPrint()}" }

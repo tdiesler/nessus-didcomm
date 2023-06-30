@@ -152,8 +152,8 @@ class DidServiceTest: AbstractAgentTest() {
             DidMethod.SOV -> did.uri shouldBe Alice.didsov
         }
 
-        val key = keyStore.load(did.uri, KeyType.PUBLIC)
-        key shouldNotBe null
+        val pubkey = keyStore.load(did.uri, KeyType.PUBLIC)
+        pubkey shouldNotBe null
 
         val loadedDid = didService.loadDid(did.uri)
         loadedDid shouldBe did
@@ -168,8 +168,8 @@ class DidServiceTest: AbstractAgentTest() {
 
         // We can resolve the Did when we have the public key
         if (method == DidMethod.SOV) {
-            keyStore.store(key)
-            keyStore.addAlias(key.keyId, did.uri)
+            keyStore.store(pubkey)
+            keyStore.addAlias(pubkey.keyId, did.uri)
         }
 
         val resolvedDidDoc = didService.resolveDidDoc(did.uri)

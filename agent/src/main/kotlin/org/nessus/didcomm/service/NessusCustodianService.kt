@@ -1,9 +1,10 @@
 package org.nessus.didcomm.service
 
+import id.walt.credentials.w3c.PresentableCredential
+import id.walt.credentials.w3c.VerifiableCredential
 import id.walt.services.vc.JsonLdCredentialService
 import id.walt.services.vc.JwtCredentialService
 import mu.KotlinLogging
-import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.W3CVerifiablePresentation
 import org.nessus.didcomm.util.trimJson
 import java.time.Instant
@@ -17,18 +18,18 @@ object NessusCustodianService: ObjectService<NessusCustodianService>() {
     private val jsonLdCredentialService = JsonLdCredentialService.getService()
 
     fun createPresentation(
-        vcs: Array<W3CVerifiableCredential>,
+        vcs: Array<VerifiableCredential>,
         holderDid: String,
         verifierDid: String? = null,
         domain: String? = null,
         challenge: String? = null,
         expirationDate: Instant? = null
     ): W3CVerifiablePresentation {
-        return createPresentation(vcs.map { it.toJson() }, holderDid, verifierDid, domain, challenge, expirationDate)
+        return createPresentation(vcs.map { PresentableCredential(it) }, holderDid, verifierDid, domain, challenge, expirationDate)
     }
 
     fun createPresentation(
-        vcs: List<String>,
+        vcs: List<PresentableCredential>,
         holderDid: String,
         verifierDid: String? = null,
         domain: String? = null,
@@ -37,7 +38,7 @@ object NessusCustodianService: ObjectService<NessusCustodianService>() {
     ): W3CVerifiablePresentation {
 
         val vpJson = when {
-            vcs.stream().allMatch { W3CVerifiableCredential.isJWT(it) } -> jwtCredentialService.present(
+            vcs.stream().allMatch { it.isJwt } -> jwtCredentialService.present(
                 vcs,
                 holderDid,
                 verifierDid,
@@ -45,7 +46,7 @@ object NessusCustodianService: ObjectService<NessusCustodianService>() {
                 expirationDate
             )
 
-            vcs.stream().noneMatch { W3CVerifiableCredential.isJWT(it) } -> jsonLdCredentialService.present(
+            vcs.stream().noneMatch { it.isJwt } -> jsonLdCredentialService.present(
                 vcs,
                 holderDid,
                 domain,

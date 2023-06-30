@@ -51,7 +51,6 @@ open class Did(id: String, val method: DidMethod, val verkey: String) {
 
     companion object {
         fun didMethod(uri: String): DidMethod {
-            require(uri.startsWith("did:")) { "Invalid did uri: $uri" }
             return DidMethod.fromValue(DidUrl.from(uri).method)
         }
         fun fromUri(uri: String, verkey: String? = null): Did {

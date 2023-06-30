@@ -148,11 +148,11 @@ data class Invitation(
 
     val diddoc: DidDoc
         get() = run {
-        val invitationDidDoc = attachments
-            ?.firstOrNull { it.mediaType == DID_DOCUMENT_MEDIA_TYPE }
-            ?.let { DidDoc.fromAttachment(it) }
-            ?:let { didService.resolveDidDoc(from) }
-        checkNotNull(invitationDidDoc) { "No invitation DidDoc" }
+            val invitationDidDoc = attachments
+                ?.firstOrNull { it.mediaType == DID_DOCUMENT_MEDIA_TYPE }
+                ?.let { DidDoc.fromAttachment(it) }
+                ?:let { didService.loadOrResolveDidDoc(from) }
+            checkNotNull(invitationDidDoc) { "No invitation DidDoc" }
     }
 
     fun invitationKey(): String {

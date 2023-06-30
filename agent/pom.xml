@@ -62,6 +62,10 @@
         </dependency>
         <dependency>
             <groupId>id.walt</groupId>
+            <artifactId>waltid-sd-jwt-jvm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>id.walt</groupId>
             <artifactId>waltid-ssikit</artifactId>
         </dependency>
         <dependency>
@@ -129,6 +133,7 @@
                         <ignore>*</ignore>
                     </ignoredUsedUndeclaredDependencies>
                     <ignoredUnusedDeclaredDependencies>
+                        <ignore>id.walt:waltid-sd-jwt-jvm</ignore>
                         <ignore>id.walt.servicematrix:WaltID-ServiceMatrix</ignore>
                         <ignore>org.apache.camel:camel-core</ignore>
                         <ignore>org.apache.camel:camel-undertow</ignore>

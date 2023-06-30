@@ -106,7 +106,7 @@ object W3CVerifiableCredentialValidator {
             val danubeVc = DanubeTechVerifiableCredential.fromJsonObject(vc.toJsonData())
             DanubeTechValidation.validateJson(danubeVc)
         }.onFailure {
-            val result = VerificationPolicyResult.failure(listOf(it))
+            val result = VerificationPolicyResult.failure(it)
             result.errors.forEach { log.error { it } }
             if (strict) throw it
             return result

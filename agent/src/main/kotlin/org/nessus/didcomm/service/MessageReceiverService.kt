@@ -75,9 +75,15 @@ object MessageReceiverService: ObjectService<MessageReceiverService>(), MessageR
         val protocolKey = ProtocolService.getProtocolKey(msg.type)
         checkNotNull(protocolKey) { "Unknown message type: ${msg.type}" }
 
-        val kidToDid = { kid: String -> didService.loadOrResolveDid(kid) }
-        val msgTo = unpackResult.metadata.encryptedTo?.map { kidToDid(it)?.uri }
-        val msgFrom = unpackResult.metadata.signFrom?.let { kidToDid(it)?.uri }
+        fun kidToDid(kid: String): Did {
+            val didDoc = didService.loadOrResolveDidDoc(kid)
+            checkNotNull(didDoc) { "Cannot load/resolve DidDoc for: $kid" }
+            val vm = didDoc.verificationMethods.first { it.id == kid }
+            return didService.loadDid(vm.controller)
+        }
+
+        val msgTo = unpackResult.metadata.encryptedTo?.map { kidToDid(it).uri }
+        val msgFrom = unpackResult.metadata.signFrom?.let { kidToDid(it).uri }
 
         val epm = EndpointMessage.Builder(msg, mapOf(
             MESSAGE_HEADER_PROTOCOL_URI to protocolKey.name,

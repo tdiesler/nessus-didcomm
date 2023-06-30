@@ -64,7 +64,7 @@ class CredentialDataMergeTest: AbstractAgentTest() {
         log.info { "Merged: ${vc.encodeJson(true)}" }
 
         val validation = W3CVerifiableCredentialValidator.validateCredential(vc, false)
-        validation.result shouldBe false
+        validation.isFailure shouldBe true
         "${validation.errors[0]}" shouldContain "credentialSubject.familyName: is missing but it is required"
     }
 

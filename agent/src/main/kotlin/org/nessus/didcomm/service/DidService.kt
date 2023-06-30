@@ -34,6 +34,7 @@ import id.walt.crypto.encodeBase58
 import id.walt.crypto.getMulticodecKeyCode
 import id.walt.crypto.newKeyId
 import id.walt.model.DID_CONTEXT_URL
+import id.walt.model.DidUrl
 import id.walt.model.VerificationMethod
 import id.walt.services.did.DidService.storeDid
 import id.walt.services.keystore.KeyStoreService
@@ -156,10 +157,10 @@ object DidService: ObjectService<DidService>() {
         }
     }
 
-    fun loadOrResolveDidDoc(uri: String): DidDoc? {
-        return when {
-            hasDid(uri) -> loadDidDoc(uri)
-            else -> resolveDidDoc(uri)
+    fun loadOrResolveDidDoc(alias: String): DidDoc? {
+        return when(keyStore.getKeyId(alias)) {
+            is String -> loadDidDoc(alias)
+            else -> resolveDidDoc(alias)
         }
     }
 
@@ -168,8 +169,9 @@ object DidService: ObjectService<DidService>() {
         return waltDidDoc?.let { toNessusDid(it) }
     }
 
-    fun resolveDidDoc(uri: String): DidDoc? {
-        val waltDidDoc = withPlugin(didMethod(uri)).resolveDidDoc(uri)
+    fun resolveDidDoc(alias: String): DidDoc? {
+        val uri = DidUrl.from(alias).did
+        val waltDidDoc = withPlugin(didMethod(alias)).resolveDidDoc(alias)
         if (waltDidDoc != null && serviceMapping[uri] == null) {
             val endpointUrl = modelService.findWalletByDid(uri)?.endpointUrl
             val didCommServices = endpointUrl?.let {
@@ -546,15 +548,11 @@ object DidService: ObjectService<DidService>() {
     }
 
     private fun appendKeyStoreAliases(keyId: KeyId, did: Did, didDoc: DidDoc) {
-        appendKeyStoreAliases(keyId, did, didDoc.verificationMethods.map { vm -> vm.id })
-    }
-
-    private fun appendKeyStoreAliases(keyId: KeyId, did: Did, verificationMethodKeyIds: List<String>?) {
 
         keyStore.addAlias(keyId, did.uri)
         keyStore.addAlias(keyId, did.verkey)
 
-        verificationMethodKeyIds?.forEach { kid -> keyStore.addAlias(keyId, kid) }
+        didDoc.verificationMethods.forEach { vm -> keyStore.addAlias(keyId, vm.id) }
     }
 
     private fun generateDidCommServices(uri: String, options: DidOptions?): List<DIDCommService> {
