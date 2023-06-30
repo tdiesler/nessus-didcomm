@@ -19,24 +19,27 @@
  */
 package org.nessus.didcomm.test.json
 
+import id.walt.credentials.w3c.VerifiableCredential
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.json.RpcContext
 import org.nessus.didcomm.json.model.ConnectionData
+import org.nessus.didcomm.json.model.CredentialData
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.WalletRole
+import org.nessus.didcomm.util.toValueMap
 
 
 class AttachmentContext: RpcContext() {
 
     fun connection(invtr: String, invee: String): Connection? {
-        return getAttachment("Connection-${invtr}_${invee}", Connection::class)
+        return getAttachment("${invtr}_${invee}_Connection", Connection::class)
     }
 
-    fun wallet(alias: String): Wallet {
-        return getAttachment(alias, Wallet::class) as Wallet
+    fun wallet(name: String): Wallet {
+        return getAttachment(name, Wallet::class) as Wallet
     }
 }
 
@@ -61,7 +64,7 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
              *
              * Trustees operate nodes. Trustees govern the network. These are the highest
              * privileged DIDs. Endorsers are able to write Schemas and Credential Definitions
-             * to the ledger, or sign such transactions so they can be written by non-privileged DIDs.
+             * to the ledger, or sign such transactions, so they can be written by non-privileged DIDs.
              *
              * We want to ensure a DID has the least amount of privilege it needs to
              * operate, which in many cases is no privilege, provided the resources it needs
@@ -98,10 +101,10 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
             onboardWallet(ctx, "Acme", WalletRole.ENDORSER)
             onboardWallet(ctx, "Thrift", WalletRole.ENDORSER)
 
-            onboardWallet(ctx, "Alice", WalletRole.USER)
+            val alice = onboardWallet(ctx, "Alice", WalletRole.USER)
 
             /*
-             * Creating Credential Schemas
+             * [TODO] Creating Credential Schemas
              *
              * Credential Schema is the base semantic structure that describes the list of
              * attributes which one particular Credential can contain.
@@ -125,7 +128,7 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
             // createJobCertificateSchema(ctx)
 
             /*
-             * In AcaPy there is a concept ot "Credential Definition"
+             * [TODO] In AcaPy there is a concept ot "Credential Definition"
              * (add here for information only)
              *
              * Creating Credential Definitions
@@ -154,7 +157,7 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
              * Faber create a new DID for Alice to use for this Peer Connection
              */
 
-            connect(ctx, "Faber", "Alice")
+            connectPeers(ctx, "Faber", "Alice")
 
             /*
              * Alice gets her Transcript from Faber College
@@ -175,7 +178,24 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
              * should not impress anyone.
              */
 
-//        getTranscriptFromFaber(ctx)
+            val vcTranscript = issueCredential(ctx,
+                issuer = "Faber",
+                holder = "Alice",
+                template = "UniversityTranscript",
+                subjectData = """
+                {
+                  "givenName": "Alice",
+                  "familyName": "Garcia",
+                  "ssn": "123-45-6789",
+                  "degree": "Bachelor of Science, Marketing",
+                  "status": "graduated",
+                  "year": "2015",
+                  "average": "5"
+                }                
+                """.toValueMap())
+
+            val wasTranscripts = alice.findVerifiableCredentialsByType("UniversityTranscript")
+            wasTranscripts.first() shouldBe vcTranscript
 
             /*
              * Create a peer connection between Alice/Acme
@@ -184,16 +204,16 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
              *  Instead both parties create new DIDs that they use for their peer connection
              */
 
-//        connectPeers(ctx, Acme, Alice)
+            connectPeers(ctx, "Acme", "Alice")
 
             /*
              * Alice applies for a job at Acme
              *
              * At some time in the future, Alice would like to work for Acme Corp. Normally
              * she would browse to their website, where she would click on a hyperlink to
-             * apply for a job. Her browser would download a connection request in which her
-             * Indy app would open; this would trigger a prompt to Alice, asking her to
-             * accept the connection with Acme Corp.
+             * apply for a job. Her browser would download a connection request, which she
+             * can open in her digital wallet; this would trigger a prompt to Alice, asking
+             * her to accept the connection with Acme Corp.
              *
              * After Alice had established connection with Acme, she got the Job-Application
              * Proof Request. A proof request is a request made by the party who needs
@@ -262,16 +282,31 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
         }
     }
 
-    private fun connect(ctx: AttachmentContext, invtr: String, invee: String) {
-        val pcon = createConnection(ConnectionData(ctx.wallet(invtr).id, ctx.wallet(invee).id))
-        pcon.state shouldBe ConnectionState.ACTIVE
-        ctx.putAttachment("Connection_${invtr}_${invee}", Connection::class, pcon)
+    private fun connectPeers(ctx: AttachmentContext, invtr: String, invee: String): Connection {
+        val data = ConnectionData(
+            inviterId = ctx.wallet(invtr).id,
+            inviteeId = ctx.wallet(invee).id,
+            didMethod = DidMethod.PEER)
+        return createConnection(data).also { pcon ->
+            pcon.state shouldBe ConnectionState.ACTIVE
+            ctx.putAttachment("${invtr}_${invee}_Connection", Connection::class, pcon)
+        }
     }
 
-    private fun onboardWallet(ctx: AttachmentContext, alias: String, role: WalletRole) {
-        createWallet(alias, role).also { wallet ->
-            ctx.putAttachment(wallet.name, Wallet::class, wallet)
-            createDid(wallet, DidMethod.KEY)
+    private fun issueCredential(ctx: AttachmentContext, issuer: String, holder: String, template: String, subjectData: Map<String, Any>): VerifiableCredential {
+        val data = CredentialData(
+            issuerId = ctx.wallet(issuer).id,
+            holderId = ctx.wallet(holder).id,
+            template = template,
+            subjectData = subjectData)
+        return issueCredential(data).also { vc ->
+            ctx.putAttachment("${issuer}_${holder}_${template}_VC", VerifiableCredential::class, vc)
+        }
+    }
+
+    private fun onboardWallet(ctx: AttachmentContext, name: String, role: WalletRole): Wallet {
+        return createWallet(name, role).also { wallet ->
+            ctx.putAttachment(name, Wallet::class, wallet)
         }
     }
 

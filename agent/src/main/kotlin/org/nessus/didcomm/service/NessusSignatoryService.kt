@@ -1,6 +1,7 @@
 package org.nessus.didcomm.service
 
 import id.walt.common.prettyPrint
+import id.walt.credentials.w3c.VerifiableCredential
 import id.walt.credentials.w3c.templates.VcTemplate
 import id.walt.credentials.w3c.toVerifiableCredential
 import id.walt.services.context.ContextManager
@@ -10,7 +11,6 @@ import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
 import id.walt.signatory.Signatory
 import mu.KotlinLogging
-import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.util.trimJson
 
 fun VcTemplate.shortString(): String {
@@ -28,7 +28,7 @@ object NessusSignatoryService: ObjectService<NessusSignatoryService>() {
 
     val templates get() = delegate.listTemplates().sortedBy { it.name }
 
-    fun issue(vc: W3CVerifiableCredential, config: ProofConfig, storeCredential: Boolean): W3CVerifiableCredential {
+    fun issue(vc: VerifiableCredential, config: ProofConfig, storeCredential: Boolean): VerifiableCredential {
 
         val signedVcJson = when (config.proofType) {
             ProofType.LD_PROOF -> JsonLdCredentialService.getService().sign(vc.toJson(), config)
@@ -37,7 +37,7 @@ object NessusSignatoryService: ObjectService<NessusSignatoryService>() {
 
         log.info { "Signed Credential: ${signedVcJson.prettyPrint()}" }
 
-        val signedVc = W3CVerifiableCredential.fromJson(signedVcJson)
+        val signedVc = VerifiableCredential.fromJson(signedVcJson)
 
         if (storeCredential)
             ContextManager.vcStore.storeCredential(config.credentialId!!, signedVcJson.toVerifiableCredential(), VC_GROUP)

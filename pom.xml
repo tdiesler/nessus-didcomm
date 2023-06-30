@@ -16,7 +16,6 @@
         <connection>scm:git:https://github.com/tdiesler/nessus-didcomm</connection>
         <developerConnection>scm:git:git@github.com:tdiesler/nessus-didcomm</developerConnection>
         <url>https://github.com/tdiesler/nessus-didcomm</url>
-        <tag>0.23.2</tag>
     </scm>
 
     <properties>

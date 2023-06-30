@@ -19,12 +19,11 @@
  */
 package org.nessus.didcomm.json
 
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.nessus.didcomm.json.model.WalletData
 import org.nessus.didcomm.model.Wallet
 
-object WalletCommandHandler: AbstractCommandHandler() {
+object WalletRpcHandler: AbstractRpcHandler() {
 
     fun createWallet(payload: String): Wallet {
         val data = Json.decodeFromString<WalletData>(payload)

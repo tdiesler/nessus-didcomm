@@ -19,11 +19,13 @@
  */
 package org.nessus.didcomm.test.json
 
+import id.walt.credentials.w3c.VerifiableCredential
 import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.matchers.result.shouldBeSuccess
 import mu.KotlinLogging
-import org.nessus.didcomm.json.RpcCommandService
+import org.nessus.didcomm.json.JsonRpcService
 import org.nessus.didcomm.json.model.ConnectionData
+import org.nessus.didcomm.json.model.CredentialData
 import org.nessus.didcomm.json.model.DidData
 import org.nessus.didcomm.json.model.InvitationData
 import org.nessus.didcomm.json.model.WalletData
@@ -46,7 +48,7 @@ import org.nessus.didcomm.service.ServiceMatrixLoader
 abstract class AbstractJsonRPCTest : AnnotationSpec() {
     val log = KotlinLogging.logger {}
 
-    val rpcService get() = RpcCommandService.getService()
+    val rpcService get() = JsonRpcService.getService()
     val modelService get() = ModelService.getService()
     val endpointService get() = EndpointService.getService()
 
@@ -108,6 +110,14 @@ abstract class AbstractJsonRPCTest : AnnotationSpec() {
         val path = "/invitation/receive"
         val res = rpcService.dispatchRpcCommand(path, data.toJson())
         return res.shouldBeSuccess() as Connection
+    }
+    // endregion
+
+    // region vc
+    fun issueCredential(data: CredentialData): VerifiableCredential {
+        val path = "/vc/issue"
+        val res = rpcService.dispatchRpcCommand(path, data.toJson())
+        return res.shouldBeSuccess() as VerifiableCredential
     }
     // endregion
 

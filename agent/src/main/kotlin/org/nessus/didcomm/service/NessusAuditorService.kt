@@ -3,7 +3,7 @@ package org.nessus.didcomm.service
 import id.walt.auditor.Auditor
 import id.walt.auditor.VerificationPolicy
 import id.walt.auditor.VerificationResult
-import org.nessus.didcomm.model.W3CVerifiableCredential
+import id.walt.credentials.w3c.VerifiableCredential
 
 object NessusAuditorService: ObjectService<NessusAuditorService>() {
 
@@ -13,7 +13,7 @@ object NessusAuditorService: ObjectService<NessusAuditorService>() {
         return Auditor.getService().verify(vcJson, policies)
     }
 
-    fun verify(vc: W3CVerifiableCredential, policies: List<VerificationPolicy>): VerificationResult {
+    fun verify(vc: VerifiableCredential, policies: List<VerificationPolicy>): VerificationResult {
         return verify(vc.toJson(), policies)
     }
 }

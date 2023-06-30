@@ -21,7 +21,6 @@ package org.nessus.didcomm.json
 
 import mu.KotlinLogging
 import org.nessus.didcomm.service.ObjectService
-import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.AttachmentSupport
 import kotlin.reflect.KClass
@@ -47,24 +46,23 @@ open class RpcContext(headers: Map<String, String> = emptyMap()): AttachmentSupp
     }
 }
 
-object RpcCommandService: ObjectService<RpcCommandService>() {
+object JsonRpcService: ObjectService<JsonRpcService>() {
     private val log = KotlinLogging.logger {}
 
     override fun getService() = apply { }
 
-    private val walletService get() = WalletService.getService()
-
     fun dispatchRpcCommand(path: String, payload: String): Result<Any?> {
         val obj: Any? = when (path) {
-            "/connection/create" -> ConnectionCommandHandler.createConnection(payload)
-            "/did/create" -> DidCommandHandler.createDid(payload)
-            "/did/list" -> DidCommandHandler.listDids(payload)
-            "/invitation/create" -> InvitationCommandHandler.createInvitation(payload)
-            "/invitation/receive" -> InvitationCommandHandler.receiveInvitation(payload)
-            "/wallet/create" -> WalletCommandHandler.createWallet(payload)
-            "/wallet/find" -> WalletCommandHandler.findWallet(payload)
-            "/wallet/list" -> WalletCommandHandler.listWallets(payload)
-            "/wallet/remove" -> WalletCommandHandler.removeWallet(payload)
+            "/connection/create" -> ConnectionRpcHandler.createConnection(payload)
+            "/did/create" -> DidRpcHandler.createDid(payload)
+            "/did/list" -> DidRpcHandler.listDids(payload)
+            "/invitation/create" -> InvitationRpcHandler.createInvitation(payload)
+            "/invitation/receive" -> InvitationRpcHandler.receiveInvitation(payload)
+            "/vc/issue" -> CredentialRpcHandler.issueCredential(payload)
+            "/wallet/create" -> WalletRpcHandler.createWallet(payload)
+            "/wallet/find" -> WalletRpcHandler.findWallet(payload)
+            "/wallet/list" -> WalletRpcHandler.listWallets(payload)
+            "/wallet/remove" -> WalletRpcHandler.removeWallet(payload)
             else -> throw IllegalStateException("Unsupported command path: $path")
         }
         return Result.success(obj)

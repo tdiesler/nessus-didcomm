@@ -75,10 +75,6 @@ class Connection(
         endpointUrl
     }
 
-    fun close() {
-        state = ConnectionState.CLOSED
-    }
-
     fun shortString(): String {
         val ellipses = { did: Did -> did.uri.ellipsis(24) }
         return "$alias [id=$id, myDid=${ellipses(myDid)}, theirDid=${ellipses(theirDid)}, state=$state]"

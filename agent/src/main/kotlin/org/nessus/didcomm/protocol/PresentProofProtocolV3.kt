@@ -21,6 +21,7 @@ package org.nessus.didcomm.protocol
 
 import com.google.gson.annotations.SerializedName
 import id.walt.common.prettyPrint
+import id.walt.credentials.w3c.VerifiableCredential
 import mu.KotlinLogging
 import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
@@ -29,7 +30,6 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.MessageExchange
-import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.isVerifiablePresentation
 import org.nessus.didcomm.model.shortString
@@ -90,7 +90,7 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
     fun sendPresentationProposal(
         verifierDid: Did,
         prover: Wallet,
-        vcs: List<W3CVerifiableCredential>,
+        vcs: List<VerifiableCredential>,
         domain: String? = null,
         challenge: String? = null,
         expirationDate: Instant? = null,
@@ -156,7 +156,7 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
     fun sendPresentationRequest(
         verifier: Wallet,
         proverDid: Did,
-        vp: W3CVerifiableCredential
+        vp: VerifiableCredential
     ): PresentProofProtocolV3 {
         check(vp.isVerifiablePresentation) { "Not a verifiable presentation: ${vp.shortString()}" }
 
@@ -290,7 +290,7 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         val attachmentData = attachment.data.jsonData()
         checkNotNull(attachmentData) { "No attachment data" }
 
-        val proposedVp = W3CVerifiableCredential.fromJson(attachmentData.encodeJson())
+        val proposedVp = VerifiableCredential.fromJson(attachmentData.encodeJson())
 
         log.info { "Verifier (${verifier.name}) accepts presentation proposal" }
 

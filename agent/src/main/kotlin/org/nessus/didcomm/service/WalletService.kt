@@ -122,10 +122,6 @@ object WalletService: ObjectService<WalletService>() {
         wallet.walletPlugin.setPublicDid(wallet, did)
     }
 
-    fun removeConnections(wallet: Wallet) {
-        wallet.walletPlugin.removeConnections(wallet)
-    }
-
     // Private ---------------------------------------------------------------------------------------------------------
 
     @Suppress("UNCHECKED_CAST")
@@ -154,7 +150,5 @@ interface WalletPlugin {
 
     fun getPublicDid(wallet: Wallet): Did?
     fun setPublicDid(wallet: Wallet, did: Did?)
-
-    fun removeConnections(wallet: Wallet)
 }
 

@@ -24,15 +24,11 @@ typealias DanubeTechValidation = com.danubetech.verifiablecredentials.validation
  * https://www.w3.org/TR/2022/REC-vc-data-model-20220303
  */
 
-typealias W3CVerifiableCredential = VerifiableCredential
-typealias W3CVerifiablePresentation = VerifiablePresentation
-
 val VerifiableCredential.isVerifiableCredential get() = !isVerifiablePresentation
 val VerifiableCredential.isVerifiablePresentation get() = type.contains("VerifiablePresentation")
-val VerifiableCredential.verifiableCredential get() = (this as? W3CVerifiablePresentation)?.verifiableCredential
 
 fun VerifiableCredential.hasType(type: String): Boolean {
-    return if (isVerifiablePresentation) {
+    return if (this is VerifiablePresentation) {
         verifiableCredential?.any { it.type.contains(type) } ?: false
     } else {
         this.type.contains(type)
@@ -47,19 +43,19 @@ fun VerifiableCredential.toJsonData(): Map<String, Any?> = toJson().decodeJson()
 /**
  * Validate credential integrity and schema
  */
-fun VerifiableCredential.validate(): W3CVerifiableCredential {
+fun VerifiableCredential.validate(): VerifiableCredential {
     W3CVerifiableCredentialValidator.validateCredential(this, true)
     return this
 }
 
 object W3CVerifiableCredentialHelper {
 
-    fun fromJsonData(data: Map<String, Any?>): W3CVerifiableCredential {
+    fun fromJsonData(data: Map<String, Any?>): VerifiableCredential {
         val jsonObj = Json.parseToJsonElement(data.encodeJson()).jsonObject
-        return W3CVerifiableCredential.fromJsonObject(jsonObj)
+        return VerifiableCredential.fromJsonObject(jsonObj)
     }
 
-    fun fromTemplate(pathOrName: String, stripValues: Boolean = true, data: Map<String, Any?> = mapOf()): W3CVerifiableCredential {
+    fun fromTemplate(pathOrName: String, stripValues: Boolean = true, data: Map<String, Any?> = mapOf()): VerifiableCredential {
         val template = loadTemplate(pathOrName, stripValues)
         val effData = data.toMutableMap()
         if ("issuanceDate" !in data)
@@ -95,7 +91,7 @@ object W3CVerifiableCredentialHelper {
 object W3CVerifiableCredentialValidator {
     private val log = KotlinLogging.logger {}
 
-    fun validateCredential(vc: W3CVerifiableCredential, strict: Boolean = true): VerificationPolicyResult {
+    fun validateCredential(vc: VerifiableCredential, strict: Boolean = true): VerificationPolicyResult {
 
         if ("VerifiablePresentation" in vc.type) {
             log.debug { "Not validating VerifiablePresentation" }

@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.json
 
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.nessus.didcomm.json.model.DidData
 import org.nessus.didcomm.model.Did
@@ -27,7 +26,7 @@ import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.service.DidOptions
 import org.nessus.didcomm.service.DidPeerOptions
 
-object DidCommandHandler: AbstractCommandHandler() {
+object DidRpcHandler: AbstractRpcHandler() {
 
     fun createDid(payload: String): Did {
         val data = Json.decodeFromString<DidData>(payload)

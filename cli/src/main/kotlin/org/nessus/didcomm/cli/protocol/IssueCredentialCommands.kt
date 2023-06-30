@@ -21,12 +21,12 @@
 package org.nessus.didcomm.cli.protocol
 
 import id.walt.common.resolveContent
+import id.walt.credentials.w3c.VerifiableCredential
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
 import org.nessus.didcomm.cli.AbstractBaseCommand
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.MessageExchange
-import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.W3CVerifiableCredentialHelper
 import org.nessus.didcomm.model.W3CVerifiableCredentialValidator.validateCredential
 import org.nessus.didcomm.model.encodeJson
@@ -97,8 +97,8 @@ class VerifiableCredentialCommands: AbstractBaseCommand() {
         alias: String,
     ) {
         val sortedVcps = sortedCredentialsAndPresentations(walletAlias, vcOpt, vpOpt)
-        val predicate = { vc: W3CVerifiableCredential -> vc.id.toString().lowercase().startsWith(alias.lowercase()) }
-        val vcp: W3CVerifiableCredential? = alias.toIntOrNull()
+        val predicate = { vc: VerifiableCredential -> vc.id.toString().lowercase().startsWith(alias.lowercase()) }
+        val vcp: VerifiableCredential? = alias.toIntOrNull()
             ?. let { idx -> sortedVcps[idx] }
             ?: let { sortedVcps.firstOrNull { vcp -> predicate(vcp) }}
         vcp?.also {
@@ -107,7 +107,7 @@ class VerifiableCredentialCommands: AbstractBaseCommand() {
         }
     }
 
-    private fun sortedCredentialsAndPresentations(walletAlias: String?, vcOpt: Boolean?, vpOpt: Boolean?): List<W3CVerifiableCredential> {
+    private fun sortedCredentialsAndPresentations(walletAlias: String?, vcOpt: Boolean?, vpOpt: Boolean?): List<VerifiableCredential> {
         val ctxWallet = getContextWallet(walletAlias)
         val vcs = ctxWallet.verifiableCredentials.filter { it.isVerifiableCredential }
         val vps = ctxWallet.verifiableCredentials.filter { it.isVerifiablePresentation }
@@ -415,8 +415,8 @@ class VerifyCredentialCommand: AbstractBaseCommand() {
         check(policySpecs!!.isNotEmpty()) { "No policies" }
 
         val vcp = properties.getVar(src!!)
-            ?.let { W3CVerifiableCredential.fromJson(it) }
-            ?: resolveContent(src!!).let { W3CVerifiableCredential.fromJson(it) }
+            ?.let { VerifiableCredential.fromJson(it) }
+            ?: resolveContent(src!!).let { VerifiableCredential.fromJson(it) }
 
         val policies = policySpecs!!.map {
             val toks = it.split('=')

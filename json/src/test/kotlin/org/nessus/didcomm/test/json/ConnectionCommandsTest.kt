@@ -21,7 +21,6 @@ package org.nessus.didcomm.test.json
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.nessus.didcomm.json.model.ConnectionData
-import org.nessus.didcomm.json.model.InvitationData
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.WalletRole
 
@@ -43,4 +42,7 @@ class ConnectionCommandsTest: AbstractJsonRPCTest() {
             removeWallets(alice, faber)
         }
     }
+
+    // [TODO] list connections
+    // [TODO] remove connection
 }

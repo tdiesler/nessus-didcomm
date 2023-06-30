@@ -50,7 +50,7 @@ data class InvitationData(
     /**
      * Inviter/Invitee DidMethod, when Did is not given
      */
-    val method: DidMethod? = null,
+    val didMethod: DidMethod? = null,
 
     /**
      * Supported options

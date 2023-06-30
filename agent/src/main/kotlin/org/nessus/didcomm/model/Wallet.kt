@@ -21,6 +21,8 @@ package org.nessus.didcomm.model
 
 import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
+import id.walt.credentials.w3c.VerifiableCredential
+import id.walt.credentials.w3c.VerifiablePresentation
 import mu.KotlinLogging
 import org.nessus.didcomm.model.ConnectionState.*
 import org.nessus.didcomm.service.DidOptions
@@ -93,7 +95,7 @@ abstract class Wallet(
     private val connectionsInternal: MutableList<Connection> = mutableListOf(),
 
     @Transient
-    private val verifiableCredentialsInternal: MutableList<W3CVerifiableCredential> = mutableListOf(),
+    private val verifiableCredentialsInternal: MutableList<VerifiableCredential> = mutableListOf(),
 ) {
     companion object {
         private val log = KotlinLogging.logger {}
@@ -179,15 +181,14 @@ abstract class Wallet(
         return connectionsInternal.firstOrNull(predicate)
     }
 
+    fun findReverseConnection(pcon: Connection): Connection? {
+        return connectionsInternal.firstOrNull { mc -> mc.myDid == pcon.theirDid && mc.theirDid == pcon.myDid }
+    }
+
     fun removeConnection(id: String) {
         findConnectionById(id)?.also {
             connectionsInternal.remove(it)
         }
-    }
-
-    open fun removeConnections() {
-        walletService.removeConnections(this)
-        connectionsInternal.clear()
     }
 
     fun addInvitation(invitation: Invitation) {
@@ -211,31 +212,32 @@ abstract class Wallet(
         findInvitationById(id)?.run { invitationsInternal.remove(this) }
     }
 
-    fun addVerifiableCredential(vc: W3CVerifiableCredential) {
+    fun addVerifiableCredential(vc: VerifiableCredential) {
         verifiableCredentialsInternal.add(vc)
     }
 
-    fun getVerifiableCredential(id: String): W3CVerifiableCredential {
+    fun getVerifiableCredential(id: String): VerifiableCredential {
         return checkNotNull(findVerifiableCredentialById(id)) { "No verifiable credential for: $id" }
     }
 
-    fun findVerifiableCredential(predicate: (vc: W3CVerifiableCredential) -> Boolean): W3CVerifiableCredential? {
+    fun findVerifiableCredential(predicate: (vc: VerifiableCredential) -> Boolean): VerifiableCredential? {
         return verifiableCredentialsInternal.firstOrNull(predicate)
     }
 
-    fun findVerifiableCredentialById(id: String): W3CVerifiableCredential? {
+    fun findVerifiableCredentialById(id: String): VerifiableCredential? {
         return findVerifiableCredential { "${it.id}" == id }
     }
 
-    fun findVerifiableCredentialsByType(type: String): List<W3CVerifiableCredential> {
+    fun findVerifiableCredentialsByType(type: String): List<VerifiableCredential> {
         return verifiableCredentialsInternal
             .filter { it.isVerifiableCredential }
             .filter { it.hasType(type) }
     }
 
-    fun findVerifiablePresentationsByType(type: String): List<W3CVerifiableCredential> {
+    fun findVerifiablePresentationsByType(type: String): List<VerifiablePresentation> {
         return verifiableCredentialsInternal
             .filter { it.isVerifiablePresentation }
+            .map { it as VerifiablePresentation }
             .filter { it.hasType(type) }
     }
 

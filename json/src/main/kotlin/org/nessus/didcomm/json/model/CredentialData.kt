@@ -17,18 +17,20 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.json
+package org.nessus.didcomm.json.model
 
-import mu.KotlinLogging
-import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.service.WalletService
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import org.nessus.didcomm.json.AnyValueSerializer
 
-abstract class AbstractCommandHandler {
-    val log = KotlinLogging.logger {}
+@Serializable
+data class CredentialData(
+    val issuerId: String? = null,
+    val holderId: String? = null,
+    val template: String? = null,
+    val subjectData: Map<String, @Serializable(with = AnyValueSerializer::class) Any>? = null,
+) {
 
-    val walletService get() = WalletService.getService()
-
-    fun assertWallet(id: String): Wallet {
-        return walletService.getWallet(id)
-    }
+    fun toJson() = Json.encodeToString(this)
 }

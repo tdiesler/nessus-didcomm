@@ -20,11 +20,11 @@
 package org.nessus.didcomm.cli
 
 import id.walt.common.resolveContent
+import id.walt.credentials.w3c.VerifiableCredential
 import mu.KotlinLogging
 import org.nessus.didcomm.cli.NessusCli.Companion.headless
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.Invitation
-import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.EndpointService
@@ -175,7 +175,7 @@ abstract class AbstractBaseCommand: Callable<Int> {
         return Pair(null, null)
     }
 
-    fun getVcpFromAlias(holder: Wallet, alias: String): W3CVerifiableCredential? {
+    fun getVcpFromAlias(holder: Wallet, alias: String): VerifiableCredential? {
 
         // Vc alias as a reference to a context variable
         properties.getVar(alias)?.also {
@@ -195,6 +195,6 @@ abstract class AbstractBaseCommand: Callable<Int> {
         // Vc alias as fileUrl or content
         val content = resolveContent(alias)
         check(content != alias) { "Cannot resolve vc alias: $alias" }
-        return W3CVerifiableCredential.fromJson(content)
+        return VerifiableCredential.fromJson(content)
     }
 }

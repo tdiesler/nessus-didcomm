@@ -84,9 +84,5 @@ class NessusWalletPlugin: WalletPlugin {
         wallet.internalPublicDid = did
     }
 
-    override fun removeConnections(wallet: Wallet) {
-        wallet.removeConnections()
-    }
-
     // Private ---------------------------------------------------------------------------------------------------------
 }

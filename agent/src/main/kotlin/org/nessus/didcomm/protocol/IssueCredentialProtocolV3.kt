@@ -21,6 +21,7 @@ package org.nessus.didcomm.protocol
 
 import com.google.gson.annotations.SerializedName
 import id.walt.common.prettyPrint
+import id.walt.credentials.w3c.VerifiableCredential
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
 import mu.KotlinLogging
@@ -31,7 +32,6 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.MessageExchange
-import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.W3CVerifiableCredentialHelper
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.toJsonData
@@ -337,7 +337,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val attachmentData = attachment.data.jsonData()
         checkNotNull(attachmentData) { "No attachment data" }
 
-        val proposedVc = W3CVerifiableCredential.fromJson(attachmentData.encodeJson())
+        val proposedVc = VerifiableCredential.fromJson(attachmentData.encodeJson())
         val proposedSchema = proposedVc.credentialSchema
         checkNotNull(proposedSchema) { "No credential schema" }
 
@@ -451,7 +451,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         checkNotNull(attachment) { "No credential attachment" }
 
         val vcJson = gson.toJson(attachment.data.jsonData())
-        val vc = W3CVerifiableCredential.fromJson(vcJson)
+        val vc = VerifiableCredential.fromJson(vcJson)
         holder.addVerifiableCredential(vc)
 
         log.info { "Holder (${holder.name}) received credential: ${vc.encodeJson(true)}" }
