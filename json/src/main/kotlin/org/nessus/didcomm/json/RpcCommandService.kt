@@ -56,11 +56,11 @@ object RpcCommandService: ObjectService<RpcCommandService>() {
 
     fun dispatchRpcCommand(path: String, payload: String): Result<Any?> {
         val obj: Any? = when (path) {
+            "/connection/create" -> ConnectionCommandHandler.createConnection(payload)
             "/did/create" -> DidCommandHandler.createDid(payload)
             "/did/list" -> DidCommandHandler.listDids(payload)
             "/invitation/create" -> InvitationCommandHandler.createInvitation(payload)
             "/invitation/receive" -> InvitationCommandHandler.receiveInvitation(payload)
-            "/invitation/exchange" -> InvitationCommandHandler.exchangeInvitation(payload)
             "/wallet/create" -> WalletCommandHandler.createWallet(payload)
             "/wallet/find" -> WalletCommandHandler.findWallet(payload)
             "/wallet/list" -> WalletCommandHandler.listWallets(payload)

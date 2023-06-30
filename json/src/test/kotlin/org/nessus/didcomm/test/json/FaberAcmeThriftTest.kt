@@ -19,23 +19,36 @@
  */
 package org.nessus.didcomm.test.json
 
+import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.json.RpcContext
+import org.nessus.didcomm.json.model.ConnectionData
+import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.WalletRole
 
 
 class AttachmentContext: RpcContext() {
-    val govWallet get() = getAttachment("Government", Wallet::class) as Wallet
-    val faberWallet get() = getAttachment("Faber", Wallet::class) as Wallet
-    val acmeWallet get() = getAttachment("Acme", Wallet::class) as Wallet
-    val thriftWallet get() = getAttachment("Thrift", Wallet::class) as Wallet
+
+    fun connection(invtr: String, invee: String): Connection? {
+        return getAttachment("Connection-${invtr}_${invee}", Connection::class)
+    }
+
+    fun wallet(alias: String): Wallet {
+        return getAttachment(alias, Wallet::class) as Wallet
+    }
 }
 
     /**
  * It should be possible to drive Nessus DIDComm entirely through JSON-RPC
  */
 class FaberAcmeThriftTest: AbstractJsonRPCTest() {
+
+    @BeforeAll
+    fun startAgent() {
+        startNessusEndpoint()
+    }
 
     @Test
     fun faberAcmeThrift() {
@@ -47,9 +60,8 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
              * Onboard Government Wallet and DID
              *
              * Trustees operate nodes. Trustees govern the network. These are the highest
-             * privileged DIDs. Endorsers are able to write Schemas and Cred_Defs to the
-             * ledger, or sign such transactions so they can be written by non-privileged
-             * DIDs.
+             * privileged DIDs. Endorsers are able to write Schemas and Credential Definitions
+             * to the ledger, or sign such transactions so they can be written by non-privileged DIDs.
              *
              * We want to ensure a DID has the least amount of privilege it needs to
              * operate, which in many cases is no privilege, provided the resources it needs
@@ -97,29 +109,25 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
              * It’s not possible to update an existing Schema. If the Schema needs to be
              * evolved, a new Schema with a new version or name needs to be created.
              *
-             * Schemas in Nessus are very simple JSON documents that specify their name and
+             * Schemas in Nessus are JSON Schema documents that specify their name and
              * version, and that list attributes that will appear in a credential.
              * Currently, they do not describe data type, recurrence rules, nesting, and
              * other elaborate constructs.
              */
 
-            val vcTemplate = """
-            {
-              "id": "did:example:BcRisGnqV4QPb6bRmDCqEjyuubBarS1Y1nhDwxBMTXY4",
-              "givenName": "Alice",
-              "familyName": "Garcia",
-              "ssn": "123-45-6789",
-              "degree": "Bachelor of Science, Marketing",
-              "status": "graduated",
-              "year": "2015",
-              "average": "5"
-            }                
-            """.trimIndent()
+            // Support message validation against multiple json schema docs
+            // https://github.com/tdiesler/nessus-didcomm/issues/141
 
-//        createTranscriptSchema(ctx)
-//        createJobCertificateSchema(ctx)
+            // Note, currently we rely on all-encompassing schemas
+            // that can be found on the classpath
+
+            // createTranscriptSchema(ctx)
+            // createJobCertificateSchema(ctx)
 
             /*
+             * In AcaPy there is a concept ot "Credential Definition"
+             * (add here for information only)
+             *
              * Creating Credential Definitions
              *
              * Credential Definition is similar in that the keys that the Issuer uses for
@@ -137,17 +145,16 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
              * A Credential Definition can be created and saved in the Ledger an Endorser.
              */
 
-//        createTranscriptCredentialDefinition(ctx)
-//        createJobCertificateCredentialDefinition(ctx)
+            // createTranscriptCredentialDefinition(ctx)
+            // createJobCertificateCredentialDefinition(ctx)
 
             /*
-             * Create a peer connection between Alice/Faber
+             * Create a peer connection between Faber/Alice
              *
-             * Alice does not connect to Faber's public DID, Alice does not even have a public DID
-             * Instead both parties create new DIDs that they use for their peer connection
+             * Faber create a new DID for Alice to use for this Peer Connection
              */
 
-//        connectPeers(ctx, Faber, Alice)
+            connect(ctx, "Faber", "Alice")
 
             /*
              * Alice gets her Transcript from Faber College
@@ -253,6 +260,12 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
         } finally {
             removeWallets(ctx)
         }
+    }
+
+    private fun connect(ctx: AttachmentContext, invtr: String, invee: String) {
+        val pcon = createConnection(ConnectionData(ctx.wallet(invtr).id, ctx.wallet(invee).id))
+        pcon.state shouldBe ConnectionState.ACTIVE
+        ctx.putAttachment("Connection_${invtr}_${invee}", Connection::class, pcon)
     }
 
     private fun onboardWallet(ctx: AttachmentContext, alias: String, role: WalletRole) {

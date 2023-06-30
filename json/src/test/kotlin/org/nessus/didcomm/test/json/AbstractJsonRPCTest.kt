@@ -23,6 +23,7 @@ import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.matchers.result.shouldBeSuccess
 import mu.KotlinLogging
 import org.nessus.didcomm.json.RpcCommandService
+import org.nessus.didcomm.json.model.ConnectionData
 import org.nessus.didcomm.json.model.DidData
 import org.nessus.didcomm.json.model.InvitationData
 import org.nessus.didcomm.json.model.WalletData
@@ -58,10 +59,33 @@ abstract class AbstractJsonRPCTest : AnnotationSpec() {
     }
 
     @AfterAll
-    fun stopAgent() {
+    fun afterAll() {
         stopNessusEndpoint()
     }
 
+    // region endpoint
+    fun startNessusEndpoint(listener: MessageReceiver? = null): AutoCloseable {
+        val endpointUrl = NessusWalletPlugin.getEndpointUrl()
+        val handle = endpointService.startEndpoint(endpointUrl, listener)
+        endpointHandle.set(handle)
+        return handle
+    }
+
+    fun stopNessusEndpoint(handle: AutoCloseable? = null) {
+        val auxhdl = handle ?: endpointHandle.get()
+        auxhdl?.also { endpointService.stopEndpoint(auxhdl) }
+    }
+    // endregion
+
+    // region connection
+    fun createConnection(data: ConnectionData): Connection {
+        val path = "/connection/create"
+        val res = rpcService.dispatchRpcCommand(path, data.toJson())
+        return res.shouldBeSuccess() as Connection
+    }
+    // endregion
+
+    // region did
     fun createDid(owner: Wallet, method: DidMethod? = null, options: Map<String, Any> = emptyMap()): Did {
         return createDid(DidData(owner.id, method = method, options = options))
     }
@@ -71,7 +95,9 @@ abstract class AbstractJsonRPCTest : AnnotationSpec() {
         val res = rpcService.dispatchRpcCommand(path, data.toJson())
         return res.shouldBeSuccess() as Did
     }
+    // endregion
 
+    // region invitation
     fun createInvitation(data: InvitationData): Invitation {
         val path = "/invitation/create"
         val res = rpcService.dispatchRpcCommand(path, data.toJson())
@@ -83,13 +109,9 @@ abstract class AbstractJsonRPCTest : AnnotationSpec() {
         val res = rpcService.dispatchRpcCommand(path, data.toJson())
         return res.shouldBeSuccess() as Connection
     }
+    // endregion
 
-    fun exchangeInvitation(data: InvitationData): Connection {
-        val path = "/invitation/exchange"
-        val res = rpcService.dispatchRpcCommand(path, data.toJson())
-        return res.shouldBeSuccess() as Connection
-    }
-
+    // region wallet
     fun createWallet(alias: String, walletRole: WalletRole? = null): Wallet {
         return createWallet(WalletData(alias = alias, walletRole = walletRole))
     }
@@ -109,16 +131,5 @@ abstract class AbstractJsonRPCTest : AnnotationSpec() {
         val data = WalletData(id = wallet.id)
         rpcService.dispatchRpcCommand(path, data.toJson()).shouldBeSuccess()
     }
-
-    fun startNessusEndpoint(listener: MessageReceiver? = null): AutoCloseable {
-        val endpointUrl = NessusWalletPlugin.getEndpointUrl()
-        val handle = endpointService.startEndpoint(endpointUrl, listener)
-        endpointHandle.set(handle)
-        return handle
-    }
-
-    fun stopNessusEndpoint(handle: AutoCloseable? = null) {
-        val auxhdl = handle ?: endpointHandle.get()
-        auxhdl?.also { endpointService.stopEndpoint(auxhdl) }
-    }
+    // endregion
 }

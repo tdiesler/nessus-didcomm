@@ -25,6 +25,9 @@ import org.nessus.didcomm.model.DidDoc
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.test.cli.AbstractCLITest
 
+// Restore RoutingV2CmdTest
+// https://github.com/tdiesler/nessus-didcomm/issues/142
+
 class RoutingV2CmdTest: AbstractCLITest() {
 
     // @Test

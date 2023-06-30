@@ -71,16 +71,4 @@ class InvitationCommandsTest: AbstractJsonRPCTest() {
             removeWallets(alice, faber)
         }
     }
-
-    @Test
-    fun exchangeInvitation() {
-        val faber = createWallet("Faber", WalletRole.ENDORSER)
-        val alice = createWallet("Alice")
-        try {
-            val pcon = exchangeInvitation(InvitationData(faber.id, alice.id))
-            assertEquals(ConnectionState.ACTIVE, pcon.state)
-        } finally {
-            removeWallets(alice, faber)
-        }
-    }
 }

@@ -20,41 +20,25 @@
 package org.nessus.didcomm.json
 
 import kotlinx.serialization.json.Json
+import org.nessus.didcomm.json.model.ConnectionData
 import org.nessus.didcomm.json.model.InvitationData
 import org.nessus.didcomm.model.Connection
-import org.nessus.didcomm.model.Did
-import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.service.OUT_OF_BAND_PROTOCOL_V2
 import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 
-object InvitationCommandHandler: AbstractCommandHandler() {
+object ConnectionCommandHandler: AbstractCommandHandler() {
 
-    fun createInvitation(payload: String): Invitation {
-        val data = Json.decodeFromString<InvitationData>(payload)
+    fun createConnection(payload: String): Connection {
+        val data = Json.decodeFromString<ConnectionData>(payload)
         checkNotNull(data.inviterId) { "No inviterId" }
-        val inviterDid = data.didUri?.let { Did.fromUri(it) }
-        val inviter = assertWallet(data.inviterId)
-        val mex = MessageExchange()
-            .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
-            .createOutOfBandInvitation(inviter, inviterDid, data.method, data.options)
-            .getMessageExchange()
-        val invitation = mex.getInvitation()
-        checkNotNull(invitation) { "No invitation" }
-        return invitation
-    }
-
-    fun receiveInvitation(payload: String): Connection {
-        val data = Json.decodeFromString<InvitationData>(payload)
         checkNotNull(data.inviteeId) { "No inviteeId" }
-        checkNotNull(data.urlEncoded) { "No invitation" }
+        val inviter = assertWallet(data.inviterId)
         val invitee = assertWallet(data.inviteeId)
-        val inviteeDid = data.didUri?.let { Did.fromUri(it) }
-        val inviterAlias = data.inviterAlias
-        val invitation = Invitation.fromBase64(data.urlEncoded)
         val mex = MessageExchange()
             .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
-            .receiveOutOfBandInvitation(invitee, inviteeDid, inviterAlias, invitation)
+            .createOutOfBandInvitation(inviter, didMethod = data.method, options = data.options)
+            .receiveOutOfBandInvitation(invitee, inviterAlias = inviter.name)
             .withProtocol(TRUST_PING_PROTOCOL_V2)
             .sendTrustPing()
             .awaitTrustPingResponse()
