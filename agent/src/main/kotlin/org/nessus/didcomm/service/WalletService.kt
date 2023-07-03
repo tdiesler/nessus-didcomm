@@ -81,13 +81,6 @@ object WalletService: ObjectService<WalletService>() {
         }
     }
 
-    fun findWallets(alias: String?): List<Wallet> {
-        val tst = alias?.lowercase()
-        return wallets.filter {
-            tst == null || it.id.lowercase().startsWith(tst) || it.name.lowercase().startsWith(tst)
-        }
-    }
-
     fun removeWallet(id: String): Boolean {
         val wallet = modelService.findWallet { it.id == id }
         if (wallet != null) {

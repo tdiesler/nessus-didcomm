@@ -22,6 +22,7 @@ package org.nessus.didcomm.protocol
 import com.google.gson.annotations.SerializedName
 import id.walt.common.prettyPrint
 import id.walt.credentials.w3c.VerifiableCredential
+import id.walt.credentials.w3c.VerifiablePresentation
 import mu.KotlinLogging
 import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
@@ -30,16 +31,16 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.MessageExchange
+import org.nessus.didcomm.model.W3CVerifiableCredentialHelper
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.isVerifiablePresentation
-import org.nessus.didcomm.model.shortString
 import org.nessus.didcomm.model.toJsonData
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
 import org.nessus.didcomm.util.JSON_MIME_TYPE
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
-import org.nessus.didcomm.util.gson
 import org.nessus.didcomm.util.jsonData
+import org.nessus.didcomm.util.toValueMap
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -88,8 +89,8 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
      * comment: String
      */
     fun sendPresentationProposal(
-        verifierDid: Did,
         prover: Wallet,
+        verifierDid: Did,
         vcs: List<VerifiableCredential>,
         domain: String? = null,
         challenge: String? = null,
@@ -103,7 +104,7 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         val proverDid = pcon.myDid
 
         val signedVp = custodian.createPresentation(
-            vcs = vcs.toTypedArray(),
+            vcs = vcs,
             holderDid = proverDid.uri,
             verifierDid = verifierDid.uri,
             domain = domain,
@@ -156,9 +157,9 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
     fun sendPresentationRequest(
         verifier: Wallet,
         proverDid: Did,
-        vp: VerifiableCredential
+        vp: VerifiablePresentation,
+        options: Map<String, Any> = mapOf()
     ): PresentProofProtocolV3 {
-        check(vp.isVerifiablePresentation) { "Not a verifiable presentation: ${vp.shortString()}" }
 
         val verifierMex = MessageExchange.findByWallet(verifier.name)
             .first { it.getConnection().theirDid == proverDid }
@@ -168,29 +169,19 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         check(pcon.theirDid == proverDid) { "Unexpected prover: ${pcon.shortString()}" }
         val verifierDid = pcon.myDid
 
-        val presentationProposalMsg = verifierMex.last.body as Message
-        mex.checkLastMessageType(PRESENT_PROOF_MESSAGE_TYPE_PROPOSE_PRESENTATION)
+        val id = "${UUID.randomUUID()}"
+        val type = PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION
 
-        // Extract the proposal data from the Message
-
-        val proposalMeta = ProposalMetaData.fromMap(presentationProposalMsg.body)
-
-        // Extract the attached credential
-
-        val attachmentsFormats = presentationProposalMsg.attachments?.map { it.format } ?: listOf(PRESENTATION_ATTACHMENT_FORMAT)
-        check(PRESENTATION_ATTACHMENT_FORMAT in attachmentsFormats) { "Incompatible attachment formats: $attachmentsFormats" }
-
-        val attachment = presentationProposalMsg.attachments?.firstOrNull { at -> at.format == null || at.format == PRESENTATION_ATTACHMENT_FORMAT }
-        checkNotNull(attachment) { "No presentation proposal attachment" }
+        val jsonData = Attachment.Data.Json.parse(mapOf("json" to vp.toJsonData()))
+        val attachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
+            .format(PRESENTATION_ATTACHMENT_FORMAT)
+            .mediaType(JSON_MIME_TYPE)
+            .build()
 
         val attachmentData = attachment.data.jsonData()
         checkNotNull(attachmentData) { "No attachment data" }
 
-        val id = "${UUID.randomUUID()}"
-        val type = PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION
-
-        val vpRequest = RequestMetaData.Builder()
-            .goalCode(proposalMeta.goalCode)
+        val vpRequest = RequestMetaData.Builder(options)
             .willConfirm(true)
             .build()
 
@@ -219,45 +210,9 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         return this
     }
 
-    /**
-     * Send Presentation
-     */
-    fun sendPresentation(prover: Wallet, verifierDid: Did): PresentProofProtocolV3 {
-
-        val mex = MessageExchange.findByWallet(prover.name)
-            .first { it.getConnection().theirDid == verifierDid }
-
-        val pcon = mex.getConnection()
-        val issuerDid = pcon.myDid
-
-        val vpRequestMsg = mex.last.body as Message
-        mex.checkLastMessageType(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION)
-
-        val id = "${UUID.randomUUID()}"
-        val type = PRESENT_PROOF_MESSAGE_TYPE_PRESENTATION
-
-        val attachment = vpRequestMsg.attachments?.firstOrNull { at -> at.format == null || at.format == PRESENTATION_ATTACHMENT_FORMAT }
-        checkNotNull(attachment) { "No presentation attachment" }
-
-        val vpRequestMeta = RequestMetaData.fromMap(vpRequestMsg.toJSONObject())
-        val vpMeta = PresentationMetaData.Builder()
-            .goalCode(vpRequestMeta.goalCode)
-            .build()
-
-        val vpMsg = MessageBuilder(id, vpMeta.toMap(), type)
-            .thid(vpRequestMsg.id)
-            .to(listOf(verifierDid.uri))
-            .from(issuerDid.uri)
-            .attachments(listOf(attachment))
-            .build()
-
-        mex.addMessage(EndpointMessage.Builder(vpMsg).outbound().build())
-        log.info { "Prover (${prover.name}) create presentation: ${vpMsg.encodeJson(true)}" }
-
-        dispatchEncryptedMessage(pcon, vpMsg) { packedEpm ->
-            log.info { "Prover (${prover.name}) sends presentation: ${packedEpm.prettyPrint()}" }
-        }
-
+    fun awaitPresentation(verifier: Wallet, proverDid: Did, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): PresentProofProtocolV3 {
+        val mex = MessageExchange.findByWallet(verifier.name).first { it.getConnection().theirDid == proverDid }
+        mex.awaitEndpointMessage(PRESENT_PROOF_MESSAGE_TYPE_PRESENTATION, timeout, unit)
         return this
     }
 
@@ -290,11 +245,12 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         val attachmentData = attachment.data.jsonData()
         checkNotNull(attachmentData) { "No attachment data" }
 
-        val proposedVp = VerifiableCredential.fromJson(attachmentData.encodeJson())
+        val proposedVp = VerifiablePresentation.fromJson(attachmentData.encodeJson())
 
         log.info { "Verifier (${verifier.name}) accepts presentation proposal" }
 
-        return sendPresentationRequest(verifier, proverDid, proposedVp)
+        val metadata = presentationProposalMsg.body.toValueMap()
+        return sendPresentationRequest(verifier, proverDid, proposedVp, metadata)
     }
 
     private fun receivePresentation(verifier: Wallet): PresentProofProtocolV3 {
@@ -309,9 +265,114 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         val attachment = presentationMsg.attachments?.firstOrNull { at -> at.format == null || at.format == PRESENTATION_ATTACHMENT_FORMAT }
         checkNotNull(attachment) { "No presentation attachment" }
 
+        val attachmentData = attachment.data.jsonData()
+        checkNotNull(attachmentData) { "No attachment data" }
+
+        val vp = VerifiablePresentation.fromJson(attachmentData.encodeJson())
+        check(vp.isVerifiablePresentation) { "Not a Verifiable Presentation: ${vp.type}" }
+        verifier.addVerifiableCredential(vp)
+
+        if (mex.hasEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_PRESENTATION))
+            mex.completeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_PRESENTATION, mex.last)
+
         log.info { "Verifier (${verifier.name}) accepts presentation: ${presentationMsg.encodeJson(true)}" }
 
         return sendPresentationAck(verifier, presentationEpm)
+    }
+
+    private fun receivePresentationRequest(prover: Wallet): PresentProofProtocolV3 {
+
+        val vpRequestMsg = mex.last.body as Message
+        mex.checkLastMessageType(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION)
+
+        val pcon = mex.getConnection()
+        val verifierDid = pcon.theirDid
+
+        log.info { "Prover (${prover.name}) received presentation request: ${vpRequestMsg.encodeJson(true)}" }
+
+        mex.placeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_ACK)
+
+        if (mex.hasEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION))
+            mex.completeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION, mex.last)
+
+        return sendPresentation(prover, verifierDid)
+    }
+
+    private fun receivePresentationAck(prover: Wallet): PresentProofProtocolV3 {
+
+        val ackMsg = mex.last.body as Message
+        mex.checkLastMessageType(PRESENT_PROOF_MESSAGE_TYPE_ACK)
+
+        log.info { "Prover (${prover.name}) received presentation ack: ${ackMsg.encodeJson(true)}" }
+
+        mex.completeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_ACK, mex.last)
+        return this
+    }
+
+    private fun sendPresentation(prover: Wallet, verifierDid: Did): PresentProofProtocolV3 {
+
+        val pcon = mex.getConnection()
+        val proverDid = pcon.myDid
+
+        val vpRequestMsg = mex.last.body as Message
+        mex.checkLastMessageType(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION)
+
+        var attachment = vpRequestMsg.attachments?.firstOrNull { at -> at.format == null || at.format == PRESENTATION_ATTACHMENT_FORMAT }
+        checkNotNull(attachment) { "No presentation attachment" }
+
+        val attachmentData = attachment.data.jsonData()
+        checkNotNull(attachmentData) { "No attachment data" }
+
+        // If this is already a VP, we assume that the presentation request
+        // already contains our proposal and that the verifier accepted it
+        val maybeVp = VerifiablePresentation.fromJson(attachmentData.encodeJson())
+
+        if (!maybeVp.isVerifiablePresentation) {
+
+            val templates = maybeVp.type.filter { it != "VerifiableCredential" }
+            check(templates.isNotEmpty()) { "No template from VC type: ${maybeVp.type}" }
+            check(templates.size == 1) { "Multiple VCs not supported: $templates" }
+
+            val unsignedVc = W3CVerifiableCredentialHelper.fromTemplate(
+                pathOrName = templates[0],
+                stripValues = false)
+
+            val signedVp = custodian.createPresentation(
+                vcs = listOf(unsignedVc),
+                holderDid = proverDid.uri,
+                verifierDid = verifierDid.uri,
+            )
+
+            val jsonData = Attachment.Data.Json.parse(mapOf("json" to signedVp.toJsonData()))
+            attachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
+                .format(PRESENTATION_ATTACHMENT_FORMAT)
+                .mediaType(JSON_MIME_TYPE)
+                .build()
+        }
+
+        val id = "${UUID.randomUUID()}"
+        val type = PRESENT_PROOF_MESSAGE_TYPE_PRESENTATION
+
+        val vpRequestMeta = RequestMetaData.fromMap(vpRequestMsg.toJSONObject())
+        val vpMeta = PresentationMetaData.Builder()
+            .goalCode(vpRequestMeta.goalCode)
+            .build()
+
+        val vpMsg = MessageBuilder(id, vpMeta.toMap(), type)
+            .thid(vpRequestMsg.id)
+            .to(listOf(verifierDid.uri))
+            .from(proverDid.uri)
+            .attachments(listOf(attachment))
+            .build()
+
+        mex.addMessage(EndpointMessage.Builder(vpMsg).outbound().build())
+        log.info { "Prover (${prover.name}) created presentation: ${vpMsg.encodeJson(true)}" }
+
+        dispatchEncryptedMessage(pcon, vpMsg) { packedEpm ->
+            log.info { "Prover (${prover.name}) sends presentation: ${packedEpm.prettyPrint()}" }
+        }
+
+        return this
     }
 
     private fun sendPresentationAck(verifier: Wallet, presentationEpm: EndpointMessage): PresentProofProtocolV3 {
@@ -341,65 +402,7 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         return this
     }
 
-    private fun receivePresentationRequest(prover: Wallet): PresentProofProtocolV3 {
-
-        val vpRequestMsg = mex.last.body as Message
-        mex.checkLastMessageType(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION)
-
-        log.info { "Prover (${prover.name}) received presentation request: ${vpRequestMsg.encodeJson(true)}" }
-
-        mex.placeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_ACK)
-
-        mex.completeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_REQUEST_PRESENTATION, mex.last)
-
-        val pcon = mex.getConnection()
-        val holderDid = pcon.theirDid
-
-        return sendPresentation(prover, holderDid)
-    }
-
-    private fun receivePresentationAck(prover: Wallet): PresentProofProtocolV3 {
-
-        val ackMsg = mex.last.body as Message
-        mex.checkLastMessageType(PRESENT_PROOF_MESSAGE_TYPE_ACK)
-
-        log.info { "Prover (${prover.name}) received presentation ack: ${ackMsg.encodeJson(true)}" }
-
-        mex.completeEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_ACK, mex.last)
-        return this
-    }
-
     // Types -----------------------------------------------------------------------------------------------------------
-
-    data class PreviewAttribute(
-        /**
-         * Mandatory "name" key maps to the attribute name as a string
-         */
-        val name: String,
-
-        /**
-         * The mandatory value holds the attribute value:
-         *
-         * If media_type is missing (null), then value is a string.
-         *
-         * If media_type is not null, then value is always a base64url-encoded string that represents a binary BLOB,
-         *   and media_type tells how to interpret the BLOB after base64url-decoding.
-         */
-        val value: Any,
-
-        /**
-         * Optional media_type advises the issuer how to render a binary attribute,
-         * to judge its content for applicability before issuing a credential containing it.
-         */
-        @SerializedName("media_type")
-        val mediaType: String? = null,
-    ) {
-        companion object {
-            fun fromJson(json: String): PreviewAttribute {
-                return gson.fromJson(json, PreviewAttribute::class.java)
-            }
-        }
-    }
 
     data class ProposalMetaData(
 
@@ -462,22 +465,22 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         val willConfirm: Boolean,
     ) {
         companion object {
-
-            fun fromMap(body: Map<String, Any?>): RequestMetaData {
-                val builder = Builder()
-                body["goal_code"]?.also { builder.goalCode(it as String) }
-                body["comment"]?.also { builder.comment(it as String) }
-                body["will_confirm"]?.also { builder.willConfirm("$it".toBoolean()) }
-                return builder.build()
-            }
+            fun fromMap(body: Map<String, Any?>) = Builder(body).build()
         }
 
         fun toMap() = encodeJson().decodeJson()
 
-        class Builder {
+        class Builder(body: Map<String, Any?> = mapOf()) {
+
             private var goalCode: String? = null
             private var comment: String? = null
             private var willConfirm: Boolean = false
+
+            init {
+                body["goal_code"]?.also { goalCode(it as String) }
+                body["comment"]?.also { comment(it as String) }
+                body["will_confirm"]?.also { willConfirm("$it".toBoolean()) }
+            }
 
             fun goalCode(goalCode: String?) = apply { this.goalCode = goalCode }
             fun comment(comment: String?) = apply { this.comment = comment }
@@ -526,5 +529,4 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
             }
         }
     }
-
 }

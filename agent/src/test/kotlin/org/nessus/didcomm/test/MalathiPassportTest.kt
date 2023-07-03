@@ -97,15 +97,15 @@ class MalathiPassportTest: AbstractAgentTest() {
                 .withConnection(malathiAirCon)
                 .withProtocol(PRESENT_PROOF_PROTOCOL_V3)
                 .sendPresentationProposal(
-                    verifierDid = airportDid,
                     prover = malathi,
+                    verifierDid = airportDid,
                     vcs = listOf(vc)
                 )
                 .awaitPresentationRequest(malathi, airportDid)
                 .awaitPresentationAck(malathi, airportDid)
                 .getMessageExchange()
 
-            val vp = malathi.findVerifiablePresentationsByType("Passport").first()
+            val vp = airport.findVerifiablePresentationsByType("Passport").first()
             val vpc = vp.verifiableCredential?.first()
             "${vpc?.credentialSubject?.id}" shouldBe malathiGovDid.uri
 

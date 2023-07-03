@@ -350,12 +350,13 @@ class PresentCredential: AbstractBaseCommand() {
                 .withConnection(pcon)
                 .withProtocol(PRESENT_PROOF_PROTOCOL_V3)
                 .sendPresentationProposal(
-                    verifierDid = verifierDid,
                     prover = prover,
+                    verifierDid = verifierDid,
                     vcs = vcs,
                     domain = domain,
                     challenge = challenge,
-                    expirationDate = null)
+                    expirationDate = null
+                )
                 .awaitPresentationRequest(prover, verifierDid)
                 .awaitPresentationAck(prover, verifierDid)
                 .getMessageExchange()
@@ -365,12 +366,13 @@ class PresentCredential: AbstractBaseCommand() {
         else {
             checkNotNull(verifier) { "No verifier wallet" }
             val vp = custodian.createPresentation(
-                vcs = vcs.toTypedArray(),
+                vcs = vcs,
                 holderDid = proverDid.uri,
                 verifierDid = verifierDid.uri,
                 domain = domain,
                 challenge = challenge,
-                expirationDate = null)
+                expirationDate = null
+            )
             prover.addVerifiableCredential(vp)
         }
 

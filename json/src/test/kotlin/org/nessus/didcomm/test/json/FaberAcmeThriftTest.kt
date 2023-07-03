@@ -23,7 +23,7 @@ import id.walt.credentials.w3c.VerifiableCredential
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.json.RpcContext
 import org.nessus.didcomm.json.model.ConnectionData
-import org.nessus.didcomm.json.model.CredentialData
+import org.nessus.didcomm.json.model.VCData
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.DidMethod
@@ -294,7 +294,7 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
     }
 
     private fun issueCredential(ctx: AttachmentContext, issuer: String, holder: String, template: String, subjectData: Map<String, Any>): VerifiableCredential {
-        val data = CredentialData(
+        val data = VCData(
             issuerId = ctx.wallet(issuer).id,
             holderId = ctx.wallet(holder).id,
             template = template,

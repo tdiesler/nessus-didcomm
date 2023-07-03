@@ -25,7 +25,7 @@ import kotlinx.serialization.json.Json
 import org.nessus.didcomm.json.AnyValueSerializer
 
 @Serializable
-data class CredentialData(
+data class VCData(
     val issuerId: String? = null,
     val holderId: String? = null,
     val template: String? = null,

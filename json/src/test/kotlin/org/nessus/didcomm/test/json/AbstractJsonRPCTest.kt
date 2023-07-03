@@ -25,9 +25,9 @@ import io.kotest.matchers.result.shouldBeSuccess
 import mu.KotlinLogging
 import org.nessus.didcomm.json.JsonRpcService
 import org.nessus.didcomm.json.model.ConnectionData
-import org.nessus.didcomm.json.model.CredentialData
 import org.nessus.didcomm.json.model.DidData
 import org.nessus.didcomm.json.model.InvitationData
+import org.nessus.didcomm.json.model.VCData
 import org.nessus.didcomm.json.model.WalletData
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.Did
@@ -114,7 +114,7 @@ abstract class AbstractJsonRPCTest : AnnotationSpec() {
     // endregion
 
     // region vc
-    fun issueCredential(data: CredentialData): VerifiableCredential {
+    fun issueCredential(data: VCData): VerifiableCredential {
         val path = "/vc/issue"
         val res = rpcService.dispatchRpcCommand(path, data.toJson())
         return res.shouldBeSuccess() as VerifiableCredential

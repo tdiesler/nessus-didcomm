@@ -46,9 +46,10 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // create VP
         val vp = custodian.createPresentation(
-            vcs = listOf(PresentableCredential(signedVc)),
+            vcs = listOf(signedVc),
             holderDid = holderDid.uri,
-            verifierDid = verifierDid.uri)
+            verifierDid = verifierDid.uri
+        )
 
         // verify VP
         val vr = auditor.verify(vp, listOf(
@@ -88,7 +89,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // create VP
         val vp = custodian.createPresentation(
-            vcs = listOf(PresentableCredential(signedVc)),
+            vcs = listOf(signedVc),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri,
             challenge = "1234",

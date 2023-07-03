@@ -31,7 +31,6 @@ import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
-import org.nessus.didcomm.util.Holder
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.toValueMap
 
@@ -41,34 +40,27 @@ import org.nessus.didcomm.util.toValueMap
  */
 class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
 
-    data class Context(
-        val faber: Wallet,
-        val alice: Wallet,
-    )
-
-    private val contextHolder = Holder<Context>()
-
     @BeforeAll
     fun startAgent() {
         startNessusEndpoint()
-        val faber = Wallet.Builder(Faber.name).build()
-        val alice = Wallet.Builder(Alice.name).build()
-        contextHolder.value = Context(faber = faber, alice = alice)
     }
 
-    @AfterAll
-    override fun stopAgent() {
-        val ctx = contextHolder.value!!
-        removeWallet(ctx.alice)
-        removeWallet(ctx.faber)
-        super.stopAgent()
+    @Before
+    fun beforeEach() {
+        Wallet.Builder(Faber.name).build()
+        Wallet.Builder(Alice.name).build()
+    }
+
+    @After
+    fun afterEach() {
+        removeWallets()
     }
 
     @Test
     fun issueCredential_FromProposal() {
 
-        val faber = contextHolder.value!!.faber
-        val alice = contextHolder.value!!.alice
+        val faber = walletByName(Faber.name)
+        val alice = walletByName(Alice.name)
 
         var issuerDid: Did?
         var holderDid: Did?
@@ -139,8 +131,8 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
     @Test
     fun issueCredential_FromOffer() {
 
-        val faber = contextHolder.value!!.faber
-        val alice = contextHolder.value!!.alice
+        val faber = walletByName(Faber.name)
+        val alice = walletByName(Alice.name)
 
         var issuerDid: Did?
         var holderDid: Did?

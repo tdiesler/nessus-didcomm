@@ -38,7 +38,10 @@ object WalletRpcHandler: AbstractRpcHandler() {
 
     fun listWallets(payload: String): List<Wallet> {
         val data = Json.decodeFromString<WalletData>(payload)
-        return walletService.findWallets(data.alias)
+        val wallets = walletService.wallets.toMutableList()
+        if (data.walletRole != null)
+            wallets.retainAll{ it.walletRole == data.walletRole }
+        return wallets
     }
 
     fun removeWallet(payload: String): Boolean {

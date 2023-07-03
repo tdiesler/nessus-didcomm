@@ -28,7 +28,6 @@ import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
-import org.nessus.didcomm.util.Holder
 
 /**
  * Nessus DIDComm: Trust Ping Protocol 2.0
@@ -36,40 +35,34 @@ import org.nessus.didcomm.util.Holder
  */
 class TrustPingV2ProtocolTest: AbstractAgentTest() {
 
-    data class Context(
-        val faber: Wallet,
-        val alice: Wallet,
-    )
-
-    private val contextHolder = Holder<Context>()
-
     @BeforeAll
     fun startAgent() {
         startNessusEndpoint()
-        val faber = Wallet.Builder(Faber.name).build()
-        val alice = Wallet.Builder(Alice.name).build()
-        contextHolder.value = Context(faber = faber, alice = alice)
     }
 
-    @AfterAll
-    override fun stopAgent() {
-        val ctx = contextHolder.value!!
-        removeWallet(ctx.alice)
-        removeWallet(ctx.faber)
-        super.stopAgent()
+    @Before
+    fun beforeEach() {
+        Wallet.Builder(Faber.name).build()
+        Wallet.Builder(Alice.name).build()
+    }
+
+    @After
+    fun afterEach() {
+        removeWallets()
     }
 
     @Test
     fun trustPing_DidKey() {
 
-        val ctx = contextHolder.value!!
+        val faber = walletByName(Faber.name)
+        val alice = walletByName(Alice.name)
 
         val mex = MessageExchange()
             .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
-            .createOutOfBandInvitation(ctx.faber)
+            .createOutOfBandInvitation(faber)
             .receiveOutOfBandInvitation(
-                inviterAlias = ctx.faber.name,
-                invitee = ctx.alice)
+                inviterAlias = faber.name,
+                invitee = alice)
 
             .withProtocol(TRUST_PING_PROTOCOL_V2)
             .sendTrustPing()
@@ -79,8 +72,8 @@ class TrustPingV2ProtocolTest: AbstractAgentTest() {
 
         val aliceFaber = mex.getConnection()
         aliceFaber.state shouldBe ACTIVE
-        aliceFaber.myLabel shouldBe ctx.alice.name
-        aliceFaber.theirLabel shouldBe ctx.faber.name
+        aliceFaber.myLabel shouldBe alice.name
+        aliceFaber.theirLabel shouldBe faber.name
 
         // Send an explicit trust ping
         MessageExchange()
@@ -89,10 +82,10 @@ class TrustPingV2ProtocolTest: AbstractAgentTest() {
             .awaitTrustPingResponse()
 
         // Send a reverse trust ping
-        val faberAlice = ctx.faber.findConnection{ it.myVerkey == aliceFaber.theirVerkey }
+        val faberAlice = faber.findConnection{ it.myVerkey == aliceFaber.theirVerkey }
         faberAlice?.state shouldBe ACTIVE
-        faberAlice?.myLabel shouldBe ctx.faber.name
-        faberAlice?.theirLabel shouldBe ctx.alice.name
+        faberAlice?.myLabel shouldBe faber.name
+        faberAlice?.theirLabel shouldBe alice.name
 
         MessageExchange()
             .withProtocol(TRUST_PING_PROTOCOL_V2)

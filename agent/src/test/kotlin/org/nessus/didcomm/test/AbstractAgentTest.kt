@@ -86,7 +86,7 @@ abstract class AbstractAgentTest: AnnotationSpec() {
     }
 
     @AfterAll
-    open fun stopAgent() {
+    open fun afterAll() {
         stopNessusEndpoint()
     }
 
@@ -126,8 +126,16 @@ abstract class AbstractAgentTest: AnnotationSpec() {
         effHandle?.also { endpointService.stopEndpoint(it) }
     }
 
+    fun walletByName(name: String): Wallet {
+        return walletService.findWallet(name) as Wallet
+    }
+
     fun removeWallets(vararg wallets: Wallet) {
-        wallets.forEach { removeWallet(it) }
+        if (wallets.isEmpty()) {
+            val allWallets = walletService.wallets
+            allWallets.forEach { removeWallet(it) }
+        } else
+            wallets.forEach { removeWallet(it) }
     }
 
     fun removeWallet(wallet: Wallet?) {

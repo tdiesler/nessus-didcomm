@@ -18,18 +18,20 @@ object NessusCustodianService: ObjectService<NessusCustodianService>() {
     private val jsonLdCredentialService = JsonLdCredentialService.getService()
 
     fun createPresentation(
-        vcs: Array<VerifiableCredential>,
+        vcs: List<VerifiableCredential>,
         holderDid: String,
         verifierDid: String? = null,
         domain: String? = null,
         challenge: String? = null,
         expirationDate: Instant? = null
     ): VerifiablePresentation {
-        return createPresentation(vcs.map { PresentableCredential(it) }, holderDid, verifierDid, domain, challenge, expirationDate)
+        return createSelectiveDisclosurePresentation(
+            vcs.map { PresentableCredential(it) },
+            holderDid, verifierDid, domain, challenge, expirationDate)
     }
 
-    fun createPresentation(
-        vcs: List<PresentableCredential>,
+    fun createSelectiveDisclosurePresentation(
+        pcs: List<PresentableCredential>,
         holderDid: String,
         verifierDid: String? = null,
         domain: String? = null,
@@ -38,23 +40,23 @@ object NessusCustodianService: ObjectService<NessusCustodianService>() {
     ): VerifiablePresentation {
 
         val vpJson = when {
-            vcs.stream().allMatch { it.isJwt } -> jwtCredentialService.present(
-                vcs,
+            pcs.all { it.isJwt } -> jwtCredentialService.present(
+                pcs,
                 holderDid,
                 verifierDid,
                 challenge,
                 expirationDate
             )
 
-            vcs.stream().noneMatch { it.isJwt } -> jsonLdCredentialService.present(
-                vcs,
+            pcs.none { it.isJwt } -> jsonLdCredentialService.present(
+                pcs,
                 holderDid,
                 domain,
                 challenge,
                 expirationDate
             )
 
-            else -> throw IllegalStateException("All verifiable credentials must be of the same proof type.")
+            else -> throw IllegalStateException("All presentable credentials must be of the same proof type.")
         }
 
         return VerifiablePresentation.fromJson(vpJson.trimJson())
