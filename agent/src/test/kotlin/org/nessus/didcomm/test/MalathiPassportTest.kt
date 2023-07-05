@@ -75,8 +75,8 @@ class MalathiPassportTest: AbstractAgentTest() {
                 .withConnection(malathiAirCon)
                 .withProtocol(ISSUE_CREDENTIAL_PROTOCOL_V3)
                 .sendCredentialProposal(
-                    issuerDid = govDid,
                     holder = malathi,
+                    issuerDid = govDid,
                     template = "Passport",
                     subjectData = """
                     {

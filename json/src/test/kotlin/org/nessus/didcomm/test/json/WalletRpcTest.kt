@@ -25,7 +25,7 @@ import org.nessus.didcomm.json.model.WalletData
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.WalletRole
 
-class WalletCommandsTest: AbstractJsonRPCTest() {
+class WalletRpcTest: AbstractJsonRpcTest() {
 
     @Test
     fun createFindRemoveWallet() {

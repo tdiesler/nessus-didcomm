@@ -34,8 +34,8 @@ import org.nessus.didcomm.util.toValueMap
 
 class AttachmentContext: RpcContext() {
 
-    fun connection(invtr: String, invee: String): Connection? {
-        return getAttachment("${invtr}_${invee}_Connection", Connection::class)
+    fun connection(invtr: String, invee: String): Connection {
+        return getAttachment("${invtr}_${invee}_Connection", Connection::class) as Connection
     }
 
     fun wallet(name: String): Wallet {
@@ -43,10 +43,10 @@ class AttachmentContext: RpcContext() {
     }
 }
 
-    /**
+/**
  * It should be possible to drive Nessus DIDComm entirely through JSON-RPC
  */
-class FaberAcmeThriftTest: AbstractJsonRPCTest() {
+class FaberAcmeThriftTest: AbstractJsonRpcTest() {
 
     @BeforeAll
     fun startAgent() {
@@ -157,7 +157,7 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
              * Faber create a new DID for Alice to use for this Peer Connection
              */
 
-            connectPeers(ctx, "Faber", "Alice")
+            val faberAliceCon = connectPeers(ctx, "Faber", "Alice")
 
             /*
              * Alice gets her Transcript from Faber College
@@ -178,7 +178,7 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
              * should not impress anyone.
              */
 
-            val vcTranscript = issueCredential(ctx,
+            issueCredential(ctx,
                 issuer = "Faber",
                 holder = "Alice",
                 template = "UniversityTranscript",
@@ -194,8 +194,8 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
                 }                
                 """.toValueMap())
 
-            val wasTranscripts = alice.findVerifiableCredentialsByType("UniversityTranscript")
-            wasTranscripts.first() shouldBe vcTranscript
+            val faberAliceTranscript = alice.findVerifiableCredentialsByType("UniversityTranscript")
+                .first { "${it.credentialSubject?.id}" == faberAliceCon.theirDid.uri }
 
             /*
              * Create a peer connection between Alice/Acme
@@ -204,7 +204,7 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
              *  Instead both parties create new DIDs that they use for their peer connection
              */
 
-            connectPeers(ctx, "Acme", "Alice")
+            val acmeAliceCon = connectPeers(ctx, "Acme", "Alice")
 
             /*
              * Alice applies for a job at Acme
@@ -294,9 +294,11 @@ class FaberAcmeThriftTest: AbstractJsonRPCTest() {
     }
 
     private fun issueCredential(ctx: AttachmentContext, issuer: String, holder: String, template: String, subjectData: Map<String, Any>): VerifiableCredential {
+        val pcon = ctx.connection(issuer, holder)
+        val holderDid = pcon.theirDid
         val data = VCData(
             issuerId = ctx.wallet(issuer).id,
-            holderId = ctx.wallet(holder).id,
+            holderDid = holderDid.uri,
             template = template,
             subjectData = subjectData)
         return issueCredential(data).also { vc ->

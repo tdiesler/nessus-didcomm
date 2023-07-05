@@ -181,8 +181,8 @@ abstract class Wallet(
         return connectionsInternal.firstOrNull(predicate)
     }
 
-    fun findReverseConnection(pcon: Connection): Connection? {
-        return connectionsInternal.firstOrNull { mc -> mc.myDid == pcon.theirDid && mc.theirDid == pcon.myDid }
+    fun findConnection(myDid: Did, theirDid: Did): Connection? {
+        return connectionsInternal.firstOrNull { mc -> mc.myDid == myDid && mc.theirDid == theirDid }
     }
 
     fun removeConnection(id: String) {

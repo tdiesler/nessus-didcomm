@@ -45,7 +45,7 @@ import org.nessus.didcomm.service.ServiceMatrixLoader
  * It should be possible to drive Nessus DIDComm entirely through JSON-RPC
  */
 @Suppress("MemberVisibilityCanBePrivate")
-abstract class AbstractJsonRPCTest : AnnotationSpec() {
+abstract class AbstractJsonRpcTest : AnnotationSpec() {
     val log = KotlinLogging.logger {}
 
     val rpcService get() = JsonRpcService.getService()

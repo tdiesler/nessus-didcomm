@@ -85,8 +85,8 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
 
             .withProtocol(ISSUE_CREDENTIAL_PROTOCOL_V3)
             .sendCredentialProposal(
-                issuerDid = issuerDid!!,
                 holder = alice,
+                issuerDid = issuerDid!!,
                 template = "UniversityTranscript",
                 subjectData = """
                 {
@@ -106,7 +106,6 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
             )
             .awaitCredentialOffer(alice, issuerDid!!)
             .awaitIssuedCredential(alice, issuerDid!!)
-
             .getMessageExchange()
 
         val pcon = mex.getConnection()
@@ -134,7 +133,6 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
         val faber = walletByName(Faber.name)
         val alice = walletByName(Alice.name)
 
-        var issuerDid: Did?
         var holderDid: Did?
 
         val mex = MessageExchange()
@@ -151,7 +149,6 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
                 val pcon = it.getConnection()
                 check(pcon.theirLabel == faber.name)
                 check(pcon.myLabel == alice.name)
-                issuerDid = pcon.theirDid
                 holderDid = pcon.myDid
             }
 
@@ -172,8 +169,7 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
                 }""".decodeJson()
             )
             .awaitCredentialRequest(faber, holderDid!!)
-            .awaitIssuedCredential(alice, issuerDid!!)
-
+            .awaitCredentialAck(faber, holderDid!!)
             .getMessageExchange()
 
         val pcon = mex.getConnection()

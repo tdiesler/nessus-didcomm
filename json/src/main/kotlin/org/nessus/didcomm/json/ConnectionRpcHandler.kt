@@ -34,13 +34,16 @@ object ConnectionRpcHandler: AbstractRpcHandler() {
         checkNotNull(data.inviteeId) { "No inviteeId" }
         val inviter = assertWallet(data.inviterId)
         val invitee = assertWallet(data.inviteeId)
-        val mex = MessageExchange()
+        val inviteeCon = MessageExchange()
             .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
             .createOutOfBandInvitation(inviter, didMethod = data.didMethod, options = data.options)
             .receiveOutOfBandInvitation(invitee, inviterAlias = inviter.name)
             .withProtocol(TRUST_PING_PROTOCOL_V2)
             .sendTrustPing()
             .awaitTrustPingResponse()
-        return mex.getConnection()
+            .getConnection()
+        val inviterCon = inviter.findConnection(inviteeCon.theirDid, inviteeCon.myDid)
+        checkNotNull(inviterCon) { "Cannot find inviter con for: $inviteeCon" }
+        return inviterCon
     }
 }

@@ -25,19 +25,19 @@ import org.nessus.didcomm.json.model.VCData
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
 
-object VerifiableCredentialRpcHandler: AbstractRpcHandler() {
+object VCRpcHandler: AbstractRpcHandler() {
 
     fun issueCredential(payload: String): VerifiableCredential {
         val data = Json.decodeFromString<VCData>(payload)
         checkNotNull(data.issuerId) { "No issuerId" }
-        checkNotNull(data.holderId) { "No holderId" }
+        checkNotNull(data.holderDid) { "No holderDid" }
         checkNotNull(data.template) { "No template" }
         checkNotNull(data.subjectData) { "No subjectData" }
         val issuer = assertWallet(data.issuerId)
-        val holder = assertWallet(data.holderId)
-        val issuerHolderCon = issuer.connections.first { ic -> holder.findReverseConnection(ic) != null }
-        val issuerDid = issuer.getDid(issuerHolderCon.myDid.uri)
-        val holderDid = holder.getDid(issuerHolderCon.theirDid.uri)
+        val issuerHolderCon = issuer.connections.firstOrNull { ic -> ic.theirDid.uri == data.holderDid }
+        checkNotNull(issuerHolderCon) { "Issuer ${issuer.name} has not connection to ${data.holderDid}" }
+        val issuerDid = issuerHolderCon.myDid
+        val holderDid = issuerHolderCon.theirDid
         MessageExchange()
             .withProtocol(ISSUE_CREDENTIAL_PROTOCOL_V3)
             .sendCredentialOffer(
@@ -47,9 +47,11 @@ object VerifiableCredentialRpcHandler: AbstractRpcHandler() {
                 subjectData = data.subjectData
             )
             .awaitCredentialRequest(issuer, holderDid)
-            .awaitIssuedCredential(holder, issuerDid)
+            .awaitCredentialAck(issuer, holderDid)
 
-        return holder.findVerifiableCredentialsByType(data.template)
-            .first { "${it.credentialSubject?.id}" == holderDid.uri }
+        val vc = issuer.findVerifiableCredentialsByType(data.template)
+            .firstOrNull { "${it.credentialSubject?.id}" == holderDid.uri }
+        checkNotNull(vc) { "Issuer ${issuer.name} has no ${data.template} credential for subject: ${holderDid.uri}" }
+        return vc
     }
 }

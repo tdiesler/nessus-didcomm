@@ -158,8 +158,8 @@ class ProposeCredential: AbstractBaseCommand() {
             .withAttachment(MessageExchange.CONNECTION_ATTACHMENT_KEY, pcon!!)
             .withProtocol(ISSUE_CREDENTIAL_PROTOCOL_V3)
             .sendCredentialProposal(
-                issuerDid = issuerDid,
                 holder = subject,
+                issuerDid = issuerDid,
                 template = template!!,
                 subjectData = inputData!!.toValueMap(),
                 options = """{ 

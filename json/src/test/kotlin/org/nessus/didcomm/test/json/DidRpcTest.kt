@@ -26,7 +26,7 @@ import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.WalletRole
 
-class DIDCommandsTest: AbstractJsonRPCTest() {
+class DidRpcTest: AbstractJsonRpcTest() {
 
     @Test
     fun createFindRemoveDid() {

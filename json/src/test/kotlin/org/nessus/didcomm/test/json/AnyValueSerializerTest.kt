@@ -20,12 +20,11 @@
 package org.nessus.didcomm.test.json
 
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.nessus.didcomm.json.AnyValueSerializer
 
-class AnyValueSerializerTest: AbstractJsonRPCTest() {
+class AnyValueSerializerTest: AbstractJsonRpcTest() {
 
     @Test
     fun testMapStringAny() {

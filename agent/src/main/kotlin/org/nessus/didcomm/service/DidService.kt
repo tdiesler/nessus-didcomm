@@ -124,7 +124,7 @@ object DidService: ObjectService<DidService>() {
 
     fun deleteDid(did: Did) {
         withPlugin(did.method).deleteDid(did)
-        serviceMapping.remove(did.uri)
+        removeServiceMapping(did.uri)
         if (hasDid(did.uri)) {
             WaltIdDidService.deleteDid(did.uri)
             keyStore.getKeyId(did.uri)?.also { keyStore.delete(it) }
@@ -177,7 +177,7 @@ object DidService: ObjectService<DidService>() {
             val didCommServices = endpointUrl?.let {
                 generateDidCommServices(uri, DidOptions(it))
             } ?: listOf()
-            putServiceMapping(uri, didCommServices)
+            addServiceMapping(uri, didCommServices)
         }
         return waltDidDoc?.let { toNessusDidDoc(it) }
     }
@@ -192,7 +192,7 @@ object DidService: ObjectService<DidService>() {
         val method = didMethod(didDoc.id)
         val encodedDoc = didDoc.encodeJson()
         val waltDidDoc = WaltIdDidDoc.decode(encodedDoc)
-        putServiceMapping(didDoc.id, didDoc.didCommServices)
+        addServiceMapping(didDoc.id, didDoc.didCommServices)
         return withPlugin(method).importDidDoc(waltDidDoc!!)
     }
 
@@ -215,7 +215,7 @@ object DidService: ObjectService<DidService>() {
             val did = Did(identifier, DidMethod.KEY, verkey)
 
             val didCommServices = generateDidCommServices(did.uri, options)
-            putServiceMapping(did.uri, didCommServices)
+            addServiceMapping(did.uri, didCommServices)
 
             val waltDidDoc = WaltIdDidService.resolve(did.uri)
             storeDid(waltDidDoc)
@@ -325,7 +325,7 @@ object DidService: ObjectService<DidService>() {
                     )
 
                     val didCommServices = generateDidCommServices(did.uri, options)
-                    putServiceMapping(did.uri,  didCommServices)
+                    addServiceMapping(did.uri,  didCommServices)
 
                     val didDoc = WaltIdDidDoc(
                         id = did.uri,
@@ -344,7 +344,7 @@ object DidService: ObjectService<DidService>() {
 
                     val did = didUriToDid(createPeerDIDNumalgo2(listOf(encryptionKey), listOf(signingKey), service.encodeJson()))
                     val sicpaDidDoc = SicpaDidDoc.fromJson(resolvePeerDID(did.uri))
-                    putServiceMapping(did.uri, sicpaDidDoc.didCommServices)
+                    addServiceMapping(did.uri, sicpaDidDoc.didCommServices)
 
                     val didDoc = WaltIdDidDoc.decode(fixupDidDoc(sicpaDidDoc))
                     Pair(did, didDoc)
@@ -380,7 +380,7 @@ object DidService: ObjectService<DidService>() {
         override fun resolveDidDoc(uri: String): WaltIdDidDoc? {
             val sicpaDidDoc = SicpaDidDoc.fromJson(resolvePeerDID(uri))
             if (getServiceEndpoint(sicpaDidDoc) != null)
-                putServiceMapping(uri, sicpaDidDoc.didCommServices)
+                addServiceMapping(uri, sicpaDidDoc.didCommServices)
             val peerDidDoc = fixupDidDoc(sicpaDidDoc)
             return WaltIdDidDoc.decode(peerDidDoc)
         }
@@ -395,7 +395,7 @@ object DidService: ObjectService<DidService>() {
 
             val sicpaDidDoc = SicpaDidDoc.fromJson(resolvePeerDID(did.uri))
             if (getServiceEndpoint(sicpaDidDoc) != null)
-                putServiceMapping(did.uri, sicpaDidDoc.didCommServices)
+                addServiceMapping(did.uri, sicpaDidDoc.didCommServices)
 
             // Generate WaltIdDidDoc
             val didDoc =  WaltIdDidDoc.decode(sicpaDidDoc.encodeJson())
@@ -462,7 +462,7 @@ object DidService: ObjectService<DidService>() {
             val did = Did(identifier, DidMethod.SOV, verkey)
 
             val didCommServices = generateDidCommServices(did.uri, options)
-            putServiceMapping(did.uri, didCommServices)
+            addServiceMapping(did.uri, didCommServices)
 
             val waltDidDoc = generateWaltIdDidDoc(did, pubkeyBytes)
             storeDid(waltDidDoc)
@@ -602,12 +602,22 @@ object DidService: ObjectService<DidService>() {
             verificationMethods)
     }
 
-    private fun putServiceMapping(uri: String, services: List<DIDCommService>) {
-        val existing = serviceMapping[uri]
-        if (existing != null && existing != services) {
-            log.warn { "Updating service mapping: $existing => $services" }
+    private fun addServiceMapping(uri: String, services: List<DIDCommService>) {
+        if (uri in serviceMapping) {
+            val existing = serviceMapping[uri]
+            if (existing != services) {
+                log.warn { "Update service mapping: $existing => $services" }
+                serviceMapping[uri] = services
+            }
+        } else {
+            log.debug { "Add service mapping: $uri => $services" }
+            serviceMapping[uri] = services
         }
-        serviceMapping[uri] = services
+    }
+
+    private fun removeServiceMapping(uri: String) {
+        val services = serviceMapping.remove(uri)
+        log.debug { "Removed service mapping: $uri => $services" }
     }
 
     private fun storePubkeyBytes(pubkeyBytes: ByteArray): KeyId {
@@ -654,7 +664,7 @@ object DidService: ObjectService<DidService>() {
 
         // All plugins are supposed to store the DIDCommService at create/import time
         val didCommServices = serviceMapping[docDoc.id]
-        checkNotNull(didCommServices) { "No services for ${docDoc.id}" }
+        checkNotNull(didCommServices) { "No services for ${docDoc.id}, we have: ${serviceMapping.keys}" }
 
         return DidDoc(
             docDoc.id,

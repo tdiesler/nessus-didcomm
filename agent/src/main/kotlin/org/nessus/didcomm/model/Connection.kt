@@ -42,6 +42,7 @@ class Connection(
         private val didService get() = DidService.getService()
     }
 
+    @Transient
     private var theirDidDoc: DidDoc? = null
 
     val alias get() = "${myLabel}_${theirLabel ?: "Anonymous"}"

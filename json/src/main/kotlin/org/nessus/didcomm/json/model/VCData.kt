@@ -27,7 +27,7 @@ import org.nessus.didcomm.json.AnyValueSerializer
 @Serializable
 data class VCData(
     val issuerId: String? = null,
-    val holderId: String? = null,
+    val holderDid: String? = null,
     val template: String? = null,
     val subjectData: Map<String, @Serializable(with = AnyValueSerializer::class) Any>? = null,
 ) {

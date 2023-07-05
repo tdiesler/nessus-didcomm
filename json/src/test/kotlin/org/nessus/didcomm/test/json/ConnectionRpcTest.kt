@@ -19,12 +19,12 @@
  */
 package org.nessus.didcomm.test.json
 
-import org.junit.jupiter.api.Assertions.assertEquals
+import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.json.model.ConnectionData
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.WalletRole
 
-class ConnectionCommandsTest: AbstractJsonRPCTest() {
+class ConnectionRpcTest: AbstractJsonRpcTest() {
 
     @BeforeAll
     fun startAgent() {
@@ -37,7 +37,9 @@ class ConnectionCommandsTest: AbstractJsonRPCTest() {
         val alice = createWallet("Alice")
         try {
             val pcon = createConnection(ConnectionData(faber.id, alice.id))
-            assertEquals(ConnectionState.ACTIVE, pcon.state)
+            pcon.state shouldBe ConnectionState.ACTIVE
+            pcon.theirLabel shouldBe alice.name
+            pcon.myLabel shouldBe faber.name
         } finally {
             removeWallets(alice, faber)
         }
