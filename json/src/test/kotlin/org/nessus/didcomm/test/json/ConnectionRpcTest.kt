@@ -20,7 +20,6 @@
 package org.nessus.didcomm.test.json
 
 import io.kotest.matchers.shouldBe
-import org.nessus.didcomm.json.model.ConnectionData
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.WalletRole
 
@@ -36,12 +35,12 @@ class ConnectionRpcTest: AbstractJsonRpcTest() {
         val faber = createWallet("Faber", WalletRole.ENDORSER)
         val alice = createWallet("Alice")
         try {
-            val pcon = createConnection(ConnectionData(faber.id, alice.id))
-            pcon.state shouldBe ConnectionState.ACTIVE
-            pcon.theirLabel shouldBe alice.name
-            pcon.myLabel shouldBe faber.name
+            val faberAliceCon = peerConnect(faber, alice)
+            faberAliceCon.state shouldBe ConnectionState.ACTIVE
+            faberAliceCon.theirLabel shouldBe alice.name
+            faberAliceCon.myLabel shouldBe faber.name
         } finally {
-            removeWallets(alice, faber)
+            removeWallets()
         }
     }
 

@@ -20,16 +20,20 @@
 package org.nessus.didcomm.test.json
 
 import id.walt.credentials.w3c.VerifiableCredential
+import id.walt.credentials.w3c.VerifiablePresentation
 import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.matchers.result.shouldBeSuccess
+import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
 import org.nessus.didcomm.json.JsonRpcService
 import org.nessus.didcomm.json.model.ConnectionData
 import org.nessus.didcomm.json.model.DidData
 import org.nessus.didcomm.json.model.InvitationData
 import org.nessus.didcomm.json.model.VCData
+import org.nessus.didcomm.json.model.VPData
 import org.nessus.didcomm.json.model.WalletData
 import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.Invitation
@@ -80,10 +84,19 @@ abstract class AbstractJsonRpcTest : AnnotationSpec() {
     // endregion
 
     // region connection
-    fun createConnection(data: ConnectionData): Connection {
+    fun peerConnect(inviter: Wallet, invitee: Wallet, reverse: Boolean = true): Connection {
         val path = "/connection/create"
+        val data = ConnectionData(inviter.id, invitee.id)
         val res = rpcService.dispatchRpcCommand(path, data.toJson())
-        return res.shouldBeSuccess() as Connection
+        val inviterCon = res.shouldBeSuccess() as Connection
+        inviterCon.state shouldBe ConnectionState.ACTIVE
+        if (reverse)
+            return inviterCon
+        check(inviterCon.theirLabel == invitee.name)
+        val inviterDid = inviterCon.myDid
+        val inviteeDid = inviterCon.theirDid
+        val inviteeCon = invitee.findConnection { it.myDid == inviteeDid && it.theirDid == inviterDid }
+        return checkNotNull(inviteeCon) { "No ${invitee.name}_${inviter.name} connection" }
     }
     // endregion
 
@@ -121,6 +134,14 @@ abstract class AbstractJsonRpcTest : AnnotationSpec() {
     }
     // endregion
 
+    // region vp
+    fun requestPresentation(data: VPData): VerifiablePresentation {
+        val path = "/vp/request"
+        val res = rpcService.dispatchRpcCommand(path, data.toJson())
+        return res.shouldBeSuccess() as VerifiablePresentation
+    }
+    // endregion
+
     // region wallet
     fun createWallet(alias: String, walletRole: WalletRole? = null): Wallet {
         return createWallet(WalletData(alias = alias, walletRole = walletRole))
@@ -133,7 +154,11 @@ abstract class AbstractJsonRpcTest : AnnotationSpec() {
     }
 
     fun removeWallets(vararg wallets: Wallet) {
-        wallets.forEach { removeWallet(it) }
+        if (wallets.isEmpty()) {
+            modelService.wallets.forEach { removeWallet(it) }
+        } else {
+            wallets.forEach { removeWallet(it) }
+        }
     }
 
     fun removeWallet(wallet: Wallet) {

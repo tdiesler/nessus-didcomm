@@ -53,11 +53,11 @@ object ModelService: ObjectService<ModelService>() {
     }
 
     fun findWalletByDid(uri: String): Wallet? {
-        return findWallet { it.findDid { d -> d.uri == uri } != null }
+        return findWallet { it.dids.any { d -> d.uri == uri }}
     }
 
     fun findWalletByVerkey(verkey: String): Wallet? {
-        return findWallet { it.findDid { d -> d.verkey == verkey } != null }
+        return findWallet { it.dids.any { d -> d.verkey == verkey }}
     }
 
     fun removeWallet(id: String): Wallet? {

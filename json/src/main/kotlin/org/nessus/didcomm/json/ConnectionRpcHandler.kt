@@ -43,7 +43,6 @@ object ConnectionRpcHandler: AbstractRpcHandler() {
             .awaitTrustPingResponse()
             .getConnection()
         val inviterCon = inviter.findConnection(inviteeCon.theirDid, inviteeCon.myDid)
-        checkNotNull(inviterCon) { "Cannot find inviter con for: $inviteeCon" }
-        return inviterCon
+        return checkNotNull(inviterCon) { "Cannot find inviter con for: $inviteeCon" }
     }
 }

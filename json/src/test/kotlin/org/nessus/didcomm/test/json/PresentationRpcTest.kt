@@ -20,13 +20,12 @@
 package org.nessus.didcomm.test.json
 
 import io.kotest.matchers.shouldBe
-import org.nessus.didcomm.json.model.ConnectionData
 import org.nessus.didcomm.json.model.VCData
-import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.json.model.VPData
 import org.nessus.didcomm.model.WalletRole
 import org.nessus.didcomm.util.toValueMap
 
-class VCRpcTest: AbstractJsonRpcTest() {
+class PresentationRpcTest: AbstractJsonRpcTest() {
 
     @BeforeAll
     fun startAgent() {
@@ -34,17 +33,17 @@ class VCRpcTest: AbstractJsonRpcTest() {
     }
 
     @Test
-    fun issueCredential() {
+    fun requestPresentation() {
         val faber = createWallet("Faber", WalletRole.ENDORSER)
+        val acme = createWallet("Acme", WalletRole.ENDORSER)
         val alice = createWallet("Alice")
         try {
-            val pcon = createConnection(ConnectionData(faber.id, alice.id))
-            pcon.state shouldBe ConnectionState.ACTIVE
-            pcon.theirLabel shouldBe alice.name
-            pcon.myLabel shouldBe faber.name
-            val holderDid = pcon.theirDid.uri
 
-            issueCredential(VCData(
+            val faberAliceCon = peerConnect(faber, alice)
+            val holderDid = faberAliceCon.theirDid.uri
+
+            issueCredential(
+                VCData(
                 issuerId = faber.id,
                 holderDid = holderDid,
                 template = "UniversityTranscript",
@@ -58,11 +57,22 @@ class VCRpcTest: AbstractJsonRpcTest() {
                   "year": "2015",
                   "average": "5"
                 }                
-                """.toValueMap()))
+                """.toValueMap())
+            )
 
-            val vc = alice.findVerifiableCredentialsByType("UniversityTranscript")
-                .first { "${it.credentialSubject?.id}" == holderDid }
+            val acmeAliceCon = peerConnect(acme, alice)
+            val proverDid = acmeAliceCon.theirDid.uri
 
+            requestPresentation(VPData(
+                verifierId = acme.id,
+                proverDid = proverDid,
+                template = "UniversityTranscript")
+            )
+
+            val vp = acme.findVerifiablePresentationsByType("UniversityTranscript")
+                .first { "${it.subjectId}" == proverDid }
+
+            val vc = vp.verifiableCredential!!.first()
             val subject = vc.credentialSubject!!
             val claims = subject.properties
             subject.id.toString() shouldBe holderDid
@@ -75,7 +85,7 @@ class VCRpcTest: AbstractJsonRpcTest() {
             claims["average"] shouldBe "5"
 
         } finally {
-            removeWallets(alice, faber)
+            removeWallets()
         }
     }
 

@@ -20,13 +20,11 @@
 package org.nessus.didcomm.test.json
 
 import id.walt.credentials.w3c.VerifiableCredential
-import io.kotest.matchers.shouldBe
+import id.walt.credentials.w3c.VerifiablePresentation
 import org.nessus.didcomm.json.RpcContext
-import org.nessus.didcomm.json.model.ConnectionData
 import org.nessus.didcomm.json.model.VCData
+import org.nessus.didcomm.json.model.VPData
 import org.nessus.didcomm.model.Connection
-import org.nessus.didcomm.model.ConnectionState
-import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.WalletRole
 import org.nessus.didcomm.util.toValueMap
@@ -97,10 +95,9 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
              * We call the process of establish a connection Onboarding.
              */
 
-            onboardWallet(ctx, "Faber", WalletRole.ENDORSER)
-            onboardWallet(ctx, "Acme", WalletRole.ENDORSER)
-            onboardWallet(ctx, "Thrift", WalletRole.ENDORSER)
-
+            val faber = onboardWallet(ctx, "Faber", WalletRole.ENDORSER)
+            val acme = onboardWallet(ctx, "Acme", WalletRole.ENDORSER)
+            val thrift = onboardWallet(ctx, "Thrift", WalletRole.ENDORSER)
             val alice = onboardWallet(ctx, "Alice", WalletRole.USER)
 
             /*
@@ -157,7 +154,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
              * Faber create a new DID for Alice to use for this Peer Connection
              */
 
-            val faberAliceCon = connectPeers(ctx, "Faber", "Alice")
+            val faberAliceCon = peerConnect(ctx, "Faber", "Alice")
 
             /*
              * Alice gets her Transcript from Faber College
@@ -194,7 +191,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
                 }                
                 """.toValueMap())
 
-            val faberAliceTranscript = alice.findVerifiableCredentialsByType("UniversityTranscript")
+            alice.findVerifiableCredentialsByType("UniversityTranscript")
                 .first { "${it.credentialSubject?.id}" == faberAliceCon.theirDid.uri }
 
             /*
@@ -204,7 +201,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
              *  Instead both parties create new DIDs that they use for their peer connection
              */
 
-            val acmeAliceCon = connectPeers(ctx, "Acme", "Alice")
+            val acmeAliceCon = peerConnect(ctx, "Acme", "Alice")
 
             /*
              * Alice applies for a job at Acme
@@ -225,7 +222,13 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
              * the condition about the average mark or grades.
              */
 
-//        applyForJobWithAcme(ctx)
+            requestPresentation(ctx,
+                verifier = "Acme",
+                prover = "Alice",
+                template = "UniversityTranscript")
+
+            acme.findVerifiablePresentationsByType("UniversityTranscript")
+                .first { "${it.subjectId}" == acmeAliceCon.theirDid.uri }
 
             /*
              * Alice gets the job and hence receives a JobCertificate from Acme
@@ -282,14 +285,9 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
         }
     }
 
-    private fun connectPeers(ctx: AttachmentContext, invtr: String, invee: String): Connection {
-        val data = ConnectionData(
-            inviterId = ctx.wallet(invtr).id,
-            inviteeId = ctx.wallet(invee).id,
-            didMethod = DidMethod.PEER)
-        return createConnection(data).also { pcon ->
-            pcon.state shouldBe ConnectionState.ACTIVE
-            ctx.putAttachment("${invtr}_${invee}_Connection", Connection::class, pcon)
+    private fun peerConnect(ctx: AttachmentContext, inviter: String, invitee: String): Connection {
+        return peerConnect(ctx.wallet(inviter), ctx.wallet(invitee)).also { pcon ->
+            ctx.putAttachment("${inviter}_${invitee}_Connection", Connection::class, pcon)
         }
     }
 
@@ -303,6 +301,18 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
             subjectData = subjectData)
         return issueCredential(data).also { vc ->
             ctx.putAttachment("${issuer}_${holder}_${template}_VC", VerifiableCredential::class, vc)
+        }
+    }
+
+    private fun requestPresentation(ctx: AttachmentContext, verifier: String, prover: String, template: String): VerifiablePresentation {
+        val pcon = ctx.connection(verifier, prover)
+        val proverDid = pcon.theirDid
+        val data = VPData(
+            verifierId = ctx.wallet(verifier).id,
+            proverDid = proverDid.uri,
+            template = template)
+        return requestPresentation(data).also { vc ->
+            ctx.putAttachment("${prover}_${verifier}_${template}_VP", VerifiablePresentation::class, vc)
         }
     }
 

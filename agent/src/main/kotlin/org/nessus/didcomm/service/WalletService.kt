@@ -81,6 +81,10 @@ object WalletService: ObjectService<WalletService>() {
         }
     }
 
+    fun findWalletByDid(uri: String): Wallet? {
+        return modelService.findWalletByDid(uri)
+    }
+
     fun removeWallet(id: String): Boolean {
         val wallet = modelService.findWallet { it.id == id }
         if (wallet != null) {

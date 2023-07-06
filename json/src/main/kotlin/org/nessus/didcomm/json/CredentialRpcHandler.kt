@@ -25,7 +25,7 @@ import org.nessus.didcomm.json.model.VCData
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
 
-object VCRpcHandler: AbstractRpcHandler() {
+object CredentialRpcHandler: AbstractRpcHandler() {
 
     fun issueCredential(payload: String): VerifiableCredential {
         val data = Json.decodeFromString<VCData>(payload)
@@ -36,9 +36,9 @@ object VCRpcHandler: AbstractRpcHandler() {
         val issuer = assertWallet(data.issuerId)
         val issuerHolderCon = issuer.connections.firstOrNull { ic -> ic.theirDid.uri == data.holderDid }
         checkNotNull(issuerHolderCon) { "Issuer ${issuer.name} has not connection to ${data.holderDid}" }
-        val issuerDid = issuerHolderCon.myDid
         val holderDid = issuerHolderCon.theirDid
         MessageExchange()
+            .withConnection(issuerHolderCon)
             .withProtocol(ISSUE_CREDENTIAL_PROTOCOL_V3)
             .sendCredentialOffer(
                 issuer = issuer,

@@ -21,17 +21,15 @@ package org.nessus.didcomm.test.protocol
 
 import id.walt.credentials.w3c.VerifiablePresentation
 import io.kotest.matchers.shouldBe
-import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.W3CVerifiableCredentialHelper
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.service.OUT_OF_BAND_PROTOCOL_V2
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
-import org.nessus.didcomm.service.PropertiesService
-import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 import org.nessus.didcomm.test.AbstractAgentTest
+import org.nessus.didcomm.test.Acme
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
+import org.nessus.didcomm.util.decodeJson
 
 /**
  * WACI DIDComm: Present Proof Protocol 3.0
@@ -47,6 +45,7 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
     @Before
     fun beforeEach() {
         Wallet.Builder(Faber.name).build()
+        Wallet.Builder(Acme.name).build()
         Wallet.Builder(Alice.name).build()
     }
 
@@ -61,8 +60,28 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
         val faber = walletByName(Faber.name)
         val alice = walletByName(Alice.name)
 
-        var verifierDid: Did?
-        var proverDid: Did?
+        val faberAliceCon = peerConnect(faber, alice)
+        val holderDid = faberAliceCon.theirDid
+
+        issueCredential(
+            issuer = faber,
+            holderDid = holderDid,
+            template = "UniversityTranscript",
+            subjectData = """
+            {
+                "givenName": "Alice",
+                "familyName": "Garcia",
+                "ssn": "123-45-6789",
+                "degree": "Bachelor of Science, Marketing",
+                "status": "graduated",
+                "year": "2015",
+                "average": "5"
+            }""".decodeJson())
+
+        val acme = walletByName(Acme.name)
+        val acmeAliceCon = peerConnect(acme, alice)
+        val verifierDid = acmeAliceCon.myDid
+        val proverDid = acmeAliceCon.theirDid
 
         val unsignedVc = W3CVerifiableCredentialHelper.fromTemplate(
             pathOrName = "UniversityTranscript",
@@ -70,35 +89,19 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
         val unsignedVp = VerifiablePresentation.fromVerifiableCredential(unsignedVc)
 
         MessageExchange()
-            .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
-            .createOutOfBandInvitation(faber)
-            .receiveOutOfBandInvitation(alice, inviterAlias = faber.name)
-
-            .withProperty(PropertiesService.PROTOCOL_TRUST_PING_ROTATE_DID, false)
-            .withProtocol(TRUST_PING_PROTOCOL_V2)
-            .sendTrustPing()
-            .awaitTrustPingResponse()
-
-            .also {
-                val pcon = it.getConnection()
-                check(pcon.theirLabel == faber.name)
-                check(pcon.myLabel == alice.name)
-                verifierDid = pcon.theirDid
-                proverDid = pcon.myDid
-            }
-
+            .withConnection(acmeAliceCon)
             .withProtocol(PRESENT_PROOF_PROTOCOL_V3)
             .sendPresentationRequest(
-                verifier = faber,
-                proverDid = proverDid!!,
+                verifier = acme,
+                proverDid = proverDid,
                 vp = unsignedVp,
                 options = mapOf("goal_code" to "Verify University Transcript")
             )
-            .awaitPresentation(faber, proverDid!!)
-            .awaitPresentationAck(alice, verifierDid!!)
+            .awaitPresentation(acme, proverDid)
+            .awaitPresentationAck(alice, verifierDid)
             .getMessageExchange()
 
-        val vp = faber.findVerifiablePresentationsByType("UniversityTranscript").first()
+        val vp = acme.findVerifiablePresentationsByType("UniversityTranscript").first()
         val vc = vp.verifiableCredential!!.first()
 
         val subject = vc.credentialSubject!!
@@ -118,43 +121,46 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
         val faber = walletByName(Faber.name)
         val alice = walletByName(Alice.name)
 
-        var verifierDid: Did?
-        var proverDid: Did?
+        val faberAliceCon = peerConnect(faber, alice)
+        val holderDid = faberAliceCon.theirDid
+
+        issueCredential(
+            issuer = faber,
+            holderDid = holderDid,
+            template = "UniversityTranscript",
+            subjectData = """
+            {
+                "givenName": "Alice",
+                "familyName": "Garcia",
+                "ssn": "123-45-6789",
+                "degree": "Bachelor of Science, Marketing",
+                "status": "graduated",
+                "year": "2015",
+                "average": "5"
+            }""".decodeJson())
+
+        val acme = walletByName(Acme.name)
+        val aliceAcmeCon = peerConnect(acme, alice, true)
+        val verifierDid = aliceAcmeCon.theirDid
 
         val unsignedVc = W3CVerifiableCredentialHelper.fromTemplate(
             pathOrName = "UniversityTranscript",
             stripValues = false)
 
         MessageExchange()
-            .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
-            .createOutOfBandInvitation(faber)
-            .receiveOutOfBandInvitation(alice, inviterAlias = faber.name)
-
-            .withProperty(PropertiesService.PROTOCOL_TRUST_PING_ROTATE_DID, false)
-            .withProtocol(TRUST_PING_PROTOCOL_V2)
-            .sendTrustPing()
-            .awaitTrustPingResponse()
-
-            .also {
-                val pcon = it.getConnection()
-                check(pcon.theirLabel == faber.name)
-                check(pcon.myLabel == alice.name)
-                verifierDid = pcon.theirDid
-                proverDid = pcon.myDid
-            }
-
+            .withConnection(aliceAcmeCon)
             .withProtocol(PRESENT_PROOF_PROTOCOL_V3)
             .sendPresentationProposal(
                 prover = alice,
-                verifierDid = verifierDid!!,
+                verifierDid = verifierDid,
                 vcs = listOf(unsignedVc),
                 options = mapOf("goal_code" to "Verify University Transcript")
             )
-            .awaitPresentationRequest(alice, verifierDid!!)
-            .awaitPresentationAck(alice, verifierDid!!)
+            .awaitPresentationRequest(alice, verifierDid)
+            .awaitPresentationAck(alice, verifierDid)
             .getMessageExchange()
 
-        val vp = faber.findVerifiablePresentationsByType("UniversityTranscript").first()
+        val vp = acme.findVerifiablePresentationsByType("UniversityTranscript").first()
         val vc = vp.verifiableCredential!!.first()
 
         val subject = vc.credentialSubject!!

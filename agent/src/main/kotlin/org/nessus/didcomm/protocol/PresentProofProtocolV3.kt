@@ -31,7 +31,6 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.MessageExchange
-import org.nessus.didcomm.model.W3CVerifiableCredentialHelper
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.isVerifiablePresentation
 import org.nessus.didcomm.model.toJsonData
@@ -334,14 +333,15 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
 
             val templates = maybeVp.type.filter { it != "VerifiableCredential" }
             check(templates.isNotEmpty()) { "No template from VC type: ${maybeVp.type}" }
-            check(templates.size == 1) { "Multiple VCs not supported: $templates" }
+            check(templates.size == 1) { "Multiple VC types not supported: $templates" }
+            val template = templates[0]
 
-            val unsignedVc = W3CVerifiableCredentialHelper.fromTemplate(
-                pathOrName = templates[0],
-                stripValues = false)
+            val vcs = prover.findVerifiableCredentialsByType(template)
+            check(vcs.isNotEmpty()) { "Prover ${prover.name} holds no credential of type: $template" }
+            check(vcs.size == 1) { "Prover ${prover.name} holds multiple credentials of type: $template" }
 
             val signedVp = custodian.createPresentation(
-                vcs = listOf(unsignedVc),
+                vcs = listOf(vcs[0]),
                 holderDid = proverDid.uri,
                 verifierDid = verifierDid.uri,
             )

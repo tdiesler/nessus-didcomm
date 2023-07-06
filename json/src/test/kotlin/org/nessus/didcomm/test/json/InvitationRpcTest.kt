@@ -53,7 +53,7 @@ class InvitationRpcTest: AbstractJsonRpcTest() {
             assertEquals(invitationC.goal, "some_goal")
             assertEquals(invitationC.goalCode, "some_goal_code")
         } finally {
-            removeWallets(faber)
+            removeWallets()
         }
     }
 

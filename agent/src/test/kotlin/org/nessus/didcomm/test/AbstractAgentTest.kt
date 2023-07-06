@@ -22,11 +22,17 @@ package org.nessus.didcomm.test
 import id.walt.credentials.w3c.templates.VcTemplateService
 import id.walt.services.keystore.KeyStoreService
 import io.kotest.core.spec.style.AnnotationSpec
+import io.kotest.matchers.shouldBe
+import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.ConnectionState
+import org.nessus.didcomm.model.Did
+import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.NessusWalletPlugin
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.DidCommService
 import org.nessus.didcomm.service.DidService
 import org.nessus.didcomm.service.EndpointService
+import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
 import org.nessus.didcomm.service.MessageDispatchService
 import org.nessus.didcomm.service.MessageReceiver
 import org.nessus.didcomm.service.MessageReceiverService
@@ -36,8 +42,11 @@ import org.nessus.didcomm.service.NessusCryptoService
 import org.nessus.didcomm.service.NessusCustodianService
 import org.nessus.didcomm.service.NessusPolicyRegistryService
 import org.nessus.didcomm.service.NessusSignatoryService
+import org.nessus.didcomm.service.OUT_OF_BAND_PROTOCOL_V2
+import org.nessus.didcomm.service.PropertiesService
 import org.nessus.didcomm.service.SecretResolverService
 import org.nessus.didcomm.service.ServiceMatrixLoader
+import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 import org.nessus.didcomm.service.WalletService
 import org.nessus.didcomm.util.encodeHex
 
@@ -126,14 +135,50 @@ abstract class AbstractAgentTest: AnnotationSpec() {
         effHandle?.also { endpointService.stopEndpoint(it) }
     }
 
+    fun peerConnect(inviter: Wallet, invitee: Wallet, reverse: Boolean = false): Connection {
+        val inviteeCon = MessageExchange()
+            .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
+            .createOutOfBandInvitation(inviter)
+            .receiveOutOfBandInvitation(invitee, inviterAlias = inviter.name)
+            .withProperty(PropertiesService.PROTOCOL_TRUST_PING_ROTATE_DID, false)
+            .withProtocol(TRUST_PING_PROTOCOL_V2)
+            .sendTrustPing()
+            .awaitTrustPingResponse()
+            .getConnection()
+
+        inviteeCon.state shouldBe ConnectionState.ACTIVE
+        if (reverse)
+            return inviteeCon
+
+        check(inviteeCon.theirLabel == inviter.name)
+        val inviterDid = inviteeCon.theirDid
+        val inviteeDid = inviteeCon.myDid
+        val inviterCon = inviter.findConnection { it.myDid == inviterDid && it.theirDid == inviteeDid }
+        return checkNotNull(inviterCon) { "No ${inviter.name}_${invitee.name} connection" }
+    }
+
+    fun issueCredential(issuer: Wallet, holderDid: Did, template: String, subjectData: Map<String, Any?>) {
+        val pcon = issuer.findConnection { it.theirDid == holderDid }
+        checkNotNull(pcon) { "Issuer '${issuer.name}' has no connection with: $holderDid" }
+        MessageExchange()
+            .withConnection(pcon)
+            .withProtocol(ISSUE_CREDENTIAL_PROTOCOL_V3)
+            .sendCredentialOffer(
+                issuer = issuer,
+                holderDid = holderDid,
+                template = template,
+                subjectData = subjectData)
+            .awaitCredentialRequest(issuer, holderDid)
+            .awaitCredentialAck(issuer, holderDid)
+    }
+
     fun walletByName(name: String): Wallet {
         return walletService.findWallet(name) as Wallet
     }
 
     fun removeWallets(vararg wallets: Wallet) {
         if (wallets.isEmpty()) {
-            val allWallets = walletService.wallets
-            allWallets.forEach { removeWallet(it) }
+            walletService.wallets.forEach { removeWallet(it) }
         } else
             wallets.forEach { removeWallet(it) }
     }
