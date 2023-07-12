@@ -237,16 +237,30 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
              * JobCertificate credential can be revoked by Acme
              */
 
-//        getJobWithAcme(ctx)
+            issueCredential(ctx,
+                issuer = "Acme",
+                holder = "Alice",
+                template = "JobCertificate",
+                subjectData = """
+                {
+                  "givenName": "Alice",
+                  "familyName": "Garcia",
+                  "employee_status": "permanent",
+                  "salary": "2500"
+                }                
+                """.toValueMap())
+
+            alice.findVerifiableCredentialsByType("JobCertificate")
+                .first { "${it.credentialSubject?.id}" == acmeAliceCon.theirDid.uri }
 
             /*
-             * Create a peer connection between Alice/Faber
+             * Create a peer connection between Alice/Thrift
              *
-             * Alice does not connect to Faber's public DID, Alice does not even have a public DID
+             * Alice does not connect to Thrift's public DID, Alice does not even have a public DID
              * Instead both parties create new DIDs that they use for their peer connection
              */
 
-//        connectPeers(ctx, Thrift, Alice)
+            val thriftAliceCon = peerConnect(ctx, "Thrift", "Alice")
 
             /*
              * Alice applies for a loan with Thrift Bank
@@ -256,7 +270,13 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
              * offered by Acme.
              */
 
-//        applyForLoanWithThrift(ctx, true)
+            requestPresentation(ctx,
+                verifier = "Thrift",
+                prover = "Alice",
+                template = "JobCertificate")
+
+            thrift.findVerifiablePresentationsByType("JobCertificate")
+                .first { "${it.subjectId}" == thriftAliceCon.theirDid.uri }
 
             /*
              * Thrift accepts the loan application and now requires KYC
@@ -265,7 +285,13 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
              * personal information with the bank.
              */
 
-//        kycProcessWithThrift(ctx)
+            requestPresentation(ctx,
+                verifier = "Thrift",
+                prover = "Alice",
+                template = "JobCertificate")
+
+            thrift.findVerifiablePresentationsByType("JobCertificate")
+                .first { "${it.subjectId}" == thriftAliceCon.theirDid.uri }
 
             /*
              * Alice decides to quit her job with Acme

@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "title": "University Transcript for a natural person",
+    "title": "Job Certificate for a natural person",
     "type": "object",
     "properties": {
         "@context": {
@@ -33,7 +33,7 @@
             },
             "additionalProperties": false
         },
-        "credentialSubject": { "$ref": "#/definitions/UniversityTranscript" },
+        "credentialSubject": { "$ref": "#/definitions/JobCertificate" },
         "evidence": {
             "type": "array",
             "items": {
@@ -132,7 +132,7 @@
     "additionalProperties": false,
 
     "definitions": {
-        "UniversityTranscript": {
+        "JobCertificate": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -145,35 +145,22 @@
                 "familyName": {
                     "type": "string"
                 },
-                "ssn": {
+                "employee_status": {
                     "type": "string"
                 },
-                "degree": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "year": {
-                    "type": "string",
-                    "format": "integer"
-                },
-                "average": {
+                "salary": {
                     "type": "string",
                     "format": "integer"
                 }
             },
             "required": [
-                "average",
-                "degree",
+                "id",
                 "familyName",
                 "givenName",
-                "id",
-                "ssn",
-                "status",
-                "year"
+                "employee_status",
+                "salary"
             ],
-            "title": "UniversityTranscript"
+            "title": "JobCertificate"
         }
     }
 }
