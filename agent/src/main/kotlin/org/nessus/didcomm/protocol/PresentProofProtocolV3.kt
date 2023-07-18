@@ -20,6 +20,7 @@
 package org.nessus.didcomm.protocol
 
 import com.google.gson.annotations.SerializedName
+import id.walt.auditor.VerificationPolicy
 import id.walt.common.prettyPrint
 import id.walt.credentials.w3c.VerifiableCredential
 import id.walt.credentials.w3c.VerifiablePresentation
@@ -31,6 +32,7 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.MessageExchange
+import org.nessus.didcomm.model.MessageExchange.Companion.PRESENTATION_ATTACHMENT_KEY
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.isVerifiablePresentation
 import org.nessus.didcomm.model.toJsonData
@@ -224,6 +226,18 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         return this
     }
 
+    fun verifyPresentation(verifier: Wallet, policies: List<VerificationPolicy>): PresentProofProtocolV3 {
+
+        val vp = mex.getAttachment(PRESENTATION_ATTACHMENT_KEY)
+        checkNotNull(vp) { "No attached presentation" }
+
+        // verify VP
+        val vr = auditor.verify(vp, policies)
+        check(vr.result) { "Verification failed" }
+
+        return this
+    }
+
     // Private ---------------------------------------------------------------------------------------------------------
 
     private fun receivePresentationProposal(verifier: Wallet): PresentProofProtocolV3 {
@@ -272,6 +286,7 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
 
         val vp = VerifiablePresentation.fromJson(attachmentData.encodeJson())
         check(vp.isVerifiablePresentation) { "Not a Verifiable Presentation: ${vp.type}" }
+        mex.putAttachment(PRESENTATION_ATTACHMENT_KEY, vp)
         verifier.addVerifiableCredential(vp)
 
         if (mex.hasEndpointMessageFuture(PRESENT_PROOF_MESSAGE_TYPE_PRESENTATION))

@@ -33,6 +33,7 @@ import org.nessus.didcomm.service.MessageDispatchService
 import org.nessus.didcomm.service.ModelService
 import org.nessus.didcomm.service.NessusAuditorService
 import org.nessus.didcomm.service.NessusCustodianService
+import org.nessus.didcomm.service.NessusPolicyRegistryService
 import org.nessus.didcomm.service.NessusSignatoryService
 import org.nessus.didcomm.service.PropertiesService
 import org.nessus.didcomm.service.ProtocolKey
@@ -54,6 +55,7 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     val dispatchService get() = MessageDispatchService.getService()
     val keyStore get() = KeyStoreService.getService()
     val modelService get() = ModelService.getService()
+    val policyService get() = NessusPolicyRegistryService.getService()
     val protocolService get() = ProtocolService.getService()
 
     abstract val supportedAgentTypes: List<AgentType>

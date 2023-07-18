@@ -30,6 +30,7 @@ import org.nessus.didcomm.test.Acme
 import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.test.Faber
 import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.trimJson
 
 /**
  * WACI DIDComm: Present Proof Protocol 3.0
@@ -88,6 +89,13 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
             stripValues = true)
         val unsignedVp = VerifiablePresentation.fromVerifiableCredential(unsignedVc)
 
+        // verification policy
+        val policy = policyService.getPolicyWithJsonArg("DynamicPolicy",
+            """{
+                "input": { "status": "graduated", "average": 4 },
+                "policy": "src/test/resources/rego/transcript-policy.rego"
+            }""".trimJson())
+
         MessageExchange()
             .withConnection(acmeAliceCon)
             .withProtocol(PRESENT_PROOF_PROTOCOL_V3)
@@ -98,6 +106,7 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
                 options = mapOf("goal_code" to "Verify University Transcript")
             )
             .awaitPresentation(acme, proverDid)
+            .verifyPresentation(acme, listOf(policy))
             .awaitPresentationAck(alice, verifierDid)
             .getMessageExchange()
 

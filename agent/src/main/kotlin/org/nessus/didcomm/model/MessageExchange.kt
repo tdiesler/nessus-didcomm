@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.model
 
+import id.walt.credentials.w3c.VerifiablePresentation
 import mu.KotlinLogging
 import org.didcommx.didcomm.message.Message
 import org.nessus.didcomm.protocol.OutOfBandProtocolV2.Companion.OUT_OF_BAND_MESSAGE_TYPE_INVITATION_V2
@@ -56,6 +57,7 @@ class MessageExchange(): AttachmentSupport() {
         val DID_ATTACHMENT_KEY = AttachmentKey(Did::class)
         val INVITATION_ATTACHMENT_KEY = AttachmentKey(Invitation::class)
         val WALLET_ATTACHMENT_KEY = AttachmentKey(Wallet::class)
+        val PRESENTATION_ATTACHMENT_KEY = AttachmentKey(VerifiablePresentation::class)
 
         // [TODO] MEMORY LEAK - evict outdated messages exchanges
         private val exchangeRegistry: MutableList<MessageExchange> = mutableListOf()

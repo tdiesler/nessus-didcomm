@@ -195,7 +195,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
                 .first { "${it.credentialSubject?.id}" == faberAliceCon.theirDid.uri }
 
             /*
-             * Create a peer connection between Alice/Acme
+             * Create a peer connection between Acme/Alice
              *
              *  Alice does not connect to Faber's public DID, Alice does not even have a public DID
              *  Instead both parties create new DIDs that they use for their peer connection
