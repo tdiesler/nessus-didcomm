@@ -32,7 +32,9 @@ class AnyValueSerializerTest: AbstractJsonRpcTest() {
             "name" to "John Doe",
             "age" to 30,
             "isStudent" to true,
-            "score" to 98.5
+            "score" to 98.5,
+            "subjects" to listOf("math", "physics", "poetry"),
+            "grades" to mapOf("math" to "A+", "physics" to "A", "poetry" to "B+"),
         )
 
         val json = Json.encodeToString(exp)

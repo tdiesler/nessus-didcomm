@@ -25,6 +25,7 @@ import org.nessus.didcomm.json.model.VPData
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.W3CVerifiableCredentialHelper
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
+import org.nessus.didcomm.util.encodeJson
 
 object PresentationRpcHandler: AbstractRpcHandler() {
 
@@ -45,6 +46,11 @@ object PresentationRpcHandler: AbstractRpcHandler() {
             stripValues = true)
         val unsignedVp = VerifiablePresentation.fromVerifiableCredential(unsignedVc)
 
+        val policies = data.policies?.map {
+            val params = it.params.encodeJson()
+            policyService.getPolicyWithJsonArg(it.name, params)
+        }
+
         val mex = MessageExchange()
             .withProtocol(PRESENT_PROOF_PROTOCOL_V3)
             .sendPresentationRequest(
@@ -54,12 +60,17 @@ object PresentationRpcHandler: AbstractRpcHandler() {
                 options = data.options
             )
             .awaitPresentation(verifier, proverDid)
-            .also { ptcl -> prover?.also { ptcl.awaitPresentationAck(prover, verifierDid) }}
+            .also { ptcl ->
+                if (policies != null) {
+                    ptcl.verifyPresentation(verifier, policies)
+                }
+                if (prover != null)
+                    ptcl.awaitPresentationAck(prover, verifierDid)
+            }
             .getMessageExchange()
 
         modelService.findWalletByDid(proverDid.uri)?.also {
-            mex            .withProtocol(PRESENT_PROOF_PROTOCOL_V3)
-
+            mex.withProtocol(PRESENT_PROOF_PROTOCOL_V3)
         }
         val vp = verifier.findVerifiablePresentationsByType(data.template)
             .firstOrNull { vp -> vp.subjectId == proverDid.uri }

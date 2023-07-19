@@ -29,6 +29,7 @@ data class VPData(
     val verifierId: String? = null,
     val proverDid: String? = null,
     val template: String? = null,
+    val policies: List<PolicyData>? = null,
     /**
      * Supported options
      * -----------------
@@ -43,3 +44,9 @@ data class VPData(
 
     fun toJson() = Json.encodeToString(this)
 }
+
+@Serializable
+data class PolicyData(
+    val name: String,
+    val params: Map<String, @Serializable(with = AnyValueSerializer::class) Any> = emptyMap(),
+)

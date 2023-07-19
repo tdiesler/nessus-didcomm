@@ -22,6 +22,7 @@ package org.nessus.didcomm.test.json
 import id.walt.credentials.w3c.VerifiableCredential
 import id.walt.credentials.w3c.VerifiablePresentation
 import org.nessus.didcomm.json.RpcContext
+import org.nessus.didcomm.json.model.PolicyData
 import org.nessus.didcomm.json.model.VCData
 import org.nessus.didcomm.json.model.VPData
 import org.nessus.didcomm.model.Connection
@@ -225,7 +226,14 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
             requestPresentation(ctx,
                 verifier = "Acme",
                 prover = "Alice",
-                template = "UniversityTranscript")
+                template = "UniversityTranscript",
+                policies = listOf(PolicyData(
+                    name = "DynamicPolicy",
+                    params = """{
+                        "input": { "status": "graduated", "average": 4 },
+                        "policy": "src/test/resources/rego/transcript-policy.rego"
+                    }""".toValueMap()))
+                )
 
             acme.findVerifiablePresentationsByType("UniversityTranscript")
                 .first { "${it.subjectId}" == acmeAliceCon.theirDid.uri }
@@ -273,7 +281,15 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
             requestPresentation(ctx,
                 verifier = "Thrift",
                 prover = "Alice",
-                template = "JobCertificate")
+                template = "JobCertificate",
+                policies = listOf(
+                    PolicyData(
+                        name = "DynamicPolicy",
+                        params = """{
+                        "input": { "employee_status": "permanent", "salary": 2000 },
+                        "policy": "src/test/resources/rego/job-certificate-policy.rego"
+                    }""".toValueMap()))
+            )
 
             thrift.findVerifiablePresentationsByType("JobCertificate")
                 .first { "${it.subjectId}" == thriftAliceCon.theirDid.uri }
@@ -330,13 +346,20 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
         }
     }
 
-    private fun requestPresentation(ctx: AttachmentContext, verifier: String, prover: String, template: String): VerifiablePresentation {
+    private fun requestPresentation(
+        ctx: AttachmentContext,
+        verifier: String,
+        prover: String,
+        template: String,
+        policies: List<PolicyData> = emptyList()
+    ): VerifiablePresentation {
         val pcon = ctx.connection(verifier, prover)
         val proverDid = pcon.theirDid
         val data = VPData(
             verifierId = ctx.wallet(verifier).id,
             proverDid = proverDid.uri,
-            template = template)
+            template = template,
+            policies = policies)
         return requestPresentation(data).also { vc ->
             ctx.putAttachment("${prover}_${verifier}_${template}_VP", VerifiablePresentation::class, vc)
         }

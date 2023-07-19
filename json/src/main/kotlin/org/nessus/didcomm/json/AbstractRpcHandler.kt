@@ -22,13 +22,15 @@ package org.nessus.didcomm.json
 import mu.KotlinLogging
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.ModelService
+import org.nessus.didcomm.service.NessusPolicyRegistryService
 import org.nessus.didcomm.service.WalletService
 
 abstract class AbstractRpcHandler {
     val log = KotlinLogging.logger {}
 
-    val walletService get() = WalletService.getService()
     val modelService get() = ModelService.getService()
+    val policyService get() = NessusPolicyRegistryService.getService()
+    val walletService get() = WalletService.getService()
 
     fun assertWallet(id: String): Wallet {
         return walletService.getWallet(id)

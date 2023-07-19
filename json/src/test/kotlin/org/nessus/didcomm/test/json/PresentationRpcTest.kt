@@ -20,6 +20,7 @@
 package org.nessus.didcomm.test.json
 
 import io.kotest.matchers.shouldBe
+import org.nessus.didcomm.json.model.PolicyData
 import org.nessus.didcomm.json.model.VCData
 import org.nessus.didcomm.json.model.VPData
 import org.nessus.didcomm.model.WalletRole
@@ -66,7 +67,13 @@ class PresentationRpcTest: AbstractJsonRpcTest() {
             requestPresentation(VPData(
                 verifierId = acme.id,
                 proverDid = proverDid,
-                template = "UniversityTranscript")
+                template = "UniversityTranscript",
+                policies = listOf(PolicyData(
+                    name = "DynamicPolicy",
+                    params = """{
+                        "input": { "status": "graduated", "average": 4 },
+                        "policy": "src/test/resources/rego/transcript-policy.rego"
+                    }""".toValueMap())))
             )
 
             val vp = acme.findVerifiablePresentationsByType("UniversityTranscript")
