@@ -83,9 +83,7 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
         val verifierDid = acmeAliceCon.myDid
         val proverDid = acmeAliceCon.theirDid
 
-        val unsignedVc = W3CVerifiableCredential.fromTemplate(
-            pathOrName = "UniversityTranscript",
-            stripValues = true)
+        val unsignedVc = W3CVerifiableCredential.fromTemplate("UniversityTranscript")
 
         // verification policy
         val policy = policyService.getPolicyWithJsonArg("DynamicPolicy",

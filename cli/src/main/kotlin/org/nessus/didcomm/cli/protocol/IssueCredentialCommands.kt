@@ -260,13 +260,13 @@ class IssueCredential: AbstractBaseCommand() {
             return 1
         }
 
-        val proofConfig = ProofConfig(
+        val config = ProofConfig(
             issuerDid = issuerDid.uri,
             subjectDid = holderDid.uri,
             proofPurpose = proofPurpose,
             proofType = proofType!!)
 
-        val signedVc = signatory.issue(vc, proofConfig, false)
+        val signedVc = signatory.issue(vc, config)
         holder.addVerifiableCredential(signedVc)
 
         echo("Issuer '${issuer.name}' issued a '$template' to holder '${holder.name}'")

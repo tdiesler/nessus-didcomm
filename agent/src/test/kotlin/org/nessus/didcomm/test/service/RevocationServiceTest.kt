@@ -21,20 +21,12 @@ package org.nessus.didcomm.test.service
 
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
-import id.walt.signatory.revocation.RevocationResult
-import id.walt.signatory.revocation.StatusListEntryFactory
-import id.walt.signatory.revocation.StatusListEntryFactoryParameter
-import id.walt.signatory.revocation.statuslist2021.StatusListCredentialStorageService
-import id.walt.signatory.revocation.statuslist2021.StatusListIndexService
-import io.ktor.http.*
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import org.nessus.didcomm.model.CredentialStatus
+import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.W3CVerifiableCredential
-import org.nessus.didcomm.model.toWaltIdType
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.decodeJson
+import java.util.UUID
 
 class RevocationServiceTest: AbstractAgentTest() {
 
@@ -43,21 +35,19 @@ class RevocationServiceTest: AbstractAgentTest() {
 
         val issuerDid = didService.createDid(DidMethod.KEY)
         val holderDid = didService.createDid(DidMethod.KEY)
-        val verifierDid = didService.createDid(DidMethod.KEY)
 
         val config = ProofConfig(
             issuerDid = issuerDid.uri,
             subjectDid = holderDid.uri,
             proofPurpose = "assertionMethod",
-            // [TODO] signatoryConfig.proofConfig.credentialsEndpoint
-            credentialsEndpoint = "https://example.com/credentials/status",
+            credentialsEndpoint = "https://example.edu/credential",
             proofType = ProofType.LD_PROOF)
 
         val vc = W3CVerifiableCredential.Builder
             .fromTemplate(
-                "JobCertificate",
-                true,
-                """{
+                pathOrName = "JobCertificate",
+                subjectData = """{
+                    "id": "uri:uuid:${UUID.randomUUID()}",
                     "issuer": "${issuerDid.uri}",
                     "credentialSubject": {
                         "id": "${holderDid.uri}",
@@ -67,34 +57,23 @@ class RevocationServiceTest: AbstractAgentTest() {
                         "salary": "2500"
                     }
                 }""".decodeJson())
-            .credentialStatus(statusListCredentialStatus(config))
+            .credentialStatus(revocationService.createStatus(config))
             .build()
             .validate()
 
         // Issue the job certificate
-        val signedVc = signatory.issue(vc, config, false)
+        val signedVc = signatory.issue(vc, config)
+
+        // Check revocation status for the job certificate
+        val statusA = revocationService.check(signedVc)
+        statusA.isRevoked shouldBe false
 
         // Revoke the job certificate
-        val revResult: RevocationResult = revocationService.revoke(signedVc.toWaltIdType())
-        // revResult.succeed shouldBe true
-    }
+        val result = revocationService.revoke(signedVc)
+        result.succeed shouldBe true
 
-    private fun statusListCredentialStatus(config: ProofConfig): CredentialStatus {
-
-        val purpose = checkNotNull(config.proofPurpose) { "No proof purpose" }
-        val credentialUrl = checkNotNull(config.credentialsEndpoint) { "No credentials endpoint" }
-
-        val parameter = StatusListEntryFactoryParameter(
-            purpose = purpose,
-            credentialUrl = URLBuilder().takeFrom(credentialUrl).appendPathSegments("status", purpose).buildString(),
-        )
-
-        val credentialStatusFactory = StatusListEntryFactory(
-            StatusListIndexService.getService(),
-            StatusListCredentialStorageService.getService(),
-        )
-
-        val waltStatus = credentialStatusFactory.create(parameter)
-        return CredentialStatus.fromMap(Json.encodeToString(waltStatus).decodeJson())
+        // Check revocation status for the job certificate
+        val statusB = revocationService.check(signedVc)
+        statusB.isRevoked shouldBe true
     }
 }

@@ -41,9 +41,7 @@ object PresentationRpcHandler: AbstractRpcHandler() {
         val proverDid = verifierProverCon.theirDid
         val prover = modelService.findWalletByDid(proverDid.uri)
 
-        val unsignedVc = W3CVerifiableCredential.fromTemplate(
-            pathOrName = data.template,
-            stripValues = true)
+        val unsignedVc = W3CVerifiableCredential.fromTemplate(data.template)
 
         val policies = data.policies?.map {
             val params = it.params.encodeJson()

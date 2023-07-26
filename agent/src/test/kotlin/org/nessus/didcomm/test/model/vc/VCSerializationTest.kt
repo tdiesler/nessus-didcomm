@@ -2,6 +2,7 @@ package org.nessus.didcomm.test.model.vc
 
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.CredentialSchema
+import org.nessus.didcomm.model.CredentialStatus
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.W3CVerifiablePresentation
 import org.nessus.didcomm.model.WaltIdVerifiableCredential
@@ -53,7 +54,6 @@ class VCSerializationTest: AbstractAgentTest() {
         }
     }
 
-
     @Test
     fun testCredentialSchema() {
 
@@ -66,8 +66,30 @@ class VCSerializationTest: AbstractAgentTest() {
         val waltVC = WaltIdVerifiableCredential.fromJson(expJson)
         waltVC.toJson().decodeJson() shouldBe nessusVC.toMap()
 
-        nessusVC.credentialSchema.single() shouldBe CredentialSchema.fromMap(mapOf(
-            "id" to "https://example.org/examples/degree.json",
-            "type" to "JsonSchemaValidator2018"))
+        nessusVC.credentialSchema.single() shouldBe CredentialSchema.fromJson("""{
+            "id": "https://example.org/examples/degree.json",
+            "type": "JsonSchemaValidator2018"
+        }""".trimIndent())
+    }
+
+    @Test
+    fun testCredentialStatus() {
+
+        val path = "/vc/credentialStatus.vc.json"
+        val expJson = readResource(path).trimJson()
+
+        val nessusVC = W3CVerifiableCredential.fromJson(expJson)
+        nessusVC.toJson() shouldBe expJson
+
+        val waltVC = WaltIdVerifiableCredential.fromJson(expJson)
+        waltVC.toJson().decodeJson() shouldBe nessusVC.toMap()
+
+        nessusVC.credentialStatus shouldBe CredentialStatus.fromJson("""{
+            "id":"https://example.edu/credential/status/assertionMethod#14",
+            "type":"StatusList2021Entry",
+            "statusListIndex":"14",
+            "statusPurpose":"assertionMethod",
+            "statusListCredential":"data/revocation/assertionMethod.cred"
+        }""".trimIndent())
     }
 }

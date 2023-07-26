@@ -24,14 +24,12 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         val vc = W3CVerifiableCredential
             .fromTemplate(
                 "VerifiableId",
-                true,
                 """{
                     "issuer": "${issuerDid.uri}",
                     "credentialSubject": {
                         "id": "${holderDid.uri}"
                     }
-                }""".decodeJson()
-            )
+                }""".decodeJson())
             .validate()
 
         val config = ProofConfig(
@@ -40,7 +38,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
             proofPurpose = "assertionMethod",
             proofType = ProofType.LD_PROOF)
 
-        val signedVc = signatory.issue(vc, config, false)
+        val signedVc = signatory.issue(vc, config)
 
         // create VP
         val vp = custodian.createPresentation(
@@ -67,14 +65,12 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         val vc = W3CVerifiableCredential
             .fromTemplate(
                 "VerifiableId",
-                true,
                 """{
                     "issuer": "${issuerDid.uri}",
                     "credentialSubject": {
                         "id": "${holderDid.uri}"
                     }
-                }""".decodeJson()
-            )
+                }""".decodeJson())
             .validate()
 
         val config = ProofConfig(
@@ -83,7 +79,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
             proofPurpose = "assertionMethod",
             proofType = ProofType.LD_PROOF)
 
-        val signedVc = signatory.issue(vc, config, false)
+        val signedVc = signatory.issue(vc, config)
 
         // create VP
         val vp = custodian.createPresentation(
@@ -118,7 +114,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         }""".decodeJson()
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("VerifiableId", true, mergeData)
+            .fromTemplate("VerifiableId", mergeData)
             .validate()
 
         val config = ProofConfig(
@@ -127,7 +123,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
             proofPurpose = "assertionMethod",
             proofType = ProofType.LD_PROOF)
 
-        val signedVc = signatory.issue(vc, config, false)
+        val signedVc = signatory.issue(vc, config)
 
         // create VP
         val vp = Custodian.getService().createPresentation(

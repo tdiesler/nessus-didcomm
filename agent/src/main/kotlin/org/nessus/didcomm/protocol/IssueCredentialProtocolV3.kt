@@ -119,7 +119,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
         val unsignedVc = W3CVerifiableCredential
-            .fromTemplate(template, true, mergedData)
+            .fromTemplate(template, mergedData)
 
         val id = "${UUID.randomUUID()}"
         val type = ISSUE_CREDENTIAL_MESSAGE_TYPE_PROPOSE_CREDENTIAL
@@ -193,16 +193,16 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
         val unsignedVc = W3CVerifiableCredential
-            .fromTemplate(template, true, mergedData)
+            .fromTemplate(template, mergedData)
             .validate()
 
-        val proofConfig = ProofConfig(
+        val config = ProofConfig(
             issuerDid = issuerDid.uri,
             subjectDid = holderDid.uri,
             proofPurpose = "assertionMethod",
             proofType = ProofType.LD_PROOF)
 
-        val signedVc = signatory.issue(unsignedVc, proofConfig, false)
+        val signedVc = signatory.issue(unsignedVc, config)
         checkNotNull(signedVc.credentialSubject) { "No credentialSubject" }
         val subjectDataFull = signedVc.credentialSubject.toMap()
 

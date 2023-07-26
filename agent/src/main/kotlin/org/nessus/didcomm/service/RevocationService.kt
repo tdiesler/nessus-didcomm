@@ -19,17 +19,59 @@
  */
 package org.nessus.didcomm.service
 
-import id.walt.credentials.w3c.VerifiableCredential
+import id.walt.signatory.ProofConfig
 import id.walt.signatory.revocation.RevocationClientService
 import id.walt.signatory.revocation.RevocationResult
+import id.walt.signatory.revocation.RevocationStatus
+import id.walt.signatory.revocation.StatusListEntryFactory
+import id.walt.signatory.revocation.StatusListEntryFactoryParameter
+import id.walt.signatory.revocation.statuslist2021.StatusListCredentialStorageService
+import id.walt.signatory.revocation.statuslist2021.StatusListIndexService
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import org.nessus.didcomm.model.CredentialStatus
+import org.nessus.didcomm.model.W3CVerifiableCredential
+import org.nessus.didcomm.model.toWaltIdType
+import org.nessus.didcomm.util.decodeJson
 
 object RevocationService: ObjectService<RevocationService>() {
 
     override fun getService() = apply { }
 
-    fun revoke(vc: VerifiableCredential): RevocationResult {
-        val revResult = RevocationClientService.revoke(vc)
-        log.info { revResult }
-        return revResult
+    fun check(vc: W3CVerifiableCredential): RevocationStatus {
+        val status = RevocationClientService.check(vc.toWaltIdType())
+        log.info { status }
+        return status
+    }
+
+    fun revoke(vc: W3CVerifiableCredential): RevocationResult {
+        val result = RevocationClientService.revoke(vc.toWaltIdType())
+        log.info { result }
+        return result
+    }
+
+    fun createStatus(config: ProofConfig): CredentialStatus {
+
+        val credentialUrl = checkNotNull(config.credentialsEndpoint) { "No credentials endpoint" }
+
+        val parameter = StatusListEntryFactoryParameter(
+            purpose = checkNotNull(config.proofPurpose) { "No proof purpose" },
+            credentialUrl = "$credentialUrl/status/${config.proofPurpose}",
+        )
+
+        val credentialStatusFactory = StatusListEntryFactory(
+            StatusListIndexService.getService(),
+            StatusListCredentialStorageService.getService(),
+        )
+
+        val waltStatus = credentialStatusFactory.create(parameter)
+        val statusData = Json.encodeToString(waltStatus).decodeJson().toMutableMap()
+
+        // [TODO] Remove file location hack for status VC
+        val statusVCUrl = statusData["statusListCredential"] as String
+        if (statusVCUrl.startsWith("https://example.edu/credential"))
+            statusData["statusListCredential"] = "data/revocation/${config.proofPurpose}.cred"
+
+        return CredentialStatus.fromMap(statusData)
     }
 }

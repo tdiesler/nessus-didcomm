@@ -33,7 +33,7 @@ class CredentialDataMergeTest: AbstractAgentTest() {
         }""".decodeJson()
 
         val vc = W3CVerifiableCredential
-            .fromTemplate("Passport", true, mergeData)
+            .fromTemplate("Passport", mergeData)
             .validate()
 
         log.info { "Merged: ${vc.encodeJson(true)}" }
@@ -57,7 +57,7 @@ class CredentialDataMergeTest: AbstractAgentTest() {
           }
         }""".decodeJson()
 
-        val vc = W3CVerifiableCredential.fromTemplate("Passport", true, mergeData)
+        val vc = W3CVerifiableCredential.fromTemplate("Passport", mergeData)
         log.info { "Merged: ${vc.encodeJson(true)}" }
 
         val validation = W3CVerifiableCredentialValidator.validateCredential(vc, false)
@@ -85,7 +85,7 @@ class CredentialDataMergeTest: AbstractAgentTest() {
           }
         }""".decodeJson()
 
-        val vc = W3CVerifiableCredential.fromTemplate("Passport", true, mergeData)
+        val vc = W3CVerifiableCredential.fromTemplate("Passport", mergeData)
         log.info { "Merged: ${vc.encodeJson(true)}" }
 
         val verification = W3CVerifiableCredentialValidator.validateCredential(vc, false)

@@ -28,8 +28,8 @@ open class W3CVerifiableCredential private constructor(jsonLD: JsonLDObject) : D
         fun fromJson(json: String) = fromJson(JsonLDObject.fromJson(json))
         fun fromJson(jsonLD: JsonLDObject) = W3CVerifiableCredential(jsonLD)
         fun fromMap(data: Map<String, Any?>) = fromJson(JsonLDObject.fromMap(data))
-        fun fromTemplate(pathOrName: String, stripValues: Boolean = true, subjectData: Map<String, Any?> = mapOf()) =
-            Builder.fromTemplate(pathOrName, stripValues, subjectData).build()
+        fun fromTemplate(pathOrName: String, subjectData: Map<String, Any?> = mapOf(), stripValues: Boolean = true) =
+            Builder.fromTemplate(pathOrName, subjectData, stripValues).build()
 
         @Suppress("UNCHECKED_CAST")
         fun loadTemplate(pathOrName: String, stripValues: Boolean = true): Map<String, Any?> {
@@ -58,9 +58,10 @@ open class W3CVerifiableCredential private constructor(jsonLD: JsonLDObject) : D
      */
     @Suppress("UNCHECKED_CAST")
     val credentialSchema: List<CredentialSchema> get() = let {
-        return when(val value = jsonObject["credentialSchema"]) {
+        when(val value = jsonObject["credentialSchema"]) {
             is Map<*, *> -> listOf(CredentialSchema.fromMap(value as Map<String, Any>))
             is List<*> -> value.map { CredentialSchema.fromMap(it as Map<String, Any>) }
+            is CredentialSchema -> listOf(value)
             else -> listOf()
         }
     }
@@ -70,7 +71,11 @@ open class W3CVerifiableCredential private constructor(jsonLD: JsonLDObject) : D
      */
     @Suppress("UNCHECKED_CAST")
     val credentialStatus: CredentialStatus? get() = let {
-        return jsonObject["credentialStatus"]?.let { CredentialStatus.fromMap(it as Map<String, Any>) }
+        when(val value = jsonObject["credentialStatus"]) {
+            is Map<*, *> -> CredentialStatus.fromMap(value as Map<String, Any>)
+            is CredentialStatus -> value
+            else -> null
+        }
     }
 
     fun hasType(type: String): Boolean = let {
@@ -87,7 +92,7 @@ open class W3CVerifiableCredential private constructor(jsonLD: JsonLDObject) : D
     class Builder(jsonLD: JsonLDObject): JsonLDObject.Builder<Builder>(jsonLD) {
 
         companion object {
-            fun fromTemplate(pathOrName: String, stripValues: Boolean = true, subjectData: Map<String, Any?> = mapOf()): Builder {
+            fun fromTemplate(pathOrName: String, subjectData: Map<String, Any?> = mapOf(), stripValues: Boolean = true): Builder {
                 val template = loadTemplate(pathOrName, stripValues)
                 val mutableData = subjectData.toMutableMap()
                 if ("issuanceDate" !in subjectData)
@@ -115,7 +120,9 @@ open class W3CVerifiableCredential private constructor(jsonLD: JsonLDObject) : D
 open class CredentialSchema(jsonLD: JsonLDObject): JsonLDObject(jsonLD.jsonObject) {
     val id: String = JsonLDUtils.jsonLdGetString(jsonObject, "id")
     companion object {
-        fun fromMap(data: Map<String, Any?>) = CredentialSchema(JsonLDObject.fromMap(data))
+        fun fromJson(jsonLD: JsonLDObject) = CredentialSchema(jsonLD)
+        fun fromJson(json: String) = fromJson(JsonLDObject.fromJson(json))
+        fun fromMap(data: Map<String, Any?>) = fromJson(JsonLDObject.fromMap(data))
     }
 }
 
@@ -126,7 +133,9 @@ open class CredentialSchema(jsonLD: JsonLDObject): JsonLDObject(jsonLD.jsonObjec
 open class CredentialStatus(jsonLD: JsonLDObject): JsonLDObject(jsonLD.jsonObject) {
     val id: String = JsonLDUtils.jsonLdGetString(jsonObject, "id")
     companion object {
-        fun fromMap(data: Map<String, Any?>) = CredentialStatus(JsonLDObject.fromMap(data))
+        fun fromJson(jsonLD: JsonLDObject) = CredentialStatus(jsonLD)
+        fun fromJson(json: String) = fromJson(JsonLDObject.fromJson(json))
+        fun fromMap(data: Map<String, Any?>) = fromJson(JsonLDObject.fromMap(data))
     }
 }
 
@@ -149,6 +158,7 @@ object W3CVerifiableCredentialValidator {
             val result = validator.validate(vc.credentialSubject.toJson())
             if (result.isFailure) {
                 log.error { "Failed to validate schema: ${result.errors.map { e -> e.message }}" }
+                if (strict) result.errors.first().cause ?.also { th -> throw th }
                 return result
             }
         }
