@@ -20,13 +20,11 @@
 package org.nessus.didcomm.test.model
 
 import id.walt.common.resolveContent
-import mu.KotlinLogging
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.decodeMessage
 import java.io.File
 
 class MessageTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
 
     @Test
     fun decodeEncode() {

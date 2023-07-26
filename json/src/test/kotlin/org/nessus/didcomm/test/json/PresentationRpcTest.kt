@@ -77,11 +77,11 @@ class PresentationRpcTest: AbstractJsonRpcTest() {
             )
 
             val vp = acme.findVerifiablePresentationsByType("UniversityTranscript")
-                .first { "${it.subjectId}" == proverDid }
+                .first { "${it.holder}" == proverDid }
 
             val vc = vp.verifiableCredential!!.first()
             val subject = vc.credentialSubject!!
-            val claims = subject.properties
+            val claims = subject.toMap()
             subject.id.toString() shouldBe holderDid
             claims["givenName"] shouldBe "Alice"
             claims["familyName"] shouldBe "Garcia"

@@ -102,7 +102,6 @@ interface DidServicePlugin {
 }
 
 object DidService: ObjectService<DidService>() {
-    val log = KotlinLogging.logger {}
 
     override fun getService() = apply { }
 

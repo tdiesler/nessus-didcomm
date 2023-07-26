@@ -20,7 +20,6 @@
 package org.nessus.didcomm.test.service
 
 import io.kotest.matchers.shouldBe
-import mu.KotlinLogging
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.WaltIdDid
@@ -29,7 +28,6 @@ import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
 
 class DidDocumentServiceTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
 
     @Test
     fun testDidDocV1() {

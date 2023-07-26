@@ -1,7 +1,6 @@
 package org.nessus.didcomm.service
 
 import id.walt.common.prettyPrint
-import mu.KotlinLogging
 import okhttp3.MediaType.Companion.toMediaType
 import org.didcommx.didcomm.common.Typ
 import org.didcommx.didcomm.message.Message
@@ -32,7 +31,6 @@ typealias MessageReceiver = (msg: EndpointMessage) -> Message
  * The MessageReceiverService is the entry point for all incoming messages
  */
 object MessageReceiverService: ObjectService<MessageReceiverService>(), MessageReceiver {
-    private val log = KotlinLogging.logger {}
 
     override fun getService() = apply { }
 

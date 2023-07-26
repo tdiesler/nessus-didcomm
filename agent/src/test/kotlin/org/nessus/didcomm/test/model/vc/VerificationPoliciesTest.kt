@@ -5,16 +5,14 @@ import id.walt.custodian.Custodian
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
 import io.kotest.matchers.shouldBe
-import mu.KotlinLogging
 import org.nessus.didcomm.model.DidMethod
-import org.nessus.didcomm.model.W3CVerifiableCredentialHelper
-import org.nessus.didcomm.model.validate
+import org.nessus.didcomm.model.W3CVerifiableCredential
+import org.nessus.didcomm.model.toWaltIdType
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.trimJson
 
 class VerificationPoliciesTest: AbstractAgentTest() {
-    private val log = KotlinLogging.logger {}
 
     @Test
     fun issueVerifiableId_SignaturePolicy() {
@@ -23,7 +21,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         val holderDid = didService.createDid(DidMethod.KEY)
         val verifierDid = didService.createDid(DidMethod.KEY)
 
-        val vc = W3CVerifiableCredentialHelper
+        val vc = W3CVerifiableCredential
             .fromTemplate(
                 "VerifiableId",
                 true,
@@ -66,7 +64,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         val verifierDid = didService.createDid(DidMethod.KEY)
 
         // issue VC
-        val vc = W3CVerifiableCredentialHelper
+        val vc = W3CVerifiableCredential
             .fromTemplate(
                 "VerifiableId",
                 true,
@@ -119,7 +117,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
           }
         }""".decodeJson()
 
-        val vc = W3CVerifiableCredentialHelper
+        val vc = W3CVerifiableCredential
             .fromTemplate("VerifiableId", true, mergeData)
             .validate()
 
@@ -133,7 +131,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
 
         // create VP
         val vp = Custodian.getService().createPresentation(
-            vcs = listOf(PresentableCredential(signedVc)),
+            vcs = listOf(PresentableCredential(signedVc.toWaltIdType())),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri,
         )

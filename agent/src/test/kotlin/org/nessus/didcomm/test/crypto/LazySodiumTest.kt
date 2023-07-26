@@ -26,7 +26,6 @@ import com.goterl.lazysodium.utils.KeyPair
 import id.walt.crypto.KeyAlgorithm
 import id.walt.services.keystore.KeyType
 import io.kotest.matchers.shouldBe
-import mu.KotlinLogging
 import org.nessus.didcomm.service.LazySodiumService.convertEd25519toCurve25519
 import org.nessus.didcomm.service.LazySodiumService.cryptoBoxEasyBytes
 import org.nessus.didcomm.service.LazySodiumService.cryptoBoxOpenEasyBytes
@@ -38,7 +37,6 @@ import org.nessus.didcomm.util.decodeHex
 import org.nessus.didcomm.util.encodeHex
 
 class LazySodiumTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
 
     @Test
     fun lazyBoxEasy() {

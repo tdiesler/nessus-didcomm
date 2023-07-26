@@ -25,7 +25,6 @@ import id.walt.services.keystore.KeyType
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldStartWith
-import mu.KotlinLogging
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.DidOptions
@@ -44,7 +43,6 @@ import org.nessus.didcomm.util.encodeHex
  * https://github.com/w3c-ccg/did-method-key/tree/main/test-vectors
  */
 class DidServiceTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
 
     @Test
     fun testDidFixture() {

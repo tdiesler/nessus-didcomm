@@ -22,11 +22,11 @@ package org.nessus.didcomm.test.crypto
 import id.walt.common.prettyPrint
 import id.walt.crypto.KeyAlgorithm
 import io.kotest.matchers.shouldBe
-import mu.KotlinLogging
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.service.toOctetKeyPair
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.decodeHex
+import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.trimJson
 
@@ -36,7 +36,6 @@ import org.nessus.didcomm.util.trimJson
  * https://github.com/w3c-ccg/did-method-key/tree/main/test-vectors
  */
 class DidCommCryptoTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
 
     @Test
     fun extract_key_from_Ed25519VerificationKey2018() {
@@ -49,7 +48,7 @@ class DidCommCryptoTest: AbstractAgentTest() {
 
         val octetKeyPair = didService.loadDid(did.uri).toOctetKeyPair()
 
-        val jwk = octetKeyPair.toJSONObject().encodeJson(sorted = true)
+        val jwk = octetKeyPair.toJSONObject().encodeJson()
         log.info { jwk.prettyPrint() }
 
         val exp = """
@@ -63,7 +62,7 @@ class DidCommCryptoTest: AbstractAgentTest() {
             "x":"_eT7oDCtAC98L31MMx9J0T-w7HR-zuvsY08f9MvKne8"
         }            
         """.trimJson()
-        jwk shouldBe exp
+        jwk.decodeJson() shouldBe exp.decodeJson()
     }
 
     @Test
@@ -77,7 +76,7 @@ class DidCommCryptoTest: AbstractAgentTest() {
 
         val octetKeyPair = didService.loadDid(did.uri).toOctetKeyPair()
 
-        val jwk = octetKeyPair.toJSONObject().encodeJson(sorted = true)
+        val jwk = octetKeyPair.toJSONObject().encodeJson()
         log.info { jwk.prettyPrint() }
 
         val exp = """
@@ -91,6 +90,6 @@ class DidCommCryptoTest: AbstractAgentTest() {
             "x":"_eT7oDCtAC98L31MMx9J0T-w7HR-zuvsY08f9MvKne8"
         }            
         """.trimJson()
-        jwk shouldBe exp
+        jwk.decodeJson() shouldBe exp.decodeJson()
     }
 }

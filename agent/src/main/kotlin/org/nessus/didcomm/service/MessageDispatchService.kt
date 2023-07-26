@@ -20,7 +20,6 @@
 package org.nessus.didcomm.service
 
 import id.walt.common.prettyPrint
-import mu.KotlinLogging
 import org.didcommx.didcomm.common.Typ
 import org.didcommx.didcomm.message.Attachment
 import org.didcommx.didcomm.message.Message
@@ -44,7 +43,6 @@ import java.util.UUID
  * The MessageDispatchService handles all outgoing messages
  */
 object MessageDispatchService: ObjectService<MessageDispatchService>() {
-    private val log = KotlinLogging.logger {}
 
     override fun getService() = apply { }
 

@@ -32,10 +32,8 @@ import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.EndpointMessage
 import org.nessus.didcomm.model.MessageExchange
-import org.nessus.didcomm.model.W3CVerifiableCredentialHelper
+import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.model.toJsonData
-import org.nessus.didcomm.model.validate
 import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
 import org.nessus.didcomm.util.JSON_MIME_TYPE
 import org.nessus.didcomm.util.dateTimeNow
@@ -120,7 +118,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
 
         val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
-        val unsignedVc = W3CVerifiableCredentialHelper
+        val unsignedVc = W3CVerifiableCredential
             .fromTemplate(template, true, mergedData)
 
         val id = "${UUID.randomUUID()}"
@@ -132,7 +130,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
             .credentialPreview(subjectData)
             .build()
 
-        val jsonData = Attachment.Data.Json.parse(mapOf("json" to unsignedVc.toJsonData()))
+        val jsonData = Attachment.Data.Json.parse(mapOf("json" to unsignedVc.toMap()))
         val vcAttachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
             .format(CREDENTIAL_ATTACHMENT_FORMAT)
             .mediaType(JSON_MIME_TYPE)
@@ -194,7 +192,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
 
         val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
-        val unsignedVc = W3CVerifiableCredentialHelper
+        val unsignedVc = W3CVerifiableCredential
             .fromTemplate(template, true, mergedData)
             .validate()
 
@@ -206,7 +204,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
 
         val signedVc = signatory.issue(unsignedVc, proofConfig, false)
         checkNotNull(signedVc.credentialSubject) { "No credentialSubject" }
-        val subjectDataFull = signedVc.credentialSubject!!.properties
+        val subjectDataFull = signedVc.credentialSubject.toMap()
 
         val id = "${UUID.randomUUID()}"
         val type = ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL
@@ -218,7 +216,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
             .replacementId(options["replacement_id"] as? String)
             .build()
 
-        val jsonData = Attachment.Data.Json.parse(mapOf("json" to signedVc.toJsonData()))
+        val jsonData = Attachment.Data.Json.parse(mapOf("json" to signedVc.toMap()))
         val vcAttachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
             .format(CREDENTIAL_ATTACHMENT_FORMAT)
             .mediaType(JSON_MIME_TYPE)
@@ -301,7 +299,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         checkNotNull(attachment) { "No credential attachment" }
 
         val jsonData = gson.toJson(attachment.data.jsonData())
-        val vc = VerifiableCredential.fromJson(jsonData)
+        val vc = W3CVerifiableCredential.fromJson(jsonData)
         issuer.addVerifiableCredential(vc)
 
         val issuedVcBody: MutableMap<String, Any> = mutableMapOf()
@@ -466,7 +464,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         checkNotNull(attachment) { "No credential attachment" }
 
         val jsonData = gson.toJson(attachment.data.jsonData())
-        val vc = VerifiableCredential.fromJson(jsonData)
+        val vc = W3CVerifiableCredential.fromJson(jsonData)
         holder.addVerifiableCredential(vc)
 
         log.info { "Holder (${holder.name}) received credential: ${vc.encodeJson(true)}" }

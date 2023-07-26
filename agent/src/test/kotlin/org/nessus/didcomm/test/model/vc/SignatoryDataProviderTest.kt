@@ -8,14 +8,12 @@ import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
 import id.walt.signatory.SignatoryDataProvider
 import id.walt.signatory.dataproviders.MergingDataProvider
-import mu.KotlinLogging
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.encodeJson
 
 class SignatoryDataProviderTest: AbstractAgentTest() {
-    private val log = KotlinLogging.logger {}
 
     @Test
     fun testMergingDataProvider() {

@@ -26,6 +26,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
+import foundation.identity.jsonld.JsonLDObject
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
 import org.didcommx.didcomm.message.Message
@@ -71,18 +72,12 @@ val gsonPretty: Gson = gsonBuilder
     .setPrettyPrinting()
     .create()
 
-@Suppress("UNCHECKED_CAST")
-fun JSONObject.encodeJson(pretty: Boolean = false, sorted: Boolean = false): String {
-    return (this as Map<String, Any?>).encodeJson(pretty, sorted)
-}
-
-fun Map<String, Any?>.encodeJson(pretty: Boolean = false, sorted: Boolean = false): String {
-    val input = if (sorted) toDeeplySortedMap() else this
-    return if (pretty) gsonPretty.toJson(input) else gson.toJson(input)
-}
-
 fun Any.encodeJson(pretty: Boolean = false): String {
-    return if (pretty) gsonPretty.toJson(this) else gson.toJson(this)
+    return if (this is JsonLDObject)
+        toJson(pretty)
+    else
+        if (pretty) gsonPretty.toJson(this)
+        else gson.toJson(this)
 }
 
 fun String.isJson(): Boolean {

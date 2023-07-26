@@ -19,15 +19,15 @@
  */
 package org.nessus.didcomm.json
 
-import id.walt.credentials.w3c.VerifiableCredential
 import kotlinx.serialization.json.Json
 import org.nessus.didcomm.json.model.VCData
 import org.nessus.didcomm.model.MessageExchange
+import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
 
 object CredentialRpcHandler: AbstractRpcHandler() {
 
-    fun issueCredential(payload: String): VerifiableCredential {
+    fun issueCredential(payload: String): W3CVerifiableCredential {
         val data = Json.decodeFromString<VCData>(payload)
         checkNotNull(data.issuerId) { "No issuerId" }
         checkNotNull(data.holderDid) { "No holderDid" }

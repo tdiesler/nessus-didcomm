@@ -19,8 +19,6 @@
  */
 package org.nessus.didcomm.test.json
 
-import id.walt.credentials.w3c.VerifiableCredential
-import id.walt.credentials.w3c.VerifiablePresentation
 import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.matchers.result.shouldBeSuccess
 import io.kotest.matchers.shouldBe
@@ -38,6 +36,8 @@ import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.Invitation
 import org.nessus.didcomm.model.NessusWalletPlugin
+import org.nessus.didcomm.model.W3CVerifiableCredential
+import org.nessus.didcomm.model.W3CVerifiablePresentation
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.WalletRole
 import org.nessus.didcomm.service.EndpointService
@@ -127,18 +127,18 @@ abstract class AbstractJsonRpcTest : AnnotationSpec() {
     // endregion
 
     // region vc
-    fun issueCredential(data: VCData): VerifiableCredential {
+    fun issueCredential(data: VCData): W3CVerifiableCredential {
         val path = "/vc/issue"
         val res = rpcService.dispatchRpcCommand(path, data.toJson())
-        return res.shouldBeSuccess() as VerifiableCredential
+        return res.shouldBeSuccess() as W3CVerifiableCredential
     }
     // endregion
 
     // region vp
-    fun requestPresentation(data: VPData): VerifiablePresentation {
+    fun requestPresentation(data: VPData): W3CVerifiablePresentation {
         val path = "/vp/request"
         val res = rpcService.dispatchRpcCommand(path, data.toJson())
-        return res.shouldBeSuccess() as VerifiablePresentation
+        return res.shouldBeSuccess() as W3CVerifiablePresentation
     }
     // endregion
 

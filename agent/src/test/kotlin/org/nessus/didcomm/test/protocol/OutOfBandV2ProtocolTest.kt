@@ -22,7 +22,6 @@ package org.nessus.didcomm.test.protocol
 import id.walt.common.resolveContent
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import mu.KotlinLogging
 import org.didcommx.didcomm.message.Message
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.ConnectionState
@@ -44,7 +43,6 @@ import org.nessus.didcomm.util.trimJson
  * https://github.com/tdiesler/nessus-didcomm/tree/main/features/0434-oob-invitation
  */
 class OutOfBandV2ProtocolTest: AbstractAgentTest() {
-    private val log = KotlinLogging.logger {}
 
     @Test
     fun testOutOfBoundInvitation_DidKey() {

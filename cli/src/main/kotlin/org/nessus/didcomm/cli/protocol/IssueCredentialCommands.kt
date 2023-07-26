@@ -21,18 +21,13 @@
 package org.nessus.didcomm.cli.protocol
 
 import id.walt.common.resolveContent
-import id.walt.credentials.w3c.VerifiableCredential
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
 import org.nessus.didcomm.cli.AbstractBaseCommand
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.MessageExchange
-import org.nessus.didcomm.model.W3CVerifiableCredentialHelper
+import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.W3CVerifiableCredentialValidator.validateCredential
-import org.nessus.didcomm.model.encodeJson
-import org.nessus.didcomm.model.isVerifiableCredential
-import org.nessus.didcomm.model.isVerifiablePresentation
-import org.nessus.didcomm.model.shortString
 import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
 import org.nessus.didcomm.util.dateTimeNow
@@ -71,13 +66,10 @@ class VerifiableCredentialCommands: AbstractBaseCommand() {
 
         @Option(names = ["--vc"], paramLabel = "vc", description = ["Select Verifiable Credentials"])
         vcOpt: Boolean?,
-
-        @Option(names = ["--vp"], paramLabel = "vp", description = ["Select Verifiable Presentations"])
-        vpOpt: Boolean?,
     ) {
-        val sortedVcps = sortedCredentialsAndPresentations(walletAlias, vcOpt, vpOpt)
-        sortedVcps.forEachIndexed { idx, vcp ->
-            echo("[$idx] - ${vcp.shortString()}")
+        val walletVcs = findVerifiableCredentials(walletAlias, vcOpt)
+        walletVcs.forEachIndexed { idx, vc ->
+            echo("[$idx] - ${vc.type} ${vc.id}")
         }
     }
 
@@ -90,28 +82,24 @@ class VerifiableCredentialCommands: AbstractBaseCommand() {
         @Option(names = ["--vc"], paramLabel = "vc", description = ["Select Verifiable Credentials"])
         vcOpt: Boolean?,
 
-        @Option(names = ["--vp"], paramLabel = "vp", description = ["Select Verifiable Presentations"])
-        vpOpt: Boolean?,
-
         @CommandLine.Parameters(description = ["The credential alias"])
         alias: String,
     ) {
-        val sortedVcps = sortedCredentialsAndPresentations(walletAlias, vcOpt, vpOpt)
-        val predicate = { vc: VerifiableCredential -> vc.id.toString().lowercase().startsWith(alias.lowercase()) }
-        val vcp: VerifiableCredential? = alias.toIntOrNull()
-            ?. let { idx -> sortedVcps[idx] }
-            ?: let { sortedVcps.firstOrNull { vcp -> predicate(vcp) }}
+        val walletVcs = findVerifiableCredentials(walletAlias, vcOpt)
+        val predicate = { vc: W3CVerifiableCredential -> vc.id.toString().lowercase().startsWith(alias.lowercase()) }
+        val vcp: W3CVerifiableCredential? = alias.toIntOrNull()
+            ?. let { idx -> walletVcs[idx] }
+            ?: let { walletVcs.firstOrNull { vcp -> predicate(vcp) }}
         vcp?.also {
             echo()
             echo(vcp.encodeJson(true))
         }
     }
 
-    private fun sortedCredentialsAndPresentations(walletAlias: String?, vcOpt: Boolean?, vpOpt: Boolean?): List<VerifiableCredential> {
+    private fun findVerifiableCredentials(walletAlias: String?, vcOpt: Boolean?): List<W3CVerifiableCredential> {
         val ctxWallet = getContextWallet(walletAlias)
-        val vcs = ctxWallet.verifiableCredentials.filter { it.isVerifiableCredential }
-        val vps = ctxWallet.verifiableCredentials.filter { it.isVerifiablePresentation }
-        return vcs.filter { vcOpt == null || vcOpt } + vps.filter { vpOpt == null || vpOpt }
+        val vcs = ctxWallet.verifiableCredentials
+        return vcs.filter { vcOpt == null || vcOpt }
     }
 }
 
@@ -245,7 +233,7 @@ class IssueCredential: AbstractBaseCommand() {
         echo("")
 
         // The raw template data with no values
-        val templateA = W3CVerifiableCredentialHelper.loadTemplate(template!!)
+        val templateA = W3CVerifiableCredential.loadTemplate(template!!)
 
         // Add values required by all templates
         val templateB = templateA.unionMap("""{
@@ -263,7 +251,7 @@ class IssueCredential: AbstractBaseCommand() {
         } ?: templateB
 
         // Create the verifiable credential
-        val vc = W3CVerifiableCredentialHelper.fromJsonData(templateC)
+        val vc = W3CVerifiableCredential.fromMap(templateC)
 
         // Validate the credential
         val validationResults = validateCredential(vc, false)
@@ -335,10 +323,7 @@ class PresentCredential: AbstractBaseCommand() {
         checkNotNull(proverDid) { "Cannot find prover Did: $holderAlias" }
         checkNotNull(prover) { "Cannot find prover wallet" }
 
-        val vcs = vcAliases.map {
-            val vc = getVcpFromAlias(prover, it)
-            checkNotNull(vc) { "Cannot find vc in holder wallet: $it" }
-        }
+        val vcs = vcAliases.map { getVcFromAlias(prover, it) }
 
         val pcon = prover.findConnection { c -> c.myDid == proverDid && c.theirDid == verifierDid }
 
@@ -373,14 +358,14 @@ class PresentCredential: AbstractBaseCommand() {
                 challenge = challenge,
                 expirationDate = null
             )
-            prover.addVerifiableCredential(vp)
+            prover.addVerifiablePresentation(vp)
         }
 
-        val templates = vcs.map { it.type.last() }
+        val templates = vcs.map { it.types.last() }
         val verifierName = verifier?.name ?: pcon?.theirLabel
         echo("Prover '${prover.name}' presents $templates to verifier '${verifierName}'")
 
-        val vp = prover.verifiableCredentials.last { it.isVerifiablePresentation }
+        val vp = prover.verifiablePresentations.last()
 
         val varKey = "${verifierName}.${prover.name}.${templates.joinToString(separator = "")}.Vp"
         properties.putVar("$varKey.json", vp.toJson())
@@ -417,8 +402,8 @@ class VerifyCredentialCommand: AbstractBaseCommand() {
         check(policySpecs!!.isNotEmpty()) { "No policies" }
 
         val vcp = properties.getVar(src!!)
-            ?.let { VerifiableCredential.fromJson(it) }
-            ?: resolveContent(src!!).let { VerifiableCredential.fromJson(it) }
+            ?.let { W3CVerifiableCredential.fromJson(it) }
+            ?: resolveContent(src!!).let { W3CVerifiableCredential.fromJson(it) }
 
         val policies = policySpecs!!.map {
             val toks = it.split('=')
@@ -512,7 +497,7 @@ class TemplateCommands: AbstractBaseCommand() {
         } else {
             signatory.findTemplateByAlias(alias)
         }?.also { tmpl ->
-            val vc = W3CVerifiableCredentialHelper.loadTemplate(tmpl.name, false)
+            val vc = W3CVerifiableCredential.loadTemplate(tmpl.name, false)
             if (verbose) {
                 echo(vc.encodeJson(true))
             } else {

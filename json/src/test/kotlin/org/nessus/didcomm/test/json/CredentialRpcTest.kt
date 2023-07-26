@@ -59,7 +59,7 @@ class CredentialRpcTest: AbstractJsonRpcTest() {
                 .first { "${it.credentialSubject?.id}" == holderDid }
 
             val subject = vc.credentialSubject!!
-            val claims = subject.properties
+            val claims = subject.toMap()
             subject.id.toString() shouldBe holderDid
             claims["givenName"] shouldBe "Alice"
             claims["familyName"] shouldBe "Garcia"

@@ -1,10 +1,7 @@
 package org.nessus.didcomm.service
 
-import mu.KotlinLogging
-
 
 object PropertiesService: ObjectService<PropertiesService>() {
-    private val log = KotlinLogging.logger { }
 
     override fun getService() = apply { }
 

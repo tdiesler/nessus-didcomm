@@ -21,7 +21,6 @@ package org.nessus.didcomm.test.service
 
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import mu.KotlinLogging
 import org.nessus.didcomm.model.AgentType
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.test.AbstractAgentTest
@@ -29,7 +28,6 @@ import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.util.encodeJson
 
 class ModelServiceTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
 
     @Test
     fun testModelService() {

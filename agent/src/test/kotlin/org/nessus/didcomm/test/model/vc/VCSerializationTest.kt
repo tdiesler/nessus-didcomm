@@ -1,25 +1,73 @@
 package org.nessus.didcomm.test.model.vc
 
-import id.walt.credentials.w3c.VerifiableCredential
 import io.kotest.matchers.shouldBe
-import org.nessus.didcomm.model.DanubeTechVerifiableCredential
-import org.nessus.didcomm.model.encodeJson
+import org.nessus.didcomm.model.CredentialSchema
+import org.nessus.didcomm.model.W3CVerifiableCredential
+import org.nessus.didcomm.model.W3CVerifiablePresentation
+import org.nessus.didcomm.model.WaltIdVerifiableCredential
+import org.nessus.didcomm.model.WaltIdVerifiablePresentation
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.encodeJson
+import org.nessus.didcomm.util.trimJson
 
 class VCSerializationTest: AbstractAgentTest() {
 
     @Test
-    fun testSerialization() {
-        for (path in listOf("/vc/passport.vc.json")) {
-            val json = readResource(path)
-            val expData = json.decodeJson()
-            val vcDan = DanubeTechVerifiableCredential.fromJson(json)
-            val vcW3C = VerifiableCredential.fromJson(json)
+    fun testVerifiableCredential() {
+        for (path in listOf(
+                "/vc/input.vc.json",
+                "/vc/input.vc.jsonld",
+                "/vc/passport.vc.json",
+                "/vc/signed.bad.vc.jsonld",
+                "/vc/signed.good.vc.jsonld")) {
 
-            vcDan.toJson().decodeJson() shouldBe expData
-            vcW3C.toJson().decodeJson() shouldBe expData
-            vcW3C.encodeJson(true).decodeJson() shouldBe expData
+            val expJson = readResource(path).trimJson()
+
+            val nessusVC = W3CVerifiableCredential.fromJson(expJson)
+            nessusVC.toJson() shouldBe expJson
+            nessusVC.encodeJson() shouldBe expJson
+
+            val waltVC = WaltIdVerifiableCredential.fromJson(expJson)
+            waltVC.toJson().decodeJson() shouldBe nessusVC.toMap()
         }
+    }
+
+    @Test
+    fun testVerifiablePresentation() {
+        for (path in listOf(
+                "/vc/input.vp.jsonld",
+                "/vc/signed.bad.vp1.jsonld",
+                "/vc/signed.bad.vp2.jsonld",
+                "/vc/signed.good.vp1.jsonld",
+                "/vc/signed.good.vp2.jsonld")) {
+
+            val expJson = readResource(path).trimJson()
+
+            val nessusVP = W3CVerifiablePresentation.fromJson(expJson)
+            nessusVP.toJson() shouldBe expJson
+            nessusVP.encodeJson() shouldBe expJson
+
+            val waltVP = WaltIdVerifiablePresentation.fromJson(expJson)
+            waltVP.toJson().decodeJson() shouldBe nessusVP.toMap()
+        }
+    }
+
+
+    @Test
+    fun testCredentialSchema() {
+
+        val path = "/vc/credentialSchema.vc.json"
+        val expJson = readResource(path).trimJson()
+
+        val nessusVC = W3CVerifiableCredential.fromJson(expJson)
+        nessusVC.toJson() shouldBe expJson
+
+        val waltVC = WaltIdVerifiableCredential.fromJson(expJson)
+        waltVC.toJson().decodeJson() shouldBe nessusVC.toMap()
+
+        nessusVC.credentialSchema.single() shouldBe CredentialSchema.fromMap(mapOf(
+            "id" to "https://example.org/examples/degree.json",
+            "type" to "JsonSchemaValidator2018"))
     }
 }

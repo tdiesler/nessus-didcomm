@@ -21,7 +21,6 @@ package org.nessus.didcomm.service
 
 import id.walt.common.resolveContent
 import id.walt.credentials.w3c.templates.VcTemplateService
-import mu.KotlinLogging
 import org.apache.camel.Exchange
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.DidMethod
@@ -36,7 +35,6 @@ import org.nessus.didcomm.util.parameterMap
 import java.net.URI
 
 object DashboardService: ObjectService<DashboardService>() {
-    private val log = KotlinLogging.logger {}
 
     private val modelService get() = ModelService.getService()
     private val templateService get() = VcTemplateService.getService()

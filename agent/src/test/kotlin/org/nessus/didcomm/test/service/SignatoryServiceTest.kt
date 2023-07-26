@@ -20,11 +20,9 @@
 package org.nessus.didcomm.test.service
 
 import io.kotest.matchers.collections.shouldContainAll
-import mu.KotlinLogging
 import org.nessus.didcomm.test.AbstractAgentTest
 
 class SignatoryServiceTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
 
     @Test
     fun listTemplates() {

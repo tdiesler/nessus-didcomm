@@ -19,13 +19,13 @@
  */
 package org.nessus.didcomm.test.json
 
-import id.walt.credentials.w3c.VerifiableCredential
-import id.walt.credentials.w3c.VerifiablePresentation
 import org.nessus.didcomm.json.RpcContext
 import org.nessus.didcomm.json.model.PolicyData
 import org.nessus.didcomm.json.model.VCData
 import org.nessus.didcomm.json.model.VPData
 import org.nessus.didcomm.model.Connection
+import org.nessus.didcomm.model.W3CVerifiableCredential
+import org.nessus.didcomm.model.W3CVerifiablePresentation
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.model.WalletRole
 import org.nessus.didcomm.util.toValueMap
@@ -236,7 +236,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
                 )
 
             acme.findVerifiablePresentationsByType("UniversityTranscript")
-                .first { "${it.subjectId}" == acmeAliceCon.theirDid.uri }
+                .first { "${it.holder}" == acmeAliceCon.theirDid.uri }
 
             /*
              * Alice gets the job and hence receives a JobCertificate from Acme
@@ -292,7 +292,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
             )
 
             thrift.findVerifiablePresentationsByType("JobCertificate")
-                .first { "${it.subjectId}" == thriftAliceCon.theirDid.uri }
+                .first { "${it.holder}" == thriftAliceCon.theirDid.uri }
 
             /*
              * Thrift accepts the loan application and now requires KYC
@@ -307,7 +307,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
                 template = "JobCertificate")
 
             thrift.findVerifiablePresentationsByType("JobCertificate")
-                .first { "${it.subjectId}" == thriftAliceCon.theirDid.uri }
+                .first { "${it.holder}" == thriftAliceCon.theirDid.uri }
 
             /*
              * Alice decides to quit her job with Acme
@@ -333,7 +333,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
         }
     }
 
-    private fun issueCredential(ctx: AttachmentContext, issuer: String, holder: String, template: String, subjectData: Map<String, Any>): VerifiableCredential {
+    private fun issueCredential(ctx: AttachmentContext, issuer: String, holder: String, template: String, subjectData: Map<String, Any>): W3CVerifiableCredential {
         val pcon = ctx.connection(issuer, holder)
         val holderDid = pcon.theirDid
         val data = VCData(
@@ -342,7 +342,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
             template = template,
             subjectData = subjectData)
         return issueCredential(data).also { vc ->
-            ctx.putAttachment("${issuer}_${holder}_${template}_VC", VerifiableCredential::class, vc)
+            ctx.putAttachment("${issuer}_${holder}_${template}_VC", W3CVerifiableCredential::class, vc)
         }
     }
 
@@ -352,7 +352,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
         prover: String,
         template: String,
         policies: List<PolicyData> = emptyList()
-    ): VerifiablePresentation {
+    ): W3CVerifiablePresentation {
         val pcon = ctx.connection(verifier, prover)
         val proverDid = pcon.theirDid
         val data = VPData(
@@ -361,7 +361,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
             template = template,
             policies = policies)
         return requestPresentation(data).also { vc ->
-            ctx.putAttachment("${prover}_${verifier}_${template}_VP", VerifiablePresentation::class, vc)
+            ctx.putAttachment("${prover}_${verifier}_${template}_VP", W3CVerifiablePresentation::class, vc)
         }
     }
 

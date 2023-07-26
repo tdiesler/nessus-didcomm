@@ -22,7 +22,6 @@ package org.nessus.didcomm.test.model
 import id.walt.common.resolveContent
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import mu.KotlinLogging
 import org.didcommx.peerdid.VerificationMaterialAgreement
 import org.didcommx.peerdid.VerificationMaterialAuthentication
 import org.didcommx.peerdid.VerificationMaterialFormatPeerDID
@@ -37,7 +36,6 @@ import org.nessus.didcomm.util.decodeMessage
 import org.nessus.didcomm.util.trimJson
 
 class DidPeerTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
 
     companion object {
         val VALID_X25519_KEY_MULTIBASE = VerificationMaterialAgreement(

@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.json
 
-import mu.KotlinLogging
 import org.nessus.didcomm.service.ObjectService
 import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.AttachmentSupport
@@ -47,7 +46,6 @@ open class RpcContext(headers: Map<String, String> = emptyMap()): AttachmentSupp
 }
 
 object JsonRpcService: ObjectService<JsonRpcService>() {
-    private val log = KotlinLogging.logger {}
 
     override fun getService() = apply { }
 

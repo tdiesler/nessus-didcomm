@@ -23,6 +23,7 @@ import id.walt.credentials.w3c.templates.VcTemplateService
 import id.walt.services.keystore.KeyStoreService
 import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.matchers.shouldBe
+import mu.KotlinLogging
 import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.Did
@@ -44,6 +45,7 @@ import org.nessus.didcomm.service.NessusPolicyRegistryService
 import org.nessus.didcomm.service.NessusSignatoryService
 import org.nessus.didcomm.service.OUT_OF_BAND_PROTOCOL_V2
 import org.nessus.didcomm.service.PropertiesService
+import org.nessus.didcomm.service.RevocationService
 import org.nessus.didcomm.service.SecretResolverService
 import org.nessus.didcomm.service.ServiceMatrixLoader
 import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
@@ -87,6 +89,7 @@ object Alice {
 
 @Suppress("MemberVisibilityCanBePrivate")
 abstract class AbstractAgentTest: AnnotationSpec() {
+    val log = KotlinLogging.logger {}
 
     @BeforeAll
     open fun beforeAll() {
@@ -110,6 +113,7 @@ abstract class AbstractAgentTest: AnnotationSpec() {
     val modelService get() = ModelService.getService()
     val policyService get() = NessusPolicyRegistryService.getService()
     val receiverService get() = MessageReceiverService.getService()
+    val revocationService get() = RevocationService.getService()
     val secretResolver get() = SecretResolverService.getService()
     val signatory get() = NessusSignatoryService.getService()
     val templateService get() = VcTemplateService.getService()
@@ -131,8 +135,8 @@ abstract class AbstractAgentTest: AnnotationSpec() {
     }
 
     fun stopNessusEndpoint(handle: AutoCloseable? = null) {
-        val effHandle = handle ?: endpointHandle.get()
-        effHandle?.also { endpointService.stopEndpoint(it) }
+        val optHandle = handle ?: endpointHandle.get()
+        optHandle?.also { endpointService.stopEndpoint(it) }
     }
 
     fun peerConnect(inviter: Wallet, invitee: Wallet, reverse: Boolean = false): Connection {

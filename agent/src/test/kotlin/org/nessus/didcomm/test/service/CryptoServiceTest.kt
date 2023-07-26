@@ -29,9 +29,8 @@ import id.walt.services.CryptoProvider
 import id.walt.services.key.Keys
 import id.walt.services.keystore.KeyType
 import io.kotest.matchers.shouldBe
-import mu.KotlinLogging
-import org.nessus.didcomm.service.LazySodiumService
 import org.nessus.didcomm.model.DidMethod
+import org.nessus.didcomm.service.LazySodiumService
 import org.nessus.didcomm.service.toOctetKeyPair
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.test.Alice
@@ -41,7 +40,6 @@ import org.nessus.didcomm.util.encodeHex
 import org.nessus.didcomm.util.encodeJson
 
 class CryptoServiceTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
 
     @Test
     fun signVerifySeedMessage() {

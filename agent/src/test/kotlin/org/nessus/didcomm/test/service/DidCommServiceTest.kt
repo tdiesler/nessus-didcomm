@@ -21,7 +21,6 @@ package org.nessus.didcomm.test.service
 
 import id.walt.common.prettyPrint
 import io.kotest.matchers.shouldBe
-import mu.KotlinLogging
 import org.didcommx.didcomm.common.Typ
 import org.didcommx.didcomm.message.MessageBuilder
 import org.didcommx.didcomm.model.PackEncryptedParams
@@ -39,7 +38,6 @@ import org.nessus.didcomm.test.Faber
 import java.util.UUID
 
 class DidCommServiceTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
 
     @Test
     fun testPlaintext() {

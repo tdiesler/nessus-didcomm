@@ -25,7 +25,6 @@ import id.walt.crypto.KeyAlgorithm
 import id.walt.crypto.encodeBase58
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import mu.KotlinLogging
 import org.didcommx.didcomm.common.VerificationMaterialFormat.JWK
 import org.didcommx.didcomm.common.VerificationMethodType.ED25519_VERIFICATION_KEY_2018
 import org.didcommx.didcomm.common.VerificationMethodType.JSON_WEB_KEY_2020
@@ -36,7 +35,6 @@ import org.nessus.didcomm.test.Alice
 import org.nessus.didcomm.util.encodeHex
 
 class SecretResolverServiceTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
 
     @Test
     fun resolve_EdDSA_Ed25519_Private() {

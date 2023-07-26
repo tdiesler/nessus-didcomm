@@ -19,7 +19,6 @@
  */
 package org.nessus.didcomm.service
 
-import mu.KotlinLogging
 import org.didcommx.didcomm.DIDComm
 import org.didcommx.didcomm.model.PackEncryptedParams
 import org.didcommx.didcomm.model.PackEncryptedResult
@@ -31,7 +30,6 @@ import org.didcommx.didcomm.model.UnpackParams
 import org.didcommx.didcomm.model.UnpackResult
 
 object DidCommService: ObjectService<DidCommService>() {
-    val log = KotlinLogging.logger {}
 
     override fun getService() = apply { }
 

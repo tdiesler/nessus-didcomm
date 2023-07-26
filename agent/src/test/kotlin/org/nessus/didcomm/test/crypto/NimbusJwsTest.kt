@@ -31,7 +31,6 @@ import com.nimbusds.jose.jwk.Curve
 import com.nimbusds.jose.jwk.OctetKeyPair
 import com.nimbusds.jose.jwk.gen.OctetKeyPairGenerator
 import io.kotest.matchers.shouldBe
-import mu.KotlinLogging
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.encodeJson
 
@@ -40,7 +39,6 @@ import org.nessus.didcomm.util.encodeJson
  * https://connect2id.com/products/nimbus-jose-jwt
  */
 class NimbusJwsTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
 
     /**
      * JSON Web Signature (JWS) with Edwards-Curve Digital Signature Algorithm / Ed25519

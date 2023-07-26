@@ -19,12 +19,10 @@
  */
 package org.nessus.didcomm.service
 
-import mu.KotlinLogging
 import org.nessus.didcomm.model.Model
 import org.nessus.didcomm.model.Wallet
 
 object ModelService: ObjectService<ModelService>() {
-    private val log = KotlinLogging.logger {}
 
     override fun getService() = apply { }
 

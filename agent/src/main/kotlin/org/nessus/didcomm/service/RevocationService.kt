@@ -19,15 +19,17 @@
  */
 package org.nessus.didcomm.service
 
-import mu.KotlinLogging
+import id.walt.credentials.w3c.VerifiableCredential
+import id.walt.signatory.revocation.RevocationClientService
+import id.walt.signatory.revocation.RevocationResult
 
-/**
- * A service that extends ObjectService is a simple object singleton.
- *
- * It also has the getService() API for symmetry with WaltId services.
- * This should make it possible to migrate easily to a more complex service impl.
- */
-abstract class ObjectService<T> {
-    val log = KotlinLogging.logger {}
-    abstract fun getService(): T
+object RevocationService: ObjectService<RevocationService>() {
+
+    override fun getService() = apply { }
+
+    fun revoke(vc: VerifiableCredential): RevocationResult {
+        val revResult = RevocationClientService.revoke(vc)
+        log.info { revResult }
+        return revResult
+    }
 }

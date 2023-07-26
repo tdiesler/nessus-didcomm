@@ -19,10 +19,9 @@
  */
 package org.nessus.didcomm.test.protocol
 
-import id.walt.credentials.w3c.VerifiablePresentation
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.MessageExchange
-import org.nessus.didcomm.model.W3CVerifiableCredentialHelper
+import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
 import org.nessus.didcomm.test.AbstractAgentTest
@@ -84,10 +83,9 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
         val verifierDid = acmeAliceCon.myDid
         val proverDid = acmeAliceCon.theirDid
 
-        val unsignedVc = W3CVerifiableCredentialHelper.fromTemplate(
+        val unsignedVc = W3CVerifiableCredential.fromTemplate(
             pathOrName = "UniversityTranscript",
             stripValues = true)
-        val unsignedVp = VerifiablePresentation.fromVerifiableCredential(unsignedVc)
 
         // verification policy
         val policy = policyService.getPolicyWithJsonArg("DynamicPolicy",
@@ -102,7 +100,7 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
             .sendPresentationRequest(
                 verifier = acme,
                 proverDid = proverDid,
-                vp = unsignedVp,
+                vc = unsignedVc,
                 options = mapOf("goal_code" to "Verify University Transcript")
             )
             .awaitPresentation(acme, proverDid)
@@ -111,10 +109,10 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
             .getMessageExchange()
 
         val vp = acme.findVerifiablePresentationsByType("UniversityTranscript").first()
-        val vc = vp.verifiableCredential!!.first()
+        val vc = vp.verifiableCredential.first()
 
         val subject = vc.credentialSubject!!
-        val claims = subject.properties
+        val claims = subject.toMap()
         claims["givenName"] shouldBe "Alice"
         claims["familyName"] shouldBe "Garcia"
         claims["ssn"] shouldBe "123-45-6789"
@@ -152,7 +150,7 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
         val aliceAcmeCon = peerConnect(acme, alice, true)
         val verifierDid = aliceAcmeCon.theirDid
 
-        val unsignedVc = W3CVerifiableCredentialHelper.fromTemplate(
+        val unsignedVc = W3CVerifiableCredential.fromTemplate(
             pathOrName = "UniversityTranscript",
             stripValues = false)
 
@@ -173,7 +171,7 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
         val vc = vp.verifiableCredential!!.first()
 
         val subject = vc.credentialSubject!!
-        val claims = subject.properties
+        val claims = subject.toMap()
         claims["givenName"] shouldBe "Alice"
         claims["familyName"] shouldBe "Garcia"
         claims["ssn"] shouldBe "123-45-6789"

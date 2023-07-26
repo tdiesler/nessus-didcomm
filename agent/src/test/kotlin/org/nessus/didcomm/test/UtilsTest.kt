@@ -20,7 +20,6 @@
 package org.nessus.didcomm.test
 
 import io.kotest.matchers.shouldBe
-import mu.KotlinLogging
 import org.didcommx.didcomm.protocols.routing.PROFILE_DIDCOMM_V2
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
@@ -30,7 +29,6 @@ import org.nessus.didcomm.util.selectJson
 import org.nessus.didcomm.util.toDeeplySortedMap
 
 class UtilsTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
 
     @Test
     fun deeplySortedMap() {

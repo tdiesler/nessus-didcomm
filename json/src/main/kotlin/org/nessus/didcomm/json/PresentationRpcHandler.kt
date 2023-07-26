@@ -19,17 +19,17 @@
  */
 package org.nessus.didcomm.json
 
-import id.walt.credentials.w3c.VerifiablePresentation
 import kotlinx.serialization.json.Json
 import org.nessus.didcomm.json.model.VPData
 import org.nessus.didcomm.model.MessageExchange
-import org.nessus.didcomm.model.W3CVerifiableCredentialHelper
+import org.nessus.didcomm.model.W3CVerifiableCredential
+import org.nessus.didcomm.model.W3CVerifiablePresentation
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
 import org.nessus.didcomm.util.encodeJson
 
 object PresentationRpcHandler: AbstractRpcHandler() {
 
-    fun requestPresentation(payload: String): VerifiablePresentation {
+    fun requestPresentation(payload: String): W3CVerifiablePresentation {
         val data = Json.decodeFromString<VPData>(payload)
         checkNotNull(data.verifierId) { "No verifierId" }
         checkNotNull(data.proverDid) { "No proverDid" }
@@ -41,10 +41,9 @@ object PresentationRpcHandler: AbstractRpcHandler() {
         val proverDid = verifierProverCon.theirDid
         val prover = modelService.findWalletByDid(proverDid.uri)
 
-        val unsignedVc = W3CVerifiableCredentialHelper.fromTemplate(
+        val unsignedVc = W3CVerifiableCredential.fromTemplate(
             pathOrName = data.template,
             stripValues = true)
-        val unsignedVp = VerifiablePresentation.fromVerifiableCredential(unsignedVc)
 
         val policies = data.policies?.map {
             val params = it.params.encodeJson()
@@ -56,7 +55,7 @@ object PresentationRpcHandler: AbstractRpcHandler() {
             .sendPresentationRequest(
                 verifier = verifier,
                 proverDid = proverDid,
-                vp = unsignedVp,
+                vc = unsignedVc,
                 options = data.options
             )
             .awaitPresentation(verifier, proverDid)
@@ -73,7 +72,7 @@ object PresentationRpcHandler: AbstractRpcHandler() {
             mex.withProtocol(PRESENT_PROOF_PROTOCOL_V3)
         }
         val vp = verifier.findVerifiablePresentationsByType(data.template)
-            .firstOrNull { vp -> vp.subjectId == proverDid.uri }
+            .firstOrNull { vp -> "${vp.holder}" == proverDid.uri }
         checkNotNull(vp) { "Verifier ${verifier.name} has no ${data.template} presentation from subject: ${proverDid.uri}" }
         return vp
     }

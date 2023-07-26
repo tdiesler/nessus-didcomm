@@ -24,13 +24,11 @@ import id.walt.servicematrix.ServiceMatrix
 import id.walt.servicematrix.ServiceProvider
 import id.walt.servicematrix.ServiceRegistry
 import io.kotest.matchers.shouldBe
-import mu.KotlinLogging
 import org.nessus.didcomm.service.ObjectService
 import org.nessus.didcomm.test.AbstractAgentTest
 import java.util.concurrent.atomic.AtomicInteger
 
 class ConfiguredServiceTest: AbstractAgentTest() {
-    val log = KotlinLogging.logger {}
 
     @Test
     fun testConcreteTestService() {

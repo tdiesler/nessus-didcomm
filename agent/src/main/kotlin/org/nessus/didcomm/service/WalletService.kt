@@ -22,7 +22,6 @@ package org.nessus.didcomm.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import mu.KotlinLogging
 import org.nessus.didcomm.model.Did
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.NessusWalletPlugin
@@ -33,7 +32,6 @@ import java.nio.file.Paths
 import kotlin.io.path.isReadable
 
 object WalletService: ObjectService<WalletService>() {
-    private val log = KotlinLogging.logger {}
 
     override fun getService() = apply { }
 

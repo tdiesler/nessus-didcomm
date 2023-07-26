@@ -84,8 +84,8 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
         val vc = alice.findVerifiableCredentialsByType("UniversityTranscript")
             .first { "${it.credentialSubject?.id}" == holderDid.uri }
 
-        val subject = vc.credentialSubject!!
-        val claims = subject.properties
+        val subject = vc.credentialSubject
+        val claims = subject.toMap()
         subject.id.toString() shouldBe holderDid.uri
         claims["givenName"] shouldBe "Alice"
         claims["familyName"] shouldBe "Garcia"
@@ -136,8 +136,8 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
         val vc = alice.findVerifiableCredentialsByType("UniversityTranscript")
             .first { "${it.credentialSubject?.id}" == holderDid.uri }
 
-        val subject = vc.credentialSubject!!
-        val claims = subject.properties
+        val subject = vc.credentialSubject
+        val claims = subject.toMap()
         subject.id.toString() shouldBe holderDid.uri
         claims["givenName"] shouldBe "Alice"
         claims["familyName"] shouldBe "Garcia"
