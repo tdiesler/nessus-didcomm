@@ -2,7 +2,6 @@ package org.nessus.didcomm.model
 
 import foundation.identity.jsonld.JsonLDObject
 import foundation.identity.jsonld.JsonLDUtils
-import id.walt.auditor.VerificationPolicyResult
 import id.walt.credentials.w3c.schema.SchemaValidatorFactory
 import id.walt.credentials.w3c.templates.VcTemplateService
 import id.walt.servicematrix.ServiceRegistry
@@ -61,7 +60,6 @@ open class W3CVerifiableCredential private constructor(jsonLD: JsonLDObject) : D
         when(val value = jsonObject["credentialSchema"]) {
             is Map<*, *> -> listOf(CredentialSchema.fromMap(value as Map<String, Any>))
             is List<*> -> value.map { CredentialSchema.fromMap(it as Map<String, Any>) }
-            is CredentialSchema -> listOf(value)
             else -> listOf()
         }
     }
@@ -73,7 +71,6 @@ open class W3CVerifiableCredential private constructor(jsonLD: JsonLDObject) : D
     val credentialStatus: CredentialStatus? get() = let {
         when(val value = jsonObject["credentialStatus"]) {
             is Map<*, *> -> CredentialStatus.fromMap(value as Map<String, Any>)
-            is CredentialStatus -> value
             else -> null
         }
     }
@@ -103,7 +100,7 @@ open class W3CVerifiableCredential private constructor(jsonLD: JsonLDObject) : D
         }
 
         fun credentialStatus(status: CredentialStatus) = apply {
-            JsonLDUtils.jsonLdAdd(jsonLdObject, "credentialStatus", status)
+            JsonLDUtils.jsonLdAdd(jsonLdObject, "credentialStatus", status.jsonObject)
         }
 
         override fun build(): W3CVerifiableCredential {
@@ -117,12 +114,12 @@ open class W3CVerifiableCredential private constructor(jsonLD: JsonLDObject) : D
  * Useful when enforcing a specific structure on a given collection of data.
  * https://www.w3.org/TR/vc-data-model/#data-schemas
  */
-open class CredentialSchema(jsonLD: JsonLDObject): JsonLDObject(jsonLD.jsonObject) {
+open class CredentialSchema(jsonObject: Map<String, Any?>): JsonLDObject(jsonObject) {
     val id: String = JsonLDUtils.jsonLdGetString(jsonObject, "id")
     companion object {
-        fun fromJson(jsonLD: JsonLDObject) = CredentialSchema(jsonLD)
+        fun fromJson(jsonLD: JsonLDObject) = CredentialSchema(jsonLD.jsonObject)
         fun fromJson(json: String) = fromJson(JsonLDObject.fromJson(json))
-        fun fromMap(data: Map<String, Any?>) = fromJson(JsonLDObject.fromMap(data))
+        fun fromMap(data: Map<String, Any?>) = CredentialSchema(data)
     }
 }
 
@@ -130,40 +127,75 @@ open class CredentialSchema(jsonLD: JsonLDObject): JsonLDObject(jsonLD.jsonObjec
  * The current status of a verifiable credential, such as whether it is suspended or revoked.
  * https://www.w3.org/TR/vc-data-model/#status
  */
-open class CredentialStatus(jsonLD: JsonLDObject): JsonLDObject(jsonLD.jsonObject) {
+open class CredentialStatus(jsonObject: Map<String, Any?>): JsonLDObject(jsonObject) {
     val id: String = JsonLDUtils.jsonLdGetString(jsonObject, "id")
     companion object {
-        fun fromJson(jsonLD: JsonLDObject) = CredentialStatus(jsonLD)
+        fun fromJson(jsonLD: JsonLDObject) = CredentialStatus(jsonLD.jsonObject)
         fun fromJson(json: String) = fromJson(JsonLDObject.fromJson(json))
-        fun fromMap(data: Map<String, Any?>) = fromJson(JsonLDObject.fromMap(data))
+        fun fromMap(data: Map<String, Any?>) = CredentialStatus(data)
     }
 }
 
 object W3CVerifiableCredentialValidator {
     private val log = KotlinLogging.logger {}
 
-    fun validateCredential(vc: W3CVerifiableCredential, strict: Boolean = true): VerificationPolicyResult {
+    fun validateCredential(vc: W3CVerifiableCredential, strict: Boolean = true): SchemaValidationResult {
 
         runCatching {
+            // Note, we do not validateJsonLd
             DanubeTechValidation.validateJson(vc)
         }.onFailure {
-            val result = VerificationPolicyResult.failure(it)
-            result.errors.forEach { log.error { it } }
+            val result = SchemaValidationResult.failure(it)
+            result.errorStrings.forEach { log.error { it } }
             if (strict) throw it
             return result
         }
 
         vc.credentialSchema.forEach {
             val validator = SchemaValidatorFactory.get(it.id)
-            val result = validator.validate(vc.credentialSubject.toJson())
-            if (result.isFailure) {
-                log.error { "Failed to validate schema: ${result.errors.map { e -> e.message }}" }
+            val policyResult = validator.validate(vc.credentialSubject.toJson())
+            if (policyResult.isFailure) {
+                val result = SchemaValidationResult.failure(*policyResult.errors.toTypedArray())
+                log.error { "Failed to validate schema: ${result.errorStrings}" }
                 if (strict) result.errors.first().cause ?.also { th -> throw th }
                 return result
             }
         }
 
-        return VerificationPolicyResult.success()
+        return SchemaValidationResult.success()
+    }
+
+    fun validatePresentation(vp: W3CVerifiablePresentation, strict: Boolean = true): SchemaValidationResult {
+
+        runCatching {
+            DanubeTechValidation.validateJsonLd(vp)
+        }.onFailure {
+            val result = SchemaValidationResult.failure(it)
+            result.errors.forEach { log.error { it } }
+            if (strict) throw it
+            return result
+        }
+
+        vp.verifiableCredential.forEach { validateCredential(it, strict) }
+
+        return SchemaValidationResult.success()
+    }
+
+    data class SchemaValidationResult(
+        val isSuccess: Boolean,
+        val errors: List<Throwable> = emptyList()
+    ) {
+        companion object {
+            fun success() = SchemaValidationResult(true)
+            fun failure(vararg error: Throwable): SchemaValidationResult {
+                return SchemaValidationResult(false, error.asList())
+            }
+        }
+        val isFailure = !isSuccess
+
+        val errorStrings = errors.mapIndexed { index, th ->
+            "#${index + 1}: ${th::class.simpleName ?: "Error"} - ${th.message}"
+        }
     }
 }
 
