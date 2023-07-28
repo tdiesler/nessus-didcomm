@@ -39,7 +39,7 @@
         <version.squareup.okhttp3>4.10.0</version.squareup.okhttp3>
         <version.waltid.servicematrix>1.1.3</version.waltid.servicematrix>
         <version.waltid.sdjwt>1.2306191408.0</version.waltid.sdjwt>
-        <version.waltid.ssikit>1.2306281832.0</version.waltid.ssikit>
+        <version.waltid.ssikit>1.SNAPSHOT</version.waltid.ssikit>
         <version.junit>5.9.1</version.junit>
         <version.logback>1.4.5</version.logback>
         <version.slf4j>2.0.6</version.slf4j>

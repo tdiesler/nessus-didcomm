@@ -24,8 +24,10 @@ import id.walt.signatory.ProofType
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.W3CVerifiableCredential
+import org.nessus.didcomm.service.NessusAuditorService.plusDefaultPolicies
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.decodeJson
+import org.nessus.didcomm.util.trimJson
 import java.util.UUID
 
 class RevocationServiceTest: AbstractAgentTest() {
@@ -35,6 +37,7 @@ class RevocationServiceTest: AbstractAgentTest() {
 
         val issuerDid = didService.createDid(DidMethod.KEY)
         val holderDid = didService.createDid(DidMethod.KEY)
+        val verifierDid = didService.createDid(DidMethod.KEY)
 
         val config = ProofConfig(
             issuerDid = issuerDid.uri,
@@ -61,12 +64,29 @@ class RevocationServiceTest: AbstractAgentTest() {
             .build()
             .validate()
 
-        // Issue the job certificate
+        // Issue the job certificate VC
         val signedVc = signatory.issue(vc, config)
 
         // Check revocation status for the job certificate
         val statusA = revocationService.check(signedVc)
         statusA.isRevoked shouldBe false
+
+        // Create the job certificate VP
+        val vp = custodian.createPresentation(
+            vcs = listOf(signedVc),
+            holderDid = holderDid.uri,
+            verifierDid = verifierDid.uri)
+
+        // verification policy
+        val policy = policyService.getPolicyWithJsonArg("DynamicPolicy",
+            """{
+                "input": { "employee_status": "permanent", "salary": 2000 },
+                "policy": "src/test/resources/rego/job-certificate-policy.rego"
+            }""".trimJson())
+
+        // Verify VP
+        val vrGood = auditor.verify(vp, plusDefaultPolicies(policy))
+        check(vrGood.result) { "Verification failed" }
 
         // Revoke the job certificate
         val result = revocationService.revoke(signedVc)
@@ -75,5 +95,11 @@ class RevocationServiceTest: AbstractAgentTest() {
         // Check revocation status for the job certificate
         val statusB = revocationService.check(signedVc)
         statusB.isRevoked shouldBe true
+
+        // Verify revoked VP
+        val vrBad = auditor.verify(vp, plusDefaultPolicies(policy))
+        check(vrBad.policyResults["CredentialStatusPolicy"]!!.isFailure)
+        check(vrBad.policyResults["DynamicPolicy"]!!.isSuccess)
+        vrBad.result shouldBe false
     }
 }

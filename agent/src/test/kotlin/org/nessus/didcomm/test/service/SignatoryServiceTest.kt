@@ -30,8 +30,10 @@ class SignatoryServiceTest: AbstractAgentTest() {
         templates shouldContainAll listOf(
             "BirthCertificate",
             "Email",
+            "JobCertificate",
             "MarriageCertificate",
             "Passport",
+            "StatusList2021Credential",
             "TravelPermission",
             "UniversityTranscript",
             "VerifiableId")

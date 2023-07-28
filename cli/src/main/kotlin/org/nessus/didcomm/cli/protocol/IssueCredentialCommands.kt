@@ -29,6 +29,7 @@ import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.W3CVerifiableCredentialValidator.validateCredential
 import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
+import org.nessus.didcomm.service.NessusAuditorService.plusDefaultPolicies
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
 import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.decodeJson
@@ -158,7 +159,7 @@ class ProposeCredential: AbstractBaseCommand() {
             .awaitIssuedCredential(subject, issuerDid)
 
         val signedVc = subject.findVerifiableCredentialsByType(template!!)
-            .firstOrNull { "${it.credentialSubject?.id}" == subjectDid.uri }
+            .firstOrNull { "${it.credentialSubject.id}" == subjectDid.uri }
         checkNotNull(signedVc) { "No credential was issued" }
 
         echo("Holder '${subject.name}' received a '$template' credential")
@@ -401,7 +402,7 @@ class VerifyCredentialCommand: AbstractBaseCommand() {
     override fun call(): Int {
         check(policySpecs!!.isNotEmpty()) { "No policies" }
 
-        val vcp = properties.getVar(src!!)
+        val vc = properties.getVar(src!!)
             ?.let { W3CVerifiableCredential.fromJson(it) }
             ?: resolveContent(src!!).let { W3CVerifiableCredential.fromJson(it) }
 
@@ -416,10 +417,10 @@ class VerifyCredentialCommand: AbstractBaseCommand() {
 
         echo("Verifying: $src ...")
         if (verbose)
-            echo("\n${vcp.encodeJson(true)}")
+            echo("\n${vc.encodeJson(true)}")
         echo("")
 
-        val verification = auditor.verify(vcp.toJson(), policies)
+        val verification = auditor.verify(vc, plusDefaultPolicies(policies))
 
         val maxIdLength = max(policies.map { it.id.length })
         verification.policyResults.forEach { (policy, result) ->

@@ -82,7 +82,7 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
             .awaitCredentialAck(faber, holderDid)
 
         val vc = alice.findVerifiableCredentialsByType("UniversityTranscript")
-            .first { "${it.credentialSubject?.id}" == holderDid.uri }
+            .first { "${it.credentialSubject.id}" == holderDid.uri }
 
         val subject = vc.credentialSubject
         val claims = subject.toMap()
@@ -134,7 +134,7 @@ class IssueCredentialV3ProtocolTest: AbstractAgentTest() {
             .getMessageExchange()
 
         val vc = alice.findVerifiableCredentialsByType("UniversityTranscript")
-            .first { "${it.credentialSubject?.id}" == holderDid.uri }
+            .first { "${it.credentialSubject.id}" == holderDid.uri }
 
         val subject = vc.credentialSubject
         val claims = subject.toMap()

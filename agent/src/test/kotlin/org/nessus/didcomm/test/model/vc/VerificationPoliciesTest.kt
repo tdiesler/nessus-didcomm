@@ -1,13 +1,11 @@
 package org.nessus.didcomm.test.model.vc
 
-import id.walt.credentials.w3c.PresentableCredential
-import id.walt.custodian.Custodian
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
 import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.W3CVerifiableCredential
-import org.nessus.didcomm.model.toWaltIdType
+import org.nessus.didcomm.service.NessusAuditorService.plusDefaultPolicies
 import org.nessus.didcomm.test.AbstractAgentTest
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.trimJson
@@ -48,9 +46,8 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         )
 
         // verify VP
-        val vr = auditor.verify(vp, listOf(
-            policyService.getPolicy("SignaturePolicy")))
-
+        val policy = policyService.getPolicy("SignaturePolicy")
+        val vr = auditor.verify(vp, listOf(policy))
         vr.result shouldBe true
     }
 
@@ -94,7 +91,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
             """{ "challenges": ["1234"], "applyToVC": false }""".trimJson())
 
         // verify VP
-        val vr = auditor.verify(vp, listOf(policy))
+        val vr = auditor.verify(vp, plusDefaultPolicies(policy))
         vr.result shouldBe true
     }
 
@@ -126,8 +123,8 @@ class VerificationPoliciesTest: AbstractAgentTest() {
         val signedVc = signatory.issue(vc, config)
 
         // create VP
-        val vp = Custodian.getService().createPresentation(
-            vcs = listOf(PresentableCredential(signedVc.toWaltIdType())),
+        val vp = custodian.createPresentation(
+            vcs = listOf(signedVc),
             holderDid = holderDid.uri,
             verifierDid = verifierDid.uri,
         )
@@ -140,7 +137,7 @@ class VerificationPoliciesTest: AbstractAgentTest() {
             }""".trimJson())
 
         // verify VP
-        val vr = auditor.verify(vp, listOf(policy))
+        val vr = auditor.verify(vp, plusDefaultPolicies(policy))
         vr.result shouldBe true
     }
 }

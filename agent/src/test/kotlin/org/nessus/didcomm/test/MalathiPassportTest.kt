@@ -91,7 +91,7 @@ class MalathiPassportTest: AbstractAgentTest() {
                 .getMessageExchange()
 
             val vc = malathi.findVerifiableCredentialsByType("Passport").first()
-            "${vc.credentialSubject?.id}" shouldBe malathiGovDid.uri
+            "${vc.credentialSubject.id}" shouldBe malathiGovDid.uri
 
             MessageExchange()
                 .withConnection(malathiAirCon)
@@ -106,8 +106,8 @@ class MalathiPassportTest: AbstractAgentTest() {
                 .getMessageExchange()
 
             val vp = airport.findVerifiablePresentationsByType("Passport").first()
-            val vpc = vp.verifiableCredential?.first()
-            "${vpc?.credentialSubject?.id}" shouldBe malathiGovDid.uri
+            val vpc = vp.verifiableCredential.first()
+            "${vpc.credentialSubject.id}" shouldBe malathiGovDid.uri
 
         } finally {
             removeWallets()

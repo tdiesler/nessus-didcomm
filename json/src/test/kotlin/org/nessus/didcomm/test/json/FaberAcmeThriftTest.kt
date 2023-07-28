@@ -193,7 +193,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
                 """.toValueMap())
 
             alice.findVerifiableCredentialsByType("UniversityTranscript")
-                .first { "${it.credentialSubject?.id}" == faberAliceCon.theirDid.uri }
+                .first { "${it.credentialSubject.id}" == faberAliceCon.theirDid.uri }
 
             /*
              * Create a peer connection between Acme/Alice
@@ -259,7 +259,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
                 """.toValueMap())
 
             alice.findVerifiableCredentialsByType("JobCertificate")
-                .first { "${it.credentialSubject?.id}" == acmeAliceCon.theirDid.uri }
+                .first { "${it.credentialSubject.id}" == acmeAliceCon.theirDid.uri }
 
             /*
              * Create a peer connection between Alice/Thrift

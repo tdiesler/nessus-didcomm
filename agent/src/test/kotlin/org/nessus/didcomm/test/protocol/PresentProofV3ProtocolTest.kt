@@ -109,7 +109,7 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
         val vp = acme.findVerifiablePresentationsByType("UniversityTranscript").first()
         val vc = vp.verifiableCredential.first()
 
-        val subject = vc.credentialSubject!!
+        val subject = vc.credentialSubject
         val claims = subject.toMap()
         claims["givenName"] shouldBe "Alice"
         claims["familyName"] shouldBe "Garcia"
@@ -166,9 +166,9 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
             .getMessageExchange()
 
         val vp = acme.findVerifiablePresentationsByType("UniversityTranscript").first()
-        val vc = vp.verifiableCredential!!.first()
+        val vc = vp.verifiableCredential.first()
 
-        val subject = vc.credentialSubject!!
+        val subject = vc.credentialSubject
         val claims = subject.toMap()
         claims["givenName"] shouldBe "Alice"
         claims["familyName"] shouldBe "Garcia"

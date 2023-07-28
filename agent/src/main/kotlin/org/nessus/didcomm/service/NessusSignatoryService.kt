@@ -26,7 +26,7 @@ object NessusSignatoryService: ObjectService<NessusSignatoryService>() {
 
     val templates get() = delegate.listTemplates().sortedBy { it.name }
 
-    fun issue(vc: W3CVerifiableCredential, config: ProofConfig): W3CVerifiableCredential {
+    fun issue(vc: W3CVerifiableCredential, config: ProofConfig, store: Boolean = false): W3CVerifiableCredential {
 
         val signedVcJson = when (config.proofType) {
             ProofType.LD_PROOF -> JsonLdCredentialService.getService().sign(vc.toJson(), config)
@@ -37,7 +37,7 @@ object NessusSignatoryService: ObjectService<NessusSignatoryService>() {
 
         val signedVc = W3CVerifiableCredential.fromJson(signedVcJson)
 
-        if (vc.credentialStatus != null) {
+        if (store) {
             val waltVc = VerifiableCredential.fromJson(signedVcJson)
             val vcId = checkNotNull(waltVc.id) { "No credential Id" }
             ContextManager.vcStore.storeCredential(vcId, waltVc, VC_GROUP)
