@@ -38,6 +38,7 @@ import org.nessus.didcomm.service.NessusSignatoryService
 import org.nessus.didcomm.service.PropertiesService
 import org.nessus.didcomm.service.ProtocolKey
 import org.nessus.didcomm.service.ProtocolService
+import org.nessus.didcomm.service.RevocationService
 
 abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
 
@@ -57,6 +58,7 @@ abstract class Protocol<T: Protocol<T>>(protected val mex: MessageExchange) {
     val modelService get() = ModelService.getService()
     val policyService get() = NessusPolicyRegistryService.getService()
     val protocolService get() = ProtocolService.getService()
+    val revocationService get() = RevocationService.getService()
 
     abstract val supportedAgentTypes: List<AgentType>
 

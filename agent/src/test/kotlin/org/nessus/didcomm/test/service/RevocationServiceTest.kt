@@ -43,7 +43,7 @@ class RevocationServiceTest: AbstractAgentTest() {
             issuerDid = issuerDid.uri,
             subjectDid = holderDid.uri,
             proofPurpose = "assertionMethod",
-            credentialsEndpoint = "https://example.edu/credential",
+            credentialsEndpoint = signatory.proofConfig.credentialsEndpoint,
             proofType = ProofType.LD_PROOF)
 
         val vc = W3CVerifiableCredential.Builder

@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.json
 
+import id.walt.signatory.revocation.RevocationResult
 import kotlinx.serialization.json.Json
 import org.nessus.didcomm.json.model.VCData
 import org.nessus.didcomm.model.MessageExchange
@@ -44,7 +45,8 @@ object CredentialRpcHandler: AbstractRpcHandler() {
                 issuer = issuer,
                 holderDid = holderDid,
                 template = data.template,
-                subjectData = data.subjectData
+                subjectData = data.subjectData,
+                revocation = data.revocation,
             )
             .awaitCredentialRequest(issuer, holderDid)
             .awaitCredentialAck(issuer, holderDid)
@@ -53,5 +55,15 @@ object CredentialRpcHandler: AbstractRpcHandler() {
             .firstOrNull { "${it.credentialSubject?.id}" == holderDid.uri }
         checkNotNull(vc) { "Issuer ${issuer.name} has no ${data.template} credential for subject: ${holderDid.uri}" }
         return vc
+    }
+
+    fun revokeCredential(payload: String): RevocationResult {
+        val data = Json.decodeFromString<VCData>(payload)
+        checkNotNull(data.issuerId) { "No issuerId" }
+        checkNotNull(data.credentialId) { "No credentialId" }
+        val issuer = assertWallet(data.issuerId)
+        val issuerVC = issuer.findVerifiableCredential { "${it.id}" == data.credentialId }
+        checkNotNull(issuerVC) { "Issuer ${issuer.name} cannot find credential: ${data.credentialId}" }
+        return revocationService.revoke(issuerVC)
     }
 }

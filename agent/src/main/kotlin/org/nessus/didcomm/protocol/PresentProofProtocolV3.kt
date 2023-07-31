@@ -34,7 +34,6 @@ import org.nessus.didcomm.model.MessageExchange.Companion.PRESENTATION_ATTACHMEN
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.W3CVerifiablePresentation
 import org.nessus.didcomm.model.Wallet
-import org.nessus.didcomm.service.NessusAuditorService.plusDefaultPolicies
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
 import org.nessus.didcomm.util.JSON_MIME_TYPE
 import org.nessus.didcomm.util.decodeJson
@@ -231,7 +230,7 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         checkNotNull(vp) { "No attached presentation" }
 
         // verify VP
-        val vr = auditor.verify(vp, plusDefaultPolicies(policies))
+        val vr = auditor.verify(vp, policies)
         check(vr.result) { "Verification failed" }
 
         return this

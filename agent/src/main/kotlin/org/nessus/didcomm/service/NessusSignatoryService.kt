@@ -9,6 +9,7 @@ import id.walt.services.vc.JwtCredentialService
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
 import id.walt.signatory.Signatory
+import id.walt.signatory.SignatoryConfig
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.util.trimJson
 
@@ -24,6 +25,8 @@ object NessusSignatoryService: ObjectService<NessusSignatoryService>() {
 
     private val delegate get() = Signatory.getService()
 
+    val proofConfig get() = signatoryConfig.proofConfig
+    val signatoryConfig get() = delegate.configuration as SignatoryConfig
     val templates get() = delegate.listTemplates().sortedBy { it.name }
 
     fun issue(vc: W3CVerifiableCredential, config: ProofConfig, store: Boolean = false): W3CVerifiableCredential {

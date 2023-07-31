@@ -171,7 +171,8 @@ abstract class AbstractAgentTest: AnnotationSpec() {
                 issuer = issuer,
                 holderDid = holderDid,
                 template = template,
-                subjectData = subjectData)
+                subjectData = subjectData
+            )
             .awaitCredentialRequest(issuer, holderDid)
             .awaitCredentialAck(issuer, holderDid)
     }

@@ -19,6 +19,9 @@
  */
 package org.nessus.didcomm.test.json
 
+import id.walt.signatory.revocation.RevocationResult
+import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.fail
 import org.nessus.didcomm.json.RpcContext
 import org.nessus.didcomm.json.model.PolicyData
 import org.nessus.didcomm.json.model.VCData
@@ -127,7 +130,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
 
             /*
              * [TODO] In AcaPy there is a concept ot "Credential Definition"
-             * (add here for information only)
+             * (added here for information only)
              *
              * Creating Credential Definitions
              *
@@ -192,6 +195,9 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
                 }                
                 """.toValueMap())
 
+            faber.findVerifiableCredentialsByType("UniversityTranscript")
+                .first { "${it.credentialSubject.id}" == faberAliceCon.theirDid.uri }
+
             alice.findVerifiableCredentialsByType("UniversityTranscript")
                 .first { "${it.credentialSubject.id}" == faberAliceCon.theirDid.uri }
 
@@ -249,6 +255,7 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
                 issuer = "Acme",
                 holder = "Alice",
                 template = "JobCertificate",
+                revocation = true,
                 subjectData = """
                 {
                   "givenName": "Alice",
@@ -257,6 +264,9 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
                   "salary": "2500"
                 }                
                 """.toValueMap())
+
+            acme.findVerifiableCredentialsByType("JobCertificate")
+                .first { "${it.credentialSubject.id}" == acmeAliceCon.theirDid.uri }
 
             alice.findVerifiableCredentialsByType("JobCertificate")
                 .first { "${it.credentialSubject.id}" == acmeAliceCon.theirDid.uri }
@@ -313,14 +323,26 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
              * Alice decides to quit her job with Acme
              */
 
-//        acmeRevokesTheJobCertificate(ctx)
+            val issuerVc = acme.findVerifiableCredentialsByType("JobCertificate")
+                .first { "${it.credentialSubject.id}" == acmeAliceCon.theirDid.uri }
+
+            val revocationResult = revokeCredential(ctx, "Acme", "${issuerVc.id}")
+            revocationResult.succeed shouldBe true
 
             /*
              * Alice applies for another loan with Thrift Bank - this time without having a Job
              *
              */
 
-//        applyForLoanWithThrift(ctx, false)
+            try {
+                requestPresentation(ctx,
+                    verifier = "Thrift",
+                    prover = "Alice",
+                    template = "JobCertificate")
+                fail { "Expected verification to fail" }
+            } catch (ex: IllegalStateException) {
+                ex.message shouldBe "Verification failed"
+            }
 
         } finally {
             removeWallets(ctx)
@@ -333,17 +355,33 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
         }
     }
 
-    private fun issueCredential(ctx: AttachmentContext, issuer: String, holder: String, template: String, subjectData: Map<String, Any>): W3CVerifiableCredential {
+    private fun issueCredential(ctx: AttachmentContext,
+            issuer: String,
+            holder: String,
+            template: String,
+            subjectData: Map<String, Any>,
+            revocation: Boolean = false,
+            proofPurpose: String? = null,
+    ): W3CVerifiableCredential {
         val pcon = ctx.connection(issuer, holder)
         val holderDid = pcon.theirDid
         val data = VCData(
             issuerId = ctx.wallet(issuer).id,
             holderDid = holderDid.uri,
+            proofPurpose = proofPurpose,
+            revocation = revocation,
             template = template,
             subjectData = subjectData)
         return issueCredential(data).also { vc ->
             ctx.putAttachment("${issuer}_${holder}_${template}_VC", W3CVerifiableCredential::class, vc)
         }
+    }
+
+    private fun revokeCredential(ctx: AttachmentContext, issuer: String, credentialId: String): RevocationResult {
+        val data = VCData(
+            issuerId = ctx.wallet(issuer).id,
+            credentialId = credentialId)
+        return revokeCredential(data)
     }
 
     private fun requestPresentation(

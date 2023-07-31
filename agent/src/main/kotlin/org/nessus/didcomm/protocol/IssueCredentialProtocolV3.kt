@@ -169,6 +169,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         holderDid: Did,
         template: String,
         subjectData: Map<String, Any?>,
+        revocation: Boolean = false,
         options: Map<String, Any> = mapOf()
     ): IssueCredentialProtocolV3 {
 
@@ -192,8 +193,15 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
 
         val mergedData = credentialTemplate.unionMap(subjectTemplate)
 
-        val unsignedVc = W3CVerifiableCredential
+        val unsignedVc = W3CVerifiableCredential.Builder
             .fromTemplate(template, mergedData)
+            .also {
+                if (revocation) {
+                    val status = revocationService.createStatus(signatory.proofConfig)
+                    it.credentialStatus(status)
+                }
+            }
+            .build()
             .validate()
 
         val config = ProofConfig(
@@ -382,7 +390,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val options = mutableMapOf<String, Any>()
         proposalMeta.goalCode?.also { options["goal_code"] = it }
 
-        return sendCredentialOffer(issuer, holderDid, template, proposedSubjectData, options)
+        return sendCredentialOffer(issuer, holderDid, template, proposedSubjectData, options = options)
     }
 
     private fun receiveCredentialOffer(holder: Wallet): IssueCredentialProtocolV3 {

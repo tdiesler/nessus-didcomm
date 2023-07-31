@@ -102,7 +102,7 @@ class PresentProofV3ProtocolTest: AbstractAgentTest() {
                 options = mapOf("goal_code" to "Verify University Transcript")
             )
             .awaitPresentation(acme, proverDid)
-            .verifyPresentation(acme, listOf(policy))
+            .verifyPresentation(acme, auditor.plusDefaultPolicies(policy))
             .awaitPresentationAck(alice, verifierDid)
             .getMessageExchange()
 

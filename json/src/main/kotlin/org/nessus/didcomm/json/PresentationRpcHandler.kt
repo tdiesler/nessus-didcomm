@@ -59,7 +59,7 @@ object PresentationRpcHandler: AbstractRpcHandler() {
             .awaitPresentation(verifier, proverDid)
             .also { ptcl ->
                 if (policies != null) {
-                    ptcl.verifyPresentation(verifier, policies)
+                    ptcl.verifyPresentation(verifier, auditor.plusDefaultPolicies(policies))
                 }
                 if (prover != null)
                     ptcl.awaitPresentationAck(prover, verifierDid)

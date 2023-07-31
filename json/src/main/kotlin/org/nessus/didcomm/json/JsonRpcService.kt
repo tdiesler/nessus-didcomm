@@ -57,6 +57,7 @@ object JsonRpcService: ObjectService<JsonRpcService>() {
             "/invitation/create" -> InvitationRpcHandler.createInvitation(payload)
             "/invitation/receive" -> InvitationRpcHandler.receiveInvitation(payload)
             "/vc/issue" -> CredentialRpcHandler.issueCredential(payload)
+            "/vc/revoke" -> CredentialRpcHandler.revokeCredential(payload)
             "/vp/request" -> PresentationRpcHandler.requestPresentation(payload)
             "/wallet/create" -> WalletRpcHandler.createWallet(payload)
             "/wallet/find" -> WalletRpcHandler.findWallet(payload)

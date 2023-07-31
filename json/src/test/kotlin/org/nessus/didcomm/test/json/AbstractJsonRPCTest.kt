@@ -19,6 +19,7 @@
  */
 package org.nessus.didcomm.test.json
 
+import id.walt.signatory.revocation.RevocationResult
 import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.matchers.result.shouldBeSuccess
 import io.kotest.matchers.shouldBe
@@ -131,6 +132,12 @@ abstract class AbstractJsonRpcTest : AnnotationSpec() {
         val path = "/vc/issue"
         val res = rpcService.dispatchRpcCommand(path, data.toJson())
         return res.shouldBeSuccess() as W3CVerifiableCredential
+    }
+
+    fun revokeCredential(data: VCData): RevocationResult {
+        val path = "/vc/revoke"
+        val res = rpcService.dispatchRpcCommand(path, data.toJson())
+        return res.shouldBeSuccess() as RevocationResult
     }
     // endregion
 
