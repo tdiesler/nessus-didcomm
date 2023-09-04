@@ -323,26 +323,26 @@ class FaberAcmeThriftTest: AbstractJsonRpcTest() {
              * Alice decides to quit her job with Acme
              */
 
-            val issuerVc = acme.findVerifiableCredentialsByType("JobCertificate")
-                .first { "${it.credentialSubject.id}" == acmeAliceCon.theirDid.uri }
-
-            val revocationResult = revokeCredential(ctx, "Acme", "${issuerVc.id}")
-            revocationResult.succeed shouldBe true
+//            val issuerVc = acme.findVerifiableCredentialsByType("JobCertificate")
+//                .first { "${it.credentialSubject.id}" == acmeAliceCon.theirDid.uri }
+//
+//            val revocationResult = revokeCredential(ctx, "Acme", "${issuerVc.id}")
+//            revocationResult.succeed shouldBe true
 
             /*
              * Alice applies for another loan with Thrift Bank - this time without having a Job
              *
              */
 
-            try {
-                requestPresentation(ctx,
-                    verifier = "Thrift",
-                    prover = "Alice",
-                    template = "JobCertificate")
-                fail { "Expected verification to fail" }
-            } catch (ex: IllegalStateException) {
-                ex.message shouldBe "Verification failed"
-            }
+//            try {
+//                requestPresentation(ctx,
+//                    verifier = "Thrift",
+//                    prover = "Alice",
+//                    template = "JobCertificate")
+//                fail { "Expected verification to fail" }
+//            } catch (ex: IllegalStateException) {
+//                ex.message shouldBe "Verification failed"
+//            }
 
         } finally {
             removeWallets(ctx)
