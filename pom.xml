@@ -22,7 +22,6 @@
         <version.kotlin>1.8.22</version.kotlin>
 
         <!-- Other versions -->
-        <version.apache.camel>3.20.0</version.apache.camel>
         <version.beust.klaxon>5.6</version.beust.klaxon>
         <version.danubtech.vcj>1.1-SNAPSHOT</version.danubtech.vcj>
         <version.didcommx.didcomm>0.3.3-SNAPSHOT</version.didcommx.didcomm>
@@ -37,6 +36,7 @@
         <version.nimbus.jose>9.28</version.nimbus.jose>
         <version.picocli>4.7.1</version.picocli>
         <version.squareup.okhttp3>4.10.0</version.squareup.okhttp3>
+        <version.undertow>2.3.8.Final</version.undertow>
         <version.waltid.servicematrix>1.1.3</version.waltid.servicematrix>
         <version.waltid.sdjwt>1.2306191408.0</version.waltid.sdjwt>
         <version.waltid.ssikit>1.2308302143.0</version.waltid.ssikit>
@@ -176,11 +176,9 @@
                 <version>${version.kotest}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.camel</groupId>
-                <artifactId>camel-bom</artifactId>
-                <version>${version.apache.camel}</version>
-                <scope>import</scope>
-                <type>pom</type>
+                <groupId>io.undertow</groupId>
+                <artifactId>undertow-core</artifactId>
+                <version>${version.undertow}</version>
             </dependency>
             <dependency>
                 <groupId>org.didcommx</groupId>
@@ -263,8 +261,8 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <configuration>
-                        <source>13</source>
-                        <target>13</target>
+                        <source>18</source>
+                        <target>18</target>
                     </configuration>
                 </plugin>
                 <plugin>

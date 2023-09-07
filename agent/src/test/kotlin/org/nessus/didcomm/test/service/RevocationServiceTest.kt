@@ -22,7 +22,6 @@ package org.nessus.didcomm.test.service
 import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
 import io.kotest.matchers.shouldBe
-import org.junit.Ignore
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.service.NessusAuditorService.plusDefaultPolicies
@@ -31,11 +30,13 @@ import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.trimJson
 import java.util.UUID
 
-@Ignore("[#150] VC revocation does not work reliably")
 class RevocationServiceTest: AbstractAgentTest() {
 
     @Test
+    @Ignore
     fun revokeJobCertificate() {
+
+        // [#150] VC revocation does not work reliably
 
         val issuerDid = didService.createDid(DidMethod.KEY)
         val holderDid = didService.createDid(DidMethod.KEY)

@@ -22,7 +22,7 @@ package org.nessus.didcomm.model
 import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 import mu.KotlinLogging
-import org.nessus.didcomm.model.ConnectionState.*
+import org.nessus.didcomm.model.ConnectionState.ACTIVE
 import org.nessus.didcomm.service.DidOptions
 import org.nessus.didcomm.service.WalletPlugin
 import org.nessus.didcomm.service.WalletService

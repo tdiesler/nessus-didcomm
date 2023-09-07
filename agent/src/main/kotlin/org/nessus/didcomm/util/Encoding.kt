@@ -30,7 +30,6 @@ import foundation.identity.jsonld.JsonLDObject
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
 import org.didcommx.didcomm.message.Message
-import org.json.JSONObject
 import java.lang.reflect.Type
 import java.util.Base64
 import java.util.HexFormat

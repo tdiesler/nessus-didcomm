@@ -28,7 +28,7 @@ abstract class EndpointService<T: AutoCloseable>: BaseService() {
 
     companion object: ServiceProvider {
         override fun getService(): EndpointService<out AutoCloseable> = ServiceRegistry.getService()
-        override fun defaultImplementation() = CamelEndpointService()
+        override fun defaultImplementation() = HttpEndpointService()
     }
 
     /**
