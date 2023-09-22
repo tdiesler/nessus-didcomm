@@ -24,7 +24,7 @@ import org.nessus.didcomm.util.AttachmentKey
 import org.nessus.didcomm.util.AttachmentSupport
 import kotlin.reflect.KClass
 
-open class RpcContext(headers: Map<String, String> = emptyMap()): AttachmentSupport() {
+open class ApiContext(headers: Map<String, String> = emptyMap()): AttachmentSupport() {
 
     init {
         headers.entries.forEach { (k, v) -> putAttachment(k, String::class, v) }
@@ -41,29 +41,29 @@ open class RpcContext(headers: Map<String, String> = emptyMap()): AttachmentSupp
     class Builder {
         private val content = mutableMapOf<String, String>()
         fun attach(key: String, value: String) = also { content[key] = value }
-        fun build() = RpcContext(content)
+        fun build() = ApiContext(content)
     }
 }
 
-object JsonRpcService: ObjectService<JsonRpcService>() {
+object ApiService: ObjectService<ApiService>() {
 
     @JvmStatic
     fun getService() = apply { }
 
     fun dispatchRpcCommand(path: String, payload: String): Result<Any?> {
         val obj: Any? = when (path) {
-            "/connection/create" -> ConnectionRpcHandler.createConnection(payload)
-            "/did/create" -> DidRpcHandler.createDid(payload)
-            "/did/list" -> DidRpcHandler.listDids(payload)
-            "/invitation/create" -> InvitationRpcHandler.createInvitation(payload)
-            "/invitation/receive" -> InvitationRpcHandler.receiveInvitation(payload)
-            "/vc/issue" -> CredentialRpcHandler.issueCredential(payload)
-            "/vc/revoke" -> CredentialRpcHandler.revokeCredential(payload)
-            "/vp/request" -> PresentationRpcHandler.requestPresentation(payload)
-            "/wallet/create" -> WalletRpcHandler.createWallet(payload)
-            "/wallet/find" -> WalletRpcHandler.findWallet(payload)
-            "/wallet/list" -> WalletRpcHandler.listWallets(payload)
-            "/wallet/remove" -> WalletRpcHandler.removeWallet(payload)
+            "/connection/create" -> ConnectionApiHandler.createConnection(payload)
+            "/did/create" -> DidApiHandler.createDid(payload)
+            "/did/list" -> DidApiHandler.listDids(payload)
+            "/invitation/create" -> InvitationApiHandler.createInvitation(payload)
+            "/invitation/receive" -> InvitationApiHandler.receiveInvitation(payload)
+            "/vc/issue" -> CredentialApiHandler.issueCredential(payload)
+            "/vc/revoke" -> CredentialApiHandler.revokeCredential(payload)
+            "/vp/request" -> PresentationApiHandler.requestPresentation(payload)
+            "/wallet/create" -> WalletApiHandler.createWallet(payload)
+            "/wallet/find" -> WalletApiHandler.findWallet(payload)
+            "/wallet/list" -> WalletApiHandler.listWallets(payload)
+            "/wallet/remove" -> WalletApiHandler.removeWallet(payload)
             else -> throw IllegalStateException("Unsupported command path: $path")
         }
         return Result.success(obj)

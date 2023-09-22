@@ -26,7 +26,7 @@ import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.service.DidOptions
 import org.nessus.didcomm.service.DidPeerOptions
 
-object DidRpcHandler: AbstractRpcHandler() {
+object DidApiHandler: AbstractApiHandler() {
 
     fun createDid(payload: String): Did {
         val data = Json.decodeFromString<DidData>(payload)

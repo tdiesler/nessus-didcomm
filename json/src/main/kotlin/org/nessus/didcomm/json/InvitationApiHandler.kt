@@ -28,7 +28,7 @@ import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.service.OUT_OF_BAND_PROTOCOL_V2
 import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 
-object InvitationRpcHandler: AbstractRpcHandler() {
+object InvitationApiHandler: AbstractApiHandler() {
 
     fun createInvitation(payload: String): Invitation {
         val data = Json.decodeFromString<InvitationData>(payload)

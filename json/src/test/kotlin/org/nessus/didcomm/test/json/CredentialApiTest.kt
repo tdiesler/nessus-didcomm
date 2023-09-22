@@ -20,13 +20,11 @@
 package org.nessus.didcomm.test.json
 
 import io.kotest.matchers.shouldBe
-import org.nessus.didcomm.json.model.PolicyData
 import org.nessus.didcomm.json.model.VCData
-import org.nessus.didcomm.json.model.VPData
 import org.nessus.didcomm.model.WalletRole
 import org.nessus.didcomm.util.toValueMap
 
-class PresentationRpcTest: AbstractJsonRpcTest() {
+class CredentialApiTest: AbstractApiTest() {
 
     @BeforeAll
     fun startAgent() {
@@ -34,17 +32,14 @@ class PresentationRpcTest: AbstractJsonRpcTest() {
     }
 
     @Test
-    fun requestPresentation() {
+    fun issueCredential() {
         val faber = createWallet("Faber", WalletRole.ENDORSER)
-        val acme = createWallet("Acme", WalletRole.ENDORSER)
         val alice = createWallet("Alice")
         try {
-
             val faberAliceCon = peerConnect(faber, alice)
             val holderDid = faberAliceCon.theirDid.uri
 
-            issueCredential(
-                VCData(
+            issueCredential(VCData(
                 issuerId = faber.id,
                 holderDid = holderDid,
                 template = "UniversityTranscript",
@@ -58,28 +53,11 @@ class PresentationRpcTest: AbstractJsonRpcTest() {
                   "year": "2015",
                   "average": "5"
                 }                
-                """.toValueMap())
-            )
+                """.toValueMap()))
 
-            val acmeAliceCon = peerConnect(acme, alice)
-            val proverDid = acmeAliceCon.theirDid.uri
+            val vc = alice.findVerifiableCredentialsByType("UniversityTranscript")
+                .first { "${it.credentialSubject.id}" == holderDid }
 
-            requestPresentation(VPData(
-                verifierId = acme.id,
-                proverDid = proverDid,
-                template = "UniversityTranscript",
-                policies = listOf(PolicyData(
-                    name = "DynamicPolicy",
-                    params = """{
-                        "input": { "status": "graduated", "average": 4 },
-                        "policy": "src/test/resources/rego/transcript-policy.rego"
-                    }""".toValueMap())))
-            )
-
-            val vp = acme.findVerifiablePresentationsByType("UniversityTranscript")
-                .first { "${it.holder}" == proverDid }
-
-            val vc = vp.verifiableCredential.first()
             val subject = vc.credentialSubject
             val claims = subject.toMap()
             subject.id.toString() shouldBe holderDid

@@ -20,9 +20,7 @@
 package org.nessus.didcomm.test.json
 
 import id.walt.signatory.revocation.RevocationResult
-import io.kotest.matchers.shouldBe
-import org.junit.jupiter.api.fail
-import org.nessus.didcomm.json.RpcContext
+import org.nessus.didcomm.json.ApiContext
 import org.nessus.didcomm.json.model.PolicyData
 import org.nessus.didcomm.json.model.VCData
 import org.nessus.didcomm.json.model.VPData
@@ -34,7 +32,7 @@ import org.nessus.didcomm.model.WalletRole
 import org.nessus.didcomm.util.toValueMap
 
 
-class AttachmentContext: RpcContext() {
+class AttachmentContext: ApiContext() {
 
     fun connection(invtr: String, invee: String): Connection {
         return getAttachment("${invtr}_${invee}_Connection", Connection::class) as Connection
@@ -48,7 +46,7 @@ class AttachmentContext: RpcContext() {
 /**
  * It should be possible to drive Nessus DIDComm entirely through JSON-RPC
  */
-class FaberAcmeThriftTest: AbstractJsonRpcTest() {
+class FaberAcmeThriftTest: AbstractApiTest() {
 
     @BeforeAll
     fun startAgent() {

@@ -23,7 +23,7 @@ import kotlinx.serialization.json.Json
 import org.nessus.didcomm.json.model.WalletData
 import org.nessus.didcomm.model.Wallet
 
-object WalletRpcHandler: AbstractRpcHandler() {
+object WalletApiHandler: AbstractApiHandler() {
 
     @JvmStatic
     fun createWallet(payload: String): Wallet {

@@ -27,7 +27,7 @@ import org.nessus.didcomm.service.NessusPolicyRegistryService
 import org.nessus.didcomm.service.RevocationService
 import org.nessus.didcomm.service.WalletService
 
-abstract class AbstractRpcHandler {
+abstract class AbstractApiHandler {
     val log = KotlinLogging.logger {}
 
     val auditor get() = NessusAuditorService.getService()

@@ -23,7 +23,7 @@ import io.kotest.matchers.shouldBe
 import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.WalletRole
 
-class ConnectionRpcTest: AbstractJsonRpcTest() {
+class ConnectionApiTest: AbstractApiTest() {
 
     @BeforeAll
     fun startAgent() {

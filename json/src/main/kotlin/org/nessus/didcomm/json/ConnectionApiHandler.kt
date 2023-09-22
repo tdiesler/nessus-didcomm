@@ -26,7 +26,7 @@ import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.service.OUT_OF_BAND_PROTOCOL_V2
 import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 
-object ConnectionRpcHandler: AbstractRpcHandler() {
+object ConnectionApiHandler: AbstractApiHandler() {
 
     @JvmStatic
     fun createConnection(payload: String): Connection {

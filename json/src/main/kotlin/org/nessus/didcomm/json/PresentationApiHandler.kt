@@ -27,7 +27,7 @@ import org.nessus.didcomm.model.W3CVerifiablePresentation
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
 import org.nessus.didcomm.util.encodeJson
 
-object PresentationRpcHandler: AbstractRpcHandler() {
+object PresentationApiHandler: AbstractApiHandler() {
 
     fun requestPresentation(payload: String): W3CVerifiablePresentation {
         val data = Json.decodeFromString<VPData>(payload)

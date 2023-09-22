@@ -26,7 +26,7 @@ import org.nessus.didcomm.model.ConnectionState
 import org.nessus.didcomm.model.DidMethod
 import org.nessus.didcomm.model.WalletRole
 
-class InvitationRpcTest: AbstractJsonRpcTest() {
+class InvitationApiTest: AbstractApiTest() {
 
     @BeforeAll
     fun startAgent() {

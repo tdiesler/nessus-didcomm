@@ -26,7 +26,7 @@ import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
 
-object CredentialRpcHandler: AbstractRpcHandler() {
+object CredentialApiHandler: AbstractApiHandler() {
 
     fun issueCredential(payload: String): W3CVerifiableCredential {
         val data = Json.decodeFromString<VCData>(payload)

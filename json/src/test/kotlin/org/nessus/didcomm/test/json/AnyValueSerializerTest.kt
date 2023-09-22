@@ -24,7 +24,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.nessus.didcomm.json.AnyValueSerializer
 
-class AnyValueSerializerTest: AbstractJsonRpcTest() {
+class AnyValueSerializerTest: AbstractApiTest() {
 
     @Test
     fun testMapStringAny() {

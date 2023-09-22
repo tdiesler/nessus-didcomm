@@ -24,7 +24,7 @@ import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.matchers.result.shouldBeSuccess
 import io.kotest.matchers.shouldBe
 import mu.KotlinLogging
-import org.nessus.didcomm.json.JsonRpcService
+import org.nessus.didcomm.json.ApiService
 import org.nessus.didcomm.json.model.ConnectionData
 import org.nessus.didcomm.json.model.DidData
 import org.nessus.didcomm.json.model.InvitationData
@@ -50,10 +50,10 @@ import org.nessus.didcomm.service.ServiceMatrixLoader
  * It should be possible to drive Nessus DIDComm entirely through JSON-RPC
  */
 @Suppress("MemberVisibilityCanBePrivate")
-abstract class AbstractJsonRpcTest : AnnotationSpec() {
+abstract class AbstractApiTest : AnnotationSpec() {
     val log = KotlinLogging.logger {}
 
-    val rpcService get() = JsonRpcService.getService()
+    val rpcService get() = ApiService.getService()
     val modelService get() = ModelService.getService()
     val endpointService get() = EndpointService.getService()
 
