@@ -29,10 +29,10 @@ import com.google.gson.JsonSerializer
 import foundation.identity.jsonld.JsonLDObject
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
+import org.apache.commons.codec.binary.Hex
 import org.didcommx.didcomm.message.Message
 import java.lang.reflect.Type
 import java.util.Base64
-import java.util.HexFormat
 
 /***********************************************************************************************************************
  * Message
@@ -150,12 +150,12 @@ fun String.decodeBase64Url(): ByteArray = Base64.getUrlDecoder().decode(this)
 fun String.decodeBase64UrlStr(): String = String(this.decodeBase64Url())
 
 /***********************************************************************************************************************
- * Hex
+ * Hex (natively supported in Java18 via HexFormat)
  */
 
-fun ByteArray.encodeHex(): String = HexFormat.of().formatHex(this)
+fun ByteArray.encodeHex(): String = Hex.encodeHexString(this)
 
-fun String.decodeHex(): ByteArray = HexFormat.of().parseHex(this)
+fun String.decodeHex(): ByteArray = Hex.decodeHex(this)
 
 /***********************************************************************************************************************
  * MediaType
