@@ -127,7 +127,7 @@ class WalletCommands: AbstractBaseCommand() {
     ) {
         val wallet = getWalletFromAlias(alias)
         cliService.putContextWallet(wallet)
-        cliService.putContextDid(wallet.name, wallet.dids.lastOrNull())
+        cliService.putContextDid(wallet.alias, wallet.dids.lastOrNull())
         cliService.putContextConnection(wallet.connections.lastOrNull { it.state == ConnectionState.ACTIVE })
     }
 }

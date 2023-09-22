@@ -50,7 +50,7 @@ class TrustPingCommands: AbstractBaseCommand() {
             .awaitTrustPingResponse()
             .getMessageExchange()
 
-        val header = "${sender.name} received a Trust Ping response"
+        val header = "${sender.alias} received a Trust Ping response"
         if (verbose) {
             val pingMessages = mex.messages.takeLast(2)
             echoList("${header}\n", pingMessages.map { it.prettyPrint() })

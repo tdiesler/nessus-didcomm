@@ -31,7 +31,7 @@ class MessageCommands: AbstractBaseCommand() {
 
         val pcon = ctxWallet?.currentConnection
         if (pcon == null) {
-            echo("No connection for: ${ctxWallet?.name}")
+            echo("No connection for: ${ctxWallet?.alias}")
             return 0
         }
 

@@ -31,7 +31,8 @@ import org.didcommx.didcomm.model.UnpackResult
 
 object DidCommService: ObjectService<DidCommService>() {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     private val didDocResolver get() = DidDocResolverService.getService()
     private val secretResolver get() = SecretResolverService.getService()

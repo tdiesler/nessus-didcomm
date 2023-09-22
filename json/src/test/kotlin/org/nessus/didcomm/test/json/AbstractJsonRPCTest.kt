@@ -93,11 +93,11 @@ abstract class AbstractJsonRpcTest : AnnotationSpec() {
         inviterCon.state shouldBe ConnectionState.ACTIVE
         if (reverse)
             return inviterCon
-        check(inviterCon.theirLabel == invitee.name)
+        check(inviterCon.theirLabel == invitee.alias)
         val inviterDid = inviterCon.myDid
         val inviteeDid = inviterCon.theirDid
         val inviteeCon = invitee.findConnection { it.myDid == inviteeDid && it.theirDid == inviterDid }
-        return checkNotNull(inviteeCon) { "No ${invitee.name}_${inviter.name} connection" }
+        return checkNotNull(inviteeCon) { "No ${invitee.alias}_${inviter.alias} connection" }
     }
     // endregion
 

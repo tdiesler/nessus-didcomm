@@ -75,7 +75,7 @@ enum class WalletRole {
  */
 abstract class Wallet(
     val id: String,
-    val name: String,
+    val alias: String,
     val agentType: AgentType,
     val storageType: StorageType,
     val walletRole: WalletRole,
@@ -133,7 +133,7 @@ abstract class Wallet(
     fun addDid(did: Did) {
         // We currently don't support multiple representations for the same verification key
         check(findDidByUri(did.uri) == null) { "Did already added" }
-        log.info { "Add Did for ${name}: $did" }
+        log.info { "Add Did for ${alias}: $did" }
         didsInternal.add(did)
     }
 
@@ -255,11 +255,11 @@ abstract class Wallet(
     }
 
     fun shortString(): String {
-        return "$name [agent=${agentType.value}, type=$storageType, endpointUrl=$endpointUrl]"
+        return "$alias [agent=${agentType.value}, type=$storageType, endpointUrl=$endpointUrl]"
     }
 
     override fun toString(): String {
-        return "Wallet(id='$id', agent=$agentType, type=$storageType, alias=$name, endpointUrl=$endpointUrl, routing-keys=$routingKeys, options=$redactedOptions)"
+        return "Wallet(id='$id', agent=$agentType, type=$storageType, alias=$alias, endpointUrl=$endpointUrl, routing-keys=$routingKeys, options=$redactedOptions)"
     }
 
     private val redactedOptions get() = options?.mapValues { (k, v) ->

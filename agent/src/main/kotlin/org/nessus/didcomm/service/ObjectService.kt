@@ -29,5 +29,5 @@ import mu.KotlinLogging
  */
 abstract class ObjectService<T> {
     val log = KotlinLogging.logger {}
-    abstract fun getService(): T
+    // abstract fun getService(): T
 }

@@ -102,7 +102,7 @@ class CreateInvitation: AbstractOutOfBandCommand() {
         val invitation = mex.getInvitation() as Invitation
         checkNotNull(inviter.getInvitation(invitation.id))
         cliService.putContextInvitation(invitation)
-        echoCreateInvitation(inviter.name, invitation)
+        echoCreateInvitation(inviter.alias, invitation)
         return 0
     }
 }
@@ -160,7 +160,7 @@ class ReceiveInvitation: AbstractOutOfBandCommand() {
         cliService.putContextConnection(pcon)
 
         checkNotNull(invitee.getInvitation(invitation.id))
-        echoReceiveInvitation(invitee.name, invitation)
+        echoReceiveInvitation(invitee.alias, invitation)
         cliService.putAttachment(INVITATION_ATTACHMENT_KEY, null)
 
         echo(pcon.shortString())
@@ -220,15 +220,15 @@ class InviteAndConnect: AbstractOutOfBandCommand() {
             .createOutOfBandInvitation(inviter, inviterDid)
             .also {
                 val invitation = it.getMessageExchange().getInvitation()
-                echoCreateInvitation(inviter.name, invitation!!)
+                echoCreateInvitation(inviter.alias, invitation!!)
             }
             .receiveOutOfBandInvitation(
                 invitee,
                 inviteeDid = inviteeDid,
-                inviterAlias = inviter.name)
+                inviterAlias = inviter.alias)
             .also {
                 val invitation = it.getMessageExchange().getInvitation()
-                echoReceiveInvitation(invitee.name, invitation!!)
+                echoReceiveInvitation(invitee.alias, invitation!!)
             }
             .withProtocol(TRUST_PING_PROTOCOL_V2)
             .sendTrustPing()
@@ -240,8 +240,8 @@ class InviteAndConnect: AbstractOutOfBandCommand() {
             }
             .getConnection()
 
-        check(pcon.myLabel == invitee.name) { "Unexpected invitee label: ${pcon.myLabel}" }
-        check(pcon.theirLabel == inviter.name) { "Unexpected inviter label: ${pcon.theirLabel}" }
+        check(pcon.myLabel == invitee.alias) { "Unexpected invitee label: ${pcon.myLabel}" }
+        check(pcon.theirLabel == inviter.alias) { "Unexpected inviter label: ${pcon.theirLabel}" }
 
         cliService.putContextConnection(pcon)
 

@@ -69,7 +69,7 @@ class OutOfBandProtocolV2(mex: MessageExchange): Protocol<OutOfBandProtocolV2>(m
         inviter: Wallet,
         inviterDid: Did? = null,
         didMethod: DidMethod? = null,
-        options: Map<String, Any> = mapOf()
+        options: Map<String, Any>? = null
     ): OutOfBandProtocolV2 {
         checkAgentType(inviter.agentType)
 
@@ -90,9 +90,10 @@ class OutOfBandProtocolV2(mex: MessageExchange): Protocol<OutOfBandProtocolV2>(m
             }
         }
 
+        val effOptions = options ?: mapOf()
         val invitationBuilder = Invitation.Builder(id, type, invitationDid.uri)
-            .goalCode(options["goal_code"] as? String)
-            .goal(options["goal"] as? String)
+            .goalCode(effOptions["goal_code"] as? String)
+            .goal(effOptions["goal"] as? String)
             .accept(DEFAULT_ACCEPT)
 
         // Add the DidDoc attachment when we don't have a did:peer:2
@@ -105,7 +106,7 @@ class OutOfBandProtocolV2(mex: MessageExchange): Protocol<OutOfBandProtocolV2>(m
         val invitation = invitationBuilder.build()
 
         val message = invitation.toMessage()
-        log.info { "Inviter (${inviter.name}) created Invitation: ${message.prettyPrint()}" }
+        log.info { "Inviter (${inviter.alias}) created Invitation: ${message.prettyPrint()}" }
 
         val epm = EndpointMessage.Builder(message).outbound().build()
         mex.addMessage(epm)
@@ -122,7 +123,7 @@ class OutOfBandProtocolV2(mex: MessageExchange): Protocol<OutOfBandProtocolV2>(m
             myDid = invitationDid,
             myAgent = inviter.agentType.value,
             myRole = ConnectionRole.INVITER,
-            myLabel = inviter.name,
+            myLabel = inviter.alias,
             theirDid = null,
             theirAgent = null,
             theirRole = ConnectionRole.INVITEE,
@@ -147,7 +148,7 @@ class OutOfBandProtocolV2(mex: MessageExchange): Protocol<OutOfBandProtocolV2>(m
 
         val effInvitation = invitation ?: mex.getInvitation()
         checkNotNull(effInvitation) { "No invitation" }
-        log.info { "Invitee (${invitee.name}) received Invitation: ${effInvitation.encodeJson(true)}"}
+        log.info { "Invitee (${invitee.alias}) received Invitation: ${effInvitation.encodeJson(true)}"}
 
         // [TODO] invitation state for v2
         // check(invitation.state == InvitationState.INITIAL) { "Unexpected invitation state: $invitation" }
@@ -196,11 +197,11 @@ class OutOfBandProtocolV2(mex: MessageExchange): Protocol<OutOfBandProtocolV2>(m
             myDid = actualInviteeDid,
             myAgent = invitee.agentType.value,
             myRole = ConnectionRole.INVITEE,
-            myLabel = invitee.name,
+            myLabel = invitee.alias,
             theirDid = inviterDid,
             theirAgent = inviter?.agentType?.value,
             theirRole = ConnectionRole.INVITER,
-            theirLabel = inviter?.name ?: inviterAlias,
+            theirLabel = inviter?.alias ?: inviterAlias,
             state = ConnectionState.INVITATION
         )
 

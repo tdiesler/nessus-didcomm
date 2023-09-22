@@ -98,7 +98,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         options: Map<String, Any> = mapOf()
     ): IssueCredentialProtocolV3 {
 
-        val mex = MessageExchange.findByWallet(holder.name).firstOrNull { it.getConnection().theirDid == issuerDid }
+        val mex = MessageExchange.findByWallet(holder.alias).firstOrNull { it.getConnection().theirDid == issuerDid }
         checkNotNull(mex) { "No message exchange for: ${issuerDid.uri}"}
 
         val pcon = mex.getConnection()
@@ -144,12 +144,12 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
             .build()
 
         mex.addMessage(EndpointMessage.Builder(vcProposalMsg).outbound().build())
-        log.info { "Holder (${holder.name}) proposes credential: ${vcProposalMsg.encodeJson(true)}" }
+        log.info { "Holder (${holder.alias}) proposes credential: ${vcProposalMsg.encodeJson(true)}" }
 
         mex.placeEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL)
 
         dispatchEncryptedMessage(pcon, vcProposalMsg) { packedEpm ->
-            log.info { "Holder (${holder.name}) sends credential proposal: ${packedEpm.prettyPrint()}" }
+            log.info { "Holder (${holder.alias}) sends credential proposal: ${packedEpm.prettyPrint()}" }
         }
 
         return IssueCredentialProtocolV3(mex)
@@ -173,7 +173,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         options: Map<String, Any> = mapOf()
     ): IssueCredentialProtocolV3 {
 
-        val mex = MessageExchange.findByWallet(issuer.name).firstOrNull { it.getConnection().theirDid == holderDid }
+        val mex = MessageExchange.findByWallet(issuer.alias).firstOrNull { it.getConnection().theirDid == holderDid }
         checkNotNull(mex) { "No message exchange for: ${holderDid.uri}"}
         val pcon = mex.getConnection()
         val issuerDid = pcon.myDid
@@ -239,40 +239,40 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
 
 
         mex.addMessage(EndpointMessage.Builder(vcOfferMsg).outbound().build())
-        log.info { "Issuer (${issuer.name}) created credential offer: ${vcOfferMsg.encodeJson(true)}" }
+        log.info { "Issuer (${issuer.alias}) created credential offer: ${vcOfferMsg.encodeJson(true)}" }
 
         mex.placeEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL)
 
         dispatchEncryptedMessage(pcon, vcOfferMsg) { packedEpm ->
-            log.info { "Issuer (${issuer.name}) sends credential offer: ${packedEpm.prettyPrint()}" }
+            log.info { "Issuer (${issuer.alias}) sends credential offer: ${packedEpm.prettyPrint()}" }
         }
 
         return IssueCredentialProtocolV3(mex)
     }
 
     fun awaitCredentialOffer(holder: Wallet, issuerDid: Did, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): IssueCredentialProtocolV3 {
-        val mex = MessageExchange.findByWallet(holder.name).firstOrNull { it.getConnection().theirDid == issuerDid }
+        val mex = MessageExchange.findByWallet(holder.alias).firstOrNull { it.getConnection().theirDid == issuerDid }
         checkNotNull(mex) { "No message exchange for: ${issuerDid.uri}"}
         mex.awaitEndpointMessage(ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL, timeout, unit)
         return this
     }
 
     fun awaitCredentialRequest(issuer: Wallet, holderDid: Did, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): IssueCredentialProtocolV3 {
-        val mex = MessageExchange.findByWallet(issuer.name).firstOrNull { it.getConnection().theirDid == holderDid }
+        val mex = MessageExchange.findByWallet(issuer.alias).firstOrNull { it.getConnection().theirDid == holderDid }
         checkNotNull(mex) { "No message exchange for: ${holderDid.uri}"}
         mex.awaitEndpointMessage(ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL, timeout, unit)
         return this
     }
 
     fun awaitIssuedCredential(holder: Wallet, issuerDid: Did, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): IssueCredentialProtocolV3 {
-        val mex = MessageExchange.findByWallet(holder.name).firstOrNull { it.getConnection().theirDid == issuerDid }
+        val mex = MessageExchange.findByWallet(holder.alias).firstOrNull { it.getConnection().theirDid == issuerDid }
         checkNotNull(mex) { "No message exchange for: ${issuerDid.uri}"}
         mex.awaitEndpointMessage(ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL, timeout, unit)
         return this
     }
 
     fun awaitCredentialAck(issuer: Wallet, holderDid: Did, timeout: Int = 10, unit: TimeUnit = TimeUnit.SECONDS): IssueCredentialProtocolV3 {
-        val mex = MessageExchange.findByWallet(issuer.name).firstOrNull { it.getConnection().theirDid == holderDid }
+        val mex = MessageExchange.findByWallet(issuer.alias).firstOrNull { it.getConnection().theirDid == holderDid }
         checkNotNull(mex) { "No message exchange for: ${holderDid.uri}"}
         mex.awaitEndpointMessage(ISSUE_CREDENTIAL_MESSAGE_TYPE_CREDENTIAL_ACK, timeout, unit)
         return this
@@ -323,10 +323,10 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
             .build()
 
         mex.addMessage(EndpointMessage.Builder(issuedVcMsg).outbound().build())
-        log.info { "Issuer (${issuer.name}) creates credential: ${issuedVcMsg.encodeJson(true)}" }
+        log.info { "Issuer (${issuer.alias}) creates credential: ${issuedVcMsg.encodeJson(true)}" }
 
         dispatchEncryptedMessage(pcon, issuedVcMsg) { packedEpm ->
-            log.info { "Issuer (${issuer.name}) sends credential: ${packedEpm.prettyPrint()}" }
+            log.info { "Issuer (${issuer.alias}) sends credential: ${packedEpm.prettyPrint()}" }
         }
         return this
     }
@@ -339,7 +339,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val vcProposalMsg = mex.last.body as Message
         mex.checkLastMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_PROPOSE_CREDENTIAL)
 
-        log.info { "Issuer (${issuer.name}) received credential proposal: ${vcProposalMsg.encodeJson(true)}" }
+        log.info { "Issuer (${issuer.alias}) received credential proposal: ${vcProposalMsg.encodeJson(true)}" }
 
         // Extract the proposal data from the Message
 
@@ -371,7 +371,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
             }}
         check(nonMatchingProposalData.isEmpty()) { "Non matching data: ${nonMatchingProposalData.encodeJson()}" }
 
-        log.info { "Issuer (${issuer.name}) accepts credential proposal" }
+        log.info { "Issuer (${issuer.alias}) accepts credential proposal" }
 
         // Extract the template name from the attached credential
 
@@ -410,7 +410,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val attachment = vcOfferMsg.attachments?.firstOrNull { at -> at.format == null || at.format == CREDENTIAL_ATTACHMENT_FORMAT }
         checkNotNull(attachment) { "No credential offer attachment" }
 
-        log.info { "Holder (${holder.name}) accepts credential offer: ${vcOfferMsg.encodeJson(true)}" }
+        log.info { "Holder (${holder.alias}) accepts credential offer: ${vcOfferMsg.encodeJson(true)}" }
 
         val vcRequestBody: MutableMap<String, Any?> = mutableMapOf()
         offer.goalCode?.also { vcRequestBody["goal_code"] = it }
@@ -427,12 +427,12 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
             .build()
 
         mex.addMessage(EndpointMessage.Builder(vcRequestMsg).outbound().build())
-        log.info { "Holder (${holder.name}) creates credential requests: ${vcRequestMsg.encodeJson(true)}" }
+        log.info { "Holder (${holder.alias}) creates credential requests: ${vcRequestMsg.encodeJson(true)}" }
 
         mex.placeEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_ISSUED_CREDENTIAL)
 
         dispatchEncryptedMessage(pcon, vcRequestMsg) { packedEpm ->
-            log.info { "Holder (${holder.name}) sends credential requests: ${packedEpm.prettyPrint()}" }
+            log.info { "Holder (${holder.alias}) sends credential requests: ${packedEpm.prettyPrint()}" }
         }
 
         if (mex.hasEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_OFFER_CREDENTIAL))
@@ -449,7 +449,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val vcRequestMsg = mex.last.body as Message
         mex.checkLastMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_REQUEST_CREDENTIAL)
 
-        log.info { "Issuer (${issuer.name}) received credential request: ${vcRequestMsg.encodeJson(true)}" }
+        log.info { "Issuer (${issuer.alias}) received credential request: ${vcRequestMsg.encodeJson(true)}" }
 
         mex.placeEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_CREDENTIAL_ACK)
 
@@ -475,7 +475,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val vc = W3CVerifiableCredential.fromJson(jsonData)
         holder.addVerifiableCredential(vc)
 
-        log.info { "Holder (${holder.name}) received credential: ${vc.encodeJson(true)}" }
+        log.info { "Holder (${holder.alias}) received credential: ${vc.encodeJson(true)}" }
 
         sendCredentialAck(holder, credentialEpm)
 
@@ -488,7 +488,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val ackMsg = mex.last.body as Message
         mex.checkLastMessageType(ISSUE_CREDENTIAL_MESSAGE_TYPE_CREDENTIAL_ACK)
 
-        log.info { "Issuer (${issuer.name}) received credential ack: ${ackMsg.encodeJson(true)}" }
+        log.info { "Issuer (${issuer.alias}) received credential ack: ${ackMsg.encodeJson(true)}" }
 
         mex.completeEndpointMessageFuture(ISSUE_CREDENTIAL_MESSAGE_TYPE_CREDENTIAL_ACK, mex.last)
         return this
@@ -512,10 +512,10 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
             .build()
 
         mex.addMessage(EndpointMessage.Builder(vcAckMsg).outbound().build())
-        log.info { "Holder (${holder.name}) creates credential ack: ${vcAckMsg.encodeJson(true)}" }
+        log.info { "Holder (${holder.alias}) creates credential ack: ${vcAckMsg.encodeJson(true)}" }
 
         dispatchEncryptedMessage(pcon, vcAckMsg) { packedEpm ->
-            log.info { "Holder (${holder.name}) sends credential ack: ${packedEpm.prettyPrint()}" }
+            log.info { "Holder (${holder.alias}) sends credential ack: ${packedEpm.prettyPrint()}" }
         }
 
         return this

@@ -55,7 +55,8 @@ class ConfiguredServiceTest: AbstractAgentTest() {
 
 object SimpleObjectService: ObjectService<SimpleObjectService>() {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     private val atomicCount = AtomicInteger()
     init { atomicCount.incrementAndGet() }

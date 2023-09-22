@@ -44,7 +44,8 @@ import java.util.UUID
  */
 object MessageDispatchService: ObjectService<MessageDispatchService>() {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     private val didComm get() = DidCommService.getService()
     private val didService get() = DidService.getService()

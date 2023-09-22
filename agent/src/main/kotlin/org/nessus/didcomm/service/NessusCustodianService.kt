@@ -11,7 +11,8 @@ import java.time.Instant
 
 object NessusCustodianService: ObjectService<NessusCustodianService>() {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     private val jwtCredentialService = JwtCredentialService.getService()
     private val jsonLdCredentialService = JsonLdCredentialService.getService()

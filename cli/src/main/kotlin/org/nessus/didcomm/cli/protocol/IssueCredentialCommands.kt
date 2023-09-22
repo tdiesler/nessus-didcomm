@@ -162,9 +162,9 @@ class ProposeCredential: AbstractBaseCommand() {
             .firstOrNull { "${it.credentialSubject.id}" == subjectDid.uri }
         checkNotNull(signedVc) { "No credential was issued" }
 
-        echo("Holder '${subject.name}' received a '$template' credential")
+        echo("Holder '${subject.alias}' received a '$template' credential")
 
-        val varKey = "${subject.name}.${template}.Vc"
+        val varKey = "${subject.alias}.${template}.Vc"
         properties.putVar("$varKey.json", signedVc.toJson())
         properties.putVar(varKey, "${signedVc.id}")
         echo("$varKey=${signedVc.id}")
@@ -270,9 +270,9 @@ class IssueCredential: AbstractBaseCommand() {
         val signedVc = signatory.issue(vc, config)
         holder.addVerifiableCredential(signedVc)
 
-        echo("Issuer '${issuer.name}' issued a '$template' to holder '${holder.name}'")
+        echo("Issuer '${issuer.alias}' issued a '$template' to holder '${holder.alias}'")
 
-        val varKey = "${holder.name}.${template}.Vc"
+        val varKey = "${holder.alias}.${template}.Vc"
         properties.putVar("$varKey.json", signedVc.toJson())
         properties.putVar(varKey, "${signedVc.id}")
         echo("$varKey=${signedVc.id}")
@@ -363,12 +363,12 @@ class PresentCredential: AbstractBaseCommand() {
         }
 
         val templates = vcs.map { it.types.last() }
-        val verifierName = verifier?.name ?: pcon?.theirLabel
-        echo("Prover '${prover.name}' presents $templates to verifier '${verifierName}'")
+        val verifierName = verifier?.alias ?: pcon?.theirLabel
+        echo("Prover '${prover.alias}' presents $templates to verifier '${verifierName}'")
 
         val vp = prover.verifiablePresentations.last()
 
-        val varKey = "${verifierName}.${prover.name}.${templates.joinToString(separator = "")}.Vp"
+        val varKey = "${verifierName}.${prover.alias}.${templates.joinToString(separator = "")}.Vp"
         properties.putVar("$varKey.json", vp.toJson())
         properties.putVar(varKey, "${vp.id}")
         echo("$varKey=${vp.id}")

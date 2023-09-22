@@ -42,7 +42,8 @@ object DashboardService: ObjectService<DashboardService>() {
     private val modelService get() = ModelService.getService()
     private val templateService get() = VcTemplateService.getService()
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     fun processHttpGet(exchange: HttpServerExchange) {
         val headers = getRequestHeadersAsMap(exchange)
@@ -148,7 +149,7 @@ object DashboardService: ObjectService<DashboardService>() {
         val invitation = MessageExchange()
             .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
             .createOutOfBandInvitation(inviter, inviterDid, options = mapOf(
-                "goal" to "Invitation from ${inviter.name}"))
+                "goal" to "Invitation from ${inviter.alias}"))
             .getMessageExchange()
             .getInvitation()
 
@@ -245,12 +246,12 @@ object DashboardService: ObjectService<DashboardService>() {
                 .filter { w -> w.dids.any { d -> d.method == DidMethod.fromValue(method) } }
                 .map { w -> Pair(w, w.dids.first { d -> d.method == DidMethod.fromValue(method) }) }
                 .joinToString(separator = "\n") { (w, d) ->
-                    put("${w.name}.Did", d.uri)
+                    put("${w.alias}.Did", d.uri)
                     """
                     <tr>
-                        <td><b>${w.name}</b></td><td class='code'>${d.uri.ellipsis(24)}</td>
-                        <td><a href='/invitation?inviter=${w.name}&method=$method'>invitation</a></td>
-                        <td><a href='/dashboard/connections?walletName=${w.name}'>connections</a></td>
+                        <td><b>${w.alias}</b></td><td class='code'>${d.uri.ellipsis(24)}</td>
+                        <td><a href='/invitation?inviter=${w.alias}&method=$method'>invitation</a></td>
+                        <td><a href='/dashboard/connections?walletName=${w.alias}'>connections</a></td>
                     </tr>
                     """
                 }

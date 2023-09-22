@@ -36,7 +36,7 @@ object CredentialRpcHandler: AbstractRpcHandler() {
         checkNotNull(data.subjectData) { "No subjectData" }
         val issuer = assertWallet(data.issuerId)
         val issuerHolderCon = issuer.connections.firstOrNull { ic -> ic.theirDid.uri == data.holderDid }
-        checkNotNull(issuerHolderCon) { "Issuer ${issuer.name} has not connection to ${data.holderDid}" }
+        checkNotNull(issuerHolderCon) { "Issuer ${issuer.alias} has not connection to ${data.holderDid}" }
         val holderDid = issuerHolderCon.theirDid
         MessageExchange()
             .withConnection(issuerHolderCon)
@@ -53,7 +53,7 @@ object CredentialRpcHandler: AbstractRpcHandler() {
 
         val vc = issuer.findVerifiableCredentialsByType(data.template)
             .firstOrNull { "${it.credentialSubject?.id}" == holderDid.uri }
-        checkNotNull(vc) { "Issuer ${issuer.name} has no ${data.template} credential for subject: ${holderDid.uri}" }
+        checkNotNull(vc) { "Issuer ${issuer.alias} has no ${data.template} credential for subject: ${holderDid.uri}" }
         return vc
     }
 
@@ -63,7 +63,7 @@ object CredentialRpcHandler: AbstractRpcHandler() {
         checkNotNull(data.credentialId) { "No credentialId" }
         val issuer = assertWallet(data.issuerId)
         val issuerVC = issuer.findVerifiableCredential { "${it.id}" == data.credentialId }
-        checkNotNull(issuerVC) { "Issuer ${issuer.name} cannot find credential: ${data.credentialId}" }
+        checkNotNull(issuerVC) { "Issuer ${issuer.alias} cannot find credential: ${data.credentialId}" }
         return revocationService.revoke(issuerVC)
     }
 }

@@ -19,7 +19,8 @@ fun VcTemplate.shortString(): String {
 
 object NessusSignatoryService: ObjectService<NessusSignatoryService>() {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     private const val VC_GROUP = "signatory"
 

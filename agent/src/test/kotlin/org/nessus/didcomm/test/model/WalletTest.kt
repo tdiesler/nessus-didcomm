@@ -39,7 +39,7 @@ class WalletTest: AbstractAgentTest() {
         val alice = Wallet.Builder(Alice.name)
             .build()
 
-        alice.name shouldBe Alice.name
+        alice.alias shouldBe Alice.name
         alice.agentType shouldBe AgentType.NESSUS
         alice.storageType shouldBe StorageType.IN_MEMORY
 

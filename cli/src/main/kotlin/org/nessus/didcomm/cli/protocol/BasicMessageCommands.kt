@@ -82,7 +82,7 @@ class BasicMessageCommands: AbstractBaseCommand() {
             }
         }
 
-        val header = "${sender.name} sent: $message"
+        val header = "${sender.alias} sent: $message"
         if (verbose)
             echo("${header}\n${mex.last.prettyPrint()}")
         else

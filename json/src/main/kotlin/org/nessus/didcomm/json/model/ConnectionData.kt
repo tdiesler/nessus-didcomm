@@ -23,7 +23,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.nessus.didcomm.json.AnyValueSerializer
+import org.nessus.didcomm.model.Connection
 import org.nessus.didcomm.model.DidMethod
+import org.nessus.didcomm.model.Wallet
 
 @Serializable
 data class ConnectionData(
@@ -50,7 +52,12 @@ data class ConnectionData(
      *
      * https://identity.foundation/didcomm-messaging/spec/v2.0/#goal-codes
      */
-    val options: Map<String, @Serializable(with = AnyValueSerializer::class) Any> = emptyMap(),
+    val options: Map<String, @Serializable(with = AnyValueSerializer::class) Any>? = null,
 ) {
+    companion object {
+        @JvmStatic
+        fun fromJson(json: String): ConnectionData = Json.decodeFromString<ConnectionData>(json)
+    }
+
     fun toJson() = Json.encodeToString(this)
 }

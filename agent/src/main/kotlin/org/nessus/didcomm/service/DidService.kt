@@ -103,7 +103,8 @@ interface DidServicePlugin {
 
 object DidService: ObjectService<DidService>() {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     private val modelService get() = ModelService.getService()
     private val cryptoService get() = NessusCryptoService.getService()

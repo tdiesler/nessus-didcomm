@@ -10,7 +10,8 @@ import org.nessus.didcomm.model.toWaltIdType
 
 object NessusAuditorService: ObjectService<NessusAuditorService>() {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     private val delegate get() = Auditor.getService()
     private val policyService get() = NessusPolicyRegistryService.getService()

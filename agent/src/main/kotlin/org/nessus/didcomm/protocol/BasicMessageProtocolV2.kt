@@ -91,10 +91,10 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
 
         val basicMsg = basicMessage.toMessage()
         senderMex.addMessage(EndpointMessage.Builder(basicMsg).outbound().build()).last
-        log.info { "Sender (${sender.name}) creates Basic Message: ${basicMsg.encodeJson(true)}" }
+        log.info { "Sender (${sender.alias}) creates Basic Message: ${basicMsg.encodeJson(true)}" }
 
         dispatchPlainMessage(pcon, basicMsg) { packedEpm ->
-            log.info { "Sender (${sender.name}) sends Basic Message: ${packedEpm.prettyPrint()}" }
+            log.info { "Sender (${sender.alias}) sends Basic Message: ${packedEpm.prettyPrint()}" }
         }
         return protocol
     }
@@ -129,10 +129,10 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
 
         val basicMsg = basicMessage.toMessage()
         senderMex.addMessage(EndpointMessage.Builder(basicMsg).outbound().build()).last
-        log.info { "Sender (${sender.name}) creates Basic Message: ${basicMsg.encodeJson(true)}" }
+        log.info { "Sender (${sender.alias}) creates Basic Message: ${basicMsg.encodeJson(true)}" }
 
         dispatchSignedMessage(pcon, basicMsg) { packedEpm ->
-            log.info { "Sender (${sender.name}) sends Basic Message: ${packedEpm.prettyPrint()}" }
+            log.info { "Sender (${sender.alias}) sends Basic Message: ${packedEpm.prettyPrint()}" }
         }
         return protocol
     }
@@ -167,10 +167,10 @@ class BasicMessageProtocolV2(mex: MessageExchange): Protocol<BasicMessageProtoco
 
         val basicMsg = basicMessage.toMessage()
         senderMex.addMessage(EndpointMessage.Builder(basicMsg).outbound().build())
-        log.info { "Sender (${sender.name}) created Basic Message: ${basicMsg.encodeJson(true)}" }
+        log.info { "Sender (${sender.alias}) created Basic Message: ${basicMsg.encodeJson(true)}" }
 
         dispatchEncryptedMessage(pcon, basicMsg) { packedEpm ->
-            log.info { "Sender (${sender.name}) sends Basic Message: ${packedEpm.prettyPrint()}" }
+            log.info { "Sender (${sender.alias}) sends Basic Message: ${packedEpm.prettyPrint()}" }
         }
         return protocol
     }

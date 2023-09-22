@@ -25,7 +25,8 @@ import java.util.Optional
 
 object DidDocResolverService: ObjectService<DidDocResolverService>(), DIDDocResolver {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     private val didService get() = DidService.getService()
 

@@ -201,7 +201,7 @@ class NessusCli {
 
                 fun prompt(): String {
                     val ctxWallet = cliService.findContextWallet()
-                    return ctxWallet?.run { "${name}>> " } ?: ">> "
+                    return ctxWallet?.run { "${alias}>> " } ?: ">> "
                 }
 
                 fun rightPrompt(): String? {

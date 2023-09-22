@@ -30,13 +30,13 @@ class WalletCmdTest: AbstractCLITest() {
         cliService.execute("wallet list").isSuccess shouldBe true
 
         cliService.execute("wallet create --name Faber").isSuccess shouldBe true
-        cliService.findContextWallet()?.name shouldBe "Faber"
+        cliService.findContextWallet()?.alias shouldBe "Faber"
 
         cliService.execute("wallet create --name Alice").isSuccess shouldBe true
-        cliService.findContextWallet()?.name shouldBe "Alice"
+        cliService.findContextWallet()?.alias shouldBe "Alice"
 
         cliService.execute("wallet switch faber").isSuccess shouldBe true
-        cliService.findContextWallet()?.name shouldBe "Faber"
+        cliService.findContextWallet()?.alias shouldBe "Faber"
 
         cliService.execute("wallet remove Alice").isSuccess shouldBe true
         cliService.execute("wallet remove Faber").isSuccess shouldBe true

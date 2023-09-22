@@ -69,7 +69,7 @@ class BasicMessageV2ProtocolTest : AbstractAgentTest() {
                 val mex = MessageExchange()
                     .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
                     .createOutOfBandInvitation(faber)
-                    .receiveOutOfBandInvitation(alice, inviterAlias = faber.name)
+                    .receiveOutOfBandInvitation(alice, inviterAlias = faber.alias)
 
                     .withProtocol(TRUST_PING_PROTOCOL_V2)
                     .sendTrustPing()

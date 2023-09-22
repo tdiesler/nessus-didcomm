@@ -55,19 +55,19 @@ class ConnectionCmdTest: AbstractCLITest() {
         bob.currentConnection shouldBe null
 
         cliService.execute("protocol invitation connect --inviter=acme --invitee=alice").isSuccess shouldBe true
-        acme.currentConnection?.myLabel shouldBe acme.name
-        acme.currentConnection?.theirLabel shouldBe alice.name
+        acme.currentConnection?.myLabel shouldBe acme.alias
+        acme.currentConnection?.theirLabel shouldBe alice.alias
         acme.currentConnection?.alias shouldBe "Acme_Alice"
-        alice.currentConnection?.myLabel shouldBe alice.name
-        alice.currentConnection?.theirLabel shouldBe acme.name
+        alice.currentConnection?.myLabel shouldBe alice.alias
+        alice.currentConnection?.theirLabel shouldBe acme.alias
         alice.currentConnection?.alias shouldBe "Alice_Acme"
 
         cliService.execute("protocol invitation connect --inviter=bob --invitee=alice").isSuccess shouldBe true
-        bob.currentConnection?.myLabel shouldBe bob.name
-        bob.currentConnection?.theirLabel shouldBe alice.name
+        bob.currentConnection?.myLabel shouldBe bob.alias
+        bob.currentConnection?.theirLabel shouldBe alice.alias
         bob.currentConnection?.alias shouldBe "Bob_Alice"
-        alice.currentConnection?.myLabel shouldBe alice.name
-        alice.currentConnection?.theirLabel shouldBe bob.name
+        alice.currentConnection?.myLabel shouldBe alice.alias
+        alice.currentConnection?.theirLabel shouldBe bob.alias
         alice.currentConnection?.alias shouldBe "Alice_Bob"
 
 

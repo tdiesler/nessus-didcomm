@@ -41,7 +41,8 @@ import java.util.concurrent.TimeUnit
 
 object HttpService: ObjectService<HttpService>() {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     fun httpClient(level: Level? = null): HttpClient {
         return HttpClient(createHttpLoggingInterceptor(level), null)

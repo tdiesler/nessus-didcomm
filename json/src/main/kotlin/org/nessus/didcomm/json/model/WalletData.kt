@@ -41,10 +41,15 @@ data class WalletData(
 ) {
 
     companion object {
+
+        @JvmStatic
+        fun fromJson(json: String): WalletData = Json.decodeFromString<WalletData>(json)
+
+        @JvmStatic
         fun fromWallet(wallet: Wallet): WalletData {
             return WalletData(
                 id = wallet.id,
-                alias = wallet.name,
+                alias = wallet.alias,
                 agentType = wallet.agentType,
                 storageType = wallet.storageType,
                 walletRole = wallet.walletRole,

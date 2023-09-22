@@ -47,7 +47,8 @@ open class RpcContext(headers: Map<String, String> = emptyMap()): AttachmentSupp
 
 object JsonRpcService: ObjectService<JsonRpcService>() {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     fun dispatchRpcCommand(path: String, payload: String): Result<Any?> {
         val obj: Any? = when (path) {

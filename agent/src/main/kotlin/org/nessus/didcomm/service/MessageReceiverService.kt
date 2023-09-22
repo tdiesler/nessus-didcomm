@@ -32,7 +32,8 @@ typealias MessageReceiver = (msg: EndpointMessage) -> Message
  */
 object MessageReceiverService: ObjectService<MessageReceiverService>(), MessageReceiver {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     private val didService get() = DidService.getService()
     private val dispatchService get() = MessageDispatchService.getService()

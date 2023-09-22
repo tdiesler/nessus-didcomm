@@ -61,7 +61,7 @@ class TrustPingV2ProtocolTest: AbstractAgentTest() {
             .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
             .createOutOfBandInvitation(faber)
             .receiveOutOfBandInvitation(
-                inviterAlias = faber.name,
+                inviterAlias = faber.alias,
                 invitee = alice)
 
             .withProtocol(TRUST_PING_PROTOCOL_V2)
@@ -72,8 +72,8 @@ class TrustPingV2ProtocolTest: AbstractAgentTest() {
 
         val aliceFaber = mex.getConnection()
         aliceFaber.state shouldBe ACTIVE
-        aliceFaber.myLabel shouldBe alice.name
-        aliceFaber.theirLabel shouldBe faber.name
+        aliceFaber.myLabel shouldBe alice.alias
+        aliceFaber.theirLabel shouldBe faber.alias
 
         // Send an explicit trust ping
         MessageExchange()
@@ -84,8 +84,8 @@ class TrustPingV2ProtocolTest: AbstractAgentTest() {
         // Send a reverse trust ping
         val faberAlice = faber.findConnection{ it.myVerkey == aliceFaber.theirVerkey }
         faberAlice?.state shouldBe ACTIVE
-        faberAlice?.myLabel shouldBe faber.name
-        faberAlice?.theirLabel shouldBe alice.name
+        faberAlice?.myLabel shouldBe faber.alias
+        faberAlice?.theirLabel shouldBe alice.alias
 
         MessageExchange()
             .withProtocol(TRUST_PING_PROTOCOL_V2)

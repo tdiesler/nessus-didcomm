@@ -16,7 +16,8 @@ import java.util.Optional
 
 object SecretResolverService: ObjectService<SecretResolverService>(), SecretResolver {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     private val didService get() = DidService.getService()
     private val cryptoService get() = NessusCryptoService.getService()

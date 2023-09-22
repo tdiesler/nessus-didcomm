@@ -143,7 +143,7 @@ abstract class AbstractAgentTest: AnnotationSpec() {
         val inviteeCon = MessageExchange()
             .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
             .createOutOfBandInvitation(inviter)
-            .receiveOutOfBandInvitation(invitee, inviterAlias = inviter.name)
+            .receiveOutOfBandInvitation(invitee, inviterAlias = inviter.alias)
             .withProperty(PropertiesService.PROTOCOL_TRUST_PING_ROTATE_DID, false)
             .withProtocol(TRUST_PING_PROTOCOL_V2)
             .sendTrustPing()
@@ -154,16 +154,16 @@ abstract class AbstractAgentTest: AnnotationSpec() {
         if (reverse)
             return inviteeCon
 
-        check(inviteeCon.theirLabel == inviter.name)
+        check(inviteeCon.theirLabel == inviter.alias)
         val inviterDid = inviteeCon.theirDid
         val inviteeDid = inviteeCon.myDid
         val inviterCon = inviter.findConnection { it.myDid == inviterDid && it.theirDid == inviteeDid }
-        return checkNotNull(inviterCon) { "No ${inviter.name}_${invitee.name} connection" }
+        return checkNotNull(inviterCon) { "No ${inviter.alias}_${invitee.alias} connection" }
     }
 
     fun issueCredential(issuer: Wallet, holderDid: Did, template: String, subjectData: Map<String, Any?>) {
         val pcon = issuer.findConnection { it.theirDid == holderDid }
-        checkNotNull(pcon) { "Issuer '${issuer.name}' has no connection with: $holderDid" }
+        checkNotNull(pcon) { "Issuer '${issuer.alias}' has no connection with: $holderDid" }
         MessageExchange()
             .withConnection(pcon)
             .withProtocol(ISSUE_CREDENTIAL_PROTOCOL_V3)

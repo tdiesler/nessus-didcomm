@@ -36,7 +36,7 @@ object PresentationRpcHandler: AbstractRpcHandler() {
         checkNotNull(data.template) { "No template" }
         val verifier = assertWallet(data.verifierId)
         val verifierProverCon = verifier.connections.firstOrNull { ic -> ic.theirDid.uri == data.proverDid }
-        checkNotNull(verifierProverCon) { "Issuer ${verifier.name} has not connection to ${data.proverDid}" }
+        checkNotNull(verifierProverCon) { "Issuer ${verifier.alias} has not connection to ${data.proverDid}" }
         val verifierDid = verifierProverCon.myDid
         val proverDid = verifierProverCon.theirDid
         val prover = modelService.findWalletByDid(proverDid.uri)
@@ -71,7 +71,7 @@ object PresentationRpcHandler: AbstractRpcHandler() {
         }
         val vp = verifier.findVerifiablePresentationsByType(data.template)
             .firstOrNull { vp -> "${vp.holder}" == proverDid.uri }
-        checkNotNull(vp) { "Verifier ${verifier.name} has no ${data.template} presentation from subject: ${proverDid.uri}" }
+        checkNotNull(vp) { "Verifier ${verifier.alias} has no ${data.template} presentation from subject: ${proverDid.uri}" }
         return vp
     }
 }

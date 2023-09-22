@@ -117,7 +117,7 @@ object CLIService: AttachmentSupport() {
     fun findContextWallet(alias: String? = null): Wallet? {
         val effAlias = alias ?: getAttachment(WALLET_ATTACHMENT_KEY)?.id ?: return null
         return modelService.findWallet {
-            val candidates = listOf(it.id, it.name).map { c -> c.lowercase() }
+            val candidates = listOf(it.id, it.alias).map { c -> c.lowercase() }
             candidates.any { c -> c.startsWith(effAlias.lowercase()) }
         }
     }

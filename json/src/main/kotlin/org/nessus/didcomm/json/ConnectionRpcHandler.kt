@@ -28,6 +28,7 @@ import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 
 object ConnectionRpcHandler: AbstractRpcHandler() {
 
+    @JvmStatic
     fun createConnection(payload: String): Connection {
         val data = Json.decodeFromString<ConnectionData>(payload)
         checkNotNull(data.inviterId) { "No inviterId" }
@@ -37,7 +38,7 @@ object ConnectionRpcHandler: AbstractRpcHandler() {
         val inviteeCon = MessageExchange()
             .withProtocol(OUT_OF_BAND_PROTOCOL_V2)
             .createOutOfBandInvitation(inviter, didMethod = data.didMethod, options = data.options)
-            .receiveOutOfBandInvitation(invitee, inviterAlias = inviter.name)
+            .receiveOutOfBandInvitation(invitee, inviterAlias = inviter.alias)
             .withProtocol(TRUST_PING_PROTOCOL_V2)
             .sendTrustPing()
             .awaitTrustPingResponse()

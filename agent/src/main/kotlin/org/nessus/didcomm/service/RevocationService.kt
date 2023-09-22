@@ -36,7 +36,8 @@ import org.nessus.didcomm.util.decodeJson
 
 object RevocationService: ObjectService<RevocationService>() {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     fun check(vc: W3CVerifiableCredential): RevocationStatus {
         val status = RevocationClientService.check(vc.toWaltIdType())

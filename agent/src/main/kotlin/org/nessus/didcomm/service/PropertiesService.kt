@@ -3,7 +3,8 @@ package org.nessus.didcomm.service
 
 object PropertiesService: ObjectService<PropertiesService>() {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     const val PROTOCOL_TRUST_PING_ROTATE_DID = "protocol.trust-ping.rotate-did"
     const val PROTOCOL_OUT_OF_BAND_ROUTING_KEY_AS_ENDPOINT_URL = "protocol.out-of-band.routing-key-as-endpoint-url"

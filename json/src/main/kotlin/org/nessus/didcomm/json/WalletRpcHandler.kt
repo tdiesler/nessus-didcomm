@@ -25,17 +25,20 @@ import org.nessus.didcomm.model.Wallet
 
 object WalletRpcHandler: AbstractRpcHandler() {
 
+    @JvmStatic
     fun createWallet(payload: String): Wallet {
         val data = Json.decodeFromString<WalletData>(payload)
         return walletService.createWallet(data.toWalletConfig())
     }
 
+    @JvmStatic
     fun findWallet(payload: String): Wallet? {
         val data = Json.decodeFromString<WalletData>(payload)
         checkNotNull(data.alias) { "No wallet alias" }
         return walletService.findWallet(data.alias)
     }
 
+    @JvmStatic
     fun listWallets(payload: String): List<Wallet> {
         val data = Json.decodeFromString<WalletData>(payload)
         val wallets = walletService.wallets.toMutableList()
@@ -44,6 +47,7 @@ object WalletRpcHandler: AbstractRpcHandler() {
         return wallets
     }
 
+    @JvmStatic
     fun removeWallet(payload: String): Boolean {
         val data = Json.decodeFromString<WalletData>(payload)
         checkNotNull(data.id) { "No wallet id" }

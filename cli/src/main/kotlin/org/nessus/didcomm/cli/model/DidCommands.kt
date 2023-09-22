@@ -101,7 +101,7 @@ class DidCommands: AbstractBaseCommand() {
         }
 
         val did = ctxWallet.createDid(didMethod, options = didOptions)
-        cliService.putContextDid(ctxWallet.name, did)
+        cliService.putContextDid(ctxWallet.alias, did)
 
         echo(did.uri)
 

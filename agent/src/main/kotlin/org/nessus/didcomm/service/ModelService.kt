@@ -24,13 +24,14 @@ import org.nessus.didcomm.model.Wallet
 
 object ModelService: ObjectService<ModelService>() {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     val model = Model()
     val wallets get() = model.wallets
 
     fun addWallet(wallet: Wallet) {
-        check(findWalletByName(wallet.name) == null) { "Wallet already exists: ${wallet.name}" }
+        check(findWalletByName(wallet.alias) == null) { "Wallet already exists: ${wallet.alias}" }
         log.info {"Add Wallet: $wallet" }
         model.addWallet(wallet)
     }
@@ -47,7 +48,7 @@ object ModelService: ObjectService<ModelService>() {
     }
 
     fun findWalletByName(name: String): Wallet? {
-        return findWallet { it.name.lowercase() == name.lowercase() }
+        return findWallet { it.alias.lowercase() == name.lowercase() }
     }
 
     fun findWalletByDid(uri: String): Wallet? {

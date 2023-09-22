@@ -33,8 +33,10 @@ import kotlin.io.path.isReadable
 
 object WalletService: ObjectService<WalletService>() {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
+    @JvmStatic
     val wallets get() = modelService.wallets
 
     private val modelService get() = ModelService.getService()
@@ -75,7 +77,7 @@ object WalletService: ObjectService<WalletService>() {
     fun findWallet(alias: String): Wallet? {
         val tst = alias.lowercase()
         return modelService.findWallet {
-            it.id.lowercase().startsWith(tst) || it.name.lowercase().startsWith(tst)
+            it.id.lowercase().startsWith(tst) || it.alias.lowercase().startsWith(tst)
         }
     }
 

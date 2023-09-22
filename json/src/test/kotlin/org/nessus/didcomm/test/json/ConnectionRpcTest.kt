@@ -37,8 +37,8 @@ class ConnectionRpcTest: AbstractJsonRpcTest() {
         try {
             val faberAliceCon = peerConnect(faber, alice)
             faberAliceCon.state shouldBe ConnectionState.ACTIVE
-            faberAliceCon.theirLabel shouldBe alice.name
-            faberAliceCon.myLabel shouldBe faber.name
+            faberAliceCon.theirLabel shouldBe alice.alias
+            faberAliceCon.myLabel shouldBe faber.alias
         } finally {
             removeWallets()
         }

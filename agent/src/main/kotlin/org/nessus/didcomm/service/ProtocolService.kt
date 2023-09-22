@@ -45,7 +45,8 @@ class ProtocolKey<T: Protocol<T>>(uri: String, type: KClass<T>): AttachmentKey<T
 
 object ProtocolService : ObjectService<ProtocolService>() {
 
-    override fun getService() = apply { }
+    @JvmStatic
+    fun getService() = apply { }
 
     private val supportedProtocols: List<ProtocolKey<*>> get() = listOf(
 

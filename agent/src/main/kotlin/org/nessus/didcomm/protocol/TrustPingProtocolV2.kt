@@ -87,8 +87,8 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             .to(listOf(recipientDid.uri))
             .createdTime(dateTimeNow())
             .expiresTime(dateTimeNow().plusHours(24))
-            .comment("Ping from ${sender.name}")
-            .label(sender.name)
+            .comment("Ping from ${sender.alias}")
+            .label(sender.alias)
             .responseRequested(true)
 
         // FIRST TRUST PING
@@ -113,13 +113,13 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
 
         val trustPingMsg = trustPingBuilder.build().toMessage()
         senderMex.addMessage(EndpointMessage.Builder(trustPingMsg).outbound().build())
-        log.info { "Sender (${sender.name}) creates TrustPing: ${trustPingMsg.encodeJson(true)}" }
+        log.info { "Sender (${sender.alias}) creates TrustPing: ${trustPingMsg.encodeJson(true)}" }
 
         // Register the TrustPing Response future
         senderMex.placeEndpointMessageFuture(TRUST_PING_MESSAGE_TYPE_PING_RESPONSE_V2)
 
         dispatchEncryptedMessage(pcon, trustPingMsg) { packedEpm ->
-            log.info { "Sender (${sender.name}) sends TrustPing: ${packedEpm.prettyPrint()}" }
+            log.info { "Sender (${sender.alias}) sends TrustPing: ${packedEpm.prettyPrint()}" }
         }
 
         return senderMex.withProtocol(TRUST_PING_PROTOCOL_V2)
@@ -168,7 +168,7 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             }
 
             val theirWallet = modelService.findWalletByDid(senderDid.uri)
-            val theirLabel = theirWallet?.name ?: trustPingV2.label
+            val theirLabel = theirWallet?.alias ?: trustPingV2.label
 
             pcon.myDid = inviterDid
             pcon.theirDid = senderDid
@@ -203,16 +203,16 @@ class TrustPingProtocolV2(mex: MessageExchange): Protocol<TrustPingProtocolV2>(m
             .to(listOf(senderDid.uri))
             .createdTime(dateTimeNow())
             .expiresTime(dateTimeNow().plusHours(24))
-            .comment("Pong from ${receiver.name}")
-            .label(receiver.name)
+            .comment("Pong from ${receiver.alias}")
+            .label(receiver.alias)
             .build()
 
         val trustPingResponseMsg = trustPingV2.toMessage()
         mex.addMessage(EndpointMessage.Builder(trustPingResponseMsg).outbound().build())
-        log.info { "Receiver (${receiver.name}) creates TrustPing Response: ${trustPingResponseMsg.encodeJson(true)}" }
+        log.info { "Receiver (${receiver.alias}) creates TrustPing Response: ${trustPingResponseMsg.encodeJson(true)}" }
 
         dispatchEncryptedMessage(pcon, trustPingResponseMsg, fromPriorIssuerKid) { packedEpm ->
-            log.info { "Receiver (${receiver.name}) sends TrustPing Response: ${packedEpm.prettyPrint()}" }
+            log.info { "Receiver (${receiver.alias}) sends TrustPing Response: ${packedEpm.prettyPrint()}" }
         }
     }
 

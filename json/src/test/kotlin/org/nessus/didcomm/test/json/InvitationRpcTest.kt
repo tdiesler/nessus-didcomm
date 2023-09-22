@@ -65,7 +65,7 @@ class InvitationRpcTest: AbstractJsonRpcTest() {
             val invitation = createInvitation(InvitationData(faber.id))
             val encoded = invitation.encodeBase64()
 
-            val pcon = receiveInvitation(InvitationData(inviteeId = alice.id, inviterAlias = faber.name, urlEncoded = encoded))
+            val pcon = receiveInvitation(InvitationData(inviteeId = alice.id, inviterAlias = faber.alias, urlEncoded = encoded))
             assertEquals(ConnectionState.ACTIVE, pcon.state)
         } finally {
             removeWallets(alice, faber)
