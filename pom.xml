@@ -19,7 +19,7 @@
     </scm>
 
     <properties>
-        <version.kotlin>1.8.22</version.kotlin>
+        <version.kotlin>1.9.10</version.kotlin>
 
         <!-- Other versions -->
         <version.beust.klaxon>5.6</version.beust.klaxon>
@@ -60,8 +60,8 @@
 
         <!-- Other properties -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kotlin.compiler.languageVersion>1.8</kotlin.compiler.languageVersion>
-        <kotlin.compiler.apiVersion>1.8</kotlin.compiler.apiVersion>
+        <kotlin.compiler.languageVersion>1.9</kotlin.compiler.languageVersion>
+        <kotlin.compiler.apiVersion>1.9</kotlin.compiler.apiVersion>
         <kotlin.compiler.jvmTarget>17</kotlin.compiler.jvmTarget>
         <kotlin.code.style>official</kotlin.code.style>
     </properties>
