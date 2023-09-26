@@ -50,7 +50,7 @@ object ApiService: ObjectService<ApiService>() {
     @JvmStatic
     fun getService() = apply { }
 
-    fun dispatchRpcCommand(path: String, payload: String): Result<Any?> {
+    fun dispatchApiMessage(path: String, payload: String): Result<Any?> {
         val obj: Any? = when (path) {
             "/connection/create" -> ConnectionApiHandler.createConnection(payload)
             "/did/create" -> DidApiHandler.createDid(payload)

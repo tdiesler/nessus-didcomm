@@ -53,7 +53,7 @@ class NessusCryptoService: SunCryptoService() {
 
     companion object: ServiceProvider {
         private val implementation = NessusCryptoService()
-        override fun getService() = implementation
+        @JvmStatic override fun getService() = implementation
     }
 
     private val keyStore get() = KeyStoreService.getService()

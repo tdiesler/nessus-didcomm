@@ -27,7 +27,7 @@ import io.undertow.util.Headers
 import io.undertow.util.Methods
 import mu.KotlinLogging
 import org.nessus.didcomm.model.EndpointMessage
-import org.nessus.didcomm.util.JSON_MIME_TYPE
+import org.nessus.didcomm.util.MIME_TYPE_APPLICATION_JSON
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.net.HttpURLConnection.HTTP_INTERNAL_ERROR
@@ -104,11 +104,11 @@ class HttpEndpointService: EndpointService<HttpEndpointHandle>() {
             (messageReceiver ?: receiverService).invoke(epm)
 
             exchange.statusCode = HTTP_OK
-            exchange.responseHeaders.put(Headers.CONTENT_TYPE, JSON_MIME_TYPE)
+            exchange.responseHeaders.put(Headers.CONTENT_TYPE, MIME_TYPE_APPLICATION_JSON)
             exchange.responseSender.send("{}")
         }.onFailure { th ->
             exchange.statusCode = HTTP_INTERNAL_ERROR
-            exchange.responseHeaders.put(Headers.CONTENT_TYPE, JSON_MIME_TYPE)
+            exchange.responseHeaders.put(Headers.CONTENT_TYPE, MIME_TYPE_APPLICATION_JSON)
             val sw = StringWriter()
             th.printStackTrace(PrintWriter(sw))
             val traceLines = "$sw".lines().map { it.trim() }.find { it.isNotEmpty() }

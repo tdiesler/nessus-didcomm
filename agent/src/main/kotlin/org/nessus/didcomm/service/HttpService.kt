@@ -30,7 +30,7 @@ import org.didcommx.didcomm.message.Message
 import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_MEDIA_TYPE
 import org.nessus.didcomm.model.EndpointMessage.Companion.MESSAGE_HEADER_TYPE
 import org.nessus.didcomm.service.HttpService.HttpClient.Companion.createHttpLoggingInterceptor
-import org.nessus.didcomm.util.JSON_MIME_TYPE
+import org.nessus.didcomm.util.MIME_TYPE_APPLICATION_JSON
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
 import org.slf4j.event.Level
@@ -100,21 +100,21 @@ object HttpService: ObjectService<HttpService>() {
         fun get(reqUrl: String, params: Map<String, Any>? = null): Response {
             val builder = requestBuilder(reqUrl, params)
             val req = builder.get().build()
-            val res = httpClient.newCall(req).execute()
-            return processResponse(res)
+            return httpClient.newCall(req).execute()
         }
 
-        fun post(reqUrl: String, body: Any, params: Map<String, Any>? = null, headers: Map<String, String> = mapOf()): Response {
+        fun post(reqUrl: String, body: Any, params: Map<String, Any>? = null, headers: Map<String, String>? = null): Response {
 
             val builder = requestBuilder(reqUrl, params)
 
             // The given Content-Type or JSON by default
-            var contentType = headers["Content-Type"] ?: headers[MESSAGE_HEADER_MEDIA_TYPE]
-            if (contentType == null && headers[MESSAGE_HEADER_TYPE]?.startsWith("application/") == true) {
-                contentType = headers[MESSAGE_HEADER_TYPE]
+            val effectHeaders = headers ?: mapOf()
+            var contentType = effectHeaders["Content-Type"] ?: effectHeaders[MESSAGE_HEADER_MEDIA_TYPE]
+            if (contentType == null && effectHeaders[MESSAGE_HEADER_TYPE]?.startsWith("application/") == true) {
+                contentType = effectHeaders[MESSAGE_HEADER_TYPE]
             }
 
-            val mediaType = contentType?.toMediaType() ?: JSON_MIME_TYPE.toMediaType()
+            val mediaType = contentType?.toMediaType() ?: MIME_TYPE_APPLICATION_JSON.toMediaType()
 
             val reqBody = when (body) {
                 is String -> body.toRequestBody(mediaType)
@@ -124,16 +124,7 @@ object HttpService: ObjectService<HttpService>() {
             }
 
             val req = builder.post(reqBody).build()
-            val res = httpClient.newCall(req).execute()
-            return processResponse(res)
-        }
-
-        private fun processResponse(res: Response): Response {
-            when (res.code) {
-                HTTP_OK, HTTP_ACCEPTED -> log.info { "HttpResponse[code=${res.code}, body=${res.body?.string()}]" }
-                else -> log.warn { "HttpResponse[code=${res.code}, body=${res.body?.string()}]" }
-            }
-            return res
+            return httpClient.newCall(req).execute()
         }
 
         private fun requestBuilder(reqUrl: String, params: Map<String, Any>?): Request.Builder {

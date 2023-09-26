@@ -48,11 +48,11 @@ class DidApiTest: AbstractApiTest() {
             assertEquals(DidMethod.SOV, didSov.method)
             log.info { didSov.uri }
 
-            var res = rpcService.dispatchRpcCommand("/did/list", DidData(ownerId = gov.id).toJson())
+            var res = rpcService.dispatchApiMessage("/did/list", DidData(ownerId = gov.id).toJson())
             var dids = res.shouldBeSuccess() as List<*>
             dids.forEach { log.info { (it as Did).uri } }
 
-            res = rpcService.dispatchRpcCommand("/did/list",
+            res = rpcService.dispatchApiMessage("/did/list",
                 DidData(ownerId = gov.id, method = DidMethod.PEER).toJson())
             dids = res.shouldBeSuccess() as List<*>
             dids.forEach { log.info { (it as Did).uri } }

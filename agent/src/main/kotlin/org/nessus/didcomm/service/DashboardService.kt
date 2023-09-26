@@ -31,7 +31,7 @@ import org.nessus.didcomm.model.MessageDirection
 import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.util.Holder
-import org.nessus.didcomm.util.JSON_MIME_TYPE
+import org.nessus.didcomm.util.MIME_TYPE_APPLICATION_JSON
 import org.nessus.didcomm.util.ellipsis
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.parameterMap
@@ -156,7 +156,7 @@ object DashboardService: ObjectService<DashboardService>() {
         checkNotNull(invitation) { "No invitation" }
         val invitationMessage = invitation.toMessage()
 
-        exchange.responseHeaders.put(Headers.CONTENT_TYPE, JSON_MIME_TYPE)
+        exchange.responseHeaders.put(Headers.CONTENT_TYPE, MIME_TYPE_APPLICATION_JSON)
         exchange.responseSender.send(invitationMessage.encodeJson(true))
     }
 
@@ -204,7 +204,7 @@ object DashboardService: ObjectService<DashboardService>() {
         val mex = MessageExchange.findByConnectionId(pconId) as MessageExchange
         val epm = mex.messages.find { it.id == epmId } as EndpointMessage
 
-        exchange.responseHeaders.put(Headers.CONTENT_TYPE, JSON_MIME_TYPE)
+        exchange.responseHeaders.put(Headers.CONTENT_TYPE, MIME_TYPE_APPLICATION_JSON)
         exchange.responseSender.send(epm.body.encodeJson(true))
     }
 
@@ -215,7 +215,7 @@ object DashboardService: ObjectService<DashboardService>() {
         val templateName = ctx["name"] as String
         val vcTemplate = templateService.getTemplate(templateName)
 
-        exchange.responseHeaders.put(Headers.CONTENT_TYPE, JSON_MIME_TYPE)
+        exchange.responseHeaders.put(Headers.CONTENT_TYPE, MIME_TYPE_APPLICATION_JSON)
         exchange.responseSender.send(vcTemplate.encodeJson(true))
     }
 

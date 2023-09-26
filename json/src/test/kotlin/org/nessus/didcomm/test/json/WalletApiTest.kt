@@ -41,13 +41,13 @@ class WalletApiTest: AbstractApiTest() {
 
         // Find wallet
 
-        var res = rpcService.dispatchRpcCommand("/wallet/find", WalletData(alias = "gov").toJson())
+        var res = rpcService.dispatchApiMessage("/wallet/find", WalletData(alias = "gov").toJson())
         val found = res.shouldBeSuccess() as? Wallet
         assertEquals(gov.id, found?.id)
 
         // List wallets
 
-        res = rpcService.dispatchRpcCommand("/wallet/list", WalletData().toJson())
+        res = rpcService.dispatchApiMessage("/wallet/list", WalletData().toJson())
         val wallets = res.shouldBeSuccess() as List<*>
         assertEquals(1, wallets.size)
         assertEquals(gov.id, (wallets[0] as Wallet).id)

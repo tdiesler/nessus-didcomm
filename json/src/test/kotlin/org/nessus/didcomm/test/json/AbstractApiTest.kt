@@ -88,7 +88,7 @@ abstract class AbstractApiTest : AnnotationSpec() {
     fun peerConnect(inviter: Wallet, invitee: Wallet, reverse: Boolean = true): Connection {
         val path = "/connection/create"
         val data = ConnectionData(inviter.id, invitee.id)
-        val res = rpcService.dispatchRpcCommand(path, data.toJson())
+        val res = rpcService.dispatchApiMessage(path, data.toJson())
         val inviterCon = res.shouldBeSuccess() as Connection
         inviterCon.state shouldBe ConnectionState.ACTIVE
         if (reverse)
@@ -108,7 +108,7 @@ abstract class AbstractApiTest : AnnotationSpec() {
 
     fun createDid(data: DidData): Did {
         val path = "/did/create"
-        val res = rpcService.dispatchRpcCommand(path, data.toJson())
+        val res = rpcService.dispatchApiMessage(path, data.toJson())
         return res.shouldBeSuccess() as Did
     }
     // endregion
@@ -116,13 +116,13 @@ abstract class AbstractApiTest : AnnotationSpec() {
     // region invitation
     fun createInvitation(data: InvitationData): Invitation {
         val path = "/invitation/create"
-        val res = rpcService.dispatchRpcCommand(path, data.toJson())
+        val res = rpcService.dispatchApiMessage(path, data.toJson())
         return res.shouldBeSuccess() as Invitation
     }
 
     fun receiveInvitation(data: InvitationData): Connection {
         val path = "/invitation/receive"
-        val res = rpcService.dispatchRpcCommand(path, data.toJson())
+        val res = rpcService.dispatchApiMessage(path, data.toJson())
         return res.shouldBeSuccess() as Connection
     }
     // endregion
@@ -130,13 +130,13 @@ abstract class AbstractApiTest : AnnotationSpec() {
     // region vc
     fun issueCredential(data: VCData): W3CVerifiableCredential {
         val path = "/vc/issue"
-        val res = rpcService.dispatchRpcCommand(path, data.toJson())
+        val res = rpcService.dispatchApiMessage(path, data.toJson())
         return res.shouldBeSuccess() as W3CVerifiableCredential
     }
 
     fun revokeCredential(data: VCData): RevocationResult {
         val path = "/vc/revoke"
-        val res = rpcService.dispatchRpcCommand(path, data.toJson())
+        val res = rpcService.dispatchApiMessage(path, data.toJson())
         return res.shouldBeSuccess() as RevocationResult
     }
     // endregion
@@ -144,7 +144,7 @@ abstract class AbstractApiTest : AnnotationSpec() {
     // region vp
     fun requestPresentation(data: VPData): W3CVerifiablePresentation {
         val path = "/vp/request"
-        val res = rpcService.dispatchRpcCommand(path, data.toJson())
+        val res = rpcService.dispatchApiMessage(path, data.toJson())
         return res.shouldBeSuccess() as W3CVerifiablePresentation
     }
     // endregion
@@ -156,7 +156,7 @@ abstract class AbstractApiTest : AnnotationSpec() {
 
     fun createWallet(data: WalletData): Wallet {
         val path = "/wallet/create"
-        val res = rpcService.dispatchRpcCommand(path, data.toJson())
+        val res = rpcService.dispatchApiMessage(path, data.toJson())
         return res.shouldBeSuccess() as Wallet
     }
 
@@ -171,7 +171,7 @@ abstract class AbstractApiTest : AnnotationSpec() {
     fun removeWallet(wallet: Wallet) {
         val path = "/wallet/remove"
         val data = WalletData(id = wallet.id)
-        rpcService.dispatchRpcCommand(path, data.toJson()).shouldBeSuccess()
+        rpcService.dispatchApiMessage(path, data.toJson()).shouldBeSuccess()
     }
     // endregion
 }

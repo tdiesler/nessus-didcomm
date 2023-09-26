@@ -35,7 +35,7 @@ import org.nessus.didcomm.model.MessageExchange
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
-import org.nessus.didcomm.util.JSON_MIME_TYPE
+import org.nessus.didcomm.util.MIME_TYPE_APPLICATION_JSON
 import org.nessus.didcomm.util.dateTimeNow
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
@@ -133,7 +133,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val jsonData = Attachment.Data.Json.parse(mapOf("json" to unsignedVc.toMap()))
         val vcAttachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
             .format(CREDENTIAL_ATTACHMENT_FORMAT)
-            .mediaType(JSON_MIME_TYPE)
+            .mediaType(MIME_TYPE_APPLICATION_JSON)
             .build()
 
         val vcProposalMsg = MessageBuilder(id, proposal.toMap(), type)
@@ -227,7 +227,7 @@ class IssueCredentialProtocolV3(mex: MessageExchange): Protocol<IssueCredentialP
         val jsonData = Attachment.Data.Json.parse(mapOf("json" to signedVc.toMap()))
         val vcAttachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
             .format(CREDENTIAL_ATTACHMENT_FORMAT)
-            .mediaType(JSON_MIME_TYPE)
+            .mediaType(MIME_TYPE_APPLICATION_JSON)
             .build()
 
         val vcOfferMsg = MessageBuilder(id, offerMeta.toMap(), type)

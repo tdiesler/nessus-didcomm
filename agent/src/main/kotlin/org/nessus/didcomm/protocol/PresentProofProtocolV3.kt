@@ -35,7 +35,7 @@ import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.W3CVerifiablePresentation
 import org.nessus.didcomm.model.Wallet
 import org.nessus.didcomm.service.PRESENT_PROOF_PROTOCOL_V3
-import org.nessus.didcomm.util.JSON_MIME_TYPE
+import org.nessus.didcomm.util.MIME_TYPE_APPLICATION_JSON
 import org.nessus.didcomm.util.decodeJson
 import org.nessus.didcomm.util.encodeJson
 import org.nessus.didcomm.util.jsonData
@@ -115,7 +115,7 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         val jsonData = Attachment.Data.Json.parse(mapOf("json" to signedVp.toMap()))
         val vpAttachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
             .format(PRESENTATION_ATTACHMENT_FORMAT)
-            .mediaType(JSON_MIME_TYPE)
+            .mediaType(MIME_TYPE_APPLICATION_JSON)
             .build()
 
         val id = "${UUID.randomUUID()}"
@@ -174,7 +174,7 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
         val jsonData = Attachment.Data.Json.parse(mapOf("json" to vc.toMap()))
         val attachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
             .format(PRESENTATION_ATTACHMENT_FORMAT)
-            .mediaType(JSON_MIME_TYPE)
+            .mediaType(MIME_TYPE_APPLICATION_JSON)
             .build()
 
         val attachmentData = attachment.data.jsonData()
@@ -361,7 +361,7 @@ class PresentProofProtocolV3(mex: MessageExchange): Protocol<PresentProofProtoco
             val jsonData = Attachment.Data.Json.parse(mapOf("json" to signedVp.toMap()))
             attachment = Attachment.Builder("${UUID.randomUUID()}", jsonData)
                 .format(PRESENTATION_ATTACHMENT_FORMAT)
-                .mediaType(JSON_MIME_TYPE)
+                .mediaType(MIME_TYPE_APPLICATION_JSON)
                 .build()
         }
 

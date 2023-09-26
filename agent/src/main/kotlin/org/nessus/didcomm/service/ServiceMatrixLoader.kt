@@ -26,30 +26,29 @@ import kotlin.io.path.absolutePathString
 const val NESSUS_HOME = "NESSUS_HOME"
 const val SERVICE_MATRIX_PROPERTIES = "SERVICE_MATRIX_PROPERTIES"
 
-class ServiceMatrixLoader {
+object ServiceMatrixLoader {
 
-    companion object {
+    /**
+     * Discovery of the `service-matrix.properties` file works like this ...
+     *
+     * 1. Value of system property `serviceMatrixProperties`
+     * 2. Value of env var `SERVICE_MATRIX_PROPERTIES`
+     * 3. Fallback to NESSUS_HOME/config/service-matrix.properties
+     */
+    @JvmStatic
+    fun loadServiceDefinitions() {
+        val filePath = Paths.get(System.getProperty("serviceMatrixProperties")
+            ?: System.getenv(SERVICE_MATRIX_PROPERTIES)
+            ?: run {
+                val nessusHome = System.getenv(NESSUS_HOME)
+                checkNotNull(nessusHome) { "No $NESSUS_HOME" }
+                "$nessusHome/config/service-matrix.properties"
+            })
+        loadServiceDefinitions(filePath.absolutePathString())
+    }
 
-        /**
-         * Discovery of the `service-matrix.properties` file works like this ...
-         *
-         * 1. Value of system property `serviceMatrixProperties`
-         * 2. Value of env var `SERVICE_MATRIX_PROPERTIES`
-         * 3. Fallback to NESSUS_HOME/config/service-matrix.properties
-         */
-        fun loadServiceDefinitions() {
-            val filePath = Paths.get(System.getProperty("serviceMatrixProperties")
-                ?: System.getenv(SERVICE_MATRIX_PROPERTIES)
-                ?: run {
-                    val nessusHome = System.getenv(NESSUS_HOME)
-                    checkNotNull(nessusHome) { "No $NESSUS_HOME" }
-                    "$nessusHome/config/service-matrix.properties"
-                })
-            loadServiceDefinitions(filePath.absolutePathString())
-        }
-
-        fun loadServiceDefinitions(filePath: String) {
-            ServiceMatrix(filePath)
-        }
+    @JvmStatic
+    fun loadServiceDefinitions(filePath: String) {
+        ServiceMatrix(filePath)
     }
 }

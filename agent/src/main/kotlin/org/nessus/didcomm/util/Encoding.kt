@@ -58,7 +58,7 @@ fun String.decodeMessage(): Message {
  */
 
 // A simple MimeType constant without charset parameter
-const val JSON_MIME_TYPE = "application/json"
+const val MIME_TYPE_APPLICATION_JSON = "application/json"
 
 val gsonBuilder: GsonBuilder = GsonBuilder()
     .registerTypeHierarchyAdapter(Collection::class.java, CollectionAdapter())
