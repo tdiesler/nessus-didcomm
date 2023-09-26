@@ -10,6 +10,7 @@ import id.walt.signatory.ProofConfig
 import id.walt.signatory.ProofType
 import id.walt.signatory.Signatory
 import id.walt.signatory.SignatoryConfig
+import mu.KotlinLogging
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.util.trimJson
 
@@ -18,6 +19,7 @@ fun VcTemplate.shortString(): String {
 }
 
 object NessusSignatoryService: ObjectService<NessusSignatoryService>() {
+    val log = KotlinLogging.logger {}
 
     @JvmStatic
     fun getService() = apply { }

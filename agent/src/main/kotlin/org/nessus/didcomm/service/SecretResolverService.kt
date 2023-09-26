@@ -3,6 +3,7 @@ package org.nessus.didcomm.service
 import com.nimbusds.jose.jwk.Curve
 import id.walt.services.keystore.KeyStoreService
 import id.walt.services.keystore.KeyType
+import mu.KotlinLogging
 import org.didcommx.didcomm.common.VerificationMaterial
 import org.didcommx.didcomm.common.VerificationMaterialFormat
 import org.didcommx.didcomm.common.VerificationMethodType
@@ -15,6 +16,7 @@ import org.didcommx.didcomm.secret.SecretResolver
 import java.util.Optional
 
 object SecretResolverService: ObjectService<SecretResolverService>(), SecretResolver {
+    val log = KotlinLogging.logger {}
 
     @JvmStatic
     fun getService() = apply { }

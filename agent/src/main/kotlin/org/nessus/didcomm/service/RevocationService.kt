@@ -29,12 +29,14 @@ import id.walt.signatory.revocation.statuslist2021.StatusListCredentialStorageSe
 import id.walt.signatory.revocation.statuslist2021.StatusListIndexService
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import mu.KotlinLogging
 import org.nessus.didcomm.model.CredentialStatus
 import org.nessus.didcomm.model.W3CVerifiableCredential
 import org.nessus.didcomm.model.toWaltIdType
 import org.nessus.didcomm.util.decodeJson
 
 object RevocationService: ObjectService<RevocationService>() {
+    val log = KotlinLogging.logger {}
 
     @JvmStatic
     fun getService() = apply { }

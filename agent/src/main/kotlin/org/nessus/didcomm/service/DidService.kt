@@ -102,6 +102,7 @@ interface DidServicePlugin {
 }
 
 object DidService: ObjectService<DidService>() {
+    val log = KotlinLogging.logger {}
 
     @JvmStatic
     fun getService() = apply { }

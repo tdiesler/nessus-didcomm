@@ -19,8 +19,6 @@
  */
 package org.nessus.didcomm.service
 
-import mu.KotlinLogging
-
 /**
  * A service that extends ObjectService is a simple object singleton.
  *
@@ -28,6 +26,5 @@ import mu.KotlinLogging
  * This should make it possible to migrate easily to a more complex service impl.
  */
 abstract class ObjectService<T> {
-    val log = KotlinLogging.logger {}
     // abstract fun getService(): T
 }
