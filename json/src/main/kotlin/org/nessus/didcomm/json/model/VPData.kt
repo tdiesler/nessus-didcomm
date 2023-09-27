@@ -39,7 +39,7 @@ data class VPData(
      *
      * https://github.com/decentralized-identity/waci-didcomm/blob/main/present_proof/present-proof-v3.md#request-presentation
      */
-    val options: Map<String, @Serializable(with = AnyValueSerializer::class) Any> = emptyMap(),
+    val options: Map<String, @Serializable(with = AnyValueSerializer::class) Any>? = null,
 ) {
 
     fun toJson() = Json.encodeToString(this)
@@ -48,5 +48,5 @@ data class VPData(
 @Serializable
 data class PolicyData(
     val name: String,
-    val params: Map<String, @Serializable(with = AnyValueSerializer::class) Any> = emptyMap(),
+    val params: Map<String, @Serializable(with = AnyValueSerializer::class) Any> = mapOf(),
 )

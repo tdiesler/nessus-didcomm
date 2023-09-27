@@ -55,7 +55,7 @@ object PresentationApiHandler: AbstractApiHandler() {
                 verifier = verifier,
                 proverDid = proverDid,
                 vc = unsignedVc,
-                options = data.options
+                options = data.options ?: mapOf()
             )
             .awaitPresentation(verifier, proverDid)
             .also { ptcl ->

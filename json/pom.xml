@@ -65,6 +65,18 @@
 
     <build>
         <plugins>
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <!-- [#151] Create ssi-kit data dir below target -->
+                            <!-- https://github.com/tdiesler/nessus-didcomm/issues/151 -->
+                            <directory>data</directory>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

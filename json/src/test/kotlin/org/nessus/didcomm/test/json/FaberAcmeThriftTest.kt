@@ -20,6 +20,8 @@
 package org.nessus.didcomm.test.json
 
 import id.walt.signatory.revocation.RevocationResult
+import io.kotest.matchers.shouldBe
+import org.junit.jupiter.api.Assertions.fail
 import org.nessus.didcomm.json.ApiContext
 import org.nessus.didcomm.json.model.PolicyData
 import org.nessus.didcomm.json.model.VCData
@@ -321,26 +323,26 @@ class FaberAcmeThriftTest: AbstractApiTest() {
              * Alice decides to quit her job with Acme
              */
 
-//            val issuerVc = acme.findVerifiableCredentialsByType("JobCertificate")
-//                .first { "${it.credentialSubject.id}" == acmeAliceCon.theirDid.uri }
-//
-//            val revocationResult = revokeCredential(ctx, "Acme", "${issuerVc.id}")
-//            revocationResult.succeed shouldBe true
+            val issuerVc = acme.findVerifiableCredentialsByType("JobCertificate")
+                .first { "${it.credentialSubject.id}" == acmeAliceCon.theirDid.uri }
+
+            val revocationResult = revokeCredential(ctx, "Acme", "${issuerVc.id}")
+            revocationResult.succeed shouldBe true
 
             /*
              * Alice applies for another loan with Thrift Bank - this time without having a Job
              *
              */
 
-//            try {
-//                requestPresentation(ctx,
-//                    verifier = "Thrift",
-//                    prover = "Alice",
-//                    template = "JobCertificate")
-//                fail { "Expected verification to fail" }
-//            } catch (ex: IllegalStateException) {
-//                ex.message shouldBe "Verification failed"
-//            }
+            try {
+                requestPresentation(ctx,
+                    verifier = "Thrift",
+                    prover = "Alice",
+                    template = "JobCertificate")
+                fail { "Expected verification to fail" }
+            } catch (ex: IllegalStateException) {
+                ex.message shouldBe "Verification failed"
+            }
 
         } finally {
             removeWallets(ctx)

@@ -231,17 +231,23 @@ abstract class Wallet(
     }
 
     fun findVerifiableCredentialsByType(type: String): List<W3CVerifiableCredential> {
-        return verifiableCredentialsInternal
-            .filter { it.hasType(type) }
+        return verifiableCredentialsInternal.filter { it.hasType(type) }
     }
 
     fun addVerifiablePresentation(vp: W3CVerifiablePresentation) {
         verifiablePresentationsInternal.add(vp)
     }
 
+    fun findVerifiablePresentation(predicate: (vc: W3CVerifiablePresentation) -> Boolean): W3CVerifiablePresentation? {
+        return verifiablePresentationsInternal.firstOrNull(predicate)
+    }
+
+    fun findVerifiablePresentationById(id: String): W3CVerifiablePresentation? {
+        return findVerifiablePresentation { "${it.id}" == id }
+    }
+
     fun findVerifiablePresentationsByType(type: String): List<W3CVerifiablePresentation> {
-        return verifiablePresentationsInternal
-            .filter { it.hasType(type) }
+        return verifiablePresentationsInternal.filter { it.hasType(type) }
     }
 
     fun encodeJson(pretty: Boolean = false, redacted: Boolean = true): String {
