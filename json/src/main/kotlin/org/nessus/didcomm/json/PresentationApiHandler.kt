@@ -29,6 +29,7 @@ import org.nessus.didcomm.util.encodeJson
 
 object PresentationApiHandler: AbstractApiHandler() {
 
+    @JvmStatic
     fun requestPresentation(payload: String): W3CVerifiablePresentation {
         val data = Json.decodeFromString<VPData>(payload)
         checkNotNull(data.verifierId) { "No verifierId" }

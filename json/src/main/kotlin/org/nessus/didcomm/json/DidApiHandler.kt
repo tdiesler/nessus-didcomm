@@ -28,6 +28,7 @@ import org.nessus.didcomm.service.DidPeerOptions
 
 object DidApiHandler: AbstractApiHandler() {
 
+    @JvmStatic
     fun createDid(payload: String): Did {
         val data = Json.decodeFromString<DidData>(payload)
         checkNotNull(data.ownerId) { "No ownerId" }
@@ -45,6 +46,7 @@ object DidApiHandler: AbstractApiHandler() {
         return owner.createDid(data.method, options = options)
     }
 
+    @JvmStatic
     fun listDids(payload: String): List<Did> {
         val data = Json.decodeFromString<DidData>(payload)
         checkNotNull(data.ownerId) { "No ownerId" }

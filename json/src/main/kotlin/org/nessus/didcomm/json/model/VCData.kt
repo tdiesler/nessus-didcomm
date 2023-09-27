@@ -29,9 +29,9 @@ data class VCData(
     val issuerId: String? = null,
     val holderDid: String? = null,
     val credentialId: String? = null,
+    val template: String? = null,
     val proofPurpose: String? = "assertionMethod",
     val revocation: Boolean = false,
-    val template: String? = null,
     val subjectData: Map<String, @Serializable(with = AnyValueSerializer::class) Any>? = null,
 ) {
     fun toJson() = Json.encodeToString(this)

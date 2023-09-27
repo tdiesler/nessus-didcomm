@@ -53,7 +53,8 @@ class CredentialApiTest: AbstractApiTest() {
                   "year": "2015",
                   "average": "5"
                 }                
-                """.toValueMap()))
+                """.toValueMap()
+            ))
 
             val vc = alice.findVerifiableCredentialsByType("UniversityTranscript")
                 .first { "${it.credentialSubject.id}" == holderDid }

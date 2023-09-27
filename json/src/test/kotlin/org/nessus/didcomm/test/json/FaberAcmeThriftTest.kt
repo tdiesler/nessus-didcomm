@@ -366,10 +366,11 @@ class FaberAcmeThriftTest: AbstractApiTest() {
         val data = VCData(
             issuerId = ctx.wallet(issuer).id,
             holderDid = holderDid.uri,
+            template = template,
             proofPurpose = proofPurpose,
             revocation = revocation,
-            template = template,
-            subjectData = subjectData)
+            subjectData = subjectData
+        )
         return issueCredential(data).also { vc ->
             ctx.putAttachment("${issuer}_${holder}_${template}_VC", W3CVerifiableCredential::class, vc)
         }
@@ -378,7 +379,8 @@ class FaberAcmeThriftTest: AbstractApiTest() {
     private fun revokeCredential(ctx: AttachmentContext, issuer: String, credentialId: String): RevocationResult {
         val data = VCData(
             issuerId = ctx.wallet(issuer).id,
-            credentialId = credentialId)
+            credentialId = credentialId
+        )
         return revokeCredential(data)
     }
 

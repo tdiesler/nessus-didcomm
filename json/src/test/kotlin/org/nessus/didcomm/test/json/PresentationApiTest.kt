@@ -45,20 +45,21 @@ class PresentationApiTest: AbstractApiTest() {
 
             issueCredential(
                 VCData(
-                issuerId = faber.id,
-                holderDid = holderDid,
-                template = "UniversityTranscript",
-                subjectData = """
-                {
-                  "givenName": "Alice",
-                  "familyName": "Garcia",
-                  "ssn": "123-45-6789",
-                  "degree": "Bachelor of Science, Marketing",
-                  "status": "graduated",
-                  "year": "2015",
-                  "average": "5"
-                }                
-                """.toValueMap())
+                    issuerId = faber.id,
+                    holderDid = holderDid,
+                    template = "UniversityTranscript",
+                    subjectData = """
+                    {
+                      "givenName": "Alice",
+                      "familyName": "Garcia",
+                      "ssn": "123-45-6789",
+                      "degree": "Bachelor of Science, Marketing",
+                      "status": "graduated",
+                      "year": "2015",
+                      "average": "5"
+                    }                
+                    """.toValueMap()
+                )
             )
 
             val acmeAliceCon = peerConnect(acme, alice)

@@ -28,6 +28,7 @@ import org.nessus.didcomm.service.ISSUE_CREDENTIAL_PROTOCOL_V3
 
 object CredentialApiHandler: AbstractApiHandler() {
 
+    @JvmStatic
     fun issueCredential(payload: String): W3CVerifiableCredential {
         val data = Json.decodeFromString<VCData>(payload)
         checkNotNull(data.issuerId) { "No issuerId" }
@@ -57,6 +58,7 @@ object CredentialApiHandler: AbstractApiHandler() {
         return vc
     }
 
+    @JvmStatic
     fun revokeCredential(payload: String): RevocationResult {
         val data = Json.decodeFromString<VCData>(payload)
         checkNotNull(data.issuerId) { "No issuerId" }

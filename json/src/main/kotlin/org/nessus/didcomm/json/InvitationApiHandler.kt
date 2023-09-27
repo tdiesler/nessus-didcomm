@@ -30,6 +30,7 @@ import org.nessus.didcomm.service.TRUST_PING_PROTOCOL_V2
 
 object InvitationApiHandler: AbstractApiHandler() {
 
+    @JvmStatic
     fun createInvitation(payload: String): Invitation {
         val data = Json.decodeFromString<InvitationData>(payload)
         checkNotNull(data.inviterId) { "No inviterId" }
@@ -44,6 +45,7 @@ object InvitationApiHandler: AbstractApiHandler() {
         return invitation
     }
 
+    @JvmStatic
     fun receiveInvitation(payload: String): Connection {
         val data = Json.decodeFromString<InvitationData>(payload)
         checkNotNull(data.inviteeId) { "No inviteeId" }
