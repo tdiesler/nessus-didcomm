@@ -47,7 +47,7 @@ object PresentationApiHandler: AbstractApiHandler() {
         val policies = data.policies?.map {
             val params = it.params.encodeJson()
             policyService.getPolicyWithJsonArg(it.name, params)
-        }
+        } ?: emptyList()
 
         val mex = MessageExchange()
             .withProtocol(PRESENT_PROOF_PROTOCOL_V3)
@@ -59,9 +59,7 @@ object PresentationApiHandler: AbstractApiHandler() {
             )
             .awaitPresentation(verifier, proverDid)
             .also { ptcl ->
-                if (policies != null) {
-                    ptcl.verifyPresentation(verifier, auditor.plusDefaultPolicies(policies))
-                }
+                ptcl.verifyPresentation(verifier, auditor.plusDefaultPolicies(policies))
                 if (prover != null)
                     ptcl.awaitPresentationAck(prover, verifierDid)
             }
