@@ -17,22 +17,30 @@
  * limitations under the License.
  * #L%
  */
-package org.nessus.didcomm.test.plain;
+package org.nessus.didcomm.test.java;
 
 import org.junit.jupiter.api.Test;
 import org.nessus.didcomm.model.Did;
 import org.nessus.didcomm.model.DidMethod;
 import org.nessus.didcomm.service.DidService;
 import org.nessus.didcomm.service.ServiceMatrixLoader;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
 
-class PlainJavaServiceMatrixTest {
+class JavaServiceMatrixTest {
+    final Logger log = LoggerFactory.getLogger(JavaServiceMatrixTest.class);
 
     @Test
     public void testDidService() {
-        String matrixProperties = "src/test/resources/config/service-matrix.properties";
-        ServiceMatrixLoader.loadServiceDefinitions(matrixProperties);
+        String filePath = "src/test/resources/config/service-matrix.properties";
+        ServiceMatrixLoader.loadServiceDefinitions(filePath);
+
+        // The DidService on the CryptoService, which in turn loads
+        // the Walt.id ContextManager via inlined Kotlin type
+        // Here we test, that this actually works from plain Java
+
         DidService didService = DidService.getService();
         Did did = didService.createDid(DidMethod.KEY, null, null);
-        System.out.println(did);
+        log.info("{}", did);
     }
 }

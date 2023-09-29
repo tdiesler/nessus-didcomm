@@ -89,7 +89,7 @@ object Alice {
 
 @Suppress("MemberVisibilityCanBePrivate")
 abstract class AbstractAgentTest: AnnotationSpec() {
-    val log = KotlinLogging.logger {}
+    val log = KotlinLogging.logger {this.javaClass}
 
     @BeforeAll
     open fun beforeAll() {
