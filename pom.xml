@@ -23,7 +23,7 @@
 
         <!-- Other versions -->
         <version.beust.klaxon>5.6</version.beust.klaxon>
-        <version.danubetech.vcj>1.6-SNAPSHOT</version.danubetech.vcj>
+        <version.danubetech.vcj>1.7-SNAPSHOT</version.danubetech.vcj>
         <version.didcommx.didcomm>0.3.3-SNAPSHOT</version.didcommx.didcomm>
         <version.didcommx.peerdid>0.4.0-SNAPSHOT</version.didcommx.peerdid>
         <version.fasterxml.jackson>2.14.3</version.fasterxml.jackson>
