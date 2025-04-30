@@ -1,0 +1,96 @@
+{{- with .Values.deployments.wallet_api }}
+---
+
+# Wallet ConfigMap
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wallet-config
+data:
+  {{- $files := $.Files.Glob "files/wallet-api/config/*" }}
+  {{- range $path, $file := $files }}
+  {{ base $path }}: |
+  {{ toString $file | nindent 4 }}
+  {{- end }}
+---
+
+# Wallet Data
+#
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wallet-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+
+# Wallet Deployment
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wallet-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wallet-api
+    spec:
+      containers:
+        - name: wallet-api
+          image: "waltid/wallet-api:{{ .version }}"
+          env:
+            - name: DB_HOST
+              value: 'postgres'
+            - name: DB_PORT
+              value: '5432'
+            - name: DB_NAME
+              value: 'waltid'
+            - name: DB_USERNAME
+              value: 'postgres' # TODO: Get DB_USERNAME from secret
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+            - name: WALLET_BACKEND_PORT
+              value: '3000'
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: config
+              mountPath: /waltid-wallet-api/config
+            - name: data
+              mountPath: /waltid-wallet-api/data
+      volumes:
+        - name: config
+          configMap:
+            name: wallet-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: wallet-pvc
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: wallet-api
+spec:
+  type: NodePort
+  ports:
+    - port: 3000
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: wallet-api
+---
+
+{{- end }}

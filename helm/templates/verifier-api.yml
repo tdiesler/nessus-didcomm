@@ -1,0 +1,64 @@
+{{- with .Values.deployments.verifier_api }}
+---
+
+# Verifier ConfigMap
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: verifier-config
+data:
+  {{- $files := $.Files.Glob "files/verifier-api/config/*" }}
+  {{- range $path, $file := $files }}
+  {{ base $path }}: |
+  {{ toString $file | nindent 4 }}
+  {{- end }}
+---
+
+# Verifier Deployment
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verifier-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: verifier-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: verifier-api
+    spec:
+      containers:
+        - name: verifier-api
+          image: "waltid/verifier-api:{{ .version }}"
+          env:
+            - name: VERIFIER_API_PORT
+              value: '3000'
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: config
+              mountPath: /waltid-verifier-api/config
+      volumes:
+        - name: config
+          configMap:
+            name: verifier-config
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: verifier-api
+spec:
+  type: NodePort
+  ports:
+    - port: 3000
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: verifier-api
+---
+
+{{- end }}

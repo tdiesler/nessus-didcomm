@@ -1,0 +1,15 @@
+#
+# helm upgrade --install nessus-didcomm ./helm -f ./helm/values-services.yaml
+#
+
+deployments:
+  wallet_api:
+    version: 0.13.0
+    nodePort: 32001
+  issuer_api:
+    version: 0.13.0
+    nodePort: 32002
+  verifier_api:
+    version: 0.13.0
+    nodePort: 32003
+

@@ -1,0 +1,4 @@
+apiVersion: v2
+name: nessus-didcomm
+description: A Helm chart to deploy different configurations
+version: 0.1.0
