@@ -1,0 +1,35 @@
+#
+# ansible-playbook -i ansible/inventory.yml ansible/step06-cloudflare-cert.yml
+#
+# https://developers.cloudflare.com/ssl/origin-configuration/origin-ca/
+# SSL/TLS encryption: Full (strict)
+#
+---
+- name: Install Cloudflare Origin Certificate
+  hosts: k3s-server
+  vars:
+    user_home: "/home/{{ ansible_user }}"
+    origin_crt: "{{ user_home }}/.k3s/origin.crt"
+    origin_key: "{{ user_home }}/.k3s/origin.key"
+    tls_secret_name: "origin-tls"
+
+  tasks:
+
+    - name: Show certificate
+      ansible.builtin.shell: |
+        openssl x509 -in {{ origin_crt }} -text -noout
+      register: show_certificate
+
+    - name: Show certificate result
+      ansible.builtin.debug:
+        var: show_certificate
+
+    - name: Create TLS secret
+      ansible.builtin.shell: |
+        kubectl delete secret {{ tls_secret_name }} --ignore-not-found
+        kubectl create secret tls {{ tls_secret_name }} --cert={{ origin_crt }} --key={{ origin_key }}
+      register: create_secret
+
+    - name: Create TLS secret result
+      ansible.builtin.debug:
+        var: create_secret

@@ -1,0 +1,26 @@
+# Considerations
+# ====================================
+#
+# We need to address individual hosts by name for SSH access
+# There must be a DNS name for the cluster
+#
+# Init VPS with contabo-rocky9.md
+
+all:
+  vars:
+    K3S_SERVER_IP: <k3s-server-ip>
+
+    # https://dash.cloudflare.com/profile/api-tokens
+    CLOUDFLARE_API_TOKEN: <cloudflare-token>
+    CLOUDFLARE_DOMAIN: <cloudflare-domain>
+    CLOUDFLARE_EMAIL: <cloudflare-email>
+
+  children:
+    k3s-server:
+      hosts:
+        server:
+          ansible_host: "{{ K3S_SERVER_IP }}"
+          ansible_port: 22
+          ansible_user: core
+
+          k8s_context: didcomm

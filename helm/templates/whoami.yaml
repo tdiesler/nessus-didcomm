@@ -1,0 +1,65 @@
+{{- with .Values.deployments.whoami }}
+
+# Whoami Deployment
+# https://github.com/traefik/whoami
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: whoami
+  labels:
+    app.kubernetes.io/name: whoami
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: whoami
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: whoami
+    spec:
+      containers:
+        - name: whoami
+          image: traefik/whoami:{{ .version }}
+          args: [ "--port=8080" ]
+          ports:
+            - containerPort: 8080
+      nodeSelector:
+        node.kubernetes.io/type: k3s-server
+
+# Whoami Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoami
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+  selector:
+    app.kubernetes.io/name: whoami
+---
+
+# Whoami IngressRoute
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: whoami
+  labels:
+    app.kubernetes.io/name: whoami
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`who.example.com`)
+      kind: Rule
+      services:
+        - name: whoami
+          port: 8080
+  tls:
+    secretName: origin-tls
+---
+{{- end }}

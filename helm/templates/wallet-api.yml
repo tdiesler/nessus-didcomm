@@ -1,35 +1,21 @@
 {{- with .Values.deployments.wallet_api }}
 ---
 
-# Wallet ConfigMap
+# Wallet API ConfigMap
 #
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: wallet-config
 data:
-  {{- $files := $.Files.Glob "files/wallet-api/config/*" }}
+  {{- $files := $.Files.Glob "config/wallet-api/config/*" }}
   {{- range $path, $file := $files }}
   {{ base $path }}: |
   {{ toString $file | nindent 4 }}
   {{- end }}
 ---
 
-# Wallet Data
-#
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: wallet-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 100Mi
----
-
-# Wallet Deployment
+# Wallet API Deployment
 #
 apiVersion: apps/v1
 kind: Deployment
@@ -47,7 +33,7 @@ spec:
     spec:
       containers:
         - name: wallet-api
-          image: "waltid/wallet-api:{{ .version }}"
+          image: nessusio/wallet-api:{{ .version }}
           env:
             - name: DB_HOST
               value: 'postgres'
@@ -63,23 +49,20 @@ spec:
                   name: postgres-secret
                   key: POSTGRES_PASSWORD
             - name: WALLET_BACKEND_PORT
-              value: '3000'
+              value: '7001'
           ports:
-            - containerPort: 3000
+            - containerPort: 7001
           volumeMounts:
             - name: config
               mountPath: /waltid-wallet-api/config
-            - name: data
-              mountPath: /waltid-wallet-api/data
       volumes:
         - name: config
           configMap:
             name: wallet-config
-        - name: data
-          persistentVolumeClaim:
-            claimName: wallet-pvc
 ---
 
+# Wallet API Service
+#
 apiVersion: v1
 kind: Service
 metadata:
@@ -87,7 +70,7 @@ metadata:
 spec:
   type: NodePort
   ports:
-    - port: 3000
+    - port: 7001
       nodePort: {{ .nodePort }}
   selector:
     app.kubernetes.io/name: wallet-api

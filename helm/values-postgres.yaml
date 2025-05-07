@@ -1,5 +1,0 @@
-
-deployments:
-  postgres:
-    version: 17.4
-

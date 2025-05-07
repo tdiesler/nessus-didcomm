@@ -1,11 +1,11 @@
 package org.nessus.didcomm.client
 
 import io.ktor.client.*
-import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.client.utils.EmptyContent.status
 import io.ktor.http.*
 import io.ktor.http.HttpHeaders.Authorization
 import io.ktor.serialization.kotlinx.json.*
@@ -98,8 +98,13 @@ data class ErrorResponse(
     val message: String,
 )
 
-class APIException(val code: Int, status: String, message: String): RuntimeException(message) {
-    constructor(err: ErrorResponse) : this (err.code, err.status, err.message)
+class APIException(val id: String, val code: Int, val status: String, message: String): RuntimeException(message) {
+
+    constructor(err: ErrorResponse) : this (err.id, err.code, err.status, err.message)
+
+    override fun toString(): String {
+        return "APIException[id=$id, code=$code, status='$status'] $message"
+    }
 }
 
 // WalletManager =======================================================================================================

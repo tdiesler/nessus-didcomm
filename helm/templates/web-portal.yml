@@ -1,0 +1,45 @@
+{{- with .Values.deployments.web_portal }}
+---
+
+# Wallet Portal Deployment
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: web-portal
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: web-portal
+    spec:
+      containers:
+        - name: web-portal
+          image: nessusio/portal:{{ .version }}
+          env:
+            - name: PORT
+              value: "7102"
+          ports:
+            - containerPort: 7102
+---
+
+# Wallet Portal Service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-portal
+spec:
+  type: NodePort
+  ports:
+    - port: 7102
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: web-portal
+---
+
+{{- end }}

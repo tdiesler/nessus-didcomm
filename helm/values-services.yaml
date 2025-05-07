@@ -3,13 +3,46 @@
 #
 
 deployments:
+
   wallet_api:
-    version: 0.13.0
+    version: 0.13.0-dev
     nodePort: 32001
+
   issuer_api:
-    version: 0.13.0
+    version: 0.13.0-dev
     nodePort: 32002
+
   verifier_api:
-    version: 0.13.0
+    version: 0.13.0-dev
     nodePort: 32003
+
+  wallet_demo:
+    version: 0.13.0-dev
+    nodePort: 32101
+
+  web_portal:
+    version: 0.13.0-dev
+    nodePort: 32102
+
+  vc_repo:
+    version: latest
+    nodePort: 32103
+
+  wallet_dev:
+    version: 0.13.0-dev
+    nodePort: 32104
+
+  postgres:
+    version: 17.4
+    nodePort: 32543
+
+  vault:
+    version: 1.19
+    nodePort: 32200
+
+  opa_server:
+    version: 1.4.2
+    nodePort: 32181
+
+
 

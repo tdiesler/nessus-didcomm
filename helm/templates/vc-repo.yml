@@ -1,0 +1,45 @@
+{{- with .Values.deployments.vc_repo }}
+---
+
+# VC Repo Deployment
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vc-repo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vc-repo
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vc-repo
+    spec:
+      containers:
+        - name: vc-repo
+          image: waltid/vc-repository:{{ .version }}
+          env:
+            - name: PORT
+              value: "7103"
+          ports:
+            - containerPort: 7103
+---
+
+# VC Repo Service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: vc-repo
+spec:
+  type: NodePort
+  ports:
+    - port: 7103
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: vc-repo
+---
+
+{{- end }}

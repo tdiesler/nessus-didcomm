@@ -1,0 +1,43 @@
+{{- with .Values.deployments.opa_server }}
+---
+
+# VC Repo Deployment
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opa-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: opa-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: opa-server
+    spec:
+      containers:
+        - name: opa-server
+          image: openpolicyagent/opa:{{ .version }}
+          command: [ "opa", "run", "--server", "--addr", ":8181" ]
+          ports:
+            - containerPort: 8181
+---
+
+# VC Repo Service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: opa-server
+spec:
+  type: NodePort
+  ports:
+    - port: 8181
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: opa-server
+---
+
+{{- end }}

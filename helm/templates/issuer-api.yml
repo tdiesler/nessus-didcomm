@@ -8,7 +8,7 @@ kind: ConfigMap
 metadata:
   name: issuer-api-config
 data:
-  {{- $files := $.Files.Glob "files/issuer-api/config/*" }}
+  {{- $files := $.Files.Glob "config/issuer-api/config/*" }}
   {{- range $path, $file := $files }}
   {{ base $path }}: |
   {{ toString $file | nindent 4 }}
@@ -33,12 +33,12 @@ spec:
     spec:
       containers:
         - name: issuer-api
-          image: "waltid/issuer-api:{{ .version }}"
+          image: nessusio/issuer-api:{{ .version }}
           env:
             - name: ISSUER_API_PORT
-              value: '3000'
+              value: '7002'
           ports:
-            - containerPort: 3000
+            - containerPort: 7002
           volumeMounts:
             - name: config
               mountPath: /waltid-issuer-api/config
@@ -49,6 +49,8 @@ spec:
 
 ---
 
+# Issuer API Service
+#
 apiVersion: v1
 kind: Service
 metadata:
@@ -56,7 +58,7 @@ metadata:
 spec:
   type: NodePort
   ports:
-    - port: 3000
+    - port: 7002
       nodePort: {{ .nodePort }}
   selector:
     app.kubernetes.io/name: issuer-api

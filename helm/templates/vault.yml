@@ -1,0 +1,90 @@
+{{- with .Values.deployments.vault }}
+---
+
+# Vault ConfigMap
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-config
+data:
+  config.json: |
+      {
+        "storage": {
+          "file": {
+            "path": "/vault/data"
+          }
+        },
+        "listener": [
+          {
+            "tcp": {
+              "address": "0.0.0.0:8200",
+              "tls_disable": true
+            }
+          }
+        ],
+        "ui": true
+      }
+---
+
+# Vault StatefulSet
+#
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vault
+  labels:
+    app.kubernetes.io/name: vault
+spec:
+  serviceName: vault
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: vault
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: vault
+    spec:
+      containers:
+        - name: vault
+          image: "hashicorp/vault:{{ .version }}"
+          command: ["vault", "server", "-config=/vault/config/config.json"]
+          ports:
+            - containerPort: 8200
+          volumeMounts:
+            - name: vault-data
+              mountPath: /vault/data
+            - name: vault-config
+              mountPath: /vault/config
+          securityContext:
+            capabilities:
+              add:
+                - IPC_LOCK
+      volumes:
+        - name: vault-data
+          persistentVolumeClaim:
+            claimName: vault-pvc
+        - name: vault-config
+          configMap:
+            name: vault-config
+---
+
+# Vault Service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  labels:
+    app.kubernetes.io/name: vault
+spec:
+  type: NodePort
+  ports:
+    - port: 8200
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: vault
+---
+
+{{- end }}

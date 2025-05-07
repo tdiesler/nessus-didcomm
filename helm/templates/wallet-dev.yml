@@ -1,0 +1,42 @@
+{{- with .Values.deployments.wallet_dev }}
+---
+
+# Wallet Dev Deployment
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wallet-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: wallet-dev
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: wallet-dev
+    spec:
+      containers:
+        - name: wallet-dev
+          image: nessusio/waltid-dev-wallet:{{ .version }}
+          ports:
+            - containerPort: 7104
+---
+
+# Wallet Dev Service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: wallet-dev
+spec:
+  type: NodePort
+  ports:
+    - port: 7104
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: wallet-dev
+---
+
+{{- end }}
