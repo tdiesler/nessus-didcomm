@@ -1,2 +1,4 @@
 version: 25.1-dev
 
+registry: "registry.vps6c.eu.ebsi:30443"
+

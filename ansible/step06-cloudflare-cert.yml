@@ -33,3 +33,24 @@
     - name: Create TLS secret result
       ansible.builtin.debug:
         var: create_secret
+
+
+# Use the origin-tls secret like this
+#
+#    apiVersion: traefik.io/v1alpha1
+#    kind: IngressRoute
+#    metadata:
+#      name: whoami
+#      labels:
+#        app.kubernetes.io/name: whoami
+#    spec:
+#      entryPoints:
+#        - websecure
+#      routes:
+#        - match: Host(`who.nessus-tech.io`)
+#          kind: Rule
+#          services:
+#            - name: whoami
+#              port: 8080
+#      tls:
+#        secretName: origin-tls

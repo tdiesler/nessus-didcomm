@@ -1,7 +1,7 @@
 {{- with .Values.deployments.opa_server }}
 ---
 
-# VC Repo Deployment
+# OPA Server Deployment
 #
 apiVersion: apps/v1
 kind: Deployment
@@ -25,19 +25,39 @@ spec:
             - containerPort: 8181
 ---
 
-# VC Repo Service
+# OPA Server Service
 #
 apiVersion: v1
 kind: Service
 metadata:
   name: opa-server
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - port: 8181
-      nodePort: {{ .nodePort }}
   selector:
     app.kubernetes.io/name: opa-server
+---
+
+# OPA Server IngressRoute
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: opa-server
+  labels:
+    app.kubernetes.io/name: opa-server
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`opa.nessus-tech.io`)
+      kind: Rule
+      services:
+        - name: opa-server
+          port: 8181
+  tls:
+    secretName: origin-tls
 ---
 
 {{- end }}

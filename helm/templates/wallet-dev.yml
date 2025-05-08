@@ -19,7 +19,8 @@ spec:
     spec:
       containers:
         - name: wallet-dev
-          image: nessusio/waltid-dev-wallet:{{ .version }}
+          image: {{ $.Values.registry }}/waltid/waltid-dev-wallet:{{ .version }}
+          imagePullPolicy: Always
           ports:
             - containerPort: 7104
 ---
@@ -31,12 +32,32 @@ kind: Service
 metadata:
   name: wallet-dev
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - port: 7104
-      nodePort: {{ .nodePort }}
   selector:
     app.kubernetes.io/name: wallet-dev
+---
+
+# Wallet Dev IngressRoute
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: wallet-dev
+  labels:
+    app.kubernetes.io/name: wallet-dev
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`wallet-dev.nessus-tech.io`)
+      kind: Rule
+      services:
+        - name: wallet-dev
+          port: 7104
+  tls:
+    secretName: origin-tls
 ---
 
 {{- end }}

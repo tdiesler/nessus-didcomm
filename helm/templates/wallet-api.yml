@@ -33,7 +33,8 @@ spec:
     spec:
       containers:
         - name: wallet-api
-          image: nessusio/wallet-api:{{ .version }}
+          image: {{ $.Values.registry }}/waltid/wallet-api:{{ .version }}
+          imagePullPolicy: Always
           env:
             - name: DB_HOST
               value: 'postgres'
@@ -68,12 +69,32 @@ kind: Service
 metadata:
   name: wallet-api
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - port: 7001
-      nodePort: {{ .nodePort }}
   selector:
     app.kubernetes.io/name: wallet-api
+---
+
+# Wallet API IngressRoute
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: wallet-api
+  labels:
+    app.kubernetes.io/name: wallet-api
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`wallet-api.nessus-tech.io`)
+      kind: Rule
+      services:
+        - name: wallet-api
+          port: 7001
+  tls:
+    secretName: origin-tls
 ---
 
 {{- end }}

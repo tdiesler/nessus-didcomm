@@ -10,5 +10,5 @@ ansible-playbook -i ansible/inventory.yml ansible/step01-k3s-server.yml
 
 ```
 helm upgrade --install whoami ./helm -f ./helm/values-whoami.yaml
-curl -vk https://who.gridley.io
+curl -vk https://who.nessus-tech.io
 ```

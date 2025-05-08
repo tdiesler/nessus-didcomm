@@ -1,0 +1,111 @@
+#
+# ansible-playbook -i ansible/inventory.yml ansible/step02-verify-registry.yml
+#
+---
+- name: Verify Docker Registry
+  hosts: k3s-server
+  become: yes
+  vars:
+    registry_spec: "registry.{{ K3S_HOSTNAME }}:{{ REGISTRY_PORT }}"
+
+  tasks:
+
+    - name: Get external IP address
+      ansible.builtin.shell: "curl -s ipinfo.io/ip"
+      register: external_ip
+
+    # Buildah registry access ------------------------------------------------------------------------------------------
+
+    - name: Buildah login
+      ansible.builtin.shell: |
+        buildah login --username {{ REGISTRY_USER }} --password {{ REGISTRY_PASSWORD }} {{ registry_spec }}
+      register: buildah_login
+
+    - name: Buildah login results
+      ansible.builtin.debug:
+        var: buildah_login
+
+    - name: Buildah pull
+      ansible.builtin.shell: |
+        buildah pull docker.io/traefik/whoami
+        buildah tag docker.io/traefik/whoami {{ registry_spec }}/traefik/whoami
+      register: buildah_pull
+
+    - name: Buildah pull results
+      ansible.builtin.debug:
+        var: buildah_pull
+
+    - name: Buildah push
+      ansible.builtin.shell: |
+        buildah push {{ registry_spec }}/traefik/whoami
+      register: buildah_push
+
+    - name: Buildah push results
+      ansible.builtin.debug:
+        var: buildah_push
+
+    # Whoami Deployment ------------------------------------------------------------------------------------------------
+
+    - name: Create whoami deployment
+      ansible.builtin.copy:
+        content: |
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: whoami
+            labels:
+              app.kubernetes.io/name: whoami
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: whoami
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: whoami
+              spec:
+                containers:
+                - name: whoami
+                  image: {{ registry_spec }}/traefik/whoami
+                  imagePullPolicy: Always
+                  ports:
+                  - containerPort: 80
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: whoami
+          spec:
+            type: NodePort
+            ports:
+              - port: 80
+                nodePort: 30080
+            selector:
+              app.kubernetes.io/name: whoami
+        dest: /tmp/whoami-deployment.yaml
+      register: whoami_yaml
+
+    - name: Apply whoami deployment
+      ansible.builtin.shell: |
+        kubectl apply -f /tmp/whoami-deployment.yaml
+
+    - name: Wait for whoami pod ready
+      ansible.builtin.shell: |
+        sleep 10s
+        kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=whoami --timeout=120s
+      register: wait_result
+
+    - name: Wait for registry pod ready results
+      ansible.builtin.debug:
+        var: wait_result
+
+    - name: Test whoami access
+      ansible.builtin.uri:
+        url: "http://{{ external_ip.stdout }}:30080"
+        return_content: yes
+      register: whoami_response
+
+    - name: Show whoami response
+      ansible.builtin.debug:
+        var: whoami_response.content

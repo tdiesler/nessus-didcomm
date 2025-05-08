@@ -79,12 +79,32 @@ metadata:
   labels:
     app.kubernetes.io/name: vault
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - port: 8200
-      nodePort: {{ .nodePort }}
   selector:
     app.kubernetes.io/name: vault
+---
+
+# Vault IngressRoute
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: vault
+  labels:
+    app.kubernetes.io/name: vault
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`vault.nessus-tech.io`)
+      kind: Rule
+      services:
+        - name: vault
+          port: 8200
+  tls:
+    secretName: origin-tls
 ---
 
 {{- end }}

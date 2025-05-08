@@ -21,12 +21,11 @@ spec:
     spec:
       containers:
         - name: whoami
-          image: traefik/whoami:{{ .version }}
+          image: {{ $.Values.registry }}/traefik/whoami:{{ .version }}
+          imagePullPolicy: Always
           args: [ "--port=8080" ]
           ports:
             - containerPort: 8080
-      nodeSelector:
-        node.kubernetes.io/type: k3s-server
 
 # Whoami Service
 ---
@@ -54,7 +53,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`who.example.com`)
+    - match: Host(`who.nessus-tech.io`)
       kind: Rule
       services:
         - name: whoami

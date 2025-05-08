@@ -34,12 +34,32 @@ kind: Service
 metadata:
   name: vc-repo
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - port: 7103
-      nodePort: {{ .nodePort }}
   selector:
     app.kubernetes.io/name: vc-repo
+---
+
+# VC Repo IngressRoute
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: vc-repo
+  labels:
+    app.kubernetes.io/name: vc-repo
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`vc-repo.nessus-tech.io`)
+      kind: Rule
+      services:
+        - name: vc-repo
+          port: 7103
+  tls:
+    secretName: origin-tls
 ---
 
 {{- end }}

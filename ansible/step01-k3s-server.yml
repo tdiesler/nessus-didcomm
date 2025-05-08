@@ -7,9 +7,27 @@
   become: yes
 
   tasks:
+    -
+    # Hostname ---------------------------------------------------------------------------------------------------------
+
     - name: Get external IP address
       ansible.builtin.shell: "curl -s ipinfo.io/ip"
       register: external_ip
+
+    - name: Append {{ K3S_HOSTNAME }} to k3s-server /etc/hosts
+      when: "'k3s-server' in group_names"
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "{{ external_ip.stdout }} {{ K3S_HOSTNAME }} registry.{{ K3S_HOSTNAME }}"
+        create: yes
+      register: append_etc_host
+
+    - name: Append {{ K3S_HOSTNAME }} result
+      when: "'k3s-server' in group_names"
+      ansible.builtin.debug:
+        var: append_etc_host
+
+    # K3S Server -------------------------------------------------------------------------------------------------------
 
     - name: Install k3s
       ansible.builtin.shell: |
@@ -126,4 +144,3 @@
     - name: Get pods result
       ansible.builtin.debug:
         var: kube_pods.stdout_lines
-

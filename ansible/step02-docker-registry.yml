@@ -1,0 +1,145 @@
+#
+# ansible-playbook -i ansible/inventory.yml ansible/step02-docker-registry.yml
+#
+---
+- name: Install Docker Registry
+  hosts: k3s-server
+  become: yes
+  vars:
+    user_home: "/home/{{ ansible_user }}"
+    helm_dir: "{{ playbook_dir }}/../helm"
+    registry_spec: "registry.{{ K3S_HOSTNAME }}:{{ REGISTRY_PORT }}"
+
+  pre_tasks:
+    - name: Get external IP address
+      ansible.builtin.shell: "curl -s ipinfo.io/ip"
+      register: external_ip
+
+    - name: Create .k3s directory
+      ansible.builtin.file:
+        path: "{{ user_home }}/.k3s"
+        state: directory
+      become: no
+
+  tasks:
+
+    # Registry TLS Secret -----------------------------------------------------------------------------------------------
+
+    # Trust this cert on macOS
+    # sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain registry.crt
+
+    # Trust this cert on Rock9
+    # sudo cp .k3s/registry.crt /etc/pki/ca-trust/source/anchors/ && sudo update-ca-trust
+    # openssl verify /etc/pki/ca-trust/source/anchors/registry.crt
+
+    - name: Generate TLS certificate and key using OpenSSL
+      ansible.builtin.shell: |
+        openssl req -x509 -newkey rsa:4096 -sha256 -days 365 -nodes \
+        -subj "/C=US/ST=State/L=City/O=Organization/OU=Unit/CN=K3S Registry" \
+        -addext "keyUsage = critical, digitalSignature, keyEncipherment" \
+        -addext "extendedKeyUsage = serverAuth" \
+        -addext "subjectAltName = DNS:registry.{{ K3S_HOSTNAME }},IP:{{ external_ip.stdout }}" \
+        -keyout "{{ user_home }}/.k3s/registry.key" -out "{{ user_home }}/.k3s/registry.crt"
+      args:
+        creates: "{{ user_home }}/.k3s/registry.crt"
+
+    - name: Copy certificate to RHEL trust store
+      ansible.builtin.copy:
+        src: "{{ user_home }}/.k3s/registry.crt"
+        dest: /etc/pki/ca-trust/source/anchors/registry.crt
+        remote_src: true
+        mode: '0644'
+      when: ansible_os_family == "RedHat"
+
+    - name: Update CA trust on RHEL
+      ansible.builtin.command: update-ca-trust extract
+      when: ansible_os_family == "RedHat"
+
+    # Registry Basic Auth ----------------------------------------------------------------------------------------------
+
+    - name: Create registry password file with htpasswd
+      ansible.builtin.shell: |
+        echo "{{ REGISTRY_PASSWORD }}" | \
+        htpasswd -Bic "{{ user_home }}/.k3s/registry.password" {{ REGISTRY_USER }}
+      args:
+        creates: "{{ user_home }}/.k3s/registry.password"
+
+    # Registry Secrets -------------------------------------------------------------------------------------------------
+
+    - name: Create registry namespace
+      ansible.builtin.shell: |
+        kubectl get namespace registry || kubectl create namespace registry
+
+    - name: Create secret registry-tls
+      ansible.builtin.shell: |
+        kubectl delete secret tls registry-tls -n registry --ignore-not-found
+        kubectl create secret tls registry-tls -n registry \
+          --cert="{{ user_home }}/.k3s/registry.crt" \
+          --key="{{ user_home }}/.k3s/registry.key"
+
+    - name: Create secret registry-auth
+      ansible.builtin.shell: |
+        kubectl delete secret generic registry-auth -n registry --ignore-not-found
+        kubectl create secret generic registry-auth -n registry \
+          --from-file=htpasswd="{{ user_home }}/.k3s/registry.password"
+
+    # K3S Registry Config ----------------------------------------------------------------------------------------------
+
+    - name: Create k3s registries.yaml
+      ansible.builtin.copy:
+        dest: "/etc/rancher/k3s/registries.yaml"
+        content: |
+          mirrors:
+            "{{ registry_spec }}":
+              endpoint:
+                - "https://{{ K3S_SERVER_IP }}:{{ REGISTRY_PORT }}"
+          configs:
+            "{{ registry_spec }}":
+              auth:
+                username: {{ REGISTRY_USER }}
+                password: {{ REGISTRY_PASSWORD }}
+              tls:
+                insecure_skip_verify: true
+
+    - name: Restart k3s service
+      # sudo systemctl restart k3s
+      ansible.builtin.systemd:
+        name: k3s
+        state: restarted
+      register: k3s_ready
+
+    - name: Install Registry Deployment
+      ansible.builtin.shell: |
+        helm upgrade --install -n registry registry {{ helm_dir }} -f {{ helm_dir }}/values-registry.yaml
+      become: no
+      delegate_to: localhost
+      register: apply_result
+
+    - name: Check Registry Deployment
+      ansible.builtin.debug:
+        var: apply_result
+
+    - name: Wait for Registry pods to be ready
+      ansible.builtin.shell: |
+        sleep 10s
+        kubectl wait -n registry --for=condition=Ready pod -l app.kubernetes.io/name=registry --timeout=120s
+      register: wait_result
+
+    - name: Check if Registry pods are ready
+      ansible.builtin.debug:
+        var: wait_result
+
+    - name: Fetch logs from Registry pods
+      ansible.builtin.shell: |
+        kubectl logs -n registry --tail 400 -l app.kubernetes.io/name=registry
+      register: logs_result
+
+    - name: Registry pod logs
+      ansible.builtin.debug:
+        var: logs_result.stdout_lines
+
+
+# curl -v https://k3s-registry:30443
+# docker pull traefik/whoami
+# docker tag traefik/whoami k3s-registry:30443/traefik/whoami
+# docker push k3s-registry:30443/traefik/whoami

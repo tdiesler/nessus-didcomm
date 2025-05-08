@@ -1,0 +1,70 @@
+{{- with .Values.deployments.registry }}
+---
+
+# Registry Deployment
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: registry
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: registry
+    spec:
+      containers:
+        - name: registry
+          image: "registry:{{ .version }}"
+          ports:
+            - containerPort: 443
+          env:
+            - name: REGISTRY_HTTP_ADDR
+              value: ":443"
+            - name: REGISTRY_HTTP_TLS_CERTIFICATE
+              value: "/certs/tls.crt"
+            - name: REGISTRY_HTTP_TLS_KEY
+              value: "/certs/tls.key"
+            - name: REGISTRY_AUTH
+              value: "htpasswd"
+            - name: REGISTRY_AUTH_HTPASSWD_REALM
+              value: "Registry Realm"
+            - name: REGISTRY_AUTH_HTPASSWD_PATH
+              value: "/auth/htpasswd"
+          volumeMounts:
+            - name: registry-tls
+              mountPath: /certs
+              readOnly: true
+            - name: auth-secret
+              mountPath: /auth
+              readOnly: true
+      nodeSelector:
+        node.kubernetes.io/type: {{ .nodeType }}
+      volumes:
+        - name: registry-tls
+          secret:
+            secretName: registry-tls
+        - name: auth-secret
+          secret:
+            secretName: registry-auth
+---
+# Registry Service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry
+spec:
+  type: NodePort
+  ports:
+    - port: 443
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: registry
+---
+
+{{- end }}

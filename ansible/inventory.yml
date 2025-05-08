@@ -9,11 +9,11 @@
 all:
   vars:
     K3S_SERVER_IP: <k3s-server-ip>
+    K3S_HOSTNAME:  vps6c.eu.ebsi
 
-    # https://dash.cloudflare.com/profile/api-tokens
-    CLOUDFLARE_API_TOKEN: <cloudflare-token>
-    CLOUDFLARE_DOMAIN: <cloudflare-domain>
-    CLOUDFLARE_EMAIL: <cloudflare-email>
+    REGISTRY_USER: registry
+    REGISTRY_PASSWORD: changeme
+    REGISTRY_PORT: <node-port>
 
   children:
     k3s-server:
@@ -22,5 +22,4 @@ all:
           ansible_host: "{{ K3S_SERVER_IP }}"
           ansible_port: 22
           ansible_user: core
-
-          k8s_context: didcomm
+          k8s_context: ebsi

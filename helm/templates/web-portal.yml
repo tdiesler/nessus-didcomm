@@ -1,7 +1,7 @@
 {{- with .Values.deployments.web_portal }}
 ---
 
-# Wallet Portal Deployment
+# Web Portal Deployment
 #
 apiVersion: apps/v1
 kind: Deployment
@@ -19,7 +19,8 @@ spec:
     spec:
       containers:
         - name: web-portal
-          image: nessusio/portal:{{ .version }}
+          image: {{ $.Values.registry }}/waltid/portal:{{ .version }}
+          imagePullPolicy: Always
           env:
             - name: PORT
               value: "7102"
@@ -27,19 +28,39 @@ spec:
             - containerPort: 7102
 ---
 
-# Wallet Portal Service
+# Web Portal Service
 #
 apiVersion: v1
 kind: Service
 metadata:
   name: web-portal
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - port: 7102
-      nodePort: {{ .nodePort }}
   selector:
     app.kubernetes.io/name: web-portal
+---
+
+# Web Portal IngressRoute
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: web-portal
+  labels:
+    app.kubernetes.io/name: web-portal
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`web-portal.nessus-tech.io`)
+      kind: Rule
+      services:
+        - name: web-portal
+          port: 7102
+  tls:
+    secretName: origin-tls
 ---
 
 {{- end }}

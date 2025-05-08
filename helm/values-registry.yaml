@@ -1,0 +1,10 @@
+#
+# helm upgrade --install -n registry registry ./helm -f ./helm/values-registry.yaml
+#
+
+deployments:
+  registry:
+    version: 2
+    nodePort: 30443
+    nodeType: k3s-server
+
