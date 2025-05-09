@@ -8,23 +8,11 @@ kind: ConfigMap
 metadata:
   name: vault-config
 data:
-  config.json: |
-      {
-        "storage": {
-          "file": {
-            "path": "/vault/data"
-          }
-        },
-        "listener": [
-          {
-            "tcp": {
-              "address": "0.0.0.0:8200",
-              "tls_disable": true
-            }
-          }
-        ],
-        "ui": true
-      }
+  {{- $files := $.Files.Glob "config/vault/*" }}
+  {{- range $path, $file := $files }}
+  {{ base $path }}: |
+  {{ toString $file | nindent 4 }}
+  {{- end }}
 ---
 
 # Vault StatefulSet
@@ -52,15 +40,37 @@ spec:
           command: ["vault", "server", "-config=/vault/config/config.json"]
           ports:
             - containerPort: 8200
+          securityContext:
+            capabilities:
+              add:
+                - IPC_LOCK
           volumeMounts:
             - name: vault-data
               mountPath: /vault/data
             - name: vault-config
               mountPath: /vault/config
-          securityContext:
-            capabilities:
-              add:
-                - IPC_LOCK
+        - name: vault-init
+          image: "hashicorp/vault:{{ .version }}"
+          command:
+            - sh
+            - -c
+            - |
+              echo "Installing jq ..." && apk add --no-cache jq && \
+              echo "Waiting for Vault to be ready..." && \
+              until nc -z vault 8200; do \
+                echo "Vault not ready (nc exit: $?), retrying..."; \
+                sleep 1; \
+              done && \
+              echo "Vault is listening!" && \
+              cp /vault/config/init.sh /vault/file/init.sh && \
+              chmod +x /vault/file/init.sh && /vault/file/init.sh; \
+              sleep infinity
+          env:
+            - name: VAULT_ADDR
+              value: "http://vault:8200"
+          volumeMounts:
+            - name: vault-config
+              mountPath: /vault/config
       volumes:
         - name: vault-data
           persistentVolumeClaim:

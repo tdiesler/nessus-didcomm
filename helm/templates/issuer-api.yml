@@ -8,7 +8,7 @@ kind: ConfigMap
 metadata:
   name: issuer-api-config
 data:
-  {{- $files := $.Files.Glob "config/issuer-api/config/*" }}
+  {{- $files := $.Files.Glob "config/issuer-api/*" }}
   {{- range $path, $file := $files }}
   {{ base $path }}: |
   {{ toString $file | nindent 4 }}

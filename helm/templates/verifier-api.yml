@@ -8,7 +8,7 @@ kind: ConfigMap
 metadata:
   name: verifier-config
 data:
-  {{- $files := $.Files.Glob "config/verifier-api/config/*" }}
+  {{- $files := $.Files.Glob "config/verifier-api/*" }}
   {{- range $path, $file := $files }}
   {{ base $path }}: |
   {{ toString $file | nindent 4 }}
