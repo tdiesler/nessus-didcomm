@@ -21,6 +21,13 @@ spec:
         - name: wallet-dev
           image: {{ $.Values.registry }}/waltid/waltid-dev-wallet:{{ .version }}
           imagePullPolicy: Always
+          env:
+            - name: NUXT_PUBLIC_ISSUER_CALLBACK_URL
+              value: "https://wallet-dev.nessus-tech.io"
+            - name: NUXT_PUBLIC_DEMO_WALLET_URL
+              value: "https://wallet.nessus-tech.io"
+            - name: PORT
+              value: "7104"
           ports:
             - containerPort: 7104
 ---
@@ -51,6 +58,11 @@ spec:
   entryPoints:
     - websecure
   routes:
+    - match: Host(`wallet-dev.nessus-tech.io`) && PathPrefix(`/wallet-api`)
+      kind: Rule
+      services:
+        - name: wallet-api
+          port: 7001
     - match: Host(`wallet-dev.nessus-tech.io`)
       kind: Rule
       services:

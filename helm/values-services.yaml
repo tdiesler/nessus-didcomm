@@ -16,14 +16,14 @@ deployments:
   wallet_demo:
     version: 0.13.0-dev
 
+  wallet_dev:
+    version: 0.13.0-dev
+
   web_portal:
     version: 0.13.0-dev
 
   vc_repo:
     version: latest
-
-  wallet_dev:
-    version: 0.13.0-dev
 
   postgres:
     version: 17.4

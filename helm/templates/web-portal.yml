@@ -22,6 +22,14 @@ spec:
           image: {{ $.Values.registry }}/waltid/portal:{{ .version }}
           imagePullPolicy: Always
           env:
+            - name: NEXT_PUBLIC_VC_REPO
+              value: "https://vc-repo.nessus-tech.io/"
+            - name: NEXT_PUBLIC_ISSUER
+              value: "https://issuer-api.nessus-tech.io/"
+            - name: NEXT_PUBLIC_VERIFIER
+              value: "https://verifier-api.nessus-tech.io/"
+            - name: NEXT_PUBLIC_WALLET
+              value: "https://wallet.nessus-tech.io"
             - name: PORT
               value: "7102"
           ports:
