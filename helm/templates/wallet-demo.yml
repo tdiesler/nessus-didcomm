@@ -19,15 +19,35 @@ spec:
     spec:
       containers:
         - name: wallet-demo
-          image: {{ $.Values.registry }}/waltid/waltid-demo-wallet:{{ .version }}
-          imagePullPolicy: Always
+          image: {{ $.Values.imagePrefix }}waltid/waltid-demo-wallet:{{ .version }}
+          imagePullPolicy: {{ .pullPolicy }}
           env:
             - name: NUXT_PUBLIC_ISSUER_CALLBACK_URL
-              value: "https://wallet.nessus-tech.io"
+              value: "{{ $.Values.urlSchema }}://{{ $.Values.demoWalletHost }}"
             - name: PORT
               value: "7101"
           ports:
             - containerPort: 7101
+---
+
+{{- if eq $.Values.environment "local" }}
+---
+# Wallet Demo Service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: wallet-demo
+spec:
+  type: NodePort
+  ports:
+    - port: 7101
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: wallet-demo
+---
+
+{{- else }}
 ---
 
 # Wallet Demo Service
@@ -57,12 +77,12 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`wallet.nessus-tech.io`) && PathPrefix(`/wallet-api`)
+    - match: Host("{{ $.Values.demoWalletHost }}") && PathPrefix("/wallet-api")
       kind: Rule
       services:
         - name: wallet-api
           port: 7001
-    - match: Host(`wallet.nessus-tech.io`)
+    - match: Host("{{ $.Values.demoWalletHost }}")
       kind: Rule
       services:
         - name: wallet-demo
@@ -70,5 +90,7 @@ spec:
   tls:
     secretName: origin-tls
 ---
+{{- end }}
+
 
 {{- end }}

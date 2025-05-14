@@ -1,0 +1,60 @@
+#
+# helm upgrade --install identity ./helm -f ./helm/values-services-staging.yaml
+#
+
+environment: staging
+
+urlSchema: "https"
+
+imagePrefix: "registry.vps6c.eu.ebsi:30443/"
+
+demoWalletHost: "wallet.nessus-tech.io"
+devWalletHost: "wallet-dev.nessus-tech.io"
+webPortalHost: "portal.nessus-tech.io"
+
+walletApiHost: "wallet-api.nessus-tech.io"
+issuerApiHost: "issuer-api.nessus-tech.io"
+verifierApiHost: "verifier-api.nessus-tech.io"
+
+opaServiceHost: "opa.nessus-tech.io"
+repoServiceHost: "vc-repo.nessus-tech.io"
+vaultServiceHost: "vault.nessus-tech.io"
+
+deployments:
+
+  wallet_api:
+    version: 0.13.0-dev
+    pullPolicy: Always
+
+  issuer_api:
+    version: 0.13.0-dev
+    pullPolicy: Always
+
+  verifier_api:
+    version: 0.13.0-dev
+    pullPolicy: Always
+
+  wallet_demo:
+    version: 0.13.0-dev
+    pullPolicy: Always
+
+  wallet_dev:
+    version: 0.13.0-dev
+    pullPolicy: Always
+
+  web_portal:
+    version: 0.13.0-dev
+    pullPolicy: Always
+
+  vc_repo:
+    version: latest
+
+  postgres:
+    version: 17.4
+    nodePort: 32543
+
+  vault:
+    version: 1.19
+
+  opa_server:
+    version: 1.4.2

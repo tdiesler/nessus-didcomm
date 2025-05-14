@@ -25,6 +25,27 @@ spec:
             - containerPort: 8181
 ---
 
+{{- if eq $.Values.environment "local" }}
+---
+
+# OPA Server Service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: opa-server
+spec:
+  type: NodePort
+  ports:
+    - port: 8181
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: opa-server
+---
+
+{{- else }}
+---
+
 # OPA Server Service
 #
 apiVersion: v1
@@ -51,7 +72,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`opa.nessus-tech.io`)
+    - match: Host("{{ $.Values.opaServiceHost }}")
       kind: Rule
       services:
         - name: opa-server
@@ -60,4 +81,5 @@ spec:
     secretName: origin-tls
 ---
 
+{{- end }}
 {{- end }}

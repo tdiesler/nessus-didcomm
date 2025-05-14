@@ -15,6 +15,20 @@ data:
   {{- end }}
 ---
 
+# Vault PersistentVolumeClaim
+#
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vault-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+
 # Vault StatefulSet
 #
 apiVersion: apps/v1
@@ -80,6 +94,29 @@ spec:
             name: vault-config
 ---
 
+{{- if eq $.Values.environment "local" }}
+---
+
+# Vault Service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  labels:
+    app.kubernetes.io/name: vault
+spec:
+  type: NodePort
+  ports:
+    - port: 8200
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: vault
+---
+
+{{- else }}
+---
+
 # Vault Service
 #
 apiVersion: v1
@@ -108,7 +145,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`vault.nessus-tech.io`)
+    - match: Host("{{ $.Values.vaultServiceHost }}")
       kind: Rule
       services:
         - name: vault
@@ -116,5 +153,7 @@ spec:
   tls:
     secretName: origin-tls
 ---
+
+{{- end }}
 
 {{- end }}

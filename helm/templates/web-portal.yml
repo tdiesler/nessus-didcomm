@@ -19,23 +19,42 @@ spec:
     spec:
       containers:
         - name: web-portal
-          image: {{ $.Values.registry }}/waltid/portal:{{ .version }}
-          imagePullPolicy: Always
+          image: {{ $.Values.imagePrefix }}waltid/portal:{{ .version }}
+          imagePullPolicy: {{ .pullPolicy }}
           env:
             - name: NEXT_PUBLIC_VC_REPO
-              value: "https://vc-repo.nessus-tech.io/"
+              value: "{{ $.Values.urlSchema }}://{{ $.Values.repoServiceHost }}"
             - name: NEXT_PUBLIC_ISSUER
-              value: "https://issuer-api.nessus-tech.io/"
+              value: "{{ $.Values.urlSchema }}://{{ $.Values.issuerApiHost }}"
             - name: NEXT_PUBLIC_VERIFIER
-              value: "https://verifier-api.nessus-tech.io/"
+              value: "{{ $.Values.urlSchema }}://{{ $.Values.verifierApiHost }}"
             - name: NEXT_PUBLIC_WALLET
-              value: "https://wallet.nessus-tech.io"
+              value: "{{ $.Values.urlSchema }}://{{ $.Values.demoWalletHost }}"
             - name: PORT
               value: "7102"
           ports:
             - containerPort: 7102
 ---
 
+{{- if eq $.Values.environment "local" }}
+---
+# Web Portal Service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-portal
+spec:
+  type: NodePort
+  ports:
+    - port: 7102
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: web-portal
+---
+
+{{- else }}
+---
 # Web Portal Service
 #
 apiVersion: v1
@@ -62,7 +81,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`web-portal.nessus-tech.io`)
+    - match: Host("{{ $.Values.webPortalHost }}")
       kind: Rule
       services:
         - name: web-portal
@@ -70,5 +89,6 @@ spec:
   tls:
     secretName: origin-tls
 ---
+{{- end }}
 
 {{- end }}

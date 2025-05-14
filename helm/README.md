@@ -3,13 +3,14 @@
 
 ```
 kubectl apply -f helm/pvcs/postgres-pvc.yml
-kubectl apply -f helm/pvcs/vault-pvc.yml
 
-kubectl apply -f helm/config/postgres-secret.yml
+kubectl create secret generic postgres-secret \
+  --from-literal=POSTGRES_USER=postgres \
+  --from-literal=POSTGRES_PASSWORD=postgres
 ```
 
 ## Install Identity Service
 
 ```
-helm upgrade --install nessus-didcomm ./helm -f ./helm/values-services.yaml
+helm upgrade --install identity ./helm -f ./helm/values-services-local.yaml
 ```

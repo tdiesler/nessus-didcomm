@@ -5,19 +5,19 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.nessus.didcomm</groupId>
-    <artifactId>nessus-didcomm</artifactId>
+    <artifactId>nessus-identity</artifactId>
     <packaging>pom</packaging>
 
     <version>25.1.0-SNAPSHOT</version>
 
     <name>Nessus DIDComm</name>
     <description>Digital Identity and Verifiable Credentials</description>
-    <url>https://github.com/tdiesler/nessus-didcomm</url>
+    <url>https://github.com/tdiesler/nessus-identity</url>
 
     <scm>
-        <connection>scm:git:https://github.com/tdiesler/nessus-didcomm</connection>
-        <developerConnection>scm:git:git@github.com:tdiesler/nessus-didcomm</developerConnection>
-        <url>https://github.com/tdiesler/nessus-didcomm</url>
+        <connection>scm:git:https://github.com/tdiesler/nessus-identity</connection>
+        <developerConnection>scm:git:git@github.com:tdiesler/nessus-identity</developerConnection>
+        <url>https://github.com/tdiesler/nessus-identity</url>
     </scm>
 
     <properties>

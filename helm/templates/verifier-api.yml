@@ -33,8 +33,8 @@ spec:
     spec:
       containers:
         - name: verifier-api
-          image: {{ $.Values.registry }}/waltid/verifier-api:{{ .version }}
-          imagePullPolicy: Always
+          image: {{ $.Values.imagePrefix }}waltid/verifier-api:{{ .version }}
+          imagePullPolicy: {{ .pullPolicy }}
           env:
             - name: VERIFIER_API_PORT
               value: '7003'
@@ -47,6 +47,27 @@ spec:
         - name: config
           configMap:
             name: verifier-config
+---
+
+{{- if eq $.Values.environment "local" }}
+---
+
+# Verifier API Service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: verifier-api
+spec:
+  type: NodePort
+  ports:
+    - port: 7003
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: verifier-api
+---
+
+{{- else }}
 ---
 
 # Verifier API Service
@@ -75,7 +96,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`verifier-api.nessus-tech.io`)
+    - match: Host("{{ $.Values.verifierApiHost }}")
       kind: Rule
       services:
         - name: verifier-api
@@ -83,5 +104,7 @@ spec:
   tls:
     secretName: origin-tls
 ---
+
+{{- end }}
 
 {{- end }}

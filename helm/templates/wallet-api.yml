@@ -33,8 +33,8 @@ spec:
     spec:
       containers:
         - name: wallet-api
-          image: {{ $.Values.registry }}/waltid/wallet-api:{{ .version }}
-          imagePullPolicy: Always
+          image: {{ $.Values.imagePrefix }}waltid/wallet-api:{{ .version }}
+          imagePullPolicy: {{ .pullPolicy }}
           env:
             - name: DB_HOST
               value: 'postgres'
@@ -60,6 +60,26 @@ spec:
         - name: config
           configMap:
             name: wallet-config
+---
+
+{{- if eq $.Values.environment "local" }}
+---
+# Wallet API Service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: wallet-api
+spec:
+  type: NodePort
+  ports:
+    - port: 7001
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: wallet-api
+---
+
+{{- else }}
 ---
 
 # Wallet API Service
@@ -88,7 +108,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`wallet-api.nessus-tech.io`)
+    - match: Host("{{ $.Values.walletApiHost }}")
       kind: Rule
       services:
         - name: wallet-api
@@ -96,5 +116,6 @@ spec:
   tls:
     secretName: origin-tls
 ---
+{{- end }}
 
 {{- end }}

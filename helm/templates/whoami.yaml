@@ -21,8 +21,8 @@ spec:
     spec:
       containers:
         - name: whoami
-          image: {{ $.Values.registry }}/traefik/whoami:{{ .version }}
-          imagePullPolicy: Always
+          image: {{ $.Values.imagePrefix }}traefik/whoami:{{ .version }}
+          imagePullPolicy: {{ .pullPolicy }}
           args: [ "--port=8080" ]
           ports:
             - containerPort: 8080
@@ -53,7 +53,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`who.nessus-tech.io`)
+    - match: Host("{{ $.Values.whoHost }}")
       kind: Rule
       services:
         - name: whoami

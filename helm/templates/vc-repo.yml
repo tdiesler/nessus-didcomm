@@ -20,11 +20,33 @@ spec:
       containers:
         - name: vc-repo
           image: waltid/vc-repository:{{ .version }}
+          imagePullPolicy: IfNotPresent
           env:
             - name: PORT
               value: "7103"
           ports:
             - containerPort: 7103
+---
+
+{{- if eq $.Values.environment "local" }}
+---
+
+# VC Repo Service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: vc-repo
+spec:
+  type: NodePort
+  ports:
+    - port: 7103
+      nodePort: {{ .nodePort }}
+  selector:
+    app.kubernetes.io/name: vc-repo
+---
+
+{{- else }}
 ---
 
 # VC Repo Service
@@ -53,7 +75,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`vc-repo.nessus-tech.io`)
+    - match: Host("{{ $.Values.repoServiceHost }}")
       kind: Rule
       services:
         - name: vc-repo
@@ -61,5 +83,7 @@ spec:
   tls:
     secretName: origin-tls
 ---
+
+{{- end }}
 
 {{- end }}
