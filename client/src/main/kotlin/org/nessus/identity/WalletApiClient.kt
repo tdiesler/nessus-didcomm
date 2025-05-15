@@ -1,11 +1,10 @@
-package org.nessus.didcomm.client
+package org.nessus.identity
 
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.ktor.client.utils.EmptyContent.status
 import io.ktor.http.*
 import io.ktor.http.HttpHeaders.Authorization
 import io.ktor.serialization.kotlinx.json.*
@@ -16,21 +15,21 @@ import kotlinx.serialization.json.Json
 // Authentication --------------------------------------------------------------------------------------------------
 
 @Serializable
-data class AuthLoginRequest(
+data class LoginRequest(
     val type: String,
     val email: String,
     val password: String
 )
 
 @Serializable
-data class AuthLoginResponse(
+data class LoginResponse(
     val id: String,
     val username: String,
     val token: String
 )
 
 @Serializable
-data class AuthRegisterRequest(
+data class RegisterUserRequest(
     val type: String,
     val name: String,
     val email: String,
@@ -40,7 +39,7 @@ data class AuthRegisterRequest(
 // Account ---------------------------------------------------------------------------------------------------------
 
 @Serializable
-data class Wallet(
+data class WalletInfo(
     val id: String,
     val name: String,
     val createdOn: String,
@@ -50,9 +49,9 @@ data class Wallet(
 
 @Serializable
 @Suppress("ArrayInDataClass")
-data class WalletsResponse(
+data class ListWalletsResponse(
     val account: String,
-    val wallets: Array<Wallet>
+    val wallets: Array<WalletInfo>
 )
 
 // Keys ----------------------------------------------------------------------------------------------------------------
@@ -72,7 +71,7 @@ data class KeyId(
 // Keys ----------------------------------------------------------------------------------------------------------------
 
 @Serializable
-data class DIDResponse(
+data class DIDInfo(
     val did: String,
     val alias: String,
     val document: String,
@@ -82,7 +81,7 @@ data class DIDResponse(
 )
 
 @Serializable
-data class DIDCreateKeyRequest(
+data class CreateDidKeyRequest(
     val wallet: String,
     val alias: String = "",
     val keyId: String = "",
@@ -91,44 +90,50 @@ data class DIDCreateKeyRequest(
 
 @Serializable
 data class ErrorResponse(
-    val exception: Boolean,
-    val id: String,
-    val status: String,
-    val code: Int,
+    val exception: Boolean = false,
+    val id: String = "",
+    val status: String = "",
+    val code: Int = 0,
     val message: String,
 )
 
-class APIException(val id: String, val code: Int, val status: String, message: String): RuntimeException(message) {
+class APIException(val id: String, val code: Int, val status: String, message: String) : RuntimeException(message) {
 
-    constructor(err: ErrorResponse) : this (err.id, err.code, err.status, err.message)
+    constructor(err: ErrorResponse) : this(err.id, err.code, err.status, err.message)
 
     override fun toString(): String {
-        return "APIException[id=$id, code=$code, status='$status'] $message"
+        return if (id.isNotEmpty() || code > 0 || status.isNotEmpty()) {
+            "APIException[id=$id, code=$code, status=$status] $message"
+        } else {
+            message!!
+        }
     }
 }
 
-// WalletManager =======================================================================================================
+// WalletApiClient =====================================================================================================
 
-object WalletManager {
+class WalletApiClient {
 
-    val baseUrl: String = "http://localhost:32001"
+    var baseUrl: String
     var client: HttpClient? = null
-    var token: String? = null
+
+    constructor() : this("https://wallet-api.nessus-tech.io")
+
+    constructor(baseUrl: String) {
+        this.baseUrl = baseUrl
+    }
 
     // Authentication --------------------------------------------------------------------------------------------------
 
-    suspend fun authLogin(req: AuthLoginRequest): AuthLoginResponse {
+    suspend fun authLogin(req: LoginRequest): LoginResponse {
         val res = client().post("$baseUrl/wallet-api/auth/login") {
             contentType(ContentType.Application.Json)
             setBody(req)
         }
-        val decoded = handleResponse<AuthLoginResponse>(res)
-        token = decoded.token
-        return decoded
+        return handleResponse<LoginResponse>(res)
     }
 
     suspend fun authLogout(): Boolean {
-        token = null
         val res = client().post("$baseUrl/wallet-api/auth/logout") {
             contentType(ContentType.Application.Json)
         }
@@ -136,17 +141,18 @@ object WalletManager {
         return true
     }
 
-    suspend fun authRegister(req: AuthRegisterRequest): String {
+    suspend fun authRegister(req: RegisterUserRequest): Boolean {
         val res = client().post("$baseUrl/wallet-api/auth/register") {
             contentType(ContentType.Application.Json)
             setBody(req)
         }
-        return handleResponse<String>(res)
+        val msg = handleResponse<String>(res)
+        return "Registration succeeded" == msg
     }
 
     // Account ---------------------------------------------------------------------------------------------------------
 
-    suspend fun accountWallets(): WalletsResponse {
+    suspend fun accountWallets(token: String?): ListWalletsResponse {
         val res = client().get("$baseUrl/wallet-api/wallet/accounts/wallets") {
             contentType(ContentType.Application.Json)
             headers {
@@ -155,12 +161,12 @@ object WalletManager {
                 }
             }
         }
-        return handleResponse<WalletsResponse>(res)
+        return handleResponse<ListWalletsResponse>(res)
     }
 
     // Keys ------------------------------------------------------------------------------------------------------------
 
-    suspend fun keys(walletId: String): Array<KeyResponse> {
+    suspend fun keys(token: String?, walletId: String): Array<KeyResponse> {
         val res = client().get("$baseUrl/wallet-api/wallet/${walletId}/keys") {
             contentType(ContentType.Application.Json)
             headers {
@@ -174,7 +180,19 @@ object WalletManager {
 
     // DIDs ------------------------------------------------------------------------------------------------------------
 
-    suspend fun dids(walletId: String): Array<DIDResponse> {
+    suspend fun did(token: String?, walletId: String, did: String): String {
+        val res = client().get("$baseUrl/wallet-api/wallet/${walletId}/dids/${did}") {
+            contentType(ContentType.Application.Json)
+            headers {
+                if (!token.isNullOrBlank()) {
+                    append(Authorization, "Bearer $token")
+                }
+            }
+        }
+        return handleResponse<String>(res)
+    }
+
+    suspend fun dids(token: String?, walletId: String): Array<DIDInfo> {
         val res = client().get("$baseUrl/wallet-api/wallet/${walletId}/dids") {
             contentType(ContentType.Application.Json)
             headers {
@@ -183,10 +201,10 @@ object WalletManager {
                 }
             }
         }
-        return handleResponse<Array<DIDResponse>>(res)
+        return handleResponse<Array<DIDInfo>>(res)
     }
 
-    suspend fun didsCreateKey(req: DIDCreateKeyRequest): String {
+    suspend fun didsCreateDidKey(token: String?, req: CreateDidKeyRequest): String {
         val res = client().post("$baseUrl/wallet-api/wallet/${req.wallet}/dids/create/key") {
             contentType(ContentType.Application.Json)
             headers {
