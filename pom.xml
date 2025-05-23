@@ -4,13 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.nessus.didcomm</groupId>
+    <groupId>org.nessus.identity</groupId>
     <artifactId>nessus-identity</artifactId>
     <packaging>pom</packaging>
 
     <version>25.1.0-SNAPSHOT</version>
 
-    <name>Nessus DIDComm</name>
+    <name>Nessus Identity</name>
     <description>Digital Identity and Verifiable Credentials</description>
     <url>https://github.com/tdiesler/nessus-identity</url>
 
@@ -24,14 +24,17 @@
         <kotlin.version>2.1.20</kotlin.version>
 
         <!-- Other versions -->
+        <version.cose>1.1.1-WALT-SNAPSHOT</version.cose>
         <version.junit>5.10.0</version.junit>
         <version.kotest>5.9.1</version.kotest>
-        <version.kotlin.logging>3.0.5</version.kotlin.logging>
+        <version.kotlin.logging>7.0.5</version.kotlin.logging>
         <version.kotlinx.serialization>1.8.1</version.kotlinx.serialization>
         <version.kotlinx.io>0.6.0</version.kotlinx.io>
         <version.ktor>3.1.2</version.ktor>
         <version.logback>1.5.18</version.logback>
+        <version.nimbus>10.0.1</version.nimbus>
         <version.slf4j>2.0.6</version.slf4j>
+        <version.waltid>0.14.0</version.waltid>
 
         <!--
             Plugin versions
@@ -40,16 +43,19 @@
         <version-maven-enforcer-plugin>3.5.0</version-maven-enforcer-plugin>
         <version-maven-exec-plugin>3.1.0</version-maven-exec-plugin>
         <version-maven-jar-plugin>3.4.2</version-maven-jar-plugin>
+        <version-maven-shade-plugin>3.6.0</version-maven-shade-plugin>
         <version-maven-surefire-plugin>3.5.3</version-maven-surefire-plugin>
 
         <!-- Other properties -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <kotlin.code.style>official</kotlin.code.style>
-        <kotlin.compiler.jvmTarget>1.8</kotlin.compiler.jvmTarget>
+        <maven.compiler.release>21</maven.compiler.release>
+        <kotlin.compiler.jvmTarget>21</kotlin.compiler.jvmTarget>
     </properties>
 
     <modules>
-        <module>client</module>
+        <module>proxy</module>
+        <module>service</module>
     </modules>
 
     <dependencyManagement>
@@ -60,7 +66,17 @@
                 <version>${version.logback}</version>
             </dependency>
             <dependency>
-                <groupId>io.github.microutils</groupId>
+                <groupId>com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>${version.nimbus}</version>
+            </dependency>
+            <dependency>
+                <groupId>id.walt.openid4vc</groupId>
+                <artifactId>waltid-openid4vc-jvm</artifactId>
+                <version>${version.waltid}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.oshai</groupId>
                 <artifactId>kotlin-logging-jvm</artifactId>
                 <version>${version.kotlin.logging}</version>
             </dependency>
@@ -81,6 +97,21 @@
             </dependency>
             <dependency>
                 <groupId>io.ktor</groupId>
+                <artifactId>ktor-server-core-jvm</artifactId>
+                <version>${version.ktor}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.ktor</groupId>
+                <artifactId>ktor-server-netty-jvm</artifactId>
+                <version>${version.ktor}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.ktor</groupId>
+                <artifactId>ktor-server-content-negotiation-jvm</artifactId>
+                <version>${version.ktor}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.ktor</groupId>
                 <artifactId>ktor-client-cio-jvm</artifactId>
                 <version>${version.ktor}</version>
             </dependency>
@@ -93,6 +124,11 @@
                 <groupId>io.ktor</groupId>
                 <artifactId>ktor-serialization-kotlinx-json-jvm</artifactId>
                 <version>${version.ktor}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.cose</groupId>
+                <artifactId>cose-java</artifactId>
+                <version>${version.cose}</version>
             </dependency>
             <dependency>
                 <groupId>org.jetbrains.kotlin</groupId>
@@ -175,6 +211,24 @@
                     <version>${version-maven-surefire-plugin}</version>
                 </plugin>
                 <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>${version-maven-shade-plugin}</version>
+                    <executions>
+                        <execution>
+                            <phase>package</phase>
+                            <goals><goal>shade</goal></goals>
+                            <configuration>
+                                <transformers>
+                                    <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                        <mainClass>your.package.MainKt</mainClass> <!-- Update this -->
+                                    </transformer>
+                                </transformers>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
                     <version>${version-maven-exec-plugin}</version>
@@ -200,7 +254,7 @@
                         </execution>
                     </executions>
                     <configuration>
-                        <jvmTarget>17</jvmTarget>
+                        <jvmTarget>${kotlin.compiler.jvmTarget}</jvmTarget>
                         <compilerPlugins>
                             <plugin>kotlinx-serialization</plugin>
                         </compilerPlugins>
@@ -244,6 +298,20 @@
         <repository>
             <id>mavenCentral</id>
             <url>https://repo1.maven.org/maven2/</url>
+        </repository>
+        <repository>
+            <id>waltid</id>
+            <url>https://maven.waltid.dev/releases/</url>
+        </repository>
+        <repository>
+            <id>waltid-snapshots</id>
+            <url>https://maven.waltid.dev/snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
         </repository>
     </repositories>
 

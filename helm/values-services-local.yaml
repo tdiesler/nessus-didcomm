@@ -1,10 +1,11 @@
 #
-# helm upgrade --install identity ./helm -f ./helm/values-services-local.yaml
+# helm upgrade --kube-context=docker-desktop --install identity ./helm -f ./helm/values-services-local.yaml
 #
 
 environment: local
 
 urlSchema: "http"
+imagePrefix: ""
 
 demoWalletHost: "kubernetes.docker.internal:32101"
 devWalletHost: "kubernetes.docker.internal:32102"
@@ -21,32 +22,32 @@ vaultServiceHost: "kubernetes.docker.internal:32200"
 deployments:
 
   wallet_api:
-    version: 0.13.0-dev
+    version: 0.14.0-dev
     nodePort: 32001
     pullPolicy: IfNotPresent
 
   issuer_api:
-    version: 0.13.0-dev
+    version: 0.14.0-dev
     nodePort: 32002
     pullPolicy: IfNotPresent
 
   verifier_api:
-    version: 0.13.0-dev
+    version: 0.14.0-dev
     nodePort: 32003
     pullPolicy: IfNotPresent
 
   wallet_demo:
-    version: 0.13.0-dev
+    version: 0.14.0-dev
     nodePort: 32101
     pullPolicy: IfNotPresent
 
   wallet_dev:
-    version: 0.13.0-dev
+    version: 0.14.0-dev
     nodePort: 32102
     pullPolicy: IfNotPresent
 
   web_portal:
-    version: 0.13.0-dev
+    version: 0.14.0-dev
     nodePort: 32103
     pullPolicy: IfNotPresent
 

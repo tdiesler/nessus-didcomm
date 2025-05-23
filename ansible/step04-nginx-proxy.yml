@@ -1,0 +1,108 @@
+#
+# ansible-playbook -i ansible/inventory.yml ansible/step04-nginx-proxy.yml
+#
+#
+---
+- name: Install NGINX SSL terminating reverse proxy
+  hosts: k3s-server
+  become: yes
+  vars:
+    user_home: "/home/{{ ansible_user }}"
+    origin_crt: "{{ user_home }}/.k3s/origin.crt"
+    origin_key: "{{ user_home }}/.k3s/origin.key"
+    proxy_pass: "http://localhost:9090"
+    nginx_domain: proxy.nessus-tech.io
+
+  tasks:
+
+    - name: Show certificate
+      ansible.builtin.shell: |
+        openssl x509 -in {{ origin_crt }} -text -noout
+      register: show_certificate
+
+    - name: Show certificate result
+      ansible.builtin.debug:
+        var: show_certificate
+
+    - name: Ensure NGINX is installed
+      package:
+        name: nginx
+        state: present
+
+    - name: Ensure TLS cert directory exists
+      file:
+        path: /etc/nginx/certs
+        state: directory
+        owner: root
+        group: nginx
+        mode: '0750'
+
+    - name: Copy origin certificate
+      copy:
+        src: "{{ origin_crt }}"
+        dest: "/etc/nginx/certs/origin.crt"
+        remote_src: true
+        owner: root
+        group: nginx
+        mode: '0644'
+        # Permissions rationale:
+        # - Readable by nginx group (NGINX worker processes)
+        # - Safe to be world-readable as it's a public certificate
+
+    - name: Copy origin private key
+      copy:
+        src: "{{ origin_key }}"
+        dest: "/etc/nginx/certs/origin.key"
+        remote_src: true
+        owner: root
+        group: nginx
+        mode: '0640'
+        # Permissions rationale:
+        # - Owned by root, read-only by nginx group
+        # - Not world-readable for security
+        # - Ensures TLS can be served by worker processes if required
+
+    - name: Configure NGINX reverse proxy
+      copy:
+        dest: /etc/nginx/conf.d/nessus-proxy.conf
+        content: |
+          server {
+              listen 8443 ssl;
+              server_name {{ nginx_domain }};
+
+              ssl_certificate     /etc/nginx/certs/origin.crt;
+              ssl_certificate_key /etc/nginx/certs/origin.key;
+
+              ssl_protocols       TLSv1.2 TLSv1.3;
+              ssl_ciphers         HIGH:!aNULL:!MD5;
+
+              location / {
+                  proxy_pass {{ proxy_pass }};
+
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+          }
+
+    - name: Enable and start NGINX
+      service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Validate NGINX configuration
+      command: nginx -t
+      register: nginx_check
+      failed_when: nginx_check.rc != 0
+      changed_when: false
+
+    - name: Show last 20 lines of nginx service log
+      shell: journalctl -u nginx.service -n 20 --no-pager
+      register: nginx_service_log
+      ignore_errors: yes
+
+    - name: Print nginx service log
+      debug:
+        msg: "{{ nginx_service_log.stdout_lines }}"

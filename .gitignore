@@ -10,10 +10,14 @@
 
 ### Mac OS ###
 .DS_Store
-data/
 
 ### Maven
 target/
 
 ### Python
 __pycache__/
+
+## TLS
+*.crt
+*.key
+keystore.*
