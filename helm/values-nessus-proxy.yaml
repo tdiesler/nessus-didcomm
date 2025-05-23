@@ -1,0 +1,16 @@
+#
+# helm upgrade --kube-context=ebsi --install proxy ./helm -f ./helm/values-nessus-proxy.yaml
+#
+
+environment: k3s
+
+urlSchema: "https"
+imagePrefix: "registry.vps6c.eu.ebsi:30443/"
+
+proxyHost: "proxy.nessus-tech.io"
+
+deployments:
+
+  nessus_proxy:
+    version: latest
+    pullPolicy: Always

@@ -1,11 +1,10 @@
 #
-# helm upgrade --install identity ./helm -f ./helm/values-services-staging.yaml
+# helm upgrade --kube-context=ebsi --install identity ./helm -f ./helm/values-services-remote.yaml
 #
 
-environment: staging
+environment: k3s
 
 urlSchema: "https"
-
 imagePrefix: "registry.vps6c.eu.ebsi:30443/"
 
 demoWalletHost: "wallet.nessus-tech.io"
@@ -23,27 +22,27 @@ vaultServiceHost: "vault.nessus-tech.io"
 deployments:
 
   wallet_api:
-    version: 0.13.0-dev
+    version: 0.14.0-dev
     pullPolicy: Always
 
   issuer_api:
-    version: 0.13.0-dev
+    version: 0.14.0-dev
     pullPolicy: Always
 
   verifier_api:
-    version: 0.13.0-dev
+    version: 0.14.0-dev
     pullPolicy: Always
 
   wallet_demo:
-    version: 0.13.0-dev
+    version: 0.14.0-dev
     pullPolicy: Always
 
   wallet_dev:
-    version: 0.13.0-dev
+    version: 0.14.0-dev
     pullPolicy: Always
 
   web_portal:
-    version: 0.13.0-dev
+    version: 0.14.0-dev
     pullPolicy: Always
 
   vc_repo:
