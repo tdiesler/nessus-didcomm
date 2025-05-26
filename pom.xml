@@ -87,12 +87,27 @@
             </dependency>
             <dependency>
                 <groupId>io.ktor</groupId>
+                <artifactId>ktor-client-cio-jvm</artifactId>
+                <version>${version.ktor}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.ktor</groupId>
                 <artifactId>ktor-client-core-jvm</artifactId>
                 <version>${version.ktor}</version>
             </dependency>
             <dependency>
                 <groupId>io.ktor</groupId>
-                <artifactId>ktor-serialization-kotlinx-json</artifactId>
+                <artifactId>ktor-client-content-negotiation-jvm</artifactId>
+                <version>${version.ktor}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.ktor</groupId>
+                <artifactId>ktor-serialization-kotlinx-json-jvm</artifactId>
+                <version>${version.ktor}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.ktor</groupId>
+                <artifactId>ktor-server-content-negotiation-jvm</artifactId>
                 <version>${version.ktor}</version>
             </dependency>
             <dependency>
@@ -107,22 +122,7 @@
             </dependency>
             <dependency>
                 <groupId>io.ktor</groupId>
-                <artifactId>ktor-server-content-negotiation-jvm</artifactId>
-                <version>${version.ktor}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.ktor</groupId>
-                <artifactId>ktor-client-cio-jvm</artifactId>
-                <version>${version.ktor}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.ktor</groupId>
-                <artifactId>ktor-client-content-negotiation-jvm</artifactId>
-                <version>${version.ktor}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.ktor</groupId>
-                <artifactId>ktor-serialization-kotlinx-json-jvm</artifactId>
+                <artifactId>ktor-server-status-pages-jvm</artifactId>
                 <version>${version.ktor}</version>
             </dependency>
             <dependency>
