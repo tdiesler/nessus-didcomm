@@ -1,10 +1,19 @@
-package org.nessus.identity.proxy
+package io.nessus.identity.proxy
 
-import id.walt.oid4vc.responses.TokenResponse
+import com.nimbusds.jose.JOSEObjectType
+import com.nimbusds.jose.JWSAlgorithm
+import com.nimbusds.jose.JWSHeader
+import com.nimbusds.jose.crypto.ECDSAVerifier
+import com.nimbusds.jose.jwk.ECKey
+import com.nimbusds.jose.util.Base64URL
+import com.nimbusds.jwt.JWTClaimsSet
+import com.nimbusds.jwt.SignedJWT
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.request.*
-import io.ktor.client.request.forms.*
-import io.ktor.client.statement.*
+import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.install
@@ -15,16 +24,28 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import io.nessus.identity.proxy.HttpProvider.http
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonNull.content
-import org.nessus.identity.proxy.ConfigProvider.config
-import org.nessus.identity.proxy.ConfigProvider.mainConfig
-import org.nessus.identity.proxy.HttpProvider.http
+import io.nessus.identity.service.ConfigProvider.config
+import io.nessus.identity.service.ConfigProvider.mainConfig
+import io.nessus.identity.service.DidInfo
+import io.nessus.identity.service.LoginParams
+import io.nessus.identity.service.LoginType
+import io.nessus.identity.service.ServiceManager
+import io.nessus.identity.service.WalletInfo
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
 import java.net.URI
 import java.net.URLDecoder
 import java.security.KeyStore
+import java.time.Instant
+import java.util.Date
 
 fun main() {
     EBSIConformanceProxy().runServer()
@@ -41,22 +62,42 @@ class EBSIConformanceProxy {
 
     companion object {
         val log = KotlinLogging.logger {}
+        val walletService = ServiceManager.walletService
     }
+
+    val walletInfo: WalletInfo
+    val didInfo: DidInfo
 
     constructor() {
         log.info { "Starting OID4VC Server ..." }
         log.info { "BaseUrl: ${config.baseUrl}" }
+
+        walletInfo = runBlocking {
+            walletService.loginWallet(
+                LoginParams(
+                    LoginType.EMAIL,
+                    config.userEmail,
+                    config.userPassword
+                )
+            )
+        }
+        didInfo = runBlocking {
+            walletService.findDidByPrefix(walletInfo.id, "did:key")
+                ?: throw IllegalStateException("No did:key in wallet: ${walletInfo.id}")
+        }
+
+        log.info { "Wallet: ${walletInfo.id}" }
+        log.info { "Did: ${didInfo.did}" }
     }
 
     fun runServer() {
 
         val host = mainConfig.getString("server.host")
         val port = mainConfig.getInt("server.port")
-
-        val tlsEnabled = mainConfig.getBoolean("tls.enabled")
+        val tls = mainConfig.getBoolean("tls.enabled")
 
         embeddedServer(Netty, configure = {
-            if (tlsEnabled) {
+            if (tls) {
                 val keyAlias = mainConfig.getString("tls.key_alias")
                 val keystoreFile = mainConfig.getString("tls.keystore_file")
                 val keystorePassword = mainConfig.getString("tls.keystore_password").toCharArray()
@@ -139,7 +180,13 @@ class EBSIConformanceProxy {
 
     // Request and present Verifiable Credentials
     // https://hub.ebsi.eu/conformance/build-solutions/holder-wallet-functional-flows
+    //
+    // Issuer initiated flows start with the Credential Offering proposed by Issuer.
+    // The Credential Offering is in redirect for same-device tests and in QR Code for cross-device tests.
+    // Expected Credential Offering endpoint may be given in the test scenario, while it defaults to openid-credential-offer://
+    //
     suspend fun handleReceiveCredentialOffer(call: RoutingCall) {
+        val oid4vc = NessusOpenID4VC(walletInfo, didInfo)
 
         // Get Credential Offer URI from the query Parameters
         //
@@ -148,24 +195,37 @@ class EBSIConformanceProxy {
 
         // Parse and resolve the CredentialOfferUri into a CredentialOffer
         //
-        val credOffer = NessusOpenID4VC.receiveCredentialOfferUri(credOfferUri)
+        val credOffer = oid4vc.receiveCredentialOfferUri(credOfferUri)
 
         // Process the CredentialOffer and create a CredentialOfferContext
         //
-        val ctx = NessusOpenID4VC.receiveCredentialOffer(credOffer)
+        oid4vc.receiveCredentialOffer(credOffer)
 
-        // Further work could happen async -------------------------------------------
+        // Handle in-time issuance of the credential and DID authentication through an IDToken.
 
-        val authCode = NessusOpenID4VC.sendAuthorizationRequest(ctx)
-        val tokenResponse = NessusOpenID4VC.sendTokenRequest(ctx, authCode)
-        val credJwt = NessusOpenID4VC.sendCredentialRequest(ctx, tokenResponse)
+        val authCode = oid4vc.sendAuthorizationRequest()
+        val tokenResponse = oid4vc.sendTokenRequest(authCode)
+        val credResponse = oid4vc.sendCredentialRequest(tokenResponse)
+
+        val format = credResponse.format
+        val credential = SignedJWT.parse(credResponse.credential)
+        walletService.addCredential(walletInfo.id, format, credential)
 
         // Respond to the caller with 202 Accepted
         call.respondText(
             status = HttpStatusCode.Accepted,
             contentType = ContentType.Application.Json,
-            text = "${credJwt.jwtClaimsSet}"
+            text = "${credential.jwtClaimsSet}"
         )
+    }
+}
+
+fun createFlattenedJwsJson(jwtHeader: JWSHeader, jwtClaims: JWTClaimsSet): JsonObject {
+    val headerBase64 = Base64URL.encode(jwtHeader.toString())
+    val payloadBase64 = Base64URL.encode(jwtClaims.toPayload().toString())
+    return buildJsonObject {
+        put("protected", JsonPrimitive(headerBase64.toString()))
+        put("payload", JsonPrimitive(payloadBase64.toString()))
     }
 }
 
@@ -173,4 +233,18 @@ fun urlQueryToMap(url: String): Map<String, String> {
     return URI(url).rawQuery?.split("&")?.associate { p ->
         p.split("=", limit = 2).let { (k, v) -> k to URLDecoder.decode(v, "UTF-8") }
     } ?: mapOf()
+}
+
+fun verifyJwt(encodedJwt: String, didInfo: DidInfo): Boolean {
+
+    val signedJWT = SignedJWT.parse(encodedJwt)
+
+    val docJson = Json.parseToJsonElement(didInfo.document).jsonObject
+    val verificationMethods = docJson["verificationMethod"] as JsonArray
+    val verificationMethod = verificationMethods.let { it[0] as JsonObject }
+    val publicKeyJwk = Json.encodeToString(verificationMethod["publicKeyJwk"])
+
+    val publicJwk = ECKey.parse(publicKeyJwk)
+    val verifier = ECDSAVerifier(publicJwk)
+    return signedJWT.verify(verifier)
 }

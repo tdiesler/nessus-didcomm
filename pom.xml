@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.nessus.identity</groupId>
+    <groupId>io.nessus.identity</groupId>
     <artifactId>nessus-identity</artifactId>
     <packaging>pom</packaging>
 
@@ -25,16 +25,27 @@
 
         <!-- Other versions -->
         <version.cose>1.1.1-WALT-SNAPSHOT</version.cose>
+        <version.jetbrains.exposed>0.59.0</version.jetbrains.exposed>
+        <version.hikari>6.2.1</version.hikari>
         <version.junit>5.10.0</version.junit>
         <version.kotest>5.9.1</version.kotest>
         <version.kotlin.logging>7.0.5</version.kotlin.logging>
-        <version.kotlinx.serialization>1.8.1</version.kotlinx.serialization>
+        <version.kotlinx.datetime>0.6.2</version.kotlinx.datetime>
         <version.kotlinx.io>0.6.0</version.kotlinx.io>
+        <version.kotlinx.serialization>1.8.1</version.kotlinx.serialization>
         <version.ktor>3.1.2</version.ktor>
         <version.logback>1.5.18</version.logback>
         <version.nimbus>10.0.1</version.nimbus>
+        <version.postgresql>42.7.5</version.postgresql>
         <version.slf4j>2.0.6</version.slf4j>
+        <version.typesafe.config>1.4.3</version.typesafe.config>
         <version.waltid>0.14.0</version.waltid>
+
+        <!--
+            [TODO] Remove dependency on local waltid build
+            ./gradlew :waltid-services:waltid-wallet-api:publishToMavenLocal
+        -->
+        <version.waltid.local>1.0.0-SNAPSHOT</version.waltid.local>
 
         <!--
             Plugin versions
@@ -71,9 +82,35 @@
                 <version>${version.nimbus}</version>
             </dependency>
             <dependency>
+                <groupId>com.typesafe</groupId>
+                <artifactId>config</artifactId>
+                <version>${version.typesafe.config}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.zaxxer</groupId>
+                <artifactId>HikariCP</artifactId>
+                <version>${version.hikari}</version>
+            </dependency>
+            <dependency>
+                <groupId>id.walt.credentials</groupId>
+                <artifactId>waltid-w3c-credentials-jvm</artifactId>
+                <version>${version.waltid}</version>
+            </dependency>
+            <dependency>
                 <groupId>id.walt.openid4vc</groupId>
                 <artifactId>waltid-openid4vc-jvm</artifactId>
                 <version>${version.waltid}</version>
+            </dependency>
+            <dependency>
+                <groupId>id.walt</groupId>
+                <artifactId>waltid-wallet-api</artifactId>
+                <version>${version.waltid.local}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.github.oshai</groupId>
@@ -131,6 +168,31 @@
                 <version>${version.cose}</version>
             </dependency>
             <dependency>
+                <groupId>org.jetbrains.exposed</groupId>
+                <artifactId>exposed-core</artifactId>
+                <version>${version.jetbrains.exposed}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jetbrains.exposed</groupId>
+                <artifactId>exposed-dao</artifactId>
+                <version>${version.jetbrains.exposed}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jetbrains.exposed</groupId>
+                <artifactId>exposed-java-time</artifactId>
+                <version>${version.jetbrains.exposed}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jetbrains.exposed</groupId>
+                <artifactId>exposed-jdbc</artifactId>
+                <version>${version.jetbrains.exposed}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jetbrains.exposed</groupId>
+                <artifactId>exposed-json</artifactId>
+                <version>${version.jetbrains.exposed}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-stdlib</artifactId>
                 <version>${kotlin.version}</version>
@@ -147,6 +209,11 @@
             </dependency>
             <dependency>
                 <groupId>org.jetbrains.kotlinx</groupId>
+                <artifactId>kotlinx-datetime-jvm</artifactId>
+                <version>${version.kotlinx.datetime}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jetbrains.kotlinx</groupId>
                 <artifactId>kotlinx-io-core-jvm</artifactId>
                 <version>${version.kotlinx.io}</version>
             </dependency>
@@ -159,6 +226,11 @@
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-engine</artifactId>
                 <version>${version.junit}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${version.postgresql}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

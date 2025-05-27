@@ -1,8 +1,7 @@
-package org.nessus.identity.proxy
+package io.nessus.identity.service
 
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
-import org.nessus.identity.proxy.OpenId4VCService.Companion.loadConfig
 
 data class NessusConfig(
     val baseUrl: String,
@@ -12,20 +11,36 @@ data class NessusConfig(
     val userEmail: String,
     val userPassword: String,
     val authCallbackUrl: String,
+    val dbConfig: DbConfig,
+)
+
+data class DbConfig(
+    val jdbcUrl: String,
+    val driverClassName: String,
+    val username: String,
+    val password: String,
 )
 
 object ConfigProvider {
 
     val mainConfig: Config = loadConfig().getConfig("proxy")
-    val baseUrl = mainConfig.getString("server.base_url")
+    val dbConfig: Config = mainConfig.getConfig("db")
+    val waltConfig: Config = mainConfig.getConfig("walt")
+    val baseUrl: String = mainConfig.getString("server.base_url")
     val config = NessusConfig(
         baseUrl = baseUrl,
-        walletApi = mainConfig.getString("walt.wallet-api"),
-        issuerApi = mainConfig.getString("walt.issuer-api"),
-        verifierApi = mainConfig.getString("walt.verifier-api"),
-        userEmail = mainConfig.getString("walt.user_email"),
-        userPassword = mainConfig.getString("walt.user_password"),
+        walletApi = waltConfig.getString("wallet-api"),
+        issuerApi = waltConfig.getString("issuer-api"),
+        verifierApi = waltConfig.getString("verifier-api"),
+        userEmail = waltConfig.getString("user_email"),
+        userPassword = waltConfig.getString("user_password"),
         authCallbackUrl = "${baseUrl}/auth-callback",
+        dbConfig = DbConfig(
+            jdbcUrl = dbConfig.getString("jdbcUrl"),
+            driverClassName = dbConfig.getString("jdbcUrl"),
+            username = dbConfig.getString("username"),
+            password = dbConfig.getString("password"),
+        )
     )
 
     private fun loadConfig(): Config {

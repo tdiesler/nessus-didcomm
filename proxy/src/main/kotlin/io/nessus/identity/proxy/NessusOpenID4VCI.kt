@@ -1,8 +1,8 @@
-package org.nessus.identity.proxy
+package io.nessus.identity.proxy
 
 import id.walt.oid4vc.OpenID4VCI
 import id.walt.oid4vc.OpenID4VCIVersion
-import org.nessus.identity.proxy.ConfigProvider.config
+import io.nessus.identity.service.ConfigProvider.config
 
 object NessusOpenID4VCI {
 

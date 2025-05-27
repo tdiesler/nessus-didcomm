@@ -12,6 +12,7 @@
 .DS_Store
 
 ### Maven
+dependency-reduced-pom.xml
 target/
 
 ### Python

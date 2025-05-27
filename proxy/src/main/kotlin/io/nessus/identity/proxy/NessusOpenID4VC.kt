@@ -1,11 +1,8 @@
-package org.nessus.identity.proxy
+package io.nessus.identity.proxy
 
 import com.nimbusds.jose.JOSEObjectType
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.JWSHeader
-import com.nimbusds.jose.crypto.ECDSAVerifier
-import com.nimbusds.jose.jwk.ECKey
-import com.nimbusds.jose.util.Base64URL
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
 import id.walt.oid4vc.OpenID4VCI
@@ -16,10 +13,17 @@ import id.walt.oid4vc.data.OpenIDProviderMetadata
 import id.walt.oid4vc.responses.TokenResponse
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.request.*
-import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.coroutines.runBlocking
+import io.nessus.identity.proxy.EBSIConformanceProxy.Companion.walletService
+import io.nessus.identity.proxy.HttpProvider.http
+import io.nessus.identity.service.ConfigProvider.config
+import io.nessus.identity.service.DidInfo
+import io.nessus.identity.service.LoginParams
+import io.nessus.identity.service.LoginType
+import io.nessus.identity.service.ServiceManager
+import io.nessus.identity.service.WalletInfo
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -29,52 +33,46 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.nessus.identity.proxy.ConfigProvider.config
-import org.nessus.identity.proxy.HttpProvider.http
-import org.nessus.identity.service.DidInfo
-import org.nessus.identity.service.LoginParams
-import org.nessus.identity.service.LoginType
-import org.nessus.identity.service.WalletService
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.Base64
 import java.util.Date
-import kotlin.collections.component1
-import kotlin.collections.component2
 import kotlin.random.Random
+import kotlin.uuid.ExperimentalUuidApi
 
-object NessusOpenID4VC {
+class NessusOpenID4VC(val walletInfo: WalletInfo, val didInfo: DidInfo) {
 
-    val log = KotlinLogging.logger {}
+    val walletService get() = ServiceManager.walletService
+    private lateinit var context: CredentialOfferContext
 
-    val walletSvc = WalletService.build(config.walletApi)
-    val walletInfo = runBlocking {
-        walletSvc.loginWallet(
-            LoginParams(
-                LoginType.EMAIL,
-                config.userEmail,
-                config.userPassword
+    companion object {
+        val log = KotlinLogging.logger {}
+        suspend fun buildFromConfig(): NessusOpenID4VC {
+            val walletInfo = walletService.loginWallet(
+                LoginParams(
+                    LoginType.EMAIL,
+                    config.userEmail,
+                    config.userPassword
+                )
             )
-        )
-    }
-    val didInfo = runBlocking {
-        walletSvc.findDidByPrefix(walletInfo.id, "did:key")
-            ?: throw IllegalStateException("No did:key in wallet: ${walletInfo.id}")
-    }
-
-    init {
-        log.info { "Wallet: ${walletInfo.id}" }
-        log.info { "Did:    ${didInfo.did}" }
+            val didInfo = walletService.findDidByPrefix(walletInfo.id, "did:key")
+                ?: throw IllegalStateException("No did:key in wallet: ${walletInfo.id}")
+            return NessusOpenID4VC(walletInfo, didInfo)
+        }
     }
 
     /**
-     * The Authorisation Request builds on the OAuth 2.0 Rich Authorisation Request, where the user specifies which
+     * The Authorisation Request builds on the OAuth 2.0 Rich Authorisation Request,
      * where the user specifies which types of VCs they are requesting using the authorization_details parameter.
      * https://hub.ebsi.eu/conformance/learn/verifiable-credential-issuance#authorisation-request
      *
      * @return The OAuth 2.0 authorization code
      */
-    suspend fun sendAuthorizationRequest(ctx: CredentialOfferContext) :String {
+    suspend fun sendAuthorizationRequest(): String {
+
+        // The Wallet will start by requesting access for the desired credential from the Auth Mock (Authorisation Server).
+        // The client_metadata.authorization_endpoint is used for the redirect location associated with the vp_token and id_token.
+        // If client_metadata fails to provide the required information, the default configuration (openid://) will be used instead.
 
         val rndBytes = Random.Default.nextBytes(32)
         val codeVerifier = Base64.getUrlEncoder().withoutPadding().encodeToString(rndBytes)
@@ -82,9 +80,15 @@ object NessusOpenID4VC {
         val codeVerifierHash = sha256.digest(codeVerifier.toByteArray(Charsets.US_ASCII))
         val codeChallenge = Base64.getUrlEncoder().withoutPadding().encodeToString(codeVerifierHash)
 
-        ctx.extraState["AuthorizationRequest.codeVerifier"] = codeVerifier
+        context.authRequestCodeVerifier = codeVerifier
 
-        val credentialTypes = ctx.offeredCredential.types ?: throw IllegalStateException("No credential types")
+        val credentialTypes = context.offeredCredential.types
+            ?: throw IllegalStateException("No credential types")
+
+        // Build AuthRequestUrl
+        //
+        val issuerUri = context.credentialIssuerUri
+        val authServer = context.authorizationServer
 
         val authReqMap = linkedMapOf(
             "response_type" to "code",
@@ -98,34 +102,38 @@ object NessusOpenID4VC {
                         format = "jwt_vc",
                         type = "openid_credential",
                         types = credentialTypes,
-                        locations = listOf(ctx.credentialIssuerUri),
+                        locations = listOf(issuerUri),
                     )
                 )
             ),
             "redirect_uri" to config.authCallbackUrl,
-            "issuer_state" to ctx.issuerState,
+            "issuer_state" to context.issuerState,
         ).toMutableMap()
 
-        // Build AuthRequestUrl
-        val authReqUrl = URLBuilder("${ctx.authorizationServer}/authorize").apply {
+        val authReqUrl = URLBuilder("$authServer/authorize").apply {
             authReqMap.forEach { (k, v) -> parameters.append(k, v) }
         }.buildString()
 
-        log.info { "AuthRequest: $authReqUrl" }
+        log.info { "GET AuthRequest: $authReqUrl" }
         urlQueryToMap(authReqUrl).forEach { (k, v) -> log.info { "  $k=$v" } }
 
-        // Send AuthRequest --------------------------------------------------------------------------------------------
-        //
-        // AuthServer proceeds by requesting an ID Token from the Wallet to authenticate the DID without any claims.
-        // This is delivered through redirection like any other delegation for authentication.
-
+        // Send AuthRequest
+        // Since we don't set `client_metadata.authorization_endpoint` we expect to get a redirect
         var res = http().get(authReqUrl)
         if (res.status != HttpStatusCode.Found)
             throw HttpStatusException(res.status, res.bodyAsText())
 
-        var queryParams = getRequestParamsFromLocationHeader(res).also {
+        // Since we don't set
+        var location = res.headers["location"]?.also {
+            log.info { "AuthRequest Redirect: $it" }
+        } ?: throw IllegalStateException("Cannot find 'location' in headers")
+
+        var queryParams = urlQueryToMap(location).also {
             it.forEach { (k, v) -> log.info { "  $k=$v" } }
         }
+
+        // The Wallet answers the ID Token Request by providing the id_token in the redirect_uri as instructed by response_mode of direct_post.
+        // The id_token must be signed with the DID document's authentication key.
 
         // Verify required query params
         for (key in listOf("client_id", "nonce", "state", "redirect_uri", "request_uri")) {
@@ -139,10 +147,11 @@ object NessusOpenID4VC {
         val requestUri = queryParams["request_uri"] as String
 
         // Remember this state for the OfferRequest
-        ctx.extraState["IDToken.state"] = state
+        context.authRequestState = state
 
+        log.info { "GET IDTokenReq: $requestUri" }
         res = http().get(requestUri)
-        if (res.status != HttpStatusCode.OK) 
+        if (res.status != HttpStatusCode.OK)
             throw HttpStatusException(res.status, res.bodyAsText())
 
         val idTokenReq = res.bodyAsText()
@@ -179,7 +188,11 @@ object NessusOpenID4VC {
         log.info { "IDTokenRes Claims: ${idTokenJwt.jwtClaimsSet}" }
 
         val idTokenSigningInput = Json.encodeToString(createFlattenedJwsJson(idTokenHeader, idTokenClaims))
-        val idToken = walletSvc.signWithKey(walletInfo.id, authenticationId, idTokenSigningInput)
+        val idToken = EBSIConformanceProxy.Companion.walletService.signWithKey(
+            walletInfo.id,
+            authenticationId,
+            idTokenSigningInput
+        )
 
         log.info { "IDToken Input: $idTokenSigningInput" }
         log.info { "IDToken: $idToken" }
@@ -189,44 +202,54 @@ object NessusOpenID4VC {
 
         // Send IDToken Response --------------------------------------------------------------------------------------
         //
-        log.info { "IDTokenRes: $redirectUri" }
+
+        val formData = mapOf(
+            "id_token" to idToken,
+            "state" to state,
+        )
+
+        log.info { "POST IDTokenRes: $redirectUri" }
+        formData.forEach { (k, v) -> log.info { "  $k=$v" } }
+
         res = http().post(redirectUri) {
             contentType(ContentType.Application.FormUrlEncoded)
             setBody(FormDataContent(Parameters.build {
-                append("id_token", idToken)
-                append("state", state)
+                formData.forEach { (k, v) -> append(k, v) }
             }))
         }
 
         if (res.status != HttpStatusCode.Found)
             throw HttpStatusException(res.status, res.bodyAsText())
 
-        queryParams = getRequestParamsFromLocationHeader(res).also {
-            it.forEach { (k, v) -> log.info { "  $k=$v" } }
-        }
+        location = res.headers["location"]?.also {log.info { "AuthResponse: $it" } }
+            ?: throw IllegalStateException("Cannot find 'location' in headers")
 
-        val authCode = queryParams["code"] ?: throw IllegalStateException("No authorization code")
-        return authCode
+        queryParams = urlQueryToMap(location)
+        return queryParams["code"] ?: throw IllegalStateException("No authorization code")
     }
 
-    suspend fun sendTokenRequest(ctx: CredentialOfferContext, authCode: String) : TokenResponse {
-
-        val ctx = SimpleSession.getCredentialOfferContext()
-            ?: throw IllegalStateException("No CredentialOfferContext in session")
-
-        val codeVerifier = ctx.extraState["AuthorizationRequest.codeVerifier"] as? String
-            ?: throw IllegalStateException("No AuthorizationRequest.codeVerifier in context")
+    suspend fun sendTokenRequest(authCode: String): TokenResponse {
 
         // Authentication Code Flow ====================================================================================
 
-        val res = http().post("${ctx.authorizationServer}/token") {
+        val codeVerifier = context.authRequestCodeVerifier
+        val tokenReqUrl = "${context.authorizationServer}/token"
+
+        val formData = mapOf(
+            "grant_type" to "authorization_code",
+            "client_id" to didInfo.did,
+            "code" to authCode,
+            "code_verifier" to codeVerifier,
+            "redirect_uri" to config.authCallbackUrl,
+        )
+
+        log.info { "POST TokenRequest $tokenReqUrl" }
+        log.info { "  $formData" }
+
+        val res = http().post(tokenReqUrl) {
             contentType(ContentType.Application.FormUrlEncoded)
             setBody(FormDataContent(Parameters.build {
-                append("grant_type", "authorization_code")
-                append("client_id", didInfo.did)
-                append("code", authCode)
-                append("code_verifier", codeVerifier)
-                append("redirect_uri", config.authCallbackUrl)
+                formData.forEach { (k, v) -> append(k, v) }
             }))
         }
 
@@ -237,7 +260,7 @@ object NessusOpenID4VC {
         log.info { "TokenResponse: $tokenResponseJson" }
 
         val tokenResponse = TokenResponse.fromJSONString(tokenResponseJson).also {
-            ctx.extraState["TokenResponse"] = it
+            context.tokenResponse = it
         }
 
         return tokenResponse
@@ -263,36 +286,35 @@ object NessusOpenID4VC {
      *      - CredentialOffer
      *      - OfferedCredential
      *      - OpenIDProviderMetadata (Issuer Metadata)
+     *
+     * https://hub.ebsi.eu/conformance/learn/verifiable-credential-issuance#credential-offering
      */
-    suspend fun receiveCredentialOffer(credOffer: CredentialOffer): CredentialOfferContext {
+    suspend fun receiveCredentialOffer(credentialOffer: CredentialOffer) {
 
-        val credOfferJson = Json.encodeToString(credOffer)
+        val credOfferJson = Json.encodeToString(credentialOffer)
         log.info { "Received credential offer: $credOfferJson}" }
 
         // Get issuer Metadata =========================================================================================
         //
-        val issuerMetadata = resolveOpenIDProviderMetadata(credOffer.credentialIssuer)
+        val issuerMetadata = resolveOpenIDProviderMetadata(credentialOffer.credentialIssuer)
         val issuerMetadataJson = Json.encodeToString(issuerMetadata)
         log.info { "Received issuer metadata: $issuerMetadataJson" }
 
         val draft11Metadata = issuerMetadata as? OpenIDProviderMetadata.Draft11
-            ?: throw IllegalStateException("Expected Draft11 metadata, but got ${issuerMetadata!!::class.simpleName}")
+            ?: throw IllegalStateException("Expected Draft11 metadata, but got ${issuerMetadata::class.simpleName}")
 
         // Resolve Offered Credential ==================================================================================
         //
-        val offeredCredentials = OpenID4VCI.resolveOfferedCredentials(credOffer, draft11Metadata)
+        val offeredCredentials = OpenID4VCI.resolveOfferedCredentials(credentialOffer, draft11Metadata)
         log.info { "Received offered credentials: ${Json.encodeToString(offeredCredentials)}" }
         if (offeredCredentials.size > 1) log.warn { "Multiple offered credentials, using first" }
         val offeredCredential = offeredCredentials.first()
 
-        val ctx = CredentialOfferContext(
-            credentialOffer = credOffer,
+        context = CredentialOfferContext(
+            credentialOffer = credentialOffer,
             offeredCredential = offeredCredential,
-            issuerMetadata = issuerMetadata,
+            issuerMetadata = issuerMetadata
         )
-        SimpleSession.setCredentialOfferContext(ctx)
-
-        return ctx
     }
 
     suspend fun resolveOpenIDProviderMetadata(issuerUrl: String): OpenIDProviderMetadata {
@@ -308,7 +330,8 @@ object NessusOpenID4VC {
         }
     }
 
-    suspend fun sendCredentialRequest(ctx: CredentialOfferContext, tokenResponse: TokenResponse) : SignedJWT {
+    @OptIn(ExperimentalUuidApi::class)
+    suspend fun sendCredentialRequest(tokenResponse: TokenResponse): CredentialResponse {
 
         // The Relying Party proceeds by requesting issuance of the Verifiable Credential from the Issuer Mock.
         // The requested Credential must match the granted access. The DID document's authentication key must be used for signing the JWT proof,
@@ -331,14 +354,17 @@ object NessusOpenID4VC {
             .keyID(authentication)
             .build()
 
-        val state = ctx.extraState["IDToken.state"] as? String
-            ?: throw IllegalStateException("No IDToken.state")
-        val credentialTypes = ctx.offeredCredential.types
+        val state = context.authRequestState
+
+        val credentialTypes = context.offeredCredential.types
             ?: throw IllegalStateException("No credential types")
+
+        val issuerUri = context.credentialIssuerUri
+        val credentialEndpointUri = context.credentialEndpointUri
 
         val credReqClaims = JWTClaimsSet.Builder()
             .issuer(didInfo.did)
-            .audience(ctx.credentialIssuerUri)
+            .audience(issuerUri)
             .issueTime(iat)
             .expirationTime(exp)
             .claim("nonce", cNonce)
@@ -346,7 +372,7 @@ object NessusOpenID4VC {
             .build()
 
         val credReqInput = Json.encodeToString(createFlattenedJwsJson(credReqHeader, credReqClaims))
-        val signedCredReqBase64 = walletSvc.signWithKey(walletInfo.id, authentication, credReqInput)
+        val signedCredReqBase64 = walletService.signWithKey(walletInfo.id, authentication, credReqInput)
         log.info { "CredentialReq JWT: $signedCredReqBase64" }
         val signedCredReqJwt = SignedJWT.parse(signedCredReqBase64)
         log.info { "CredentialReq Header: ${signedCredReqJwt.header}" }
@@ -361,9 +387,10 @@ object NessusOpenID4VC {
             })
         })
 
-        log.info { "CredentialReq Body: $credReqBody" }
+        log.info { "POST CredentialReq: $credentialEndpointUri" }
+        log.info { "  $credReqBody" }
 
-        val res = http().post(ctx.credentialEndpointUri) {
+        val res = http().post(credentialEndpointUri) {
             header(HttpHeaders.Authorization, "Bearer $accessToken")
             contentType(ContentType.Application.Json)
             setBody(credReqBody)
@@ -374,38 +401,15 @@ object NessusOpenID4VC {
         val credJson = res.bodyAsText()
         log.info { "Credential: $credJson" }
 
-        val credJsonObj = Json.parseToJsonElement(credJson) as JsonObject
-        val format = (credJsonObj["format"] as JsonPrimitive).content
-        val credentialBase64 = (credJsonObj["credential"] as JsonPrimitive).content
-
-        if (format != "jwt_vc")
-            throw IllegalStateException("Unsupported credential format: $format")
-
-        val credJwt = SignedJWT.parse(credentialBase64)
+        val credRes = Json.decodeFromString<CredentialResponse>(credJson)
+        val credJwt = SignedJWT.parse(credRes.credential)
         log.info { "CredentialReq Header: ${credJwt.header}" }
         log.info { "CredentialReq Claims: ${credJwt.jwtClaimsSet}" }
 
-        return credJwt
+        return credRes
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
-
-    private fun createFlattenedJwsJson(jwtHeader: JWSHeader, jwtClaims: JWTClaimsSet): JsonObject {
-        val headerBase64 = Base64URL.encode(jwtHeader.toString())
-        val payloadBase64 = Base64URL.encode(jwtClaims.toPayload().toString())
-        return buildJsonObject {
-            put("protected", JsonPrimitive(headerBase64.toString()))
-            put("payload", JsonPrimitive(payloadBase64.toString()))
-        }
-    }
-
-    private fun getRequestParamsFromLocationHeader(res: HttpResponse): Map<String, String> {
-        val location = res.headers["location"]?.also {
-            log.info { "Response.Header.Location: $it" }
-        } ?: throw IllegalStateException("Cannot find 'location' in headers")
-        val paramsMap = urlQueryToMap(location)
-        return paramsMap
-    }
 
     private fun removeKeyRecursive(rawJson: String, keyToRemove: String): String {
         val jel = removeKeyRecursive(Json.parseToJsonElement(rawJson), keyToRemove)
@@ -423,21 +427,9 @@ object NessusOpenID4VC {
             else -> element
         }
     }
-
-    private fun verifyJwt(encodedJwt: String, didInfo: DidInfo): Boolean {
-
-        val signedJWT = SignedJWT.parse(encodedJwt)
-
-        val docJson = Json.parseToJsonElement(didInfo.document).jsonObject
-        val verificationMethods = docJson["verificationMethod"] as JsonArray
-        val verificationMethod = verificationMethods.let { it[0] as JsonObject }
-        val publicKeyJwk = Json.encodeToString(verificationMethod["publicKeyJwk"])
-
-        val publicJwk = ECKey.parse(publicKeyJwk)
-        val verifier = ECDSAVerifier(publicJwk)
-        return signedJWT.verify(verifier)
-    }
 }
+
+// Types ===============================================================================================================
 
 @Serializable
 data class AuthorizationDetail(
@@ -447,17 +439,25 @@ data class AuthorizationDetail(
     val locations: List<String>,
 )
 
+@Serializable
+data class CredentialResponse(
+    val format: String,
+    val credential: String
+)
+
 class CredentialOfferContext(
     val credentialOffer: CredentialOffer,
     val issuerMetadata: OpenIDProviderMetadata.Draft11,
     val offeredCredential: OfferedCredential,
-    val extraState: MutableMap<String, Any> = mutableMapOf(),
 ) {
+
+    lateinit var authRequestState: String
+    lateinit var authRequestCodeVerifier: String
+    lateinit var tokenResponse: TokenResponse
 
     val issuerState = credentialOffer.grants[GrantType.authorization_code.value]?.issuerState
         ?: throw NoSuchElementException("Missing authorization_code.issuer_state")
 
-    // Get authorizationServer from /issuer-mock metadata
     val authorizationServer = issuerMetadata.authorizationServer
         ?: throw IllegalStateException("Cannot obtain authorization_server from: $issuerMetadata")
 

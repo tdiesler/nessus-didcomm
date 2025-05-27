@@ -1,4 +1,4 @@
-package org.nessus.identity.service
+package io.nessus.identity.service
 
 
 import com.nimbusds.jose.JWSHeader

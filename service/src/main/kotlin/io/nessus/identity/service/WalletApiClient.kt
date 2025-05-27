@@ -1,4 +1,4 @@
-package org.nessus.identity.service
+package io.nessus.identity.service
 
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*

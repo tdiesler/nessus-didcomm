@@ -1,7 +1,21 @@
-package org.nessus.identity.service
+package io.nessus.identity.service
 
+import com.nimbusds.jose.util.JSONObjectUtils
+import com.nimbusds.jwt.SignedJWT
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
+import id.walt.oid4vc.data.CredentialFormat
+import id.walt.webwallet.db.models.WalletCredential
+import id.walt.webwallet.service.credentials.CredentialsService
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.datetime.Clock
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.Database
 import java.lang.IllegalStateException
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 class WalletService {
 
@@ -10,7 +24,7 @@ class WalletService {
 
     companion object {
         val log = KotlinLogging.logger {}
-        fun build(walletApiUrl: String = "http://localhost:9090") : WalletService {
+        fun build(walletApiUrl: String = "http://localhost:7001") : WalletService {
             return WalletService(walletApiUrl)
         }
     }
@@ -18,6 +32,18 @@ class WalletService {
     constructor(walletApiUrl: String) {
         log.info { "WalletService: $walletApiUrl" }
         api = WalletApiClient(walletApiUrl)
+        val dbcfg = ConfigProvider.config.dbConfig
+        log.info { "Database: ${dbcfg.jdbcUrl}" }
+        Database.connect(HikariDataSource(HikariConfig().apply {
+            jdbcUrl = dbcfg.jdbcUrl
+            username = dbcfg.username
+            password = dbcfg.password
+            driverClassName = "org.postgresql.Driver"
+
+            transactionIsolation = "TRANSACTION_SERIALIZABLE"
+            maximumPoolSize = 10
+            isAutoCommit = false
+        }))
     }
 
     // Authentication --------------------------------------------------------------------------------------------------
@@ -127,5 +153,36 @@ class WalletService {
         val did: String = api.didsCreateDidKey(req)
         val didInfo = api.dids(walletId).first { di -> di.did == did }
         return didInfo
+    }
+
+    // Credentials ------------------------------------------------------------------------------------------------------------
+
+    @OptIn(ExperimentalUuidApi::class)
+    fun addCredential(walletId: String, format: String, credJwt: SignedJWT): String {
+
+        if (format != CredentialFormat.jwt_vc.value)
+            throw IllegalStateException("Unsupported credential format: $format")
+
+        val credId = getCredentialId(credJwt)
+        val walletUid = Uuid.parse(walletId)
+
+        val walletCredential = WalletCredential(
+            wallet = Uuid.parse(walletId),
+            id = credId,
+            document = credJwt.serialize(),
+            disclosures = null,
+            addedOn = Clock.System.now(),
+            deletedOn = null,
+            format = CredentialFormat.jwt_vc
+        )
+
+        CredentialsService().add(walletUid, walletCredential)
+        return credId
+    }
+
+    private fun getCredentialId(credJwt: SignedJWT): String {
+        val credClaims = Json.parseToJsonElement("${credJwt.jwtClaimsSet}") as JsonObject
+        val vc = credClaims["vc"] as? JsonObject ?: throw IllegalArgumentException("No 'vc' claim")
+        return vc["id"]?.jsonPrimitive?.content ?: throw IllegalArgumentException("No 'vc.id' claim")
     }
 }
