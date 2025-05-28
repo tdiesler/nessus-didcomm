@@ -18,6 +18,7 @@ import io.nessus.identity.service.LoginType
 import io.nessus.identity.service.ServiceManager.walletService
 import io.nessus.identity.service.WalletInfo
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import java.io.File
 import java.security.KeyStore
 
@@ -64,7 +65,7 @@ class PortalServer {
 
         embeddedServer(Netty, configure = {
             val srv = ConfigProvider.requireServerConfig()
-            ConfigProvider.tlsConfig?.also { tls ->
+            ConfigProvider.root.tls?.also { tls ->
                 if (tls.enabled) {
                     val keystorePassword = tls.keystorePassword.toCharArray()
                     val keyStore = KeyStore.getInstance("PKCS12").apply {
@@ -100,15 +101,20 @@ class PortalServer {
                 }
             }
             routing {
-                get("/oauth") {
-                    handleOAuthRequests(call)
+                route("/oauth{...}") {
+                    handle { handleOAuthRequests(call) }
                 }
-                get("/holder") {
-                    handleHolderRequests(call)
+                route("/holder{...}") {
+                    handle { handleHolderRequests(call) }
                 }
-                get("{...}") {
-                    log.info { call.request.uri }
-                    handleHome(call)
+                route("/issuer{...}") {
+                    handle { handleIssuerRequests(call) }
+                }
+                route("/") {
+                    get {
+                        log.info { call.request.uri }
+                        handleHome(call)
+                    }
                 }
             }
         }.start(wait = true)
@@ -128,24 +134,25 @@ class PortalServer {
     //
     suspend fun handleOAuthRequests(call: RoutingCall) {
 
-        val queryParams = urlQueryToMap(call.request.uri)
+        val reqUri = call.request.uri
+        log.info { "OAuth Request $reqUri" }
+        val queryParams = urlQueryToMap(reqUri).also {
+            it.forEach { (k, v) -> log.info { "  $k=$v" } }
+        }
+
+        if (call.request.path().endsWith(".well-known/openid-configuration")) {
+            return handleAuthorizationMetadata(call)
+        }
 
         // Callback as part of the Authorization Request
         if (queryParams["response_type"] == "id_token") {
-
-            handleAuthorizationResponse(call)
-
-            return call.respondText(
-                status = HttpStatusCode.Accepted,
-                contentType = ContentType.Text.Plain,
-                text = "Accepted"
-            )
+            return handleResponseToAuthorizationRequest(call)
         }
 
         call.respondText(
             status = HttpStatusCode.InternalServerError,
             contentType = ContentType.Text.Plain,
-            text = "Not Implemented ${call.request.uri}"
+            text = "Not Implemented $reqUri"
         )
     }
 
@@ -153,21 +160,70 @@ class PortalServer {
     //
     suspend fun handleHolderRequests(call: RoutingCall) {
 
-        // [TODO] distinguish various holder requests
-        return handleCredentialOffer(call)
-    }
-
-    // Private ---------------------------------------------------------------------------------------------------------
-
-    private suspend fun handleAuthorizationResponse(call: RoutingCall) {
-
-        log.info { "AuthResponse: ${call.request.uri}" }
-        val queryParams = urlQueryToMap(call.request.uri).also {
+        val reqUri = call.request.uri
+        log.info { "Holder Request $reqUri" }
+        val queryParams = urlQueryToMap(reqUri).also {
             it.forEach { (k, v) -> log.info { "  $k=$v" } }
         }
 
-        OAuthActions.handleIDTokenExchange(queryParams)
+        // Handle CredentialOffer by URI
+        //
+        if (queryParams["credential_offer_uri"] != null) {
+            return handleCredentialOffer(call)
+        }
+
+        call.respondText(
+            status = HttpStatusCode.InternalServerError,
+            contentType = ContentType.Text.Plain,
+            text = "Not Implemented $reqUri"
+        )
     }
+
+    // Handle requests to the holder wallet
+    //
+    suspend fun handleIssuerRequests(call: RoutingCall) {
+
+        val reqUri = call.request.uri
+        log.info { "Issuer Request $reqUri" }
+        urlQueryToMap(reqUri).also {
+            it.forEach { (k, v) -> log.info { "  $k=$v" } }
+        }
+
+        if (call.request.path().endsWith(".well-known/openid-credential-issuer")) {
+            return handleIssuerMetadata(call)
+        }
+
+        call.respondText(
+            status = HttpStatusCode.InternalServerError,
+            contentType = ContentType.Text.Plain,
+            text = "Not Implemented $reqUri"
+        )
+    }
+
+    // OAuth -----------------------------------------------------------------------------------------------------------
+
+    private suspend fun handleAuthorizationMetadata(call: RoutingCall) {
+
+        val payload = Json.encodeToString(OAuthActions.oauthMetadata)
+        call.respondText(
+            status = HttpStatusCode.OK,
+            contentType = ContentType.Application.Json,
+            text = payload)
+    }
+
+    private suspend fun handleResponseToAuthorizationRequest(call: RoutingCall) {
+
+        val queryParams = urlQueryToMap(call.request.uri)
+        OAuthActions.handleIDTokenExchange(queryParams)
+
+        call.respondText(
+            status = HttpStatusCode.Accepted,
+            contentType = ContentType.Text.Plain,
+            text = "Accepted"
+        )
+    }
+
+    // Holder ----------------------------------------------------------------------------------------------------------
 
     // Request and present Verifiable Credentials
     // https://hub.ebsi.eu/conformance/build-solutions/holder-wallet-functional-flows
@@ -195,13 +251,24 @@ class PortalServer {
         val authRequest = HolderActions.authorizationRequestFromCredentialOffer(ctx, credOffer)
         val authCode = HolderActions.sendAuthorizationRequest(ctx, authRequest)
         val tokenResponse = OAuthActions.sendTokenRequest(ctx, authCode)
-        val credJsonObj = HolderActions.sendCredentialRequest(ctx, tokenResponse)
-        HolderActions.addCredentialToWallet(ctx, credJsonObj)
+        val credJwt = HolderActions.sendCredentialRequest(ctx, tokenResponse)
+        HolderActions.addCredentialToWallet(ctx, credJwt)
 
         call.respondText(
             status = HttpStatusCode.Accepted,
-            contentType = ContentType.Text.Plain,
-            text = "Accepted"
+            contentType = ContentType.Application.Json,
+            text = "${credJwt.jwtClaimsSet}"
         )
+    }
+
+    // Issuer ----------------------------------------------------------------------------------------------------------
+
+    private suspend fun handleIssuerMetadata(call: RoutingCall) {
+
+        val payload = Json.encodeToString(IssuerActions.issuerMetadata)
+        call.respondText(
+            status = HttpStatusCode.OK,
+            contentType = ContentType.Application.Json,
+            text = payload)
     }
 }

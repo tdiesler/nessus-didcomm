@@ -47,6 +47,10 @@
             <artifactId>waltid-openid4vc-jvm</artifactId>
         </dependency>
         <dependency>
+            <groupId>id.walt.sdjwt</groupId>
+            <artifactId>waltid-sdjwt-jvm</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.github.oshai</groupId>
             <artifactId>kotlin-logging-jvm</artifactId>
         </dependency>

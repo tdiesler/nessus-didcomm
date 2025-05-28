@@ -113,6 +113,11 @@
                 <version>${version.waltid}</version>
             </dependency>
             <dependency>
+                <groupId>id.walt.sdjwt</groupId>
+                <artifactId>waltid-sdjwt-jvm</artifactId>
+                <version>${version.waltid}</version>
+            </dependency>
+            <dependency>
                 <groupId>id.walt</groupId>
                 <artifactId>waltid-wallet-api</artifactId>
                 <version>${version.waltid.local}</version>

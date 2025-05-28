@@ -21,6 +21,7 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.nessus.identity.service.ConfigProvider
+import io.nessus.identity.service.ConfigProvider.oauthEndpointUri
 import io.nessus.identity.service.DidInfo
 import io.nessus.identity.service.ServiceManager.walletService
 import io.nessus.identity.service.WalletInfo
@@ -91,14 +92,8 @@ object HolderActions {
 
         ctx.authRequestCodeVerifier = codeVerifier
 
-        val credentialTypes = ctx.offeredCredential.types
-            ?: throw IllegalStateException("No credential types")
-
         // Build AuthRequestUrl
         //
-        val oauthConfig = ConfigProvider.requireOAuthConfig()
-        val oauthEndpointUri = oauthConfig.endpointUrl
-
         val authDetails = AuthorizationDetails.fromOfferedCredential(offeredCredential, ctx.credentialIssuerUri)
         val clientMetadata =
             OpenIDClientMetadata(customParameters = mapOf("authorization_endpoint" to JsonPrimitive(oauthEndpointUri)))
@@ -241,10 +236,10 @@ object HolderActions {
         return credJwt
     }
 
-    fun addCredentialToWallet(ctx: CredentialOfferContext, credential: SignedJWT) {
+    fun addCredentialToWallet(ctx: CredentialOfferContext, credential: SignedJWT): String {
         val walletId = ctx.walletInfo.id
         val format = ctx.credFormat.value
-        walletService.addCredential(walletId, format, credential)
+        return walletService.addCredential(walletId, format, credential)
     }
 
     // Private ---------------------------------------------------------------------------------------------------------

@@ -185,7 +185,7 @@ class WalletService {
 
         withConnection {
             CredentialsService().add(walletUid, walletCredential)
-            log.info { "Credential added: $credId" }
+            log.info { "Added WalletCredential: $credId" }
         }
         return credId
     }
