@@ -10,12 +10,18 @@
         <version>25.1.0-SNAPSHOT</version>
     </parent>
 
-    <name>Nessus Identity :: Service</name>
+    <name>Nessus Identity :: Portal</name>
 
-    <artifactId>nessus-identity-service</artifactId>
+    <artifactId>nessus-identity-portal</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
+        <dependency>
+            <groupId>io.nessus.identity</groupId>
+            <artifactId>nessus-identity-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
@@ -23,14 +29,6 @@
         <dependency>
             <groupId>com.nimbusds</groupId>
             <artifactId>nimbus-jose-jwt</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.sksamuel.hoplite</groupId>
-            <artifactId>hoplite-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.sksamuel.hoplite</groupId>
-            <artifactId>hoplite-hocon</artifactId>
         </dependency>
         <dependency>
             <groupId>com.typesafe</groupId>
@@ -67,6 +65,22 @@
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-serialization-kotlinx-json-jvm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-server-core-jvm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-server-netty-jvm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-server-content-negotiation-jvm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-server-status-pages-jvm</artifactId>
         </dependency>
         <dependency>
             <groupId>org.cose</groupId>

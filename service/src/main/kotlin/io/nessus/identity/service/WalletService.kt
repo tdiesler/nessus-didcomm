@@ -1,6 +1,5 @@
 package io.nessus.identity.service
 
-import com.nimbusds.jose.util.JSONObjectUtils
 import com.nimbusds.jwt.SignedJWT
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -13,7 +12,13 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.sql.Database
-import java.lang.IllegalStateException
+import javax.sql.DataSource
+import kotlin.apply
+import kotlin.collections.any
+import kotlin.collections.first
+import kotlin.collections.firstOrNull
+import kotlin.collections.map
+import kotlin.text.trim
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -29,21 +34,23 @@ class WalletService {
         }
     }
 
-    constructor(walletApiUrl: String) {
-        log.info { "WalletService: $walletApiUrl" }
-        api = WalletApiClient(walletApiUrl)
-        val dbcfg = ConfigProvider.config.dbConfig
+    val dataSource: Lazy<DataSource> = lazy {
+        val dbcfg = ConfigProvider.requireDatabaseConfig()
         log.info { "Database: ${dbcfg.jdbcUrl}" }
-        Database.connect(HikariDataSource(HikariConfig().apply {
+        HikariDataSource(HikariConfig().apply {
             jdbcUrl = dbcfg.jdbcUrl
             username = dbcfg.username
             password = dbcfg.password
             driverClassName = "org.postgresql.Driver"
-
             transactionIsolation = "TRANSACTION_SERIALIZABLE"
             maximumPoolSize = 10
             isAutoCommit = false
-        }))
+        })
+    }
+
+    constructor(walletApiUrl: String) {
+        log.info { "WalletService: $walletApiUrl" }
+        api = WalletApiClient(walletApiUrl)
     }
 
     // Authentication --------------------------------------------------------------------------------------------------
@@ -164,10 +171,10 @@ class WalletService {
             throw IllegalStateException("Unsupported credential format: $format")
 
         val credId = getCredentialId(credJwt)
-        val walletUid = Uuid.parse(walletId)
+        val walletUid = Uuid.Companion.parse(walletId)
 
         val walletCredential = WalletCredential(
-            wallet = Uuid.parse(walletId),
+            wallet = Uuid.Companion.parse(walletId),
             id = credId,
             document = credJwt.serialize(),
             disclosures = null,
@@ -176,13 +183,25 @@ class WalletService {
             format = CredentialFormat.jwt_vc
         )
 
-        CredentialsService().add(walletUid, walletCredential)
+        withConnection {
+            CredentialsService().add(walletUid, walletCredential)
+            log.info { "Credential added: $credId" }
+        }
         return credId
     }
 
     private fun getCredentialId(credJwt: SignedJWT): String {
-        val credClaims = Json.parseToJsonElement("${credJwt.jwtClaimsSet}") as JsonObject
+        val credClaims = Json.Default.parseToJsonElement("${credJwt.jwtClaimsSet}") as JsonObject
         val vc = credClaims["vc"] as? JsonObject ?: throw IllegalArgumentException("No 'vc' claim")
         return vc["id"]?.jsonPrimitive?.content ?: throw IllegalArgumentException("No 'vc.id' claim")
+    }
+
+    // Private ---------------------------------------------------------------------------------------------------------
+
+    private fun withConnection(block: () -> Unit) {
+        if (!dataSource.isInitialized()) {
+            Database.Companion.connect(dataSource.value)
+        }
+        block()
     }
 }

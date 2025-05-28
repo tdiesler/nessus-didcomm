@@ -27,6 +27,7 @@
         <version.cose>1.1.1-WALT-SNAPSHOT</version.cose>
         <version.jetbrains.exposed>0.59.0</version.jetbrains.exposed>
         <version.hikari>6.2.1</version.hikari>
+        <version.hoplite>2.9.0</version.hoplite>
         <version.junit>5.10.0</version.junit>
         <version.kotest>5.9.1</version.kotest>
         <version.kotlin.logging>7.0.5</version.kotlin.logging>
@@ -65,7 +66,7 @@
     </properties>
 
     <modules>
-        <module>proxy</module>
+        <module>portal</module>
         <module>service</module>
     </modules>
 
@@ -80,6 +81,16 @@
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
                 <version>${version.nimbus}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sksamuel.hoplite</groupId>
+                <artifactId>hoplite-core</artifactId>
+                <version>${version.hoplite}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.sksamuel.hoplite</groupId>
+                <artifactId>hoplite-hocon</artifactId>
+                <version>${version.hoplite}</version>
             </dependency>
             <dependency>
                 <groupId>com.typesafe</groupId>

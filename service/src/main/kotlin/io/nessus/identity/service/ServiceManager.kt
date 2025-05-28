@@ -2,5 +2,8 @@ package io.nessus.identity.service
 
 object ServiceManager {
 
-    val walletService = WalletService.build(ConfigProvider.config.walletApi)
+    val walletService = run {
+        val holder = ConfigProvider.requireHolderConfig()
+        WalletService.build(holder.walletApi)
+    }
 }
