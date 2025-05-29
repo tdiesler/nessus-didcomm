@@ -20,7 +20,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.nessus.identity.service.ConfigProvider
 import io.nessus.identity.service.ConfigProvider.oauthEndpointUri
 import io.nessus.identity.service.DidInfo
 import io.nessus.identity.service.ServiceManager.walletService
@@ -43,17 +42,14 @@ object HolderActions {
     val log = KotlinLogging.logger {}
 
     suspend fun fetchCredentialOfferFromUri(offerUri: String): CredentialOffer {
-        log.info { "Fetch CredentialOffer from: $offerUri" }
+        log.info { "Get CredentialOffer from: $offerUri" }
         val offer = OpenID4VCI.parseAndResolveCredentialOfferRequestUrl(offerUri)
         val offerJson = Json.Default.encodeToString(offer)
         log.info { "  $offerJson" }
         return offer
     }
 
-    suspend fun authorizationRequestFromCredentialOffer(
-        ctx: CredentialOfferContext,
-        offer: CredentialOffer
-    ): AuthorizationRequest {
+    suspend fun resolveOfferedCredentials(ctx: CredentialOfferContext, offer: CredentialOffer): OfferedCredential {
 
         val credOfferJson = Json.encodeToString(offer)
         log.info { "Received credential offer: $credOfferJson}" }
@@ -79,6 +75,14 @@ object HolderActions {
             it.offeredCredential = offeredCredential
             it.issuerMetadata = issuerMetadata
         }
+
+        return offeredCredential
+    }
+
+    suspend fun authorizationRequestFromCredentialOffer(
+        ctx: CredentialOfferContext,
+        offeredCredential: OfferedCredential
+    ): AuthorizationRequest {
 
         // The Wallet will start by requesting access for the desired credential from the Auth Mock (Authorisation Server).
         // The client_metadata.authorization_endpoint is used for the redirect location associated with the vp_token and id_token.
@@ -246,6 +250,8 @@ object HolderActions {
 
 }
 
+// maybe id.walt.oid4vc.responses.CredentialResponse
+
 @Serializable
 data class CredentialResponse(
     val format: String,
@@ -256,6 +262,8 @@ class CredentialOfferContext {
 
     lateinit var walletInfo: WalletInfo
     lateinit var didInfo: DidInfo
+
+    val didInfoAvailable get() = ::didInfo.isInitialized
 
     lateinit var credentialOffer: CredentialOffer
     lateinit var issuerMetadata: OpenIDProviderMetadata.Draft11

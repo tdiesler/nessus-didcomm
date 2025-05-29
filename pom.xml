@@ -170,7 +170,17 @@
             </dependency>
             <dependency>
                 <groupId>io.ktor</groupId>
+                <artifactId>ktor-server-freemarker-jvm</artifactId>
+                <version>${version.ktor}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.ktor</groupId>
                 <artifactId>ktor-server-netty-jvm</artifactId>
+                <version>${version.ktor}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.ktor</groupId>
+                <artifactId>ktor-server-sessions-jvm</artifactId>
                 <version>${version.ktor}</version>
             </dependency>
             <dependency>

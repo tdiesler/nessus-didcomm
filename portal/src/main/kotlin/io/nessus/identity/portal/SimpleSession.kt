@@ -4,11 +4,11 @@ object SimpleSession {
 
     private val storage = mutableMapOf<String, Any>()
 
-    fun getCredentialOfferContext() : CredentialOfferContext? {
+    fun getCredentialOfferContext(id: String) : CredentialOfferContext? {
         return storage["CredentialOfferContext"] as? CredentialOfferContext
     }
 
-    fun putCredentialOfferContext(ctx: CredentialOfferContext) {
+    fun putCredentialOfferContext(id: String, ctx: CredentialOfferContext) {
         storage["CredentialOfferContext"] = ctx
     }
 }

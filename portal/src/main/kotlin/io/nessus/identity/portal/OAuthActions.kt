@@ -38,7 +38,7 @@ object OAuthActions {
             queryParams[key] ?: throw IllegalStateException("Cannot find $key")
         }
 
-        val ctx = SimpleSession.getCredentialOfferContext()
+        val ctx = SimpleSession.getCredentialOfferContext("")
             ?: throw IllegalStateException("No CredentialOfferContext in session")
 
         // The Wallet answers the ID Token Request by providing the id_token in the redirect_uri as instructed by response_mode of direct_post.
