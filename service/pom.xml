@@ -137,6 +137,9 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <useModulePath>false</useModulePath>
+                    <environmentVariables>
+                        <SERVICE__WALLET_API_URL>http://wallet-api:7001</SERVICE__WALLET_API_URL>
+                    </environmentVariables>
                 </configuration>
             </plugin>
         </plugins>

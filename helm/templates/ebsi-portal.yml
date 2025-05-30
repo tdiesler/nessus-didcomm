@@ -1,0 +1,89 @@
+{{- with .Values.deployments.ebsi_portal }}
+---
+
+# EBSI Portal Deployment
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ebsi-portal
+  labels:
+    app.kubernetes.io/name: ebsi-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ebsi-portal
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ebsi-portal
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/release: {{ $.Release.Name }}
+        app.kubernetes.io/revision: '{{ $.Release.Revision }}'
+    spec:
+      containers:
+        - name: ebsi-portal
+          image: {{ $.Values.imagePrefix }}nessusio/nessus-identity-portal:{{ .version }}
+          imagePullPolicy: {{ .pullPolicy }}
+          env:
+            - name: SERVER__PORT
+              value: "9090"
+            - name: SERVER__BASE_URL
+              value: "https://ebsi.nessus-tech.io"
+            - name: SERVICE__WALLET_API_URL
+              value: "http://wallet-api:7001"
+            - name: SERVICE__DEMO_WALLET_URL
+              value: "http://wallet.nessus-tech.io"
+            - name: SERVICE__DEV_WALLET_URL
+              value: "http://wallet-dev.nessus-tech.io"
+            - name: DATABASE__JDBC_URL
+              value: "jdbc:postgresql://postgres:5432/waltid"
+            - name: DATABASE__USERNAME
+              value: "postgres"
+            - name: DATABASE__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+          ports:
+            - containerPort: 9090
+---
+
+# EBSI Portal Service
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: ebsi-portal
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9090
+  selector:
+    app.kubernetes.io/name: ebsi-portal
+---
+
+# EBSI Portal IngressRoute
+#
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: ebsi-portal
+  labels:
+    app.kubernetes.io/name: ebsi-portal
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host("ebsi.nessus-tech.io")
+      kind: Rule
+      services:
+        - name: ebsi-portal
+          port: 9090
+  tls:
+    secretName: origin-tls
+---
+
+{{- end }}

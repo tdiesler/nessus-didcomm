@@ -14,7 +14,10 @@ open class LoginContext() {
     private var _walletInfo: WalletInfo? = null
     private var _didInfo: DidInfo? = null
 
-    val hasAuthToken get() = _authToken != null
+    val maybeAuthToken get() = _authToken
+    val maybeWalletInfo get() = _walletInfo
+    val maybeDidInfo get() = _didInfo
+
     val hasWalletInfo get() = _walletInfo != null
     val hasDidInfo get() = _didInfo != null
 

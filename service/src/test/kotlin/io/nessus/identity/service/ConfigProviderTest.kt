@@ -1,5 +1,6 @@
 package io.nessus.identity.service
 
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldNotBeBlank
 import org.junit.jupiter.api.Test
 
@@ -15,7 +16,7 @@ class ConfigProviderTest {
         holder.userEmail.shouldNotBeBlank()
         holder.userPassword.shouldNotBeBlank()
 
-        service.demoWalletUrl.shouldNotBeBlank()
+        service.walletApiUrl shouldBe "http://wallet-api:7001"
 
         database.jdbcUrl.shouldNotBeBlank()
     }

@@ -2,8 +2,8 @@ FROM eclipse-temurin:21
 
 ARG PROJECT_VERSION
 
-COPY ./target/nessus-identity-proxy-*.jar /ebsi/nessus-identity-proxy.jar
+COPY ./target/nessus-identity-portal-*.jar /ebsi/nessus-identity-portal.jar
 
 WORKDIR /ebsi
 
-ENTRYPOINT ["java", "-jar", "nessus-identity-proxy.jar"]
+ENTRYPOINT ["java", "-jar", "nessus-identity-portal.jar"]

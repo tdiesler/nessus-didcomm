@@ -4,15 +4,17 @@ import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.ExperimentalHoplite
 import com.sksamuel.hoplite.addEnvironmentSource
 import com.sksamuel.hoplite.addResourceSource
+import com.sksamuel.hoplite.sources.EnvironmentVariablesPropertySource
+import kotlinx.serialization.Serializable
 
 @OptIn(ExperimentalHoplite::class)
 object ConfigProvider {
 
     val root = ConfigLoaderBuilder.default()
             .withExplicitSealedTypes()
-            .addResourceSource("/application.conf")
             .addEnvironmentSource()
-            .build().loadConfigOrThrow<RootConfig>().portal
+            .addResourceSource("/application.conf")
+            .build().loadConfigOrThrow<RootConfig>()
 
     val oauthEndpointUri get() = "${requireServerConfig().baseUrl}/oauth"
     val issuerEndpointUri get() = "${requireServerConfig().baseUrl}/issuer"
@@ -44,11 +46,8 @@ object ConfigProvider {
     }
 }
 
+@Serializable
 data class RootConfig(
-    val portal: PortalConfig,
-)
-
-data class PortalConfig(
     val server: ServerConfig?,
     val tls: TlsConfig?,
     val issuer: IssuerConfig?,
@@ -59,12 +58,14 @@ data class PortalConfig(
     val database: DatabaseConfig?,
 )
 
+@Serializable
 data class ServerConfig(
     val host: String,
     val port: Int,
     val baseUrl: String,
 )
 
+@Serializable
 data class TlsConfig(
     val enabled: Boolean,
     val keyAlias: String,
@@ -72,30 +73,37 @@ data class TlsConfig(
     val keystorePassword: String,
 )
 
+@Serializable
 data class IssuerConfig(
     val dummy: String?
 )
 
+@Serializable
 data class HolderConfig(
     val userEmail: String,
     val userPassword: String,
 )
 
+@Serializable
 data class VerifierConfig(
     val dummy: String?
 )
 
+@Serializable
 data class OAuthConfig(
     val dummy: String?
 )
 
+@Serializable
 data class ServiceConfig(
     val walletApiUrl: String,
-    val issuerApiUrl: String,
-    val verifierApiUrl: String,
+    val issuerApiUrl: String?,
+    val verifierApiUrl: String?,
     val demoWalletUrl: String,
+    val devWalletUrl: String?,
 )
 
+@Serializable
 data class DatabaseConfig(
     val jdbcUrl: String,
     val driverClassName: String,

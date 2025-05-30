@@ -18,12 +18,14 @@ import io.ktor.server.sessions.Sessions
 import io.ktor.server.sessions.cookie
 import io.ktor.server.sessions.sessions
 import io.nessus.identity.service.ConfigProvider
+import io.nessus.identity.service.HolderConfig
 import io.nessus.identity.service.LoginContext
 import io.nessus.identity.service.LoginParams
 import io.nessus.identity.service.LoginType
 import io.nessus.identity.service.ServiceManager.walletService
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.security.KeyStore
@@ -45,6 +47,12 @@ class PortalServer {
 
     constructor() {
         log.info { "Starting Nessus Portal Server ..." }
+        val serverConfig = ConfigProvider.requireServerConfig()
+        val serviceConfig = ConfigProvider.requireServiceConfig()
+        val databaseConfig = ConfigProvider.requireDatabaseConfig()
+        log.info { "ServerConfig: ${Json.encodeToString(serverConfig)}" }
+        log.info { "ServiceConfig: ${Json.encodeToString(serviceConfig)}" }
+        log.info { "DatabaseConfig: ${Json.encodeToString(databaseConfig)}" }
     }
 
     fun runServer() {
@@ -95,13 +103,17 @@ class PortalServer {
                 }
             }
             routing {
+                get("/") {
+                    handleHome(call)
+                }
                 post("/login") {
                     handleLogin(call)
+                    call.respondRedirect("/")
                 }
                 get("/logout") {
                     getLoginContextFromSession(call)?.also { it.close() }
                     call.sessions.clear(CookieData.NAME)
-                    handleHome(call)
+                    call.respondRedirect("/")
                 }
                 route("/oauth{...}") {
                     handle { handleOAuthRequests(call) }
@@ -114,12 +126,6 @@ class PortalServer {
                 }
                 route("/issuer{...}") {
                     handle { handleIssuerRequests(call) }
-                }
-                route("/") {
-                    get {
-                        log.info { call.request.uri }
-                        handleHome(call)
-                    }
                 }
             }
         }.start(wait = true)
@@ -134,10 +140,12 @@ class PortalServer {
             FreeMarkerContent(
                 template = "index.ftl",
                 model = mapOf(
-                    "walletName" to ctx?.walletInfo?.name,
-                    "did" to ctx?.didInfo?.did,
+                    "hasWalletId" to (ctx?.maybeWalletInfo?.name?.isNotBlank() ?: false),
+                    "walletName" to ctx?.maybeWalletInfo?.name,
+                    "did" to ctx?.maybeDidInfo?.did,
                     "holderUri" to "$holderBaseUri/$walletId",
-                    "demoWalletUrl" to serviceConfig.demoWalletUrl
+                    "demoWalletUrl" to serviceConfig.demoWalletUrl,
+                    "devWalletUrl" to serviceConfig.devWalletUrl,
                 )
             )
         )
@@ -158,11 +166,9 @@ class PortalServer {
             walletService.findDidByPrefix("did:key")?.also {
                 ctx.didInfo = it
             }
-            val dat = CookieData(ctx.walletInfo.id, ctx.didInfo.did)
+            val dat = CookieData(ctx.walletInfo.id, ctx.maybeDidInfo?.did)
             setCookieDataInSession(call, dat)
         }
-
-        call.respondRedirect("/")
     }
 
     // Handle requests to the Authentication Server
@@ -315,7 +321,7 @@ class PortalServer {
 
         ctx ?: throw IllegalStateException("Login required")
 
-        if (!ctx.hasDidInfo) {
+        if (ctx.maybeDidInfo == null) {
             ctx.didInfo = walletService.findDidByPrefix("did:key")
                 ?: throw IllegalStateException("Cannot find required did in wallet")
         }
@@ -351,7 +357,7 @@ class PortalServer {
     }
 
     @Serializable
-    data class CookieData(val wid: String, val did: String?) {
+    data class CookieData(val wid: String, var did: String? = null) {
         companion object {
             const val NAME = "CookieData"
         }

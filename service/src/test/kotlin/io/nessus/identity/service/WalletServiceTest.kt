@@ -51,7 +51,7 @@ class WalletServiceTest {
         runBlocking {
             val ctx = walletService.login(Alice.toLoginParams())
             ctx.authToken.shouldNotBeBlank()
-            ctx.hasWalletInfo.shouldBeFalse()
+            ctx.maybeWalletInfo.shouldBeNull()
         }
     }
 
@@ -160,7 +160,7 @@ class WalletServiceTest {
 
     private suspend fun authLoginWithWallet (user: User): LoginContext {
         val ctx = authLogin(user)
-        if (!ctx.hasWalletInfo) {
+        if (ctx.maybeWalletInfo == null) {
             ctx.walletInfo = walletService.listWallets().first()
         }
         return ctx
