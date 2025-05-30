@@ -21,9 +21,8 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.nessus.identity.service.ConfigProvider.oauthEndpointUri
-import io.nessus.identity.service.DidInfo
+import io.nessus.identity.service.LoginContext
 import io.nessus.identity.service.ServiceManager.walletService
-import io.nessus.identity.service.WalletInfo
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -49,7 +48,7 @@ object HolderActions {
         return offer
     }
 
-    suspend fun resolveOfferedCredentials(ctx: CredentialOfferContext, offer: CredentialOffer): OfferedCredential {
+    suspend fun resolveOfferedCredentials(ctx: HolderContext, offer: CredentialOffer): OfferedCredential {
 
         val credOfferJson = Json.encodeToString(offer)
         log.info { "Received credential offer: $credOfferJson}" }
@@ -79,10 +78,7 @@ object HolderActions {
         return offeredCredential
     }
 
-    suspend fun authorizationRequestFromCredentialOffer(
-        ctx: CredentialOfferContext,
-        offeredCredential: OfferedCredential
-    ): AuthorizationRequest {
+    suspend fun authorizationRequestFromCredentialOffer(ctx: HolderContext, offeredCred: OfferedCredential): AuthorizationRequest {
 
         // The Wallet will start by requesting access for the desired credential from the Auth Mock (Authorisation Server).
         // The client_metadata.authorization_endpoint is used for the redirect location associated with the vp_token and id_token.
@@ -98,18 +94,19 @@ object HolderActions {
 
         // Build AuthRequestUrl
         //
-        val authDetails = AuthorizationDetails.fromOfferedCredential(offeredCredential, ctx.credentialIssuerUri)
+        val authDetails = AuthorizationDetails.fromOfferedCredential(offeredCred, ctx.credentialIssuerUri)
         val clientMetadata =
             OpenIDClientMetadata(customParameters = mapOf("authorization_endpoint" to JsonPrimitive(oauthEndpointUri)))
 
         val authRequest = AuthorizationRequest(
             scope = setOf("openid"),
             clientId = ctx.didInfo.did,
+            state = ctx.walletId,
             clientMetadata = clientMetadata,
             codeChallenge = codeChallenge,
             codeChallengeMethod = "S256",
             authorizationDetails = listOf(authDetails),
-            redirectUri = oauthEndpointUri, // [TODO] what does this do
+            redirectUri = oauthEndpointUri,
             issuerState = ctx.issuerState
         ).also {
             ctx.authRequestCodeVerifier = codeVerifier
@@ -133,7 +130,7 @@ object HolderActions {
         }
     }
 
-    suspend fun sendAuthorizationRequest(ctx: CredentialOfferContext, authRequest: AuthorizationRequest): String {
+    suspend fun sendAuthorizationRequest(ctx: HolderContext, authRequest: AuthorizationRequest): String {
 
         val authServer = ctx.authorizationServer
         val authReqUrl = URLBuilder("$authServer/authorize").apply {
@@ -151,7 +148,7 @@ object HolderActions {
         return ctx.authCode
     }
 
-    suspend fun sendCredentialRequest(ctx: CredentialOfferContext, tokenResponse: TokenResponse): SignedJWT {
+    suspend fun sendCredentialRequest(ctx: HolderContext, tokenResponse: TokenResponse): SignedJWT {
 
         // The Relying Party proceeds by requesting issuance of the Verifiable Credential from the Issuer Mock.
         // The requested Credential must match the granted access. The DID document's authentication key must be used for signing the JWT proof,
@@ -197,7 +194,7 @@ object HolderActions {
                 credReqClaims
             )
         )
-        val signedCredReqBase64 = walletService.signWithKey(ctx.walletInfo.id, authentication, credReqInput)
+        val signedCredReqBase64 = walletService.signWithKey(authentication, credReqInput)
         log.info { "CredentialReq JWT: $signedCredReqBase64" }
         val signedCredReqJwt = SignedJWT.parse(signedCredReqBase64)
         log.info { "CredentialReq Header: ${signedCredReqJwt.header}" }
@@ -240,7 +237,7 @@ object HolderActions {
         return credJwt
     }
 
-    fun addCredentialToWallet(ctx: CredentialOfferContext, credential: SignedJWT): String {
+    fun addCredentialToWallet(ctx: HolderContext, credential: SignedJWT): String {
         val walletId = ctx.walletInfo.id
         val format = ctx.credFormat.value
         return walletService.addCredential(walletId, format, credential)
@@ -258,12 +255,7 @@ data class CredentialResponse(
     val credential: String
 )
 
-class CredentialOfferContext {
-
-    lateinit var walletInfo: WalletInfo
-    lateinit var didInfo: DidInfo
-
-    val didInfoAvailable get() = ::didInfo.isInitialized
+class HolderContext(lctx: LoginContext) : LoginContext(lctx.authToken, lctx.walletInfo, lctx.didInfo) {
 
     lateinit var credentialOffer: CredentialOffer
     lateinit var issuerMetadata: OpenIDProviderMetadata.Draft11
@@ -276,6 +268,15 @@ class CredentialOfferContext {
 
     lateinit var credFormat: CredentialFormat
     lateinit var credJwt: SignedJWT
+
+    companion object {
+        // [TODO] remove this hack
+        var instanceHack: HolderContext? = null
+    }
+
+    init {
+        instanceHack = this
+    }
 
     val issuerState
         get() = credentialOffer.grants[GrantType.authorization_code.value]?.issuerState

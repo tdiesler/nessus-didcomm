@@ -38,6 +38,10 @@ object ConfigProvider {
     fun requireServerConfig() : ServerConfig {
         return root.server ?: throw IllegalStateException("No 'server' config")
     }
+
+    fun requireServiceConfig() : ServiceConfig {
+        return root.service ?: throw IllegalStateException("No 'service' config")
+    }
 }
 
 data class RootConfig(
@@ -45,13 +49,14 @@ data class RootConfig(
 )
 
 data class PortalConfig(
-    val server: ServerConfig? = null,
-    val tls: TlsConfig? = null,
-    val issuer: IssuerConfig? = null,
-    val holder: HolderConfig? = null,
-    val verifier: VerifierConfig? = null,
-    val oauth: OAuthConfig? = null,
-    val database: DatabaseConfig? = null,
+    val server: ServerConfig?,
+    val tls: TlsConfig?,
+    val issuer: IssuerConfig?,
+    val holder: HolderConfig?,
+    val verifier: VerifierConfig?,
+    val oauth: OAuthConfig?,
+    val service: ServiceConfig?,
+    val database: DatabaseConfig?,
 )
 
 data class ServerConfig(
@@ -68,21 +73,27 @@ data class TlsConfig(
 )
 
 data class IssuerConfig(
-    val issuerApi: String,
+    val dummy: String?
 )
 
 data class HolderConfig(
-    val walletApi: String,
     val userEmail: String,
     val userPassword: String,
 )
 
 data class VerifierConfig(
-    val verifierApi: String,
+    val dummy: String?
 )
 
 data class OAuthConfig(
-    val dummy: String? = null
+    val dummy: String?
+)
+
+data class ServiceConfig(
+    val walletApiUrl: String,
+    val issuerApiUrl: String,
+    val verifierApiUrl: String,
+    val demoWalletUrl: String,
 )
 
 data class DatabaseConfig(

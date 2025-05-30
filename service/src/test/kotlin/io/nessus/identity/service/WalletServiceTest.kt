@@ -5,7 +5,9 @@ import com.nimbusds.jose.JWSHeader
 import com.nimbusds.jose.crypto.ECDSAVerifier
 import com.nimbusds.jose.jwk.ECKey
 import com.nimbusds.jose.util.Base64URL
+import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.collections.shouldNotBeEmpty
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldNotBeBlank
@@ -18,8 +20,7 @@ import org.junit.jupiter.api.Test
 
 class WalletServiceTest {
 
-    val walletSvc = WalletService.build()
-    var walletId: String? = null
+    val walletService = WalletService.build()
 
     // Authentication --------------------------------------------------------------------------------------------------
 
@@ -29,17 +30,17 @@ class WalletServiceTest {
 
             // Check whether Alice already exists
             //
-            var authToken: String? = null
+            var ctx: LoginContext? = null
             try {
-                authToken = walletSvc.login(Alice.toLoginParams())
+                ctx = walletService.login(Alice.toLoginParams())
             } catch (ex: Exception) {
                 if (ex.message?.contains("Unknown user") == false) {
                     throw ex
                 }
             }
 
-            if (authToken == null) {
-                val success = walletSvc.registerUser(Alice.toRegisterUserParams())
+            if (ctx == null) {
+                val success = walletService.registerUser(Alice.toRegisterUserParams())
                 success shouldBe "Registration succeeded"
             }
         }
@@ -48,8 +49,9 @@ class WalletServiceTest {
     @Test
     fun userLogin() {
         runBlocking {
-            val authToken = walletSvc.login(Alice.toLoginParams())
-            authToken.shouldNotBeBlank()
+            val ctx = walletService.login(Alice.toLoginParams())
+            ctx.authToken.shouldNotBeBlank()
+            ctx.hasWalletInfo.shouldBeFalse()
         }
     }
 
@@ -59,7 +61,7 @@ class WalletServiceTest {
     fun listWallets() {
         runBlocking {
             authLogin(Alice)
-            val wallets = walletSvc.listWallets()
+            val wallets = walletService.listWallets()
             wallets.shouldNotBeEmpty()
         }
     }
@@ -69,9 +71,8 @@ class WalletServiceTest {
     @Test
     fun listKeys() {
         runBlocking {
-            authLogin(Alice)
-            val wid = walletId().shouldNotBeNull()
-            val keys = walletSvc.listKeys(wid)
+            authLoginWithWallet(Alice)
+            val keys = walletService.listKeys()
             keys.shouldNotBeEmpty()
         }
     }
@@ -79,9 +80,8 @@ class WalletServiceTest {
     @Test
     fun createKey() {
         runBlocking {
-            authLogin(Alice)
-            val wid = walletId().shouldNotBeNull()
-            val key = walletSvc.createKey(wid, KeyType.SECP256R1)
+            authLoginWithWallet(Alice)
+            val key = walletService.createKey(KeyType.SECP256R1)
             key.algorithm shouldBe KeyType.SECP256R1.algorithm
         }
     }
@@ -91,9 +91,8 @@ class WalletServiceTest {
     @Test
     fun listDids() {
         runBlocking {
-            authLogin(Alice)
-            val wid = walletId().shouldNotBeNull()
-            val res: Array<DidInfo> = walletSvc.listDids(wid)
+            authLoginWithWallet(Alice)
+            val res: Array<DidInfo> = walletService.listDids()
             res.shouldNotBeEmpty()
         }
     }
@@ -101,13 +100,12 @@ class WalletServiceTest {
     @Test
     fun createDidKey() {
         runBlocking {
-            authLogin(Alice)
-            val wid = walletId().shouldNotBeNull()
-            val keys = walletKeys(wid)
+            authLoginWithWallet(Alice)
+            val keys = walletService.listKeys()
             val alias = "did:key#${keys.size + 1}"
-            walletSvc.findDidByPrefix(wid, "did:key")?: runBlocking {
-                val key = walletSvc.findKeyByType(wid, KeyType.SECP256R1)
-                val didInfo = walletSvc.createDidKey(wid, alias, key?.id ?: "")
+            walletService.findDidByPrefix("did:key")?: runBlocking {
+                val key = walletService.findKeyByType(KeyType.SECP256R1)
+                val didInfo = walletService.createDidKey(alias, key?.id ?: "")
                 didInfo.did.shouldNotBeBlank()
             }
         }
@@ -116,10 +114,9 @@ class WalletServiceTest {
     @Test
     fun signVerifyWithDid() {
         runBlocking {
-            authLogin(Alice)
-            val wid = walletId().shouldNotBeNull()
-            val did = walletSvc.findDidByPrefix(wid, "did:key").shouldNotBeNull()
-            val signJwt = walletSvc.signWithDid(wid, did.did, "Kermit")
+            authLoginWithWallet(Alice)
+            val did = walletService.findDidByPrefix("did:key").shouldNotBeNull()
+            val signJwt = walletService.signWithDid(did.did, "Kermit")
             signJwt.shouldNotBeBlank()
 
             val docJson = Json.parseToJsonElement(did.document).jsonObject
@@ -148,30 +145,24 @@ class WalletServiceTest {
     @Test
     fun userLogout() {
         runBlocking {
-            walletSvc.logout()
-            walletId = null
+            walletService.logout()
         }
     }
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private suspend fun authLogin(user: User): String? {
-        var token = walletSvc.authToken()
-        if (token == null) {
-            token = walletSvc.login(user.toLoginParams())
+    private suspend fun authLogin(user: User): LoginContext {
+        if (!walletService.hasLoginContext()) {
+            walletService.login(user.toLoginParams())
         }
-        return token
+        return walletService.getLoginContext()
     }
 
-    private suspend fun walletId(): String? {
-        if (walletId == null) {
-            val res = walletSvc.api.accountWallets()
-            walletId = res.wallets.singleOrNull()?.id
+    private suspend fun authLoginWithWallet (user: User): LoginContext {
+        val ctx = authLogin(user)
+        if (!ctx.hasWalletInfo) {
+            ctx.walletInfo = walletService.listWallets().first()
         }
-        return walletId
-    }
-
-    private suspend fun walletKeys(wid: String): List<String> {
-        return walletSvc.api.keys(wid).map { kr -> kr.keyId.id }
+        return ctx
     }
 }

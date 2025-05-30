@@ -1,6 +1,5 @@
 package io.nessus.identity.portal
 
-import com.nimbusds.jwt.SignedJWT
 import freemarker.cache.ClassTemplateLoader
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
@@ -19,11 +18,10 @@ import io.ktor.server.sessions.Sessions
 import io.ktor.server.sessions.cookie
 import io.ktor.server.sessions.sessions
 import io.nessus.identity.service.ConfigProvider
-import io.nessus.identity.service.DidInfo
+import io.nessus.identity.service.LoginContext
 import io.nessus.identity.service.LoginParams
 import io.nessus.identity.service.LoginType
 import io.nessus.identity.service.ServiceManager.walletService
-import io.nessus.identity.service.WalletInfo
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -81,7 +79,7 @@ class PortalServer {
                 templateLoader = ClassTemplateLoader(this::class.java.classLoader, "templates")
             }
             install(Sessions) {
-                cookie<UserSession>(UserSession.NAME) {
+                cookie<CookieData>(CookieData.NAME) {
                     cookie.path = "/"
                     cookie.maxAgeInSeconds = 3600
                 }
@@ -101,15 +99,18 @@ class PortalServer {
                     handleLogin(call)
                 }
                 get("/logout") {
-                    getUserSession(call)?.close()
-                    call.sessions.clear(UserSession.NAME)
+                    getLoginContextFromSession(call)?.also { it.close() }
+                    call.sessions.clear(CookieData.NAME)
                     handleHome(call)
                 }
                 route("/oauth{...}") {
                     handle { handleOAuthRequests(call) }
                 }
-                route("/holder{...}") {
-                    handle { handleHolderRequests(call) }
+                route("/holder/{walletId}") {
+                    handle {
+                        val walletId = call.parameters["walletId"] ?: throw IllegalArgumentException("No walletId")
+                        handleHolderRequests(call, walletId)
+                    }
                 }
                 route("/issuer{...}") {
                     handle { handleIssuerRequests(call) }
@@ -125,13 +126,18 @@ class PortalServer {
     }
 
     suspend fun handleHome(call: RoutingCall) {
-        val session = getUserSession(call)
+        val serviceConfig = ConfigProvider.requireServiceConfig()
+        val ctx = getLoginContextFromSession(call)
+        val walletId = ctx?.walletInfo?.id
+        val holderBaseUri = ConfigProvider.holderEndpointUri
         call.respond(
             FreeMarkerContent(
                 template = "index.ftl",
                 model = mapOf(
-                    "walletInfo" to session?.walletInfo,
-                    "did" to session?.didInfo?.did,
+                    "walletName" to ctx?.walletInfo?.name,
+                    "did" to ctx?.didInfo?.did,
+                    "holderUri" to "$holderBaseUri/$walletId",
+                    "demoWalletUrl" to serviceConfig.demoWalletUrl
                 )
             )
         )
@@ -146,18 +152,17 @@ class PortalServer {
         if (email.isNullOrBlank() || password.isNullOrBlank())
             return call.respond(HttpStatusCode.BadRequest, "Missing email or password")
 
-        val walletInfo = runBlocking {
-            walletService.loginWallet(LoginParams(LoginType.EMAIL, email, password))
-        }
-
-        val session = UserSession(walletInfo)
-        call.sessions.set(UserSession.NAME, session)
-
         runBlocking {
-            session.didInfo = walletService.findDidByPrefix(walletInfo.id, "did:key")
+            walletService.loginWallet(LoginParams(LoginType.EMAIL, email, password))
+            val ctx = walletService.getLoginContext()
+            walletService.findDidByPrefix("did:key")?.also {
+                ctx.didInfo = it
+            }
+            val dat = CookieData(ctx.walletInfo.id, ctx.didInfo.did)
+            setCookieDataInSession(call, dat)
         }
 
-        handleHome(call)
+        call.respondRedirect("/")
     }
 
     // Handle requests to the Authentication Server
@@ -188,7 +193,7 @@ class PortalServer {
 
     // Handle requests to the holder wallet
     //
-    suspend fun handleHolderRequests(call: RoutingCall) {
+    suspend fun handleHolderRequests(call: RoutingCall, walletId: String) {
 
         val reqUri = call.request.uri
         log.info { "Holder Request $reqUri" }
@@ -196,10 +201,13 @@ class PortalServer {
             it.forEach { (k, v) -> log.info { "  $k=$v" } }
         }
 
+        val lctx = resolveLoginContext(walletId)
+        val hctx = HolderContext(lctx)
+
         // Handle CredentialOffer by URI
         //
         if (queryParams["credential_offer_uri"] != null) {
-            return handleCredentialOffer(call)
+            return handleCredentialOffer(call, hctx)
         }
 
         call.respondText(
@@ -244,8 +252,11 @@ class PortalServer {
 
     private suspend fun handleResponseToAuthorizationRequest(call: RoutingCall) {
 
+        val ctx = HolderContext.instanceHack
+            ?: throw IllegalStateException("No HolderContext")
+
         val queryParams = urlQueryToMap(call.request.uri)
-        OAuthActions.handleIDTokenExchange(queryParams)
+        OAuthActions.handleIDTokenExchange(ctx, queryParams)
 
         call.respondText(
             status = HttpStatusCode.Accepted,
@@ -262,20 +273,17 @@ class PortalServer {
     // Issuer initiated flows start with the Credential Offering proposed by Issuer.
     // The Credential Offering is in redirect for same-device tests and in QR Code for cross-device tests.
     //
-    private suspend fun handleCredentialOffer(call: RoutingCall) {
+    private suspend fun handleCredentialOffer(call: RoutingCall, ctx: HolderContext) {
 
         // Get Credential Offer URI from the query Parameters
         //
         val credOfferUri = call.request.queryParameters["credential_offer_uri"]
             ?: throw HttpStatusException(HttpStatusCode.BadRequest, "No 'credential_offer_uri' param")
 
-        val ctx = CredentialOfferContext()
         val oid4vcOfferUri = "openid-credential-offer://?credential_offer_uri=$credOfferUri"
 
         val credOffer = HolderActions.fetchCredentialOfferFromUri(oid4vcOfferUri)
-        val offeredCred = HolderActions.resolveOfferedCredentials(ctx, credOffer).also {
-            resolveUserSession(call, ctx)
-        }
+        val offeredCred = HolderActions.resolveOfferedCredentials(ctx, credOffer)
         val authRequest = HolderActions.authorizationRequestFromCredentialOffer(ctx, offeredCred)
         val authCode = HolderActions.sendAuthorizationRequest(ctx, authRequest)
         val tokenResponse = OAuthActions.sendTokenRequest(ctx, authCode)
@@ -289,41 +297,47 @@ class PortalServer {
         )
     }
 
-    suspend fun resolveUserSession(call: RoutingCall, ctx: CredentialOfferContext) {
+    suspend fun resolveLoginContext(walletId: String) : LoginContext {
 
-        // Derive subject id from issuer state (if possible)
+        // We expect the user to have logged in previously and have a valid Did
         //
-        if (!ctx.didInfoAvailable) {
-            val subDid = ctx.credentialOffer.grants.values
-                .mapNotNull { runCatching { SignedJWT.parse(it.issuerState) }.getOrNull() }
-                .onEach { HolderActions.log.info { "IssuerState JWT: ${it.jwtClaimsSet}"} }
-                .map { it.jwtClaimsSet.subject }
-                .firstOrNull { it.startsWith("did:key") }
-                ?: throw IllegalStateException("Cannot derive target subject")
-            // Find the user session for portal login
-            var walletInfo = UserSession.findWalletInfoByDid(subDid)
-            // Fallback to globally configured credentials
-            if (walletInfo == null) {
-                val cfg = ConfigProvider.requireHolderConfig()
-                val loginParams = LoginParams(LoginType.EMAIL, cfg.userEmail, cfg.userPassword)
-                walletInfo = walletService.loginWallet(loginParams)
-            }
-            val didInfo = walletService.findDidByPrefix(walletInfo.id, subDid)
-                ?: throw IllegalStateException("Cannot find did in wallet")
+        var ctx = LoginContext.findLoginContextByWalletId(walletId)
 
-            SimpleSession.putCredentialOfferContext(subDid, ctx)
-            ctx.walletInfo = walletInfo
-            ctx.didInfo = didInfo
+        // Fallback
+        if (ctx == null) {
+            val cfg = ConfigProvider.requireHolderConfig()
+            if (cfg.userEmail.isNotBlank() && cfg.userPassword.isNotBlank()) {
+                val loginParams = LoginParams(LoginType.EMAIL, cfg.userEmail, cfg.userPassword)
+                walletService.loginWallet(loginParams)
+                ctx = walletService.getLoginContext()
+            }
         }
 
-        val session = UserSession(ctx.walletInfo)
-        call.sessions.set(UserSession.NAME, session)
+        ctx ?: throw IllegalStateException("Login required")
+
+        if (!ctx.hasDidInfo) {
+            ctx.didInfo = walletService.findDidByPrefix("did:key")
+                ?: throw IllegalStateException("Cannot find required did in wallet")
+        }
+
+        return ctx
     }
 
     // Issuer ----------------------------------------------------------------------------------------------------------
 
-    private fun getUserSession(call: RoutingCall) : UserSession? {
-        return call.sessions.get(UserSession.NAME) as? UserSession
+    private fun getCookieDataFromSession(call: RoutingCall): CookieData? {
+        val dat = call.sessions.get(CookieData.NAME)
+        return dat as? CookieData
+    }
+
+    private fun setCookieDataInSession(call: RoutingCall, dat: CookieData) {
+        call.sessions.set(CookieData.NAME, dat)
+    }
+
+    private fun getLoginContextFromSession(call: RoutingCall): LoginContext? {
+        val dat = getCookieDataFromSession(call)
+        val ctx = dat?.let { LoginContext.findLoginContextByWalletId(it.wid) }
+        return ctx
     }
 
     private suspend fun handleIssuerMetadata(call: RoutingCall) {
@@ -335,29 +349,12 @@ class PortalServer {
             text = payload
         )
     }
-}
 
-@Serializable
-class UserSession {
-
-    companion object {
-        const val NAME = "UserSession"
-        private val store = mutableMapOf<String, UserSession>()
-        fun findWalletInfoByDid(did : String) : WalletInfo? {
-            val userSession = store.values.firstOrNull { us -> us.didInfo?.did == did }
-            return userSession?.walletInfo
+    @Serializable
+    data class CookieData(val wid: String, val did: String?) {
+        companion object {
+            const val NAME = "CookieData"
         }
     }
-
-    val walletInfo: WalletInfo
-    var didInfo: DidInfo? = null
-
-    constructor(walletInfo: WalletInfo) {
-        this.walletInfo = walletInfo
-        store[walletInfo.name] = this
-    }
-    
-    fun close() {
-        store.remove(walletInfo.name)
-    }
 }
+

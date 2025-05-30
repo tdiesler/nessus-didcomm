@@ -13,7 +13,6 @@ import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.nessus.identity.service.ConfigProvider
 import io.nessus.identity.service.ConfigProvider.oauthEndpointUri
 import io.nessus.identity.service.ServiceManager.walletService
 import kotlinx.serialization.json.Json
@@ -31,15 +30,12 @@ object OAuthActions {
     val oauthMetadataUrl = OpenID4VCI.getOpenIdProviderMetadataUrl(oauthEndpointUri)
     val oauthMetadata = buildOAuthMetadata()
 
-    suspend fun handleIDTokenExchange(queryParams : Map<String, String>) : String {
+    suspend fun handleIDTokenExchange(ctx: HolderContext, queryParams: Map<String, String>) : String {
 
         // Verify required query params
         for (key in listOf("client_id", "nonce", "state", "redirect_uri", "request_uri")) {
             queryParams[key] ?: throw IllegalStateException("Cannot find $key")
         }
-
-        val ctx = SimpleSession.getCredentialOfferContext("")
-            ?: throw IllegalStateException("No CredentialOfferContext in session")
 
         // The Wallet answers the ID Token Request by providing the id_token in the redirect_uri as instructed by response_mode of direct_post.
         // The id_token must be signed with the DID document's authentication key.
@@ -90,7 +86,6 @@ object OAuthActions {
 
         val idTokenSigningInput = Json.encodeToString(createFlattenedJwsJson(idTokenHeader, idTokenClaims))
         val idToken = walletService.signWithKey(
-            ctx.walletInfo.id,
             authenticationId,
             idTokenSigningInput
         )
@@ -131,7 +126,7 @@ object OAuthActions {
         return authCode
     }
 
-    suspend fun sendTokenRequest(ctx: CredentialOfferContext, authCode: String): TokenResponse {
+    suspend fun sendTokenRequest(ctx: HolderContext, authCode: String): TokenResponse {
 
         val codeVerifier = ctx.authRequestCodeVerifier
         val tokenReqUrl = "${ctx.authorizationServer}/token"

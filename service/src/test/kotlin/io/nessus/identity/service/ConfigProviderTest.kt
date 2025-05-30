@@ -9,9 +9,14 @@ class ConfigProviderTest {
     fun loadConfig() {
 
         val holder = ConfigProvider.requireHolderConfig()
+        val service = ConfigProvider.requireServiceConfig()
         val database = ConfigProvider.requireDatabaseConfig()
 
-        holder.walletApi.shouldNotBeBlank()
+        holder.userEmail.shouldNotBeBlank()
+        holder.userPassword.shouldNotBeBlank()
+
+        service.demoWalletUrl.shouldNotBeBlank()
+
         database.jdbcUrl.shouldNotBeBlank()
     }
 }
