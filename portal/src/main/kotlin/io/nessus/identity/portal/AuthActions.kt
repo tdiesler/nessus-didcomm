@@ -21,7 +21,6 @@ import io.nessus.identity.service.ServiceProvider.walletService
 import io.nessus.identity.service.authenticationId
 import io.nessus.identity.service.publicKeyJwk
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -58,6 +57,97 @@ object AuthActions {
 
         val idTokenRedirectUrl = sendIDTokenRequest(cex, authReq)
         return idTokenRedirectUrl
+    }
+
+    suspend fun handleAuthorizationRequestCallback(cex: CredentialExchange, queryParams: Map<String, List<String>>): String {
+
+        // Verify required query params
+        for (key in listOf("client_id", "nonce", "state", "redirect_uri", "request_uri")) {
+            queryParams[key] ?: throw IllegalStateException("Cannot find $key")
+        }
+
+        // The Wallet answers the ID Token Request by providing the id_token in the redirect_uri as instructed by response_mode of direct_post.
+        // The id_token must be signed with the DID document's authentication key.
+
+        val authAud = queryParams["client_id"]!!.first()
+        val nonce = queryParams["nonce"]!!.first()
+        val state = queryParams["state"]!!.first()
+        val redirectUri = queryParams["redirect_uri"]!!.first()
+        val requestUri = queryParams["request_uri"]!!.first()
+
+        log.info { "Trigger IDToken Request: $requestUri" }
+        var res = http.get(requestUri)
+        if (res.status != HttpStatusCode.OK)
+            throw HttpStatusException(res.status, res.bodyAsText())
+
+        val idTokenReq = res.bodyAsText()
+        log.info { "IDToken Request: $idTokenReq" }
+
+        val signedJWT = SignedJWT.parse(idTokenReq)
+        log.info { "IDToken Request Header: ${signedJWT.header}" }
+        log.info { "IDToken Request Claims: ${signedJWT.jwtClaimsSet}" }
+
+        val iat = Instant.now()
+        val exp = iat.plusSeconds(300) // 5 mins expiry
+
+        val kid = cex.didInfo.authenticationId()
+
+        val idTokenHeader = JWSHeader.Builder(JWSAlgorithm.ES256)
+            .type(JOSEObjectType.JWT)
+            .keyID(kid)
+            .build()
+
+        val idTokenClaims = JWTClaimsSet.Builder()
+            .issuer(cex.didInfo.did)
+            .subject(cex.didInfo.did)
+            .audience(authAud)
+            .issueTime(Date.from(iat))
+            .expirationTime(Date.from(exp))
+            .claim("nonce", nonce)
+            .claim("state", state)
+            .build()
+
+        val idTokenJwt = SignedJWT(idTokenHeader, idTokenClaims)
+        log.info { "IDToken Header: ${idTokenJwt.header}" }
+        log.info { "IDToken Claims: ${idTokenJwt.jwtClaimsSet}" }
+
+        val signingInput = Json.encodeToString(createFlattenedJwsJson(idTokenHeader, idTokenClaims))
+        val signedEncoded = walletService.signWithKey(kid, signingInput)
+
+        log.info { "IDToken: $signedEncoded" }
+        if (!verifyJwt(SignedJWT.parse(signedEncoded), cex.didInfo))
+            throw IllegalStateException("IDToken signature verification failed")
+
+        // Send IDToken  -----------------------------------------------------------------------------------------------
+        //
+
+        log.info { "Send IDToken: $redirectUri" }
+        val formData = mapOf(
+            "id_token" to signedEncoded,
+            "state" to state,
+        ).also {
+            it.forEach { (k, v) -> log.info { "  $k=$v" } }
+        }
+
+        res = http.post(redirectUri) {
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody(FormDataContent(Parameters.build {
+                formData.forEach { (k, v) -> append(k, v) }
+            }))
+        }
+
+        if (res.status != HttpStatusCode.Found)
+            throw HttpStatusException(res.status, res.bodyAsText())
+
+        val location = res.headers["location"]?.also {
+            log.info { "IDToken Response: $it" }
+        } ?: throw IllegalStateException("Cannot find 'location' in headers")
+
+        val authCode = urlQueryToMap(location)["code"]?.also {
+            cex.authCode = it
+        } ?: throw IllegalStateException("No authorization code")
+
+        return authCode
     }
 
     @OptIn(ExperimentalUuidApi::class)
@@ -116,10 +206,9 @@ object AuthActions {
         val keyJwk = cex.didInfo.publicKeyJwk()
         val kid = keyJwk["kid"]?.jsonPrimitive?.content as String
 
-        val now = Instant.now()
+        val iat = Instant.now()
         val expiresIn: Long = 86400
-        val iat = Date.from(now)
-        val exp = Date.from(now.plusSeconds(expiresIn))
+        val exp = iat.plusSeconds(expiresIn)
 
         val nonce = "${Uuid.random()}"
         val authorizationDetails = cex.authRequest.authorizationDetails?.map { it.toJSON() }
@@ -132,8 +221,8 @@ object AuthActions {
         val tokenClaims = JWTClaimsSet.Builder()
             .issuer(cex.issuerMetadata.credentialIssuer)
             .subject(cex.authRequest.clientId)
-            .issueTime(iat)
-            .expirationTime(exp)
+            .issueTime(Date.from(iat))
+            .expirationTime(Date.from(exp))
             .claim("nonce", nonce)
             .claim("authorization_details", authorizationDetails)
             .build()
@@ -146,7 +235,6 @@ object AuthActions {
         val signedEncoded = walletService.signWithKey(kid, signingInput)
         val accessToken = SignedJWT.parse(signedEncoded)
 
-        log.info { "Token: $signedEncoded" }
         if (!verifyJwt(accessToken, cex.didInfo))
             throw IllegalStateException("AccessToken signature verification failed")
 
@@ -163,6 +251,7 @@ object AuthActions {
         val tokenResponse = TokenResponse.fromJSONString(tokenRespJson).also {
             cex.accessToken = accessToken
         }
+        log.info { "Token Response: ${Json.encodeToString(tokenResponse)}" }
         return tokenResponse
     }
 
@@ -181,9 +270,8 @@ object AuthActions {
         val keyJwk = cex.didInfo.publicKeyJwk()
         val kid = keyJwk["kid"]?.jsonPrimitive?.content as String
 
-        val now = Instant.now()
-        val iat = Date.from(now)
-        val exp = Date.from(now.plusSeconds(300)) // 5 mins expiry
+        val iat = Instant.now()
+        val exp = iat.plusSeconds(300) // 5 mins expiry
 
         val idTokenHeader = JWSHeader.Builder(JWSAlgorithm.ES256)
             .type(JOSEObjectType.JWT)
@@ -194,8 +282,8 @@ object AuthActions {
         val idTokenClaims = JWTClaimsSet.Builder()
             .issuer(issuerMetadata.credentialIssuer)
             .audience(authReq.clientId)
-            .issueTime(iat)
-            .expirationTime(exp)
+            .issueTime(Date.from(iat))
+            .expirationTime(Date.from(exp))
             .claim("response_type", "id_token")
             .claim("response_mode", "direct_post")
             .claim("client_id", issuerMetadata.credentialIssuer)
@@ -228,98 +316,6 @@ object AuthActions {
         return idTokenRedirectUrl
     }
 
-    suspend fun handleIDTokenExchange(cex: CredentialExchange, queryParams: Map<String, List<String>>): String {
-
-        // Verify required query params
-        for (key in listOf("client_id", "nonce", "state", "redirect_uri", "request_uri")) {
-            queryParams[key] ?: throw IllegalStateException("Cannot find $key")
-        }
-
-        // The Wallet answers the ID Token Request by providing the id_token in the redirect_uri as instructed by response_mode of direct_post.
-        // The id_token must be signed with the DID document's authentication key.
-
-        val authAud = queryParams["client_id"]!!.first()
-        val nonce = queryParams["nonce"]!!.first()
-        val state = queryParams["state"]!!.first()
-        val redirectUri = queryParams["redirect_uri"]!!.first()
-        val requestUri = queryParams["request_uri"]!!.first()
-
-        log.info { "Send IDToken Request: $requestUri" }
-        var res = http.get(requestUri)
-        if (res.status != HttpStatusCode.OK)
-            throw HttpStatusException(res.status, res.bodyAsText())
-
-        val idTokenReq = res.bodyAsText()
-        log.info { "IDToken Response: $idTokenReq" }
-
-        val signedJWT = SignedJWT.parse(idTokenReq)
-        log.info { "IDTokenReq Header: ${signedJWT.header}" }
-        log.info { "IDTokenReq Claims: ${signedJWT.jwtClaimsSet}" }
-
-        val now = Instant.now()
-        val iat = Date.from(now)
-        val exp = Date.from(now.plusSeconds(300)) // 5 mins expiry
-
-        val kid = cex.didInfo.authenticationId()
-
-        val idTokenHeader = JWSHeader.Builder(JWSAlgorithm.ES256)
-            .type(JOSEObjectType.JWT)
-            .keyID(kid)
-            .build()
-
-        val idTokenClaims = JWTClaimsSet.Builder()
-            .issuer(cex.didInfo.did)
-            .subject(cex.didInfo.did)
-            .audience(authAud)
-            .issueTime(iat)
-            .expirationTime(exp)
-            .claim("nonce", nonce)
-            .claim("state", state)
-            .build()
-
-        val idTokenJwt = SignedJWT(idTokenHeader, idTokenClaims)
-        log.info { "IDTokenRes Header: ${idTokenJwt.header}" }
-        log.info { "IDTokenRes Claims: ${idTokenJwt.jwtClaimsSet}" }
-
-        val signingInput = Json.encodeToString(createFlattenedJwsJson(idTokenHeader, idTokenClaims))
-        val signedEncoded = walletService.signWithKey(kid, signingInput)
-
-        log.info { "IDToken: $signedEncoded" }
-        if (!verifyJwt(SignedJWT.parse(signedEncoded), cex.didInfo))
-            throw IllegalStateException("IDToken signature verification failed")
-
-        // Send IDToken Response --------------------------------------------------------------------------------------
-        //
-
-        val formData = mapOf(
-            "id_token" to signedEncoded,
-            "state" to state,
-        )
-
-        log.info { "Send IDToken Request: $redirectUri" }
-        formData.forEach { (k, v) -> log.info { "  $k=$v" } }
-
-        res = http.post(redirectUri) {
-            contentType(ContentType.Application.FormUrlEncoded)
-            setBody(FormDataContent(Parameters.build {
-                formData.forEach { (k, v) -> append(k, v) }
-            }))
-        }
-
-        if (res.status != HttpStatusCode.Found)
-            throw HttpStatusException(res.status, res.bodyAsText())
-
-        val location = res.headers["location"]?.also {
-            log.info { "IDToken Response: $it" }
-        } ?: throw IllegalStateException("Cannot find 'location' in headers")
-
-        val authCode = urlQueryToMap(location)["code"]?.also {
-            cex.authCode = it
-        } ?: throw IllegalStateException("No authorization code")
-
-        return authCode
-    }
-
     suspend fun sendTokenRequest(cex: CredentialExchange, authCode: String): TokenResponse {
 
         val codeVerifier = cex.authRequestCodeVerifier
@@ -333,7 +329,7 @@ object AuthActions {
             "redirect_uri" to cex.authRequest.redirectUri!!,
         )
 
-        WalletActions.log.info { "Send TokenRequest $tokenReqUrl" }
+        WalletActions.log.info { "Send Token Request $tokenReqUrl" }
         WalletActions.log.info { "  $formData" }
 
         val res = http.post(tokenReqUrl) {
@@ -347,7 +343,7 @@ object AuthActions {
             throw HttpStatusException(res.status, res.bodyAsText())
 
         val tokenResponseJson = res.bodyAsText()
-        WalletActions.log.info { "TokenResponse: $tokenResponseJson" }
+        WalletActions.log.info { "Token Response: $tokenResponseJson" }
 
         val tokenResponse = TokenResponse.fromJSONString(tokenResponseJson).also {
             cex.accessToken = SignedJWT.parse(it.accessToken)

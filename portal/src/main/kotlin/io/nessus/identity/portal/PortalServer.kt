@@ -4,7 +4,6 @@ import com.nimbusds.jwt.SignedJWT
 import freemarker.cache.ClassTemplateLoader
 import id.walt.oid4vc.requests.AuthorizationRequest
 import id.walt.oid4vc.requests.CredentialRequest
-import id.walt.webwallet.db.models.WalletCredentialCategoryMap.credential
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -219,7 +218,7 @@ class PortalServer {
         // direct_post
         //
         if (path == "/auth/$subId/direct_post") {
-            val cex = requireCredentialExchange(ctx.subjectId)
+            val cex = requireCredentialExchange(subId)
             return handleAuthDirectPost(call, cex)
         }
 
@@ -232,15 +231,15 @@ class PortalServer {
         // token
         //
         if (path == "/auth/$subId/token") {
-            val cex = requireCredentialExchange(ctx.subjectId)
+            val cex = requireCredentialExchange(subId)
             return handleAuthTokenRequest(call, cex)
         }
 
         // Callback as part of the Authorization Request
-        // [TODO] Review whether we really want to redirect here
+        //
         if (path == "/auth/$subId" && queryParams["response_type"] == "id_token") {
-            val cex = requireCredentialExchange(ctx.subjectId)
-            return handleResponseToAuthorizationRequest(call, cex)
+            val cex = requireCredentialExchange(subId)
+            return handleAuthorizationRequestCallback(call, cex)
         }
 
         call.respondText(
@@ -359,10 +358,25 @@ class PortalServer {
 
         val queryParams = call.parameters.toMap()
         val authReq = AuthorizationRequest.fromHttpParameters(queryParams)
-        log.info { "AuthRequest: ${Json.encodeToString(authReq)}" }
+        log.info { "Authorization Request: ${Json.encodeToString(authReq)}" }
+        queryParams.forEach { (k, lst) -> lst.forEach { v -> log.info { "  $k=$v" }}}
 
         val idTokenRedirectUrl = AuthActions.handleAuthorizationRequest(cex, authReq)
         call.respondRedirect(idTokenRedirectUrl)
+    }
+
+    /**
+     * Handle the callback as response of an AuthorizationRequest that this Wallet sent
+     */
+    private suspend fun handleAuthorizationRequestCallback(call: RoutingCall, cex: CredentialExchange) {
+
+        AuthActions.handleAuthorizationRequestCallback(cex, call.parameters.toMap())
+
+        call.respondText(
+            status = HttpStatusCode.Accepted,
+            contentType = ContentType.Text.Plain,
+            text = "Accepted"
+        )
     }
 
     /**
@@ -410,29 +424,15 @@ class PortalServer {
     private suspend fun handleAuthTokenRequest(call: RoutingCall, cex: CredentialExchange) {
 
         val postParams = call.receiveParameters().toMap()
-        log.info { "Auth Token Request: ${call.request.uri}" }
+        log.info { "Token Request: ${call.request.uri}" }
         postParams.forEach { (k, lst) -> lst.forEach { v -> log.info { "  $k=$v" } } }
 
         val tokenResponse = AuthActions.handleTokenRequest(cex, postParams)
-        val tokenResponseJson = Json.encodeToString(tokenResponse)
-        log.info { "TokenResponse: $tokenResponseJson" }
-
 
         call.respondText(
             status = HttpStatusCode.OK,
             contentType = ContentType.Application.Json,
-            text = tokenResponseJson
-        )
-    }
-
-    private suspend fun handleResponseToAuthorizationRequest(call: RoutingCall, cex: CredentialExchange) {
-
-        AuthActions.handleIDTokenExchange(cex, call.parameters.toMap())
-
-        call.respondText(
-            status = HttpStatusCode.Accepted,
-            contentType = ContentType.Text.Plain,
-            text = "Accepted"
+            text = Json.encodeToString(tokenResponse)
         )
     }
 
@@ -458,8 +458,10 @@ class PortalServer {
         val authRequest = WalletActions.authorizationRequestFromCredentialOffer(cex, offeredCred)
         val authCode = WalletActions.sendAuthorizationRequest(cex, authRequest)
         val tokenResponse = AuthActions.sendTokenRequest(cex, authCode)
-        val credJwt = WalletActions.sendCredentialRequest(cex, tokenResponse)
-        WalletActions.addCredentialToWallet(cex, credJwt)
+        val credResponse = WalletActions.sendCredentialRequest(cex, tokenResponse)
+
+        val credJwt = credResponse.toSignedJWT()
+        WalletActions.addCredentialToWallet(cex, credResponse)
 
         call.respondText(
             status = HttpStatusCode.Accepted,
@@ -495,13 +497,11 @@ class PortalServer {
         cex.validateBearerToken(bearerToken)
 
         val credentialResponse = IssuerActions.handleCredentialRequest(cex, bearerToken, credReq)
-        val payload = Json.encodeToString(credentialResponse)
-        log.info { "Credential Response: $payload" }
 
         call.respondText(
             status = HttpStatusCode.OK,
             contentType = ContentType.Application.Json,
-            text = payload
+            text = Json.encodeToString(credentialResponse)
         )
     }
 

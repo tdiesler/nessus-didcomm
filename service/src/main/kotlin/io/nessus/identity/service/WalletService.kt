@@ -182,12 +182,13 @@ class WalletService {
 
         val credId = getCredentialId(credential)
         val walletUid = Uuid.Companion.parse(walletId)
+        val document = credential.serialize()
 
         val walletCredential = WalletCredential(
             id = credId,
             format = format,
             wallet = walletUid,
-            document = credential.serialize(),
+            document = document,
             addedOn = Clock.System.now(),
             disclosures = null,
             deletedOn = null,

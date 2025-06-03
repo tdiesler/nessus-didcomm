@@ -5,6 +5,7 @@ import id.walt.oid4vc.data.CredentialOffer
 import id.walt.oid4vc.data.OfferedCredential
 import id.walt.oid4vc.data.OpenIDProviderMetadata
 import id.walt.oid4vc.requests.AuthorizationRequest
+import id.walt.oid4vc.responses.CredentialResponse
 import io.nessus.identity.service.LoginContext
 import java.time.Instant
 

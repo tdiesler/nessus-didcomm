@@ -14,6 +14,7 @@ import id.walt.oid4vc.data.GrantType
 import id.walt.oid4vc.data.OpenIDProviderMetadata
 import id.walt.oid4vc.data.SubjectType
 import id.walt.oid4vc.requests.CredentialRequest
+import id.walt.oid4vc.responses.CredentialResponse
 import io.nessus.identity.portal.AuthActions.log
 import io.nessus.identity.service.ConfigProvider.authEndpointUri
 import io.nessus.identity.service.ConfigProvider.issuerEndpointUri
@@ -21,6 +22,7 @@ import io.nessus.identity.service.LoginContext
 import io.nessus.identity.service.ServiceProvider.walletService
 import io.nessus.identity.service.authenticationId
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 import java.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -97,11 +99,12 @@ object IssuerActions {
         val signedEncoded = walletService.signWithKey(kid, signingInput)
         val credentialJwt = SignedJWT.parse(signedEncoded)
 
-        log.info { "Credential: $signedEncoded" }
         if (!verifyJwt(credentialJwt, cex.didInfo))
             throw IllegalStateException("Credential signature verification failed")
 
-        val credentialResponse = CredentialResponse(CredentialFormat.jwt_vc, signedEncoded)
+        val credentialResponse = CredentialResponse.success(CredentialFormat.jwt_vc, signedEncoded)
+        log.info { "Credential Response: ${Json.encodeToString(credentialResponse)}" }
+
         return credentialResponse
     }
 

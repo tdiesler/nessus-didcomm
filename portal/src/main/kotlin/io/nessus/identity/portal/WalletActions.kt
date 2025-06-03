@@ -14,8 +14,10 @@ import id.walt.oid4vc.data.OfferedCredential
 import id.walt.oid4vc.data.OpenIDClientMetadata
 import id.walt.oid4vc.data.OpenIDProviderMetadata
 import id.walt.oid4vc.requests.AuthorizationRequest
+import id.walt.oid4vc.responses.CredentialResponse
 import id.walt.oid4vc.responses.TokenResponse
 import id.walt.oid4vc.util.http
+import id.walt.webwallet.db.models.WalletCredentialCategoryMap.credential
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -28,7 +30,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.security.MessageDigest
 import java.time.Instant
@@ -41,23 +42,18 @@ object WalletActions {
     val log = KotlinLogging.logger {}
 
     suspend fun fetchCredentialOfferFromUri(offerUri: String): CredentialOffer {
-        log.info { "Get CredentialOffer from: $offerUri" }
         val offer = OpenID4VCI.parseAndResolveCredentialOfferRequestUrl(offerUri)
-        val offerJson = Json.Default.encodeToString(offer)
-        log.info { "  $offerJson" }
         return offer
     }
 
     suspend fun resolveOfferedCredentials(cex: CredentialExchange, offer: CredentialOffer): OfferedCredential {
 
-        val credOfferJson = Json.encodeToString(offer)
-        log.info { "Received credential offer: $credOfferJson}" }
+        log.info { "CredentialOffer: ${Json.encodeToString(offer)}" }
 
         // Get issuer Metadata =========================================================================================
         //
         val issuerMetadata = resolveOpenIDProviderMetadata(offer.credentialIssuer)
-        val issuerMetadataJson = Json.encodeToString(issuerMetadata)
-        log.info { "Received issuer metadata: $issuerMetadataJson" }
+        log.info { "Issuer Metadata: ${Json.encodeToString(issuerMetadata)}" }
 
         val draft11Metadata = issuerMetadata as? OpenIDProviderMetadata.Draft11
             ?: throw IllegalStateException("Expected Draft11 metadata, but got ${issuerMetadata::class.simpleName}")
@@ -65,7 +61,7 @@ object WalletActions {
         // Resolve Offered Credential ==================================================================================
         //
         val offeredCredentials = OpenID4VCI.resolveOfferedCredentials(offer, draft11Metadata)
-        log.info { "Received offered credentials: ${Json.encodeToString(offeredCredentials)}" }
+        log.info { "Offered Credentials: ${Json.encodeToString(offeredCredentials)}" }
         if (offeredCredentials.size > 1) log.warn { "Multiple offered credentials, using first" }
         val offeredCredential = offeredCredentials.first()
 
@@ -117,7 +113,6 @@ object WalletActions {
             cex.authRequest = it
         }
 
-        log.info { "AuthorizationRequest: ${authRequest.toJSON()}" }
         return authRequest
     }
 
@@ -140,18 +135,18 @@ object WalletActions {
             authRequest.toHttpParameters().forEach { (k, lst) -> lst.forEach { v -> parameters.append(k, v) } }
         }.buildString()
 
-        log.info { "Send AuthRequest: $authReqUrl" }
+        log.info { "Send AuthorizationRequest: $authReqUrl" }
         authRequest.toHttpParameters().forEach { (k, lst) -> lst.forEach { v -> log.info { "  $k=$v" }}}
 
         val res = http.get(authReqUrl)
         if (res.status != HttpStatusCode.Accepted)
             throw HttpStatusException(res.status, res.bodyAsText())
 
-        log.info { "AuthCode: ${cex.authCode}" }
+        log.info { "AuthorizationCode: ${cex.authCode}" }
         return cex.authCode
     }
 
-    suspend fun sendCredentialRequest(cex: CredentialExchange, tokenResponse: TokenResponse): SignedJWT {
+    suspend fun sendCredentialRequest(cex: CredentialExchange, tokenResponse: TokenResponse): CredentialResponse {
 
         // The Relying Party proceeds by requesting issuance of the Verifiable Credential from the Issuer Mock.
         // The requested Credential must match the granted access. The DID document's authentication key must be used for signing the JWT proof,
@@ -162,9 +157,8 @@ object WalletActions {
         val cNonce = tokenResponse.cNonce
             ?: throw IllegalStateException("No c_nonce")
 
-        val now = Instant.now()
-        val iat = Date.from(now)
-        val exp = Date.from(now.plusSeconds(300)) // 5 mins expiry
+        val iat = Instant.now()
+        val exp = iat.plusSeconds(300) // 5 mins expiry
 
         val kid = cex.didInfo.authenticationId()
 
@@ -185,18 +179,17 @@ object WalletActions {
         val credReqClaims = JWTClaimsSet.Builder()
             .issuer(cex.didInfo.did)
             .audience(issuerUri)
-            .issueTime(iat)
-            .expirationTime(exp)
+            .issueTime(Date.from(iat))
+            .expirationTime(Date.from(exp))
             .claim("nonce", cNonce)
             .claim("state", state)
             .build()
 
         val signingInput = Json.encodeToString(createFlattenedJwsJson(credReqHeader,credReqClaims))
         val signedEncoded = walletService.signWithKey(kid, signingInput)
-        log.info { "CredentialReq JWT: $signedEncoded" }
         val signedCredReqJwt = SignedJWT.parse(signedEncoded)
-        log.info { "CredentialReq Header: ${signedCredReqJwt.header}" }
-        log.info { "CredentialReq Claims: ${signedCredReqJwt.jwtClaimsSet}" }
+        log.info { "Credential Request Header: ${signedCredReqJwt.header}" }
+        log.info { "Credential Request Claims: ${signedCredReqJwt.jwtClaimsSet}" }
 
         val credReqBody = Json.encodeToString(buildJsonObject {
             put("types", JsonArray(credentialTypes.map { JsonPrimitive(it) }))
@@ -207,7 +200,7 @@ object WalletActions {
             })
         })
 
-        log.info { "Send CredentialReq: $credentialEndpoint" }
+        log.info { "Send Credential Request: $credentialEndpoint" }
         log.info { "  $credReqBody" }
 
         val res = http.post(credentialEndpoint) {
@@ -219,31 +212,28 @@ object WalletActions {
             throw HttpStatusException(res.status, res.bodyAsText())
 
         val credJson = res.bodyAsText()
-        log.info { "Credential: $credJson" }
+        log.info { "Credential Response: $credJson" }
 
         val credRes = Json.decodeFromString<CredentialResponse>(credJson)
-        val credJwt = SignedJWT.parse(credRes.credential)
+        val credJwt = credRes.toSignedJWT()
         log.info { "Credential Header: ${credJwt.header}" }
         log.info { "Credential Claims: ${credJwt.jwtClaimsSet}" }
 
         cex.credResponse = credRes
-        return credJwt
+        return credRes
     }
 
-    fun addCredentialToWallet(cex: CredentialExchange, credential: SignedJWT): String {
+    fun addCredentialToWallet(cex: CredentialExchange, credRes: CredentialResponse): String {
         val walletId = cex.walletInfo.id
-        val format = cex.credResponse.format
-        return walletService.addCredential(walletId, format, credential)
+        val format = credRes.format as CredentialFormat
+        return walletService.addCredential(walletId, format, credRes.toSignedJWT())
     }
-
-    // Private ---------------------------------------------------------------------------------------------------------
-
 }
 
-// [TODO] Use id.walt.oid4vc.responses.CredentialResponse
-@Serializable
-data class CredentialResponse(
-    val format: CredentialFormat,
-    val credential: String
-)
-
+fun CredentialResponse.toSignedJWT() : SignedJWT {
+    if (this.format == CredentialFormat.jwt_vc) {
+        val content = (this.credential as JsonPrimitive).content
+        return SignedJWT.parse(content)
+    }
+    throw IllegalStateException("Credential format unsupported: ${this.format}")
+}
