@@ -3,13 +3,20 @@ package io.nessus.identity.portal
 import com.nimbusds.jose.JOSEObjectType
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.JWSHeader
+import com.nimbusds.jose.util.JSONObjectUtils
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
 import id.walt.oid4vc.OpenID4VCI
 import id.walt.oid4vc.data.GrantType
+import id.walt.oid4vc.data.dif.InputDescriptor
+import id.walt.oid4vc.data.dif.InputDescriptorConstraints
+import id.walt.oid4vc.data.dif.InputDescriptorField
+import id.walt.oid4vc.data.dif.PresentationDefinition
+import id.walt.oid4vc.data.dif.VCFormatDefinition
 import id.walt.oid4vc.requests.AuthorizationRequest
 import id.walt.oid4vc.responses.TokenResponse
 import id.walt.oid4vc.util.http
+import id.walt.w3c.utils.VCFormat
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
@@ -55,11 +62,20 @@ object AuthActions {
         //
         // [TODO] check VC types in authorization_details
 
-        val idTokenRedirectUrl = sendIDTokenRequest(cex, authReq)
-        return idTokenRedirectUrl
+        val isVPTokenRequest = authReq.scope.any { it.contains("vp_token") }
+        if (isVPTokenRequest) {
+            val redirectUrl = sendVPTokenRequest(cex, authReq)
+            return redirectUrl
+        } else {
+            val redirectUrl = sendIDTokenRequest(cex, authReq)
+            return redirectUrl
+        }
     }
 
-    suspend fun handleAuthorizationRequestCallback(cex: CredentialExchange, queryParams: Map<String, List<String>>): String {
+    suspend fun handleAuthorizationRequestCallback(
+        cex: CredentialExchange,
+        queryParams: Map<String, List<String>>
+    ): String {
 
         // Verify required query params
         for (key in listOf("client_id", "nonce", "state", "redirect_uri", "request_uri")) {
@@ -151,7 +167,7 @@ object AuthActions {
     }
 
     @OptIn(ExperimentalUuidApi::class)
-    suspend fun handleIDTokenResponse(cex: CredentialExchange, postParams: Map<String, List<String>>): String {
+    fun handleIDTokenResponse(cex: CredentialExchange, postParams: Map<String, List<String>>): String {
 
         val idToken = postParams["id_token"]?.firstOrNull()
             ?: throw IllegalStateException("No id_token")
@@ -165,19 +181,49 @@ object AuthActions {
         cex.authCode = "${Uuid.random()}"
 
         val authReq = cex.authRequest
-        val idTokenResUrl = URLBuilder("${authReq.redirectUri}").apply {
+        val idTokenRedirect = URLBuilder("${authReq.redirectUri}").apply {
             parameters.append("code", cex.authCode)
             authReq.state?.also { state ->
                 parameters.append("state", state)
             }
         }.buildString()
 
-        log.info { "IDToken Response $idTokenResUrl" }
-        urlQueryToMap(idTokenResUrl).also {
+        log.info { "IDToken Response $idTokenRedirect" }
+        urlQueryToMap(idTokenRedirect).also {
             it.forEach { (k, v) -> log.info { "  $k=$v" } }
         }
 
-        return idTokenResUrl
+        return idTokenRedirect
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    fun handleVPTokenResponse(cex: CredentialExchange, postParams: Map<String, List<String>>): String {
+
+        val vpToken = postParams["vp_token"]?.firstOrNull()
+            ?: throw IllegalStateException("No vp_token")
+
+        val vpTokenJwt = SignedJWT.parse(vpToken)
+        log.info { "VPToken Header: ${vpTokenJwt.header}" }
+        log.info { "VPToken Claims: ${vpTokenJwt.jwtClaimsSet}" }
+
+        // [TODO] validate VPToken
+
+        cex.authCode = "${Uuid.random()}"
+
+        val authReq = cex.authRequest
+        val vpTokenRedirect = URLBuilder("${authReq.redirectUri}").apply {
+            parameters.append("code", cex.authCode)
+            authReq.state?.also { state ->
+                parameters.append("state", state)
+            }
+        }.buildString()
+
+        log.info { "VPToken Response $vpTokenRedirect" }
+        urlQueryToMap(vpTokenRedirect).also {
+            it.forEach { (k, v) -> log.info { "  $k=$v" } }
+        }
+
+        return vpTokenRedirect
     }
 
     @OptIn(ExperimentalUuidApi::class)
@@ -267,6 +313,7 @@ object AuthActions {
 
         val issuerMetadata = cex.issuerMetadata
         val authorizationEndpoint = cex.authorizationEndpoint
+
         val keyJwk = cex.didInfo.publicKeyJwk()
         val kid = keyJwk["kid"]?.jsonPrimitive?.content as String
 
@@ -314,6 +361,96 @@ object AuthActions {
         }
 
         return idTokenRedirectUrl
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    suspend fun sendVPTokenRequest(cex: CredentialExchange, authReq: AuthorizationRequest): String {
+
+        val issuerMetadata = cex.issuerMetadata
+        val authorizationEndpoint = cex.authorizationEndpoint
+
+        val keyJwk = cex.didInfo.publicKeyJwk()
+        val kid = keyJwk["kid"]?.jsonPrimitive?.content as String
+
+        val iat = Instant.now()
+        val exp = iat.plusSeconds(300) // 5 mins expiry
+        val scopes = authReq.scope.joinToString(" ")
+
+        val vpTokenHeader = JWSHeader.Builder(JWSAlgorithm.ES256)
+            .type(JOSEObjectType.JWT)
+            .keyID(kid)
+            .build()
+
+        fun buildInputDescriptor(): InputDescriptor {
+            return InputDescriptor(
+                id = "${Uuid.random()}",
+                format = mapOf(VCFormat.jwt_vc to VCFormatDefinition(alg = setOf("ES256"))),
+                constraints = InputDescriptorConstraints(
+                    fields = listOf(
+                        InputDescriptorField(
+                            path = listOf("$.vc.type"),
+                            filter = Json.parseToJsonElement("""{
+                                "type": "array",
+                                "contains": { "const": "VerifiableAttestation" }
+                            }""".trimIndent()).jsonObject
+                        )
+                    ),
+                ),
+            )
+        }
+
+        val presentationDefinition = PresentationDefinition(
+            format = mapOf(
+                VCFormat.jwt_vc to VCFormatDefinition(alg = setOf("ES256")),
+                VCFormat.jwt_vp to VCFormatDefinition(alg = setOf("ES256"))
+            ),
+            inputDescriptors = listOf(
+                buildInputDescriptor(),
+                buildInputDescriptor(),
+                buildInputDescriptor(),
+            ),
+        ).toJSON()
+
+        val presentationDefinitionJson = Json.encodeToString(presentationDefinition)
+        log.info { "PresentationDefinition: $presentationDefinitionJson" }
+
+        @OptIn(ExperimentalUuidApi::class)
+        val vpTokenClaims = JWTClaimsSet.Builder()
+            .issuer(issuerMetadata.credentialIssuer)
+            .audience(authReq.clientId)
+            .issueTime(Date.from(iat))
+            .expirationTime(Date.from(exp))
+            .claim("response_type", "vp_token")
+            .claim("response_mode", "direct_post")
+            .claim("client_id", issuerMetadata.credentialIssuer)
+            .claim("redirect_uri", "$authorizationEndpoint/direct_post")
+            .claim("scope", scopes)
+            .claim("nonce", "${Uuid.random()}")
+            .claim("presentation_definition", JSONObjectUtils.parse(presentationDefinitionJson))
+            .build()
+
+        val idTokenJwt = SignedJWT(vpTokenHeader, vpTokenClaims)
+        log.info { "VPToken Request Header: ${idTokenJwt.header}" }
+        log.info { "VPToken Request Claims: ${idTokenJwt.jwtClaimsSet}" }
+
+        val signingInput = Json.encodeToString(createFlattenedJwsJson(vpTokenHeader, vpTokenClaims))
+        val signedEncoded = walletService.signWithKey(kid, signingInput)
+
+        val vpTokenRedirectUrl = URLBuilder("${authReq.redirectUri}").apply {
+            parameters.append("client_id", authorizationEndpoint)
+            parameters.append("response_type", "vp_token")
+            parameters.append("response_mode", "direct_post")
+            parameters.append("scope", scopes)
+            parameters.append("redirect_uri", "$authorizationEndpoint/direct_post")
+            parameters.append("request", signedEncoded)
+        }.buildString()
+
+        log.info { "VPToken Request $vpTokenRedirectUrl" }
+        urlQueryToMap(vpTokenRedirectUrl).also {
+            it.forEach { (k, v) -> log.info { "  $k=$v" } }
+        }
+
+        return vpTokenRedirectUrl
     }
 
     suspend fun sendTokenRequest(cex: CredentialExchange, authCode: String): TokenResponse {

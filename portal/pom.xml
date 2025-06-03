@@ -43,6 +43,10 @@
             <artifactId>waltid-wallet-api</artifactId>
         </dependency>
         <dependency>
+            <groupId>id.walt.credentials</groupId>
+            <artifactId>waltid-w3c-credentials-jvm</artifactId>
+        </dependency>
+        <dependency>
             <groupId>id.walt.openid4vc</groupId>
             <artifactId>waltid-openid4vc-jvm</artifactId>
         </dependency>

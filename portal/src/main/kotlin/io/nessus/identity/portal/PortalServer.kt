@@ -157,6 +157,7 @@ class PortalServer {
             model["subjectId"] = ctx.subjectId
             model["walletUri"] = "${ConfigProvider.walletEndpointUri}/${ctx.subjectId}"
             model["issuerUri"] = "${ConfigProvider.issuerEndpointUri}/${ctx.subjectId}"
+            model["authUri"] = "${ConfigProvider.authEndpointUri}/${ctx.subjectId}"
         }
         call.respond(
             FreeMarkerContent(
@@ -389,8 +390,13 @@ class PortalServer {
         postParams.forEach { (k, lst) -> lst.forEach { v -> log.info { "  $k=$v" } } }
 
         if (postParams["id_token"] != null) {
-            val idTokenResUrl = AuthActions.handleIDTokenResponse(cex, postParams)
-            return call.respondRedirect(idTokenResUrl)
+            val redirectUrl = AuthActions.handleIDTokenResponse(cex, postParams)
+            return call.respondRedirect(redirectUrl)
+        }
+
+        if (postParams["vp_token"] != null) {
+            val redirectUrl = AuthActions.handleVPTokenResponse(cex, postParams)
+            return call.respondRedirect(redirectUrl)
         }
 
         call.respondText(

@@ -89,8 +89,6 @@
                 <li><a href="${devWalletUrl}" target="_blank">Dev Wallet</a></li>
             </ul>
 
-            <h3>EBSI Conformance Tests</h3>
-
             <hr/> <!--------------------------------------------------------------------------------------------------->
 
             <h4>Request and present Verifiable Credentials</h4>
@@ -163,6 +161,24 @@
             <p/>
             If all goes well, both buttons should switch to "Yes". The issuer does not keep a copy of the credential.
             <i>[TODO] perhaps we can show the issued credential in this portal.</i>
+
+            <hr/> <!--------------------------------------------------------------------------------------------------->
+
+            <h4>Request and verify Verifiable Credentials</h4>
+
+            The Verify module checks the capability to validate and verify Verifiable Credentials and Presentations.
+            <p/>
+            Auhorization Endpoint (Client ID)
+            <input type="text" value="${authUri}" size="80" readonly/>
+
+            <p/>
+            Go to <a href="https://hub.ebsi.eu/wallet-conformance/verifier" target="_blank">Request and verify Verifiable Credentials</a>, start tests and
+            <i>Insert your Client ID</i> from above. To run the first test, pull down <i>Verifiable Presentations</i> and click
+            <i>Validate</i>.
+
+            <p/>
+            If all goes well, the button should switch to "Yes". The verifier does not keep a copy of the presentation.
+            <i>[TODO] perhaps we can show the verified credential in this portal.</i>
 
         </#if>
     </body>
