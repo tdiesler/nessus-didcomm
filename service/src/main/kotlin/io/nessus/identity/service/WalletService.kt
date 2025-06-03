@@ -73,10 +73,10 @@ class WalletService {
         return ctx
     }
 
-    suspend fun loginWallet(params: LoginParams): WalletInfo {
+    suspend fun loginWallet(params: LoginParams): LoginContext {
         ctx = login(params)
         ctx.walletInfo = listWallets().first()
-        return ctx.walletInfo
+        return ctx
     }
 
     suspend fun logout(): Boolean {
@@ -175,22 +175,22 @@ class WalletService {
     // Credentials ------------------------------------------------------------------------------------------------------------
 
     @OptIn(ExperimentalUuidApi::class)
-    fun addCredential(walletId: String, format: String, credJwt: SignedJWT): String {
+    fun addCredential(walletId: String, format: CredentialFormat, credential: SignedJWT): String {
 
-        if (format != CredentialFormat.jwt_vc.value)
+        if (format != CredentialFormat.jwt_vc)
             throw IllegalStateException("Unsupported credential format: $format")
 
-        val credId = getCredentialId(credJwt)
+        val credId = getCredentialId(credential)
         val walletUid = Uuid.Companion.parse(walletId)
 
         val walletCredential = WalletCredential(
-            wallet = Uuid.Companion.parse(walletId),
             id = credId,
-            document = credJwt.serialize(),
-            disclosures = null,
+            format = format,
+            wallet = walletUid,
+            document = credential.serialize(),
             addedOn = Clock.System.now(),
+            disclosures = null,
             deletedOn = null,
-            format = CredentialFormat.jwt_vc
         )
 
         withConnection {

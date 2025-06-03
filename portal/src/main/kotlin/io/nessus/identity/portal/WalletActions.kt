@@ -20,9 +20,9 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.nessus.identity.service.ConfigProvider.oauthEndpointUri
-import io.nessus.identity.service.LoginContext
-import io.nessus.identity.service.ServiceManager.walletService
+import io.nessus.identity.service.ConfigProvider.authEndpointUri
+import io.nessus.identity.service.ServiceProvider.walletService
+import io.nessus.identity.service.authenticationId
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -36,7 +36,7 @@ import java.util.Base64
 import java.util.Date
 import kotlin.random.Random
 
-object HolderActions {
+object WalletActions {
 
     val log = KotlinLogging.logger {}
 
@@ -48,7 +48,7 @@ object HolderActions {
         return offer
     }
 
-    suspend fun resolveOfferedCredentials(ctx: HolderContext, offer: CredentialOffer): OfferedCredential {
+    suspend fun resolveOfferedCredentials(cex: CredentialExchange, offer: CredentialOffer): OfferedCredential {
 
         val credOfferJson = Json.encodeToString(offer)
         log.info { "Received credential offer: $credOfferJson}" }
@@ -69,7 +69,7 @@ object HolderActions {
         if (offeredCredentials.size > 1) log.warn { "Multiple offered credentials, using first" }
         val offeredCredential = offeredCredentials.first()
 
-        ctx.also {
+        cex.also {
             it.credentialOffer = offer
             it.offeredCredential = offeredCredential
             it.issuerMetadata = issuerMetadata
@@ -78,7 +78,7 @@ object HolderActions {
         return offeredCredential
     }
 
-    suspend fun authorizationRequestFromCredentialOffer(ctx: HolderContext, offeredCred: OfferedCredential): AuthorizationRequest {
+    suspend fun authorizationRequestFromCredentialOffer(cex: CredentialExchange, offeredCred: OfferedCredential): AuthorizationRequest {
 
         // The Wallet will start by requesting access for the desired credential from the Auth Mock (Authorisation Server).
         // The client_metadata.authorization_endpoint is used for the redirect location associated with the vp_token and id_token.
@@ -90,27 +90,31 @@ object HolderActions {
         val codeVerifierHash = sha256.digest(codeVerifier.toByteArray(Charsets.US_ASCII))
         val codeChallenge = Base64.getUrlEncoder().withoutPadding().encodeToString(codeVerifierHash)
 
-        ctx.authRequestCodeVerifier = codeVerifier
+        cex.authRequestCodeVerifier = codeVerifier
 
         // Build AuthRequestUrl
         //
-        val authDetails = AuthorizationDetails.fromOfferedCredential(offeredCred, ctx.credentialIssuerUri)
+        val authEndpointUri = "$authEndpointUri/${cex.subjectId}"
+        val credentialIssuer = cex.issuerMetadata.credentialIssuer
+        val authDetails = AuthorizationDetails.fromOfferedCredential(offeredCred, credentialIssuer)
         val clientMetadata =
-            OpenIDClientMetadata(customParameters = mapOf("authorization_endpoint" to JsonPrimitive(oauthEndpointUri)))
+            OpenIDClientMetadata(customParameters = mapOf("authorization_endpoint" to JsonPrimitive(authEndpointUri)))
+        val issuerState = cex.credentialOffer.grants[GrantType.authorization_code.value]?.issuerState
+            ?: throw NoSuchElementException("Missing authorization_code.issuer_state")
 
         val authRequest = AuthorizationRequest(
             scope = setOf("openid"),
-            clientId = ctx.didInfo.did,
-            state = ctx.walletId,
+            clientId = cex.didInfo.did,
+            state = cex.walletId,
             clientMetadata = clientMetadata,
             codeChallenge = codeChallenge,
             codeChallengeMethod = "S256",
             authorizationDetails = listOf(authDetails),
-            redirectUri = oauthEndpointUri,
-            issuerState = ctx.issuerState
+            redirectUri = authEndpointUri,
+            issuerState = issuerState
         ).also {
-            ctx.authRequestCodeVerifier = codeVerifier
-            ctx.authRequest = it
+            cex.authRequestCodeVerifier = codeVerifier
+            cex.authRequest = it
         }
 
         log.info { "AuthorizationRequest: ${authRequest.toJSON()}" }
@@ -130,25 +134,24 @@ object HolderActions {
         }
     }
 
-    suspend fun sendAuthorizationRequest(ctx: HolderContext, authRequest: AuthorizationRequest): String {
+    suspend fun sendAuthorizationRequest(cex: CredentialExchange, authRequest: AuthorizationRequest): String {
 
-        val authServer = ctx.authorizationServer
-        val authReqUrl = URLBuilder("$authServer/authorize").apply {
+        val authReqUrl = URLBuilder("${cex.authorizationEndpoint}/authorize").apply {
             authRequest.toHttpParameters().forEach { (k, lst) -> lst.forEach { v -> parameters.append(k, v) } }
         }.buildString()
 
         log.info { "Send AuthRequest: $authReqUrl" }
-        urlQueryToMap(authReqUrl).forEach { (k, v) -> log.info { "  $k=$v" } }
+        authRequest.toHttpParameters().forEach { (k, lst) -> lst.forEach { v -> log.info { "  $k=$v" }}}
 
         val res = http.get(authReqUrl)
         if (res.status != HttpStatusCode.Accepted)
             throw HttpStatusException(res.status, res.bodyAsText())
 
-        log.info { "AuthCode: ${ctx.authCode}" }
-        return ctx.authCode
+        log.info { "AuthCode: ${cex.authCode}" }
+        return cex.authCode
     }
 
-    suspend fun sendCredentialRequest(ctx: HolderContext, tokenResponse: TokenResponse): SignedJWT {
+    suspend fun sendCredentialRequest(cex: CredentialExchange, tokenResponse: TokenResponse): SignedJWT {
 
         // The Relying Party proceeds by requesting issuance of the Verifiable Credential from the Issuer Mock.
         // The requested Credential must match the granted access. The DID document's authentication key must be used for signing the JWT proof,
@@ -163,24 +166,24 @@ object HolderActions {
         val iat = Date.from(now)
         val exp = Date.from(now.plusSeconds(300)) // 5 mins expiry
 
-        val docJson = Json.parseToJsonElement(ctx.didInfo.document).jsonObject
-        val authentication = (docJson["authentication"] as JsonArray).let { it[0].jsonPrimitive.content }
+        val kid = cex.didInfo.authenticationId()
 
         val credReqHeader = JWSHeader.Builder(JWSAlgorithm.ES256)
             .type(JOSEObjectType("openid4vci-proof+jwt"))
-            .keyID(authentication)
+            .keyID(kid)
             .build()
 
-        val state = ctx.authRequest.state
+        val state = cex.authRequest.state
 
-        val credentialTypes = ctx.offeredCredential.types
+        val credentialTypes = cex.offeredCredential.types
             ?: throw IllegalStateException("No credential types")
 
-        val issuerUri = ctx.credentialIssuerUri
-        val credentialEndpointUri = ctx.credentialEndpointUri
+        val issuerUri = cex.issuerMetadata.credentialIssuer
+        val credentialEndpoint = cex.issuerMetadata.credentialEndpoint
+            ?: throw IllegalStateException("No credential_endpoint")
 
         val credReqClaims = JWTClaimsSet.Builder()
-            .issuer(ctx.didInfo.did)
+            .issuer(cex.didInfo.did)
             .audience(issuerUri)
             .issueTime(iat)
             .expirationTime(exp)
@@ -188,15 +191,10 @@ object HolderActions {
             .claim("state", state)
             .build()
 
-        val credReqInput = Json.encodeToString(
-            createFlattenedJwsJson(
-                credReqHeader,
-                credReqClaims
-            )
-        )
-        val signedCredReqBase64 = walletService.signWithKey(authentication, credReqInput)
-        log.info { "CredentialReq JWT: $signedCredReqBase64" }
-        val signedCredReqJwt = SignedJWT.parse(signedCredReqBase64)
+        val signingInput = Json.encodeToString(createFlattenedJwsJson(credReqHeader,credReqClaims))
+        val signedEncoded = walletService.signWithKey(kid, signingInput)
+        log.info { "CredentialReq JWT: $signedEncoded" }
+        val signedCredReqJwt = SignedJWT.parse(signedEncoded)
         log.info { "CredentialReq Header: ${signedCredReqJwt.header}" }
         log.info { "CredentialReq Claims: ${signedCredReqJwt.jwtClaimsSet}" }
 
@@ -205,14 +203,14 @@ object HolderActions {
             put("format", JsonPrimitive("jwt_vc"))
             put("proof", buildJsonObject {
                 put("proof_type", JsonPrimitive("jwt"))
-                put("jwt", JsonPrimitive(signedCredReqBase64))
+                put("jwt", JsonPrimitive(signedEncoded))
             })
         })
 
-        log.info { "Send CredentialReq: $credentialEndpointUri" }
+        log.info { "Send CredentialReq: $credentialEndpoint" }
         log.info { "  $credReqBody" }
 
-        val res = http.post(credentialEndpointUri) {
+        val res = http.post(credentialEndpoint) {
             header(HttpHeaders.Authorization, "Bearer $accessToken")
             contentType(ContentType.Application.Json)
             setBody(credReqBody)
@@ -228,18 +226,13 @@ object HolderActions {
         log.info { "Credential Header: ${credJwt.header}" }
         log.info { "Credential Claims: ${credJwt.jwtClaimsSet}" }
 
-        val credFormat = CredentialFormat.fromValue(credRes.format)
-            ?: throw IllegalStateException("Unsupported credential format: $credRes.format")
-
-        ctx.credFormat = credFormat
-        ctx.credJwt = credJwt
-
+        cex.credResponse = credRes
         return credJwt
     }
 
-    fun addCredentialToWallet(ctx: HolderContext, credential: SignedJWT): String {
-        val walletId = ctx.walletInfo.id
-        val format = ctx.credFormat.value
+    fun addCredentialToWallet(cex: CredentialExchange, credential: SignedJWT): String {
+        val walletId = cex.walletInfo.id
+        val format = cex.credResponse.format
         return walletService.addCredential(walletId, format, credential)
     }
 
@@ -247,50 +240,10 @@ object HolderActions {
 
 }
 
-// maybe id.walt.oid4vc.responses.CredentialResponse
-
+// [TODO] Use id.walt.oid4vc.responses.CredentialResponse
 @Serializable
 data class CredentialResponse(
-    val format: String,
+    val format: CredentialFormat,
     val credential: String
 )
 
-class HolderContext(lctx: LoginContext) : LoginContext(lctx.authToken, lctx.walletInfo, lctx.didInfo) {
-
-    lateinit var credentialOffer: CredentialOffer
-    lateinit var issuerMetadata: OpenIDProviderMetadata.Draft11
-    lateinit var offeredCredential: OfferedCredential
-
-    lateinit var authRequest: AuthorizationRequest
-    lateinit var authRequestCodeVerifier: String
-    lateinit var authCode: String
-    lateinit var tokenResponse: TokenResponse
-
-    lateinit var credFormat: CredentialFormat
-    lateinit var credJwt: SignedJWT
-
-    companion object {
-        // [TODO] remove this hack
-        var instanceHack: HolderContext? = null
-    }
-
-    init {
-        instanceHack = this
-    }
-
-    val issuerState
-        get() = credentialOffer.grants[GrantType.authorization_code.value]?.issuerState
-            ?: throw NoSuchElementException("Missing authorization_code.issuer_state")
-
-    val authorizationServer
-        get() = issuerMetadata.authorizationServer
-            ?: throw IllegalStateException("Cannot obtain authorization_server from: $issuerMetadata")
-
-    val credentialIssuerUri
-        get() = issuerMetadata.credentialIssuer
-            ?: throw IllegalStateException("Cannot obtain credential_issuer from: $issuerMetadata")
-
-    val credentialEndpointUri
-        get() = issuerMetadata.credentialEndpoint
-            ?: throw IllegalStateException("Cannot obtain credential_endpoint from: $issuerMetadata")
-}

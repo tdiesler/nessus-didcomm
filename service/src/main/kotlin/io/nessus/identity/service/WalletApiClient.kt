@@ -9,6 +9,10 @@ import io.ktor.http.HttpHeaders.Authorization
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.net.URLEncoder
 import kotlin.text.Charsets.UTF_8
 
@@ -239,6 +243,21 @@ data class DidInfo(
     val createdOn: String,
     val default: Boolean
 )
+
+fun DidInfo.authenticationId(): String {
+    val docJson = Json.parseToJsonElement(this.document).jsonObject
+    val authId = (docJson["authentication"] as JsonArray).let { it[0].jsonPrimitive.content }
+    return authId
+}
+
+fun DidInfo.publicKeyJwk(): JsonObject {
+    val docJson = Json.parseToJsonElement(this.document).jsonObject
+    val keyJwk = (docJson["verificationMethod"] as JsonArray)
+        .map { it as JsonObject }
+        .first { it["controller"]?.jsonPrimitive?.content == this.did }
+        .getValue("publicKeyJwk").jsonObject
+    return keyJwk
+}
 
 @Serializable
 data class CreateDidKeyRequest(

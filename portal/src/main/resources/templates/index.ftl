@@ -31,11 +31,7 @@
             <table>
                 <tr>
                     <td>Subject Did</td>
-                    <td><input type="text" value="${did!}" size="80" readonly/></td>
-                </tr>
-                <tr>
-                    <td>Holder Endpoint</td>
-                    <td><input type="text" value="${holderUri}" size="80" readonly/>&nbsp;<a style="font-size: small;" href="/logout">logout</a></td>
+                    <td><input type="text" value="${did!}" size="80" readonly/>&nbsp;<a style="font-size: small;" href="/logout">logout</a></td>
                 </tr>
             </table>
             <#if !did??>
@@ -78,12 +74,12 @@
                 <tr>
                     <td>EBSI</td>
                     <td><a href="https://api-conformance.ebsi.eu/conformance/v3/issuer-mock/.well-known/openid-credential-issuer">Issuer</a></td>
-                    <td><a href="https://api-conformance.ebsi.eu/conformance/v3/auth-mock/.well-known/openid-configuration">OAuth</a></td>
+                    <td><a href="https://api-conformance.ebsi.eu/conformance/v3/auth-mock/.well-known/openid-configuration">Auth</a></td>
                 </tr>
                 <tr>
                     <td>Nessus</td>
-                    <td><a href="/issuer/.well-known/openid-credential-issuer">Issuer</a></td>
-                    <td><a href="/oauth/.well-known/openid-configuration">OAuth</a></td>
+                    <td><a href="/issuer/${subjectId}/.well-known/openid-credential-issuer">Issuer</a></td>
+                    <td><a href="/auth/${subjectId}/.well-known/openid-configuration">Auth</a></td>
                 </tr>
             </table>
 
@@ -93,22 +89,27 @@
                 <li><a href="${devWalletUrl}" target="_blank">Dev Wallet</a></li>
             </ul>
 
-            <hr/> <!-------------------------------------------------------------------------------------------------------->
-
             <h3>EBSI Conformance Tests</h3>
+
+            <hr/> <!--------------------------------------------------------------------------------------------------->
 
             <h4>Request and present Verifiable Credentials</h4>
 
-                The Holder Wallet module checks the wallet's ability to handle credential requests, authentication and presentation to verifiers on demand.
+            The Holder Wallet module checks the wallet's ability to handle credential requests, authentication and presentation to verifiers on demand.
 
-                <p/>
-                Go to the <a href="https://hub.ebsi.eu/wallet-conformance/holder-wallet" target="_blank">start tests</a> page for holder wallets and
-                <i>Insert your DID</i> and <i>Credential Offer Endpoint</i> from above. Then use "No" for QR code reading capabilities.
-                To run the first test, pull down <i>In-time Credential</i> and click <i>Initiate (credential offering redirect)</i>
+            <p/>
+            Wallet Endpoint
+            <input type="text" value="${walletUri}" size="80" readonly/>
 
-                <p/>
-                If all goes well, the browser should <button onclick="toggleCode()">show</button> the credential that ebsi has just issued.
-                It should also show up in your <a href="${demoWalletUrl}" target="_blank">wallet</a>.
+            <p/>
+            Go to the <a href="https://hub.ebsi.eu/wallet-conformance/holder-wallet" target="_blank">start tests</a> page for holder wallets and
+            <i>Insert your DID</i> and <i>Credential Offer Endpoint</i> from above. Then use "No" for QR code reading capabilities.
+            To run the first test, pull down <i>In-time Credential</i> and click <i>Initiate (credential offering redirect)</i>
+
+            <p/>
+            If all goes well, the browser should <button onclick="toggleCode()">show</button> the credential that ebsi has just issued.
+            It should also show up in your <a href="${demoWalletUrl}" target="_blank">wallet</a>.
+
 <pre id="jsonBlock" class="code-block"><code>
 {
     "sub": "${did}",
@@ -145,7 +146,24 @@
 }
 </code></pre>
 
-        </#if>
+            <hr/> <!--------------------------------------------------------------------------------------------------->
 
+            <h4>Issue Verifiable Credentials</h4>
+
+            The Issuer to Holder module checks the credential issuance process from an issuer to a Holder wallet
+            <p/>
+            Issuer Endpoint
+            <input type="text" value="${issuerUri}" size="80" readonly/>
+
+            <p/>
+            Go to <a href="https://hub.ebsi.eu/wallet-conformance/issue-to-holder" target="_blank">Issue Verifiable Credentials</a>, start tests and
+            <i>Insert your DID</i> and <i>Client ID</i> from above. To run the first test, pull down <i>In-time Credential</i> and click
+            <i>Initiate</i> and then <i>Validate</i>.
+
+            <p/>
+            If all goes well, both buttons should switch to "Yes". The issuer does not keep a copy of the credential.
+            <i>[TODO] perhaps we can show the issued credential in this portal.</i>
+
+        </#if>
     </body>
 </html>

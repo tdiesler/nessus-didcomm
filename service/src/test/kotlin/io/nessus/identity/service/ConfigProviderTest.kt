@@ -9,7 +9,7 @@ class ConfigProviderTest {
     @Test
     fun loadConfig() {
 
-        val holder = ConfigProvider.requireHolderConfig()
+        val holder = ConfigProvider.requireWalletConfig()
         val service = ConfigProvider.requireServiceConfig()
         val database = ConfigProvider.requireDatabaseConfig()
 

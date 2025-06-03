@@ -2,18 +2,21 @@ package io.nessus.identity.portal
 
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.string.shouldEndWith
+import io.nessus.identity.service.Max
 import kotlinx.serialization.json.jsonArray
 import org.junit.jupiter.api.Test
 
-class IssuerActionsTest {
+class IssuerActionsTest : AbstractActionsTest() {
 
     @Test
     fun issuerMetadata() {
 
-        val metadataUrl = IssuerActions.issuerMetadataUrl
-        metadataUrl.shouldEndWith("/issuer/.well-known/openid-credential-issuer")
+        val ctx = userLogin(Max)
 
-        val jsonObj = IssuerActions.issuerMetadata.toJSON()
+        val metadataUrl = IssuerActions.getIssuerMetadataUrl(ctx)
+        metadataUrl.shouldEndWith("/issuer/${ctx.walletId}/.well-known/openid-credential-issuer")
+
+        val jsonObj = IssuerActions.getIssuerMetadata(ctx).toJSON()
         jsonObj["credentials_supported"].shouldNotBeNull().jsonArray
     }
 }

@@ -1,6 +1,10 @@
 package io.nessus.identity.portal
 
+import com.nimbusds.jwt.SignedJWT
 import freemarker.cache.ClassTemplateLoader
+import id.walt.oid4vc.requests.AuthorizationRequest
+import id.walt.oid4vc.requests.CredentialRequest
+import id.walt.webwallet.db.models.WalletCredentialCategoryMap.credential
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -17,18 +21,21 @@ import io.ktor.server.routing.*
 import io.ktor.server.sessions.Sessions
 import io.ktor.server.sessions.cookie
 import io.ktor.server.sessions.sessions
+import io.ktor.util.toMap
+import io.nessus.identity.portal.CredentialExchange.Companion.requireCredentialExchange
 import io.nessus.identity.service.ConfigProvider
-import io.nessus.identity.service.HolderConfig
 import io.nessus.identity.service.LoginContext
 import io.nessus.identity.service.LoginParams
 import io.nessus.identity.service.LoginType
-import io.nessus.identity.service.ServiceManager.walletService
+import io.nessus.identity.service.ServiceProvider.walletService
+import io.nessus.identity.service.publicKeyJwk
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.security.KeyStore
+import kotlin.collections.component1
+import kotlin.collections.component2
 
 fun main() {
     PortalServer().runServer()
@@ -115,17 +122,23 @@ class PortalServer {
                     call.sessions.clear(CookieData.NAME)
                     call.respondRedirect("/")
                 }
-                route("/oauth{...}") {
-                    handle { handleOAuthRequests(call) }
-                }
-                route("/holder/{walletId}") {
+                route("/auth/{subId}/{...}") {
                     handle {
-                        val walletId = call.parameters["walletId"] ?: throw IllegalArgumentException("No walletId")
-                        handleHolderRequests(call, walletId)
+                        val subId = call.parameters["subId"] ?: throw IllegalArgumentException("No subId")
+                        handleAuthRequests(call, subId)
                     }
                 }
-                route("/issuer{...}") {
-                    handle { handleIssuerRequests(call) }
+                route("/wallet/{subId}/{...}") {
+                    handle {
+                        val subId = call.parameters["subId"] ?: throw IllegalArgumentException("No subId")
+                        handleWalletRequests(call, subId)
+                    }
+                }
+                route("/issuer/{subId}/{...}") {
+                    handle {
+                        val subId = call.parameters["subId"] ?: throw IllegalArgumentException("No subId")
+                        handleIssuerRequests(call, subId)
+                    }
                 }
             }
         }.start(wait = true)
@@ -134,23 +147,28 @@ class PortalServer {
     suspend fun handleHome(call: RoutingCall) {
         val serviceConfig = ConfigProvider.requireServiceConfig()
         val ctx = getLoginContextFromSession(call)
-        val walletId = ctx?.walletInfo?.id
-        val holderBaseUri = ConfigProvider.holderEndpointUri
+        val model = mutableMapOf(
+            "hasWalletId" to (ctx?.maybeWalletInfo?.name?.isNotBlank() ?: false),
+            "walletName" to ctx?.maybeWalletInfo?.name,
+            "did" to ctx?.maybeDidInfo?.did,
+            "demoWalletUrl" to serviceConfig.demoWalletUrl,
+            "devWalletUrl" to serviceConfig.devWalletUrl,
+        )
+        if (ctx?.hasDidInfo == true) {
+            model["subjectId"] = ctx.subjectId
+            model["walletUri"] = "${ConfigProvider.walletEndpointUri}/${ctx.subjectId}"
+            model["issuerUri"] = "${ConfigProvider.issuerEndpointUri}/${ctx.subjectId}"
+        }
         call.respond(
             FreeMarkerContent(
                 template = "index.ftl",
-                model = mapOf(
-                    "hasWalletId" to (ctx?.maybeWalletInfo?.name?.isNotBlank() ?: false),
-                    "walletName" to ctx?.maybeWalletInfo?.name,
-                    "did" to ctx?.maybeDidInfo?.did,
-                    "holderUri" to "$holderBaseUri/$walletId",
-                    "demoWalletUrl" to serviceConfig.demoWalletUrl,
-                    "devWalletUrl" to serviceConfig.devWalletUrl,
-                )
+                model = model
             )
         )
     }
 
+    // Handle Login ----------------------------------------------------------------------------------------------------
+    //
     suspend fun handleLogin(call: RoutingCall) {
 
         val params = call.receiveParameters()
@@ -171,23 +189,58 @@ class PortalServer {
         }
     }
 
-    // Handle requests to the Authentication Server
+    // Handle Authorization requests -----------------------------------------------------------------------------------
     //
-    suspend fun handleOAuthRequests(call: RoutingCall) {
+    suspend fun handleAuthRequests(call: RoutingCall, subId: String) {
 
         val reqUri = call.request.uri
-        log.info { "OAuth Request $reqUri" }
+        val path = call.request.path()
+
+        log.info { "Auth Request $reqUri" }
         val queryParams = urlQueryToMap(reqUri).also {
-            it.forEach { (k, v) -> log.info { "  $k=$v" } }
+            it.forEach { (k, v) ->
+                log.info { "  $k=$v" }
+            }
         }
 
-        if (call.request.path().endsWith(".well-known/openid-configuration")) {
-            return handleAuthorizationMetadata(call)
+        val ctx = requireLoginContext(subId)
+
+        if (path.endsWith(".well-known/openid-configuration")) {
+            return handleAuthorizationMetadataRequest(call, ctx)
+        }
+
+        // authorize
+        // 
+        if (path == "/auth/$subId/authorize") {
+            val cex = CredentialExchange(ctx)
+            return handleAuthorizationRequest(call, cex)
+        }
+
+        // direct_post
+        //
+        if (path == "/auth/$subId/direct_post") {
+            val cex = requireCredentialExchange(ctx.subjectId)
+            return handleAuthDirectPost(call, cex)
+        }
+
+        // jwks
+        //
+        if (path == "/auth/$subId/jwks") {
+            return handleAuthJwksRequest(call, ctx)
+        }
+
+        // token
+        //
+        if (path == "/auth/$subId/token") {
+            val cex = requireCredentialExchange(ctx.subjectId)
+            return handleAuthTokenRequest(call, cex)
         }
 
         // Callback as part of the Authorization Request
-        if (queryParams["response_type"] == "id_token") {
-            return handleResponseToAuthorizationRequest(call)
+        // [TODO] Review whether we really want to redirect here
+        if (path == "/auth/$subId" && queryParams["response_type"] == "id_token") {
+            val cex = requireCredentialExchange(ctx.subjectId)
+            return handleResponseToAuthorizationRequest(call, cex)
         }
 
         call.respondText(
@@ -197,23 +250,27 @@ class PortalServer {
         )
     }
 
-    // Handle requests to the holder wallet
+    // Handle Wallet requests ------------------------------------------------------------------------------------------
     //
-    suspend fun handleHolderRequests(call: RoutingCall, walletId: String) {
+    suspend fun handleWalletRequests(call: RoutingCall, subId: String) {
 
         val reqUri = call.request.uri
-        log.info { "Holder Request $reqUri" }
+        val path = call.request.path()
+
+        log.info { "Wallet Request $reqUri" }
         val queryParams = urlQueryToMap(reqUri).also {
-            it.forEach { (k, v) -> log.info { "  $k=$v" } }
+            it.forEach { (k, v) ->
+                log.info { "  $k=$v" }
+            }
         }
 
-        val lctx = resolveLoginContext(walletId)
-        val hctx = HolderContext(lctx)
+        val ctx = requireLoginContext(subId)
+        val cex = CredentialExchange(ctx)
 
-        // Handle CredentialOffer by URI
+        // Handle CredentialOffer by Uri
         //
-        if (queryParams["credential_offer_uri"] != null) {
-            return handleCredentialOffer(call, hctx)
+        if (path == "/wallet/$subId" && queryParams["credential_offer_uri"] != null) {
+            return handleCredentialOffer(call, cex)
         }
 
         call.respondText(
@@ -223,18 +280,29 @@ class PortalServer {
         )
     }
 
-    // Handle requests to the holder wallet
+    // Handle Issuer requests ------------------------------------------------------------------------------------------
     //
-    suspend fun handleIssuerRequests(call: RoutingCall) {
+    suspend fun handleIssuerRequests(call: RoutingCall, subId: String) {
 
         val reqUri = call.request.uri
+        val path = call.request.path()
+
         log.info { "Issuer Request $reqUri" }
         urlQueryToMap(reqUri).also {
             it.forEach { (k, v) -> log.info { "  $k=$v" } }
         }
 
+        val ctx = requireLoginContext(subId)
+
         if (call.request.path().endsWith(".well-known/openid-credential-issuer")) {
-            return handleIssuerMetadata(call)
+            return handleIssuerMetadataRequest(call, ctx)
+        }
+
+        // Handle Credential Request
+        //
+        if (path == "/issuer/$subId/credential") {
+            val cex = requireCredentialExchange(subId)
+            return handleCredentialRequest(call, cex)
         }
 
         call.respondText(
@@ -244,74 +312,17 @@ class PortalServer {
         )
     }
 
-    // OAuth -----------------------------------------------------------------------------------------------------------
+    // LoginContext ----------------------------------------------------------------------------------------------------
 
-    private suspend fun handleAuthorizationMetadata(call: RoutingCall) {
-
-        val payload = Json.encodeToString(OAuthActions.oauthMetadata)
-        call.respondText(
-            status = HttpStatusCode.OK,
-            contentType = ContentType.Application.Json,
-            text = payload
-        )
-    }
-
-    private suspend fun handleResponseToAuthorizationRequest(call: RoutingCall) {
-
-        val ctx = HolderContext.instanceHack
-            ?: throw IllegalStateException("No HolderContext")
-
-        val queryParams = urlQueryToMap(call.request.uri)
-        OAuthActions.handleIDTokenExchange(ctx, queryParams)
-
-        call.respondText(
-            status = HttpStatusCode.Accepted,
-            contentType = ContentType.Text.Plain,
-            text = "Accepted"
-        )
-    }
-
-    // Holder ----------------------------------------------------------------------------------------------------------
-
-    // Request and present Verifiable Credentials
-    // https://hub.ebsi.eu/conformance/build-solutions/holder-wallet-functional-flows
-    //
-    // Issuer initiated flows start with the Credential Offering proposed by Issuer.
-    // The Credential Offering is in redirect for same-device tests and in QR Code for cross-device tests.
-    //
-    private suspend fun handleCredentialOffer(call: RoutingCall, ctx: HolderContext) {
-
-        // Get Credential Offer URI from the query Parameters
-        //
-        val credOfferUri = call.request.queryParameters["credential_offer_uri"]
-            ?: throw HttpStatusException(HttpStatusCode.BadRequest, "No 'credential_offer_uri' param")
-
-        val oid4vcOfferUri = "openid-credential-offer://?credential_offer_uri=$credOfferUri"
-
-        val credOffer = HolderActions.fetchCredentialOfferFromUri(oid4vcOfferUri)
-        val offeredCred = HolderActions.resolveOfferedCredentials(ctx, credOffer)
-        val authRequest = HolderActions.authorizationRequestFromCredentialOffer(ctx, offeredCred)
-        val authCode = HolderActions.sendAuthorizationRequest(ctx, authRequest)
-        val tokenResponse = OAuthActions.sendTokenRequest(ctx, authCode)
-        val credJwt = HolderActions.sendCredentialRequest(ctx, tokenResponse)
-        HolderActions.addCredentialToWallet(ctx, credJwt)
-
-        call.respondText(
-            status = HttpStatusCode.Accepted,
-            contentType = ContentType.Application.Json,
-            text = "${credJwt.jwtClaimsSet}"
-        )
-    }
-
-    suspend fun resolveLoginContext(walletId: String) : LoginContext {
+    private suspend fun requireLoginContext(subId: String): LoginContext {
 
         // We expect the user to have logged in previously and have a valid Did
         //
-        var ctx = LoginContext.findLoginContextByWalletId(walletId)
+        var ctx = LoginContext.findLoginContext(subId)
 
         // Fallback
         if (ctx == null) {
-            val cfg = ConfigProvider.requireHolderConfig()
+            val cfg = ConfigProvider.requireWalletConfig()
             if (cfg.userEmail.isNotBlank() && cfg.userPassword.isNotBlank()) {
                 val loginParams = LoginParams(LoginType.EMAIL, cfg.userEmail, cfg.userPassword)
                 walletService.loginWallet(loginParams)
@@ -329,7 +340,172 @@ class PortalServer {
         return ctx
     }
 
+    // Authorization ---------------------------------------------------------------------------------------------------
+
+    private suspend fun handleAuthorizationMetadataRequest(call: RoutingCall, ctx: LoginContext) {
+
+        val payload = Json.encodeToString(AuthActions.getAuthMetadata(ctx))
+        call.respondText(
+            status = HttpStatusCode.OK,
+            contentType = ContentType.Application.Json,
+            text = payload
+        )
+    }
+
+    /**
+     * The Wallet requests access for the required credential from the Issuer's Authorisation Server.
+     */
+    private suspend fun handleAuthorizationRequest(call: RoutingCall, cex: CredentialExchange) {
+
+        val queryParams = call.parameters.toMap()
+        val authReq = AuthorizationRequest.fromHttpParameters(queryParams)
+        log.info { "AuthRequest: ${Json.encodeToString(authReq)}" }
+
+        val idTokenRedirectUrl = AuthActions.handleAuthorizationRequest(cex, authReq)
+        call.respondRedirect(idTokenRedirectUrl)
+    }
+
+    /**
+     * Client requests key details
+     */
+    private suspend fun handleAuthDirectPost(call: RoutingCall, cex: CredentialExchange) {
+
+        val postParams = call.receiveParameters().toMap()
+        log.info { "Auth DirectPost: ${call.request.uri}" }
+        postParams.forEach { (k, lst) -> lst.forEach { v -> log.info { "  $k=$v" } } }
+
+        if (postParams["id_token"] != null) {
+            val idTokenResUrl = AuthActions.handleIDTokenResponse(cex, postParams)
+            return call.respondRedirect(idTokenResUrl)
+        }
+
+        call.respondText(
+            status = HttpStatusCode.InternalServerError,
+            contentType = ContentType.Text.Plain,
+            text = "Not Implemented"
+        )
+    }
+
+    /**
+     * Client requests key details
+     */
+    private suspend fun handleAuthJwksRequest(call: RoutingCall, ctx: LoginContext) {
+
+        val keyJwk = ctx.didInfo.publicKeyJwk()
+        val keys = mapOf("keys" to listOf(keyJwk))
+        val payload = Json.encodeToString(keys)
+
+        log.info { "Jwks $payload" }
+
+        call.respondText(
+            status = HttpStatusCode.OK,
+            contentType = ContentType.Application.Json,
+            text = payload
+        )
+    }
+
+    /**
+     * Client requests an Access Token
+     */
+    private suspend fun handleAuthTokenRequest(call: RoutingCall, cex: CredentialExchange) {
+
+        val postParams = call.receiveParameters().toMap()
+        log.info { "Auth Token Request: ${call.request.uri}" }
+        postParams.forEach { (k, lst) -> lst.forEach { v -> log.info { "  $k=$v" } } }
+
+        val tokenResponse = AuthActions.handleTokenRequest(cex, postParams)
+        val tokenResponseJson = Json.encodeToString(tokenResponse)
+        log.info { "TokenResponse: $tokenResponseJson" }
+
+
+        call.respondText(
+            status = HttpStatusCode.OK,
+            contentType = ContentType.Application.Json,
+            text = tokenResponseJson
+        )
+    }
+
+    private suspend fun handleResponseToAuthorizationRequest(call: RoutingCall, cex: CredentialExchange) {
+
+        AuthActions.handleIDTokenExchange(cex, call.parameters.toMap())
+
+        call.respondText(
+            status = HttpStatusCode.Accepted,
+            contentType = ContentType.Text.Plain,
+            text = "Accepted"
+        )
+    }
+
+    // Holder ----------------------------------------------------------------------------------------------------------
+
+    // Request and present Verifiable Credentials
+    // https://hub.ebsi.eu/conformance/build-solutions/holder-wallet-functional-flows
+    //
+    // Issuer initiated flows start with the Credential Offering proposed by Issuer.
+    // The Credential Offering is in redirect for same-device tests and in QR Code for cross-device tests.
+    //
+    private suspend fun handleCredentialOffer(call: RoutingCall, cex: CredentialExchange) {
+
+        // Get Credential Offer URI from the query Parameters
+        //
+        val credOfferUri = call.request.queryParameters["credential_offer_uri"]
+            ?: throw HttpStatusException(HttpStatusCode.BadRequest, "No 'credential_offer_uri' param")
+
+        val oid4vcOfferUri = "openid-credential-offer://?credential_offer_uri=$credOfferUri"
+
+        val credOffer = WalletActions.fetchCredentialOfferFromUri(oid4vcOfferUri)
+        val offeredCred = WalletActions.resolveOfferedCredentials(cex, credOffer)
+        val authRequest = WalletActions.authorizationRequestFromCredentialOffer(cex, offeredCred)
+        val authCode = WalletActions.sendAuthorizationRequest(cex, authRequest)
+        val tokenResponse = AuthActions.sendTokenRequest(cex, authCode)
+        val credJwt = WalletActions.sendCredentialRequest(cex, tokenResponse)
+        WalletActions.addCredentialToWallet(cex, credJwt)
+
+        call.respondText(
+            status = HttpStatusCode.Accepted,
+            contentType = ContentType.Application.Json,
+            text = "${credJwt.jwtClaimsSet}"
+        )
+    }
+
     // Issuer ----------------------------------------------------------------------------------------------------------
+
+    private suspend fun handleIssuerMetadataRequest(call: RoutingCall, ctx: LoginContext) {
+
+        val issuerMetadata = IssuerActions.getIssuerMetadata(ctx)
+        val payload = Json.encodeToString(issuerMetadata)
+        call.respondText(
+            status = HttpStatusCode.OK,
+            contentType = ContentType.Application.Json,
+            text = payload
+        )
+    }
+
+    private suspend fun handleCredentialRequest(call: RoutingCall, cex: CredentialExchange) {
+
+        val credReq = call.receive<CredentialRequest>()
+        log.info { "CredentialRequest: ${Json.encodeToString(credReq)}" }
+
+        val bearerToken = call.request.headers["Authorization"]
+            ?.takeIf { it.startsWith("Bearer ", ignoreCase = true) }
+            ?.removePrefix("Bearer ")
+            ?.let { SignedJWT.parse(it) }
+            ?: throw IllegalArgumentException("Invalid authorization header")
+
+        cex.validateBearerToken(bearerToken)
+
+        val credentialResponse = IssuerActions.handleCredentialRequest(cex, bearerToken, credReq)
+        val payload = Json.encodeToString(credentialResponse)
+        log.info { "Credential Response: $payload" }
+
+        call.respondText(
+            status = HttpStatusCode.OK,
+            contentType = ContentType.Application.Json,
+            text = payload
+        )
+    }
+
+    // Session Data ----------------------------------------------------------------------------------------------------
 
     private fun getCookieDataFromSession(call: RoutingCall): CookieData? {
         val dat = call.sessions.get(CookieData.NAME)
@@ -342,18 +518,8 @@ class PortalServer {
 
     private fun getLoginContextFromSession(call: RoutingCall): LoginContext? {
         val dat = getCookieDataFromSession(call)
-        val ctx = dat?.let { LoginContext.findLoginContextByWalletId(it.wid) }
+        val ctx = dat?.let { LoginContext.findLoginContext(it.wid, it.did ?: "") }
         return ctx
-    }
-
-    private suspend fun handleIssuerMetadata(call: RoutingCall) {
-
-        val payload = Json.encodeToString(IssuerActions.issuerMetadata)
-        call.respondText(
-            status = HttpStatusCode.OK,
-            contentType = ContentType.Application.Json,
-            text = payload
-        )
     }
 
     @Serializable

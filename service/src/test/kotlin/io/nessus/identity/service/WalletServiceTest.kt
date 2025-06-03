@@ -5,7 +5,6 @@ import com.nimbusds.jose.JWSHeader
 import com.nimbusds.jose.crypto.ECDSAVerifier
 import com.nimbusds.jose.jwk.ECKey
 import com.nimbusds.jose.util.Base64URL
-import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -28,11 +27,11 @@ class WalletServiceTest {
     fun registerUser() {
         runBlocking {
 
-            // Check whether Alice already exists
+            // Check whether Max already exists
             //
             var ctx: LoginContext? = null
             try {
-                ctx = walletService.login(Alice.toLoginParams())
+                ctx = walletService.login(Max.toLoginParams())
             } catch (ex: Exception) {
                 if (ex.message?.contains("Unknown user") == false) {
                     throw ex
@@ -40,7 +39,7 @@ class WalletServiceTest {
             }
 
             if (ctx == null) {
-                val success = walletService.registerUser(Alice.toRegisterUserParams())
+                val success = walletService.registerUser(Max.toRegisterUserParams())
                 success shouldBe "Registration succeeded"
             }
         }
@@ -49,7 +48,7 @@ class WalletServiceTest {
     @Test
     fun userLogin() {
         runBlocking {
-            val ctx = walletService.login(Alice.toLoginParams())
+            val ctx = walletService.login(Max.toLoginParams())
             ctx.authToken.shouldNotBeBlank()
             ctx.maybeWalletInfo.shouldBeNull()
         }
@@ -60,7 +59,7 @@ class WalletServiceTest {
     @Test
     fun listWallets() {
         runBlocking {
-            authLogin(Alice)
+            authLogin(Max)
             val wallets = walletService.listWallets()
             wallets.shouldNotBeEmpty()
         }
@@ -71,7 +70,7 @@ class WalletServiceTest {
     @Test
     fun listKeys() {
         runBlocking {
-            authLoginWithWallet(Alice)
+            authLoginWithWallet(Max)
             val keys = walletService.listKeys()
             keys.shouldNotBeEmpty()
         }
@@ -80,7 +79,7 @@ class WalletServiceTest {
     @Test
     fun createKey() {
         runBlocking {
-            authLoginWithWallet(Alice)
+            authLoginWithWallet(Max)
             val key = walletService.createKey(KeyType.SECP256R1)
             key.algorithm shouldBe KeyType.SECP256R1.algorithm
         }
@@ -91,7 +90,7 @@ class WalletServiceTest {
     @Test
     fun listDids() {
         runBlocking {
-            authLoginWithWallet(Alice)
+            authLoginWithWallet(Max)
             val res: Array<DidInfo> = walletService.listDids()
             res.shouldNotBeEmpty()
         }
@@ -100,7 +99,7 @@ class WalletServiceTest {
     @Test
     fun createDidKey() {
         runBlocking {
-            authLoginWithWallet(Alice)
+            authLoginWithWallet(Max)
             val keys = walletService.listKeys()
             val alias = "did:key#${keys.size + 1}"
             walletService.findDidByPrefix("did:key")?: runBlocking {
@@ -114,12 +113,12 @@ class WalletServiceTest {
     @Test
     fun signVerifyWithDid() {
         runBlocking {
-            authLoginWithWallet(Alice)
-            val did = walletService.findDidByPrefix("did:key").shouldNotBeNull()
-            val signJwt = walletService.signWithDid(did.did, "Kermit")
+            authLoginWithWallet(Max)
+            val didInfo = walletService.findDidByPrefix("did:key").shouldNotBeNull()
+            val signJwt = walletService.signWithDid(didInfo.did, "Kermit")
             signJwt.shouldNotBeBlank()
 
-            val docJson = Json.parseToJsonElement(did.document).jsonObject
+            val docJson = Json.parseToJsonElement(didInfo.document).jsonObject
             val verificationMethods = docJson["verificationMethod"] as JsonArray
             val verificationMethod = verificationMethods.let { it[0] as JsonObject }
             val publicKeyJwk = Json.encodeToString(verificationMethod["publicKeyJwk"])

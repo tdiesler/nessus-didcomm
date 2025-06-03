@@ -1,6 +1,6 @@
 package io.nessus.identity.service
 
-object ServiceManager {
+object ServiceProvider {
 
     val walletService = run {
         val serviceConfig = ConfigProvider.requireServiceConfig()

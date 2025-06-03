@@ -4,44 +4,43 @@ import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.ExperimentalHoplite
 import com.sksamuel.hoplite.addEnvironmentSource
 import com.sksamuel.hoplite.addResourceSource
-import com.sksamuel.hoplite.sources.EnvironmentVariablesPropertySource
 import kotlinx.serialization.Serializable
 
 @OptIn(ExperimentalHoplite::class)
 object ConfigProvider {
 
     val root = ConfigLoaderBuilder.default()
-            .withExplicitSealedTypes()
-            .addEnvironmentSource()
-            .addResourceSource("/application.conf")
-            .build().loadConfigOrThrow<RootConfig>()
+        .withExplicitSealedTypes()
+        .addEnvironmentSource()
+        .addResourceSource("/application.conf")
+        .build().loadConfigOrThrow<RootConfig>()
 
-    val oauthEndpointUri get() = "${requireServerConfig().baseUrl}/oauth"
+    val authEndpointUri get() = "${requireServerConfig().baseUrl}/auth"
     val issuerEndpointUri get() = "${requireServerConfig().baseUrl}/issuer"
-    val holderEndpointUri get() = "${requireServerConfig().baseUrl}/holder"
+    val walletEndpointUri get() = "${requireServerConfig().baseUrl}/wallet"
     val verifierEndpointUri get() = "${requireServerConfig().baseUrl}/verifier"
 
-    fun requireDatabaseConfig() : DatabaseConfig {
+    fun requireDatabaseConfig(): DatabaseConfig {
         return root.database ?: throw IllegalStateException("No 'database' config")
     }
 
-    fun requireHolderConfig() : HolderConfig {
-        return root.holder ?: throw IllegalStateException("No 'holder' config")
+    fun requireWalletConfig(): WalletConfig {
+        return root.wallet ?: throw IllegalStateException("No 'wallet' config")
     }
 
-    fun requireIssuerConfig() : IssuerConfig {
+    fun requireIssuerConfig(): IssuerConfig {
         return root.issuer ?: throw IllegalStateException("No 'issuer' config")
     }
 
-    fun requireOAuthConfig() : OAuthConfig {
-        return root.oauth ?: throw IllegalStateException("No 'oauth' config")
+    fun requireAuthConfig(): AuthConfig {
+        return root.auth ?: throw IllegalStateException("No 'auth' config")
     }
 
-    fun requireServerConfig() : ServerConfig {
+    fun requireServerConfig(): ServerConfig {
         return root.server ?: throw IllegalStateException("No 'server' config")
     }
 
-    fun requireServiceConfig() : ServiceConfig {
+    fun requireServiceConfig(): ServiceConfig {
         return root.service ?: throw IllegalStateException("No 'service' config")
     }
 }
@@ -51,9 +50,9 @@ data class RootConfig(
     val server: ServerConfig?,
     val tls: TlsConfig?,
     val issuer: IssuerConfig?,
-    val holder: HolderConfig?,
+    val wallet: WalletConfig?,
     val verifier: VerifierConfig?,
-    val oauth: OAuthConfig?,
+    val auth: AuthConfig?,
     val service: ServiceConfig?,
     val database: DatabaseConfig?,
 )
@@ -79,7 +78,7 @@ data class IssuerConfig(
 )
 
 @Serializable
-data class HolderConfig(
+data class WalletConfig(
     val userEmail: String,
     val userPassword: String,
 )
@@ -90,7 +89,7 @@ data class VerifierConfig(
 )
 
 @Serializable
-data class OAuthConfig(
+data class AuthConfig(
     val dummy: String?
 )
 
@@ -106,7 +105,6 @@ data class ServiceConfig(
 @Serializable
 data class DatabaseConfig(
     val jdbcUrl: String,
-    val driverClassName: String,
     val username: String,
     val password: String,
 )
