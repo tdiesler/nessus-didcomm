@@ -11,8 +11,9 @@ class AuthActionsTest : AbstractActionsTest() {
     fun authMetadata() {
         
         val ctx = userLogin(Max)
+        
         val metadataUrl = AuthActions.getAuthMetadataUrl(ctx)
-        metadataUrl.shouldEndWith("/auth/.well-known/openid-configuration")
+        metadataUrl.shouldEndWith("/auth/${ctx.subjectId}/.well-known/openid-configuration")
 
         val jsonObj = AuthActions.getAuthMetadata(ctx)
         jsonObj.shouldNotBeNull()

@@ -14,7 +14,7 @@ class IssuerActionsTest : AbstractActionsTest() {
         val ctx = userLogin(Max)
 
         val metadataUrl = IssuerActions.getIssuerMetadataUrl(ctx)
-        metadataUrl.shouldEndWith("/issuer/${ctx.walletId}/.well-known/openid-credential-issuer")
+        metadataUrl.shouldEndWith("/issuer/${ctx.subjectId}/.well-known/openid-credential-issuer")
 
         val jsonObj = IssuerActions.getIssuerMetadata(ctx).toJSON()
         jsonObj["credentials_supported"].shouldNotBeNull().jsonArray
