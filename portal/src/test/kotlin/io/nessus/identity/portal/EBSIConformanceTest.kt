@@ -1,8 +1,9 @@
 package io.nessus.identity.portal
 
 import io.kotest.matchers.booleans.shouldBeTrue
-import io.kotest.matchers.shouldBe
+import io.ktor.server.engine.EmbeddedServer
 import io.nessus.identity.service.ConfigProvider
+import io.nessus.identity.service.LoginContext
 import io.nessus.identity.service.Max
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
@@ -11,12 +12,13 @@ import org.junit.jupiter.api.TestInstance
 import org.openqa.selenium.By
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.WebDriver
+import org.openqa.selenium.WebElement
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
 import org.openqa.selenium.support.ui.WebDriverWait
+import java.net.URI
 import java.net.URLEncoder
 import java.time.Duration
-import kotlin.test.Ignore
 
 /**
  * brew install --cask google-chrome
@@ -25,7 +27,8 @@ import kotlin.test.Ignore
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class EBSIConformanceTest : AbstractActionsTest() {
 
-    private lateinit var driver: WebDriver
+    lateinit var embeddedServer: EmbeddedServer<*, *>
+    lateinit var driver: WebDriver
 
     @BeforeAll
     fun setup() {
@@ -35,25 +38,147 @@ class EBSIConformanceTest : AbstractActionsTest() {
         }
         driver = ChromeDriver(options)
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10))
+
+        embeddedServer = PortalServer().createServer()
+        embeddedServer.start(wait = false)
+
+        prepareHolderTests()
     }
 
     @AfterAll
     fun tearDown() {
         driver.quit()
+        embeddedServer.stop(3000, 10000)
+    }
+
+    fun nextStep(millis: Long = 1000) {
+        Thread.sleep(millis)
     }
 
     @Test
-    @Ignore
     fun testCTWalletSameAuthorisedInTime() {
+
+        val wait = WebDriverWait(driver, Duration.ofSeconds(10))
+        val ctx = userLogin(Max)
+
+        // Click the collapsible element
+        driver.findElement(By.id("inTime-credential-same-device")).click()
+        nextStep()
+
+        // Click the "Initiate" link
+        val mainTab = driver.windowHandle
+        val ctType = "CTWalletSameAuthorisedInTime"
+        val xpath = By.xpath("//a[contains(@href, 'credential_type=$ctType')]")
+        fixupInitiateHref(ctx, driver.findElement(xpath)).click()
+        nextStep()
+
+        // Wait for the new window to open and switch to it
+        wait.until { driver.windowHandles.size > 1 }
+        val newTab = driver.windowHandles.first { it != mainTab }
+        driver.switchTo().window(newTab)
+        nextStep()
+
+        val credentialJson = driver.findElement(By.tagName("pre")).text
+        log.info { "Credential: $credentialJson" }
+
+        // Switch back to the original tab
+        driver.switchTo().window(mainTab)
+        log.info { "Switched back to main tab" }
+        nextStep()
+
+        val ctId = "ct_wallet_same_authorised_in_time"
+        val checkbox = driver.findElement(By.id(ctId))
+        checkbox.findElement(By.xpath("following-sibling::button[contains(text(), 'Validate')]")).click()
+        nextStep()
+
+        val resultLabel = checkbox.findElement(By.xpath("following-sibling::label[@for='$ctId']/span[1]"))
+        val resultText = resultLabel.text
+        log.info { "$ctType Validation: $resultText" }
+        nextStep()
+
+        checkbox.isSelected.shouldBeTrue()
+    }
+
+    @Test
+    fun testCTWalletSameAuthorisedDeferred() {
+
+        val wait = WebDriverWait(driver, Duration.ofSeconds(10))
+        val ctx = userLogin(Max)
+
+        // Click the collapsible element
+        driver.findElement(By.id("deferred-credential-same-device")).click()
+        nextStep()
+
+        // Click the "Initiate" link
+        val mainTab = driver.windowHandle
+        val ctType = "CTWalletSameAuthorisedDeferred"
+        val xpath = By.xpath("//a[contains(@href, 'credential_type=$ctType')]")
+        fixupInitiateHref(ctx, driver.findElement(xpath)).click()
+        nextStep()
+
+        // Wait for the new window to open and switch to it
+        wait.until { driver.windowHandles.size > 1 }
+        val newTab = driver.windowHandles.first { it != mainTab }
+        driver.switchTo().window(newTab)
+        nextStep()
+
+        val credentialJson = driver.findElement(By.tagName("pre")).text
+        log.info { "Deferred Credential: $credentialJson" }
+
+        // Switch back to the original tab
+        driver.switchTo().window(mainTab)
+        log.info { "Switched back to main tab" }
+        nextStep()
+
+        // Find the Validate checkbox + button
+        val ctId = "ct_wallet_same_authorised_deferred"
+        val checkbox = driver.findElement(By.id(ctId))
+        checkbox.findElement(By.xpath("following-sibling::button[contains(text(), 'Validate')]")).click()
+        nextStep()
+
+        val resultLabel = checkbox.findElement(By.xpath("following-sibling::label[@for='$ctId']/span[1]"))
+        val resultText = resultLabel.text
+        log.info { "$ctType Validation: $resultText" }
+        nextStep()
+
+        checkbox.isSelected.shouldBeTrue()
+    }
+
+    private fun fixupInitiateHref(ctx: LoginContext, link: WebElement): WebElement {
+
+        val walletUri = walletUri(ctx)
+        var initiateHref = link.getAttribute("href") as String
+        log.info { "Initiate href: $initiateHref" }
+
+        val uri = URI(initiateHref)
+        val queryParams = urlQueryToMap(initiateHref).toMutableMap()
+        val encodedWalletUri = URLEncoder.encode(walletUri, "UTF-8")
+
+        if (queryParams["credential_offer_endpoint"] != encodedWalletUri) {
+            queryParams["credential_offer_endpoint"] = encodedWalletUri
+
+            val updatedQuery = queryParams.entries.joinToString("&") { (k, v) -> "$k=$v" }
+            initiateHref = "${uri.scheme}://${uri.authority}${uri.path}?$updatedQuery"
+
+            log.info { "Overriding with: $initiateHref" }
+
+            (driver as JavascriptExecutor).executeScript(
+                "arguments[0].setAttribute('href', arguments[1])",
+                link, initiateHref
+            )
+        }
+        return link
+    }
+
+    // Click "Continue" button
+//        driver.findElement(By.xpath("//button[@type='button'][.//span[text()='Continue']]")).click()
+//        nextStep()
+
+    private fun prepareHolderTests(): LoginContext {
 
         val ctx = userLogin(Max)
         ctx.hasDidInfo.shouldBeTrue()
 
-        fun nextStep(millis: Long = 1000) {
-            Thread.sleep(millis)
-        }
-
-        val wait = WebDriverWait(driver, Duration.ofSeconds(10))
         driver.get("https://hub.ebsi.eu/wallet-conformance")
         nextStep()
 
@@ -75,9 +200,8 @@ class EBSIConformanceTest : AbstractActionsTest() {
         nextStep()
 
         // Enter the walletUri
-        val walletUri = "${ConfigProvider.walletEndpointUri}/${ctx.subjectId}"
-        driver.findElement(By.name("credential_offer_endpoint")).sendKeys(walletUri)
-        log.info { "WalletUri: $walletUri" }
+        driver.findElement(By.name("credential_offer_endpoint")).sendKeys(walletUri(ctx))
+        log.info { "WalletUri: ${walletUri(ctx)}" }
         nextStep()
 
         // Click "Continue" button
@@ -88,60 +212,13 @@ class EBSIConformanceTest : AbstractActionsTest() {
         driver.findElement(By.xpath("//button[text()='No']")).click()
         nextStep()
 
-        // Click the collapsible element
-        driver.findElement(By.id("inTime-credential-same-device")).click()
-        nextStep()
+        return ctx
+    }
 
-        // Click the "Initiate" link
-        val mainTab = driver.windowHandle
-        val credentialType = "CTWalletSameAuthorisedInTime"
-        val link = driver.findElement(By.xpath("//a[contains(@href, 'credential_type=$credentialType')]"))
-        var initiateHref = link.getAttribute("href") as String
-        log.info { "Initiate href: $initiateHref" }
-        if (!initiateHref.contains("credential_offer_endpoint=$walletUri")) {
-            initiateHref = buildString {
-                append("https://api-conformance.ebsi.eu/conformance/v3/issuer-mock/initiate-credential-offer?")
-                append("credential_type=$credentialType")
-                append("&client_id=${URLEncoder.encode(ctx.did, "UTF-8")}")
-                append("&credential_offer_endpoint=${URLEncoder.encode(walletUri, "UTF-8")}")
-            }
-            log.info { "Overriding with: $initiateHref" }
-            // Patch the link’s href
-            (driver as JavascriptExecutor).executeScript(
-                "arguments[0].setAttribute('href', arguments[1])",
-                link, initiateHref
-            )
-        }
-        link.click()
-        nextStep()
-
-        // Wait for the new window to open and switch to it
-        wait.until { driver.windowHandles.size > 1 }
-        val newTab = driver.windowHandles.first { it != mainTab }
-        driver.switchTo().window(newTab)
-        nextStep()
-
-        val credentialJson = driver.findElement(By.tagName("pre")).text
-        log.info { "Credential: $credentialJson" }
-
-        // Switch back to the original tab
-        driver.switchTo().window(mainTab)
-        log.info { "Switched back to main tab" }
-        nextStep()
-
-        // Click the Validate button
-        driver.findElement(By.xpath("//button[normalize-space()='Validate']")).click()
-        log.info { "Clicked Validate" }
-        nextStep()
-
-        val resultLabel = driver.findElement(By.xpath("//label[@for='ct_wallet_same_authorised_in_time']/span[1]"))
-        val resultText = resultLabel.text
-        log.info { "Validation result: $resultText" }
-
-        resultText shouldBe "Yes"
-
-        // Click "Continue" button
-//        driver.findElement(By.xpath("//button[@type='button'][.//span[text()='Continue']]")).click()
-//        nextStep()
+    private fun walletUri(ctx: LoginContext): String {
+        val walletUri = "${ConfigProvider.walletEndpointUri}/${ctx.subjectId}"
+        return walletUri
     }
 }
+
+// <div class="flex"><input readonly="" class="ToggleCheckbox_inyI" id="ct_wallet_same_authorised_deferred" type="checkbox" name="ct_wallet_same_authorised_deferred"><label class="ToggleLabelWrapper_s6ZH" for="ct_wallet_same_authorised_deferred"><span class="ToggleLabel_vKzB">Yes</span><span class="ToggleButton_V9yk"></span></label><button type="submit" class="margin-left--md button_IrwC secondary-pink_S34Z sm_eNAM">Validate</button></div>

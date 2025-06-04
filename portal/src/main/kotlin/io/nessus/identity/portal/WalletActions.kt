@@ -17,7 +17,6 @@ import id.walt.oid4vc.requests.AuthorizationRequest
 import id.walt.oid4vc.responses.CredentialResponse
 import id.walt.oid4vc.responses.TokenResponse
 import id.walt.oid4vc.util.http
-import id.walt.webwallet.db.models.WalletCredentialCategoryMap.credential
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -25,12 +24,11 @@ import io.ktor.http.*
 import io.nessus.identity.service.ConfigProvider.authEndpointUri
 import io.nessus.identity.service.ServiceProvider.walletService
 import io.nessus.identity.service.authenticationId
-import kotlinx.serialization.Serializable
+import jdk.javadoc.internal.doclets.formats.html.markup.HtmlStyle
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.Base64
@@ -148,10 +146,6 @@ object WalletActions {
 
     suspend fun sendCredentialRequest(cex: CredentialExchange, tokenResponse: TokenResponse): CredentialResponse {
 
-        // The Relying Party proceeds by requesting issuance of the Verifiable Credential from the Issuer Mock.
-        // The requested Credential must match the granted access. The DID document's authentication key must be used for signing the JWT proof,
-        // where the DID must also match the one used for authentication.
-
         val accessToken = tokenResponse.accessToken
             ?: throw IllegalStateException("No accessToken")
         val cNonce = tokenResponse.cNonce
@@ -215,6 +209,36 @@ object WalletActions {
         log.info { "Credential Response: $credJson" }
 
         val credRes = Json.decodeFromString<CredentialResponse>(credJson)
+
+        // In-Time CredentialResponses MUST have a 'format'
+        if (credRes.format != null) {
+            val credJwt = credRes.toSignedJWT()
+            log.info { "Credential Header: ${credJwt.header}" }
+            log.info { "Credential Claims: ${credJwt.jwtClaimsSet}" }
+        }
+
+        cex.credResponse = credRes
+        return credRes
+    }
+
+    suspend fun sendDeferredCredentialRequest(cex: CredentialExchange, acceptanceToken: String): CredentialResponse {
+
+        val deferredCredentialEndpoint = cex.issuerMetadata.deferredCredentialEndpoint
+            ?: throw IllegalStateException("No credential_endpoint")
+
+        log.info { "Send Deferred Credential Request: $deferredCredentialEndpoint" }
+
+        val res = http.post(deferredCredentialEndpoint) {
+            header(HttpHeaders.Authorization, "Bearer $acceptanceToken")
+        }
+        if (res.status != HttpStatusCode.OK)
+            throw HttpStatusException(res.status, res.bodyAsText())
+
+        val credJson = res.bodyAsText()
+        log.info { "Deferred Credential Response: $credJson" }
+
+        val credRes = Json.decodeFromString<CredentialResponse>(credJson)
+
         val credJwt = credRes.toSignedJWT()
         log.info { "Credential Header: ${credJwt.header}" }
         log.info { "Credential Claims: ${credJwt.jwtClaimsSet}" }

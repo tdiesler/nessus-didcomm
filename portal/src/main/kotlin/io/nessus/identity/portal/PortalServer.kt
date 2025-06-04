@@ -7,6 +7,7 @@ import id.walt.oid4vc.requests.CredentialRequest
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.engine.*
 import io.ktor.server.freemarker.FreeMarker
@@ -37,7 +38,8 @@ import kotlin.collections.component1
 import kotlin.collections.component2
 
 fun main() {
-    PortalServer().runServer()
+    val server = PortalServer().createServer()
+    server.start(wait = true)
 }
 
 class HttpStatusException(val status: HttpStatusCode, override val message: String) : RuntimeException(message) {
@@ -61,31 +63,34 @@ class PortalServer {
         log.info { "DatabaseConfig: ${Json.encodeToString(databaseConfig)}" }
     }
 
-    fun runServer() {
-        embeddedServer(Netty, configure = {
+    fun createServer(): EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration> {
+
+        fun configure(): NettyApplicationEngine.Configuration.() -> Unit = {
             val srv = ConfigProvider.requireServerConfig()
-            ConfigProvider.root.tls?.also { tls ->
-                if (tls.enabled) {
-                    val keystorePassword = tls.keystorePassword.toCharArray()
-                    val keyStore = KeyStore.getInstance("PKCS12").apply {
-                        load(File(tls.keystoreFile).inputStream(), keystorePassword)
-                    }
-                    sslConnector(
-                        keyStore, tls.keyAlias,
-                        { keystorePassword }, // Must both match -passout
-                        { keystorePassword }
-                    ) {
-                        this.host = srv.host
-                        this.port = srv.port
-                    }
+
+            val tls = ConfigProvider.root.tls
+            if (tls?.enabled == true) {
+                val keystorePassword = tls.keystorePassword.toCharArray()
+                val keyStore = KeyStore.getInstance("PKCS12").apply {
+                    load(File(tls.keystoreFile).inputStream(), keystorePassword)
                 }
-            } ?: run {
+                sslConnector(
+                    keyStore, tls.keyAlias,
+                    { keystorePassword }, // Must both match -passout
+                    { keystorePassword }
+                ) {
+                    host = srv.host
+                    port = srv.port
+                }
+            } else {
                 connector {
-                    this.host = srv.host
-                    this.port = srv.port
+                    host = srv.host
+                    port = srv.port
                 }
             }
-        }) {
+        }
+
+        fun module(): Application.() -> Unit = {
             install(ContentNegotiation) {
                 json()
             }
@@ -140,7 +145,9 @@ class PortalServer {
                     }
                 }
             }
-        }.start(wait = true)
+        }
+
+        return embeddedServer(Netty, configure = configure(), module = module())
     }
 
     suspend fun handleHome(call: RoutingCall) {
@@ -466,8 +473,25 @@ class PortalServer {
         val tokenResponse = AuthActions.sendTokenRequest(cex, authCode)
         val credResponse = WalletActions.sendCredentialRequest(cex, tokenResponse)
 
-        val credJwt = credResponse.toSignedJWT()
-        WalletActions.addCredentialToWallet(cex, credResponse)
+        // In-Time CredentialResponses MUST have a 'format'
+        var credJwt: SignedJWT? = null
+        if (credResponse.format != null) {
+            credJwt = credResponse.toSignedJWT()
+        }
+
+        // Deferred CredentialResponses have an 'acceptance_token'
+        else if (credResponse.acceptanceToken != null) {
+            // The credential will be available with a delay of 5 seconds from the first Credential Request.
+            Thread.sleep(5500)
+            val acceptanceToken = credResponse.acceptanceToken as String
+            val deferredCredResponse = WalletActions.sendDeferredCredentialRequest(cex, acceptanceToken)
+            credJwt = deferredCredResponse.toSignedJWT()
+        }
+
+        if (credJwt == null)
+            throw IllegalStateException("No Credential JWT")
+
+        WalletActions.addCredentialToWallet(cex, cex.credResponse)
 
         call.respondText(
             status = HttpStatusCode.Accepted,
