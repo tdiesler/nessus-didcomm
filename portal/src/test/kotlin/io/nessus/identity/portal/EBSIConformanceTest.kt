@@ -144,6 +144,51 @@ class EBSIConformanceTest : AbstractActionsTest() {
         checkbox.isSelected.shouldBeTrue()
     }
 
+    @Test
+    fun testCTWalletSamePreAuthorisedInTime() {
+
+        val wait = WebDriverWait(driver, Duration.ofSeconds(10))
+        val ctx = userLogin(Max)
+
+        // Click the collapsible element
+        driver.findElement(By.id("pre-auth-in-time-credential-same-device")).click()
+        nextStep()
+
+        // Click the "Initiate" link
+        val mainTab = driver.windowHandle
+        val ctType = "CTWalletSamePreAuthorisedInTime"
+        val xpath = By.xpath("//a[contains(@href, 'credential_type=$ctType')]")
+        fixupInitiateHref(ctx, driver.findElement(xpath)).click()
+        nextStep()
+
+        // Wait for the new window to open and switch to it
+        wait.until { driver.windowHandles.size > 1 }
+        val newTab = driver.windowHandles.first { it != mainTab }
+        driver.switchTo().window(newTab)
+        nextStep()
+
+        val credentialJson = driver.findElement(By.tagName("pre")).text
+        log.info { "PreAuthorised Credential: $credentialJson" }
+
+        // Switch back to the original tab
+        driver.switchTo().window(mainTab)
+        log.info { "Switched back to main tab" }
+        nextStep()
+
+        // Find the Validate checkbox + button
+        val ctId = "ct_wallet_same_pre_authorised_in_time"
+        val checkbox = driver.findElement(By.id(ctId))
+        checkbox.findElement(By.xpath("following-sibling::button[contains(text(), 'Validate')]")).click()
+        nextStep()
+
+        val resultLabel = checkbox.findElement(By.xpath("following-sibling::label[@for='$ctId']/span[1]"))
+        val resultText = resultLabel.text
+        log.info { "$ctType Validation: $resultText" }
+        nextStep()
+
+        checkbox.isSelected.shouldBeTrue()
+    }
+
     private fun fixupInitiateHref(ctx: LoginContext, link: WebElement): WebElement {
 
         val walletUri = walletUri(ctx)

@@ -7,6 +7,7 @@ import com.nimbusds.jose.util.JSONObjectUtils
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
 import id.walt.oid4vc.OpenID4VCI
+import id.walt.oid4vc.data.GrantDetails
 import id.walt.oid4vc.data.GrantType
 import id.walt.oid4vc.data.dif.InputDescriptor
 import id.walt.oid4vc.data.dif.InputDescriptorConstraints
@@ -180,7 +181,7 @@ object AuthActions {
 
         cex.authCode = "${Uuid.random()}"
 
-        val authReq = cex.authRequest
+        val authReq = cex.requireAuthorizationRequest()
         val idTokenRedirect = URLBuilder("${authReq.redirectUri}").apply {
             parameters.append("code", cex.authCode)
             authReq.state?.also { state ->
@@ -210,7 +211,7 @@ object AuthActions {
 
         cex.authCode = "${Uuid.random()}"
 
-        val authReq = cex.authRequest
+        val authReq = cex.requireAuthorizationRequest()
         val vpTokenRedirect = URLBuilder("${authReq.redirectUri}").apply {
             parameters.append("code", cex.authCode)
             authReq.state?.also { state ->
@@ -244,7 +245,7 @@ object AuthActions {
         //
         if (grantType != GrantType.authorization_code)
             throw IllegalArgumentException("Invalid grant_type: $grantType")
-        if (clientId != cex.authRequest.clientId)
+        if (clientId != cex.authRequest?.clientId)
             throw IllegalArgumentException("Invalid client_id: $clientId")
 
         // [TODO] verify token request code challenge
@@ -257,7 +258,7 @@ object AuthActions {
         val exp = iat.plusSeconds(expiresIn)
 
         val nonce = "${Uuid.random()}"
-        val authorizationDetails = cex.authRequest.authorizationDetails?.map { it.toJSON() }
+        val authorizationDetails = cex.authRequest?.authorizationDetails?.map { it.toJSON() }
 
         val tokenHeader = JWSHeader.Builder(JWSAlgorithm.ES256)
             .type(JOSEObjectType.JWT)
@@ -266,7 +267,7 @@ object AuthActions {
 
         val tokenClaims = JWTClaimsSet.Builder()
             .issuer(cex.issuerMetadata.credentialIssuer)
-            .subject(cex.authRequest.clientId)
+            .subject(cex.authRequest?.clientId)
             .issueTime(Date.from(iat))
             .expirationTime(Date.from(exp))
             .claim("nonce", nonce)
@@ -455,15 +456,50 @@ object AuthActions {
 
     suspend fun sendTokenRequest(cex: CredentialExchange, authCode: String): TokenResponse {
 
-        val codeVerifier = cex.authRequestCodeVerifier
         val tokenReqUrl = "${cex.authorizationEndpoint}/token"
 
-        val formData = mapOf(
+        val formData = mutableMapOf(
             "grant_type" to "authorization_code",
             "client_id" to cex.didInfo.did,
             "code" to authCode,
-            "code_verifier" to codeVerifier,
-            "redirect_uri" to cex.authRequest.redirectUri!!,
+        )
+        cex.authRequest?.redirectUri?.also {
+            formData["redirect_uri"] = it
+        }
+        cex.authRequestCodeVerifier?.also {
+            formData["code_verifier"] = it
+        }
+
+        WalletActions.log.info { "Send Token Request $tokenReqUrl" }
+        WalletActions.log.info { "  $formData" }
+
+        val res = http.post(tokenReqUrl) {
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody(FormDataContent(Parameters.build {
+                formData.forEach { (k, v) -> append(k, v) }
+            }))
+        }
+
+        if (res.status != HttpStatusCode.OK)
+            throw HttpStatusException(res.status, res.bodyAsText())
+
+        val tokenResponseJson = res.bodyAsText()
+        WalletActions.log.info { "Token Response: $tokenResponseJson" }
+
+        val tokenResponse = TokenResponse.fromJSONString(tokenResponseJson).also {
+            cex.accessToken = SignedJWT.parse(it.accessToken)
+        }
+        return tokenResponse
+    }
+
+    suspend fun sendPreAuthorizedTokenRequest(cex: CredentialExchange, grant: GrantDetails): TokenResponse? {
+
+        val tokenReqUrl = "${cex.authorizationEndpoint}/token"
+
+        val formData = mapOf(
+            "grant_type" to "urn:ietf:params:oauth:grant-type:pre-authorized_code",
+            "pre-authorized_code" to grant.preAuthorizedCode as String,
+            "user_pin" to "5797", // [TODO] replace with actual PIN
         )
 
         WalletActions.log.info { "Send Token Request $tokenReqUrl" }
@@ -576,4 +612,5 @@ object AuthActions {
         """.trimIndent()
         ).jsonObject
     }
+
 }

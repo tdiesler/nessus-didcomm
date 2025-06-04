@@ -47,8 +47,8 @@ object IssuerActions {
         val exp = iat.plusSeconds(expiresIn)
 
         val id = "vc:nessus:conformance#${Uuid.random()}"
-        val sub = cex.authRequest.clientId
         val kid = cex.didInfo.authenticationId()
+        val sub = cex.did
 
         val credentialJson = """
             {

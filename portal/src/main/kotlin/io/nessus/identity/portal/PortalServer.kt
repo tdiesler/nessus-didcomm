@@ -468,9 +468,13 @@ class PortalServer {
 
         val credOffer = WalletActions.fetchCredentialOfferFromUri(oid4vcOfferUri)
         val offeredCred = WalletActions.resolveOfferedCredentials(cex, credOffer)
-        val authRequest = WalletActions.authorizationRequestFromCredentialOffer(cex, offeredCred)
-        val authCode = WalletActions.sendAuthorizationRequest(cex, authRequest)
-        val tokenResponse = AuthActions.sendTokenRequest(cex, authCode)
+        val tokenResponse = credOffer.getPreAuthorizedGrantDetails()?.let {
+            AuthActions.sendPreAuthorizedTokenRequest(cex, it)
+        } ?: run {
+            val authRequest = WalletActions.authorizationRequestFromCredentialOffer(cex, offeredCred)
+            val authCode = WalletActions.sendAuthorizationRequest(cex, authRequest)
+            AuthActions.sendTokenRequest(cex, authCode)
+        }
         val credResponse = WalletActions.sendCredentialRequest(cex, tokenResponse)
 
         // In-Time CredentialResponses MUST have a 'format'
@@ -559,4 +563,3 @@ class PortalServer {
         }
     }
 }
-
