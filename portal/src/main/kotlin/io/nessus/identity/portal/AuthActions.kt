@@ -232,7 +232,10 @@ object AuthActions {
     }
 
     @OptIn(ExperimentalUuidApi::class)
-    suspend fun handleTokenRequestAuthCode(cex: CredentialExchange, tokReq: TokenRequest.AuthorizationCode): TokenResponse {
+    suspend fun handleTokenRequestAuthCode(
+        cex: CredentialExchange,
+        tokReq: TokenRequest.AuthorizationCode
+    ): TokenResponse {
 
         val grantType = tokReq.grantType
         val codeVerifier = tokReq.codeVerifier
@@ -250,18 +253,47 @@ object AuthActions {
         return tokenResponse
     }
 
-    suspend fun handleTokenRequestPreAuthorized(cex: CredentialExchange, tokReq: TokenRequest.PreAuthorizedCode): TokenResponse {
+    suspend fun handleTokenRequestPreAuthorized(
+        cex: CredentialExchange,
+        tokReq: TokenRequest.PreAuthorizedCode
+    ): TokenResponse {
+
         // [TODO] Externalize pre-authorization code mapping
+        val ebsiClientId =
+            "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9Kboj7g9PfXJxbbs4KYegyr7ELnFVnpDMzbJJDDNZjavX6jvtDmALMbXAGW67pdTgFea2FrGGSFs8Ejxi96oFLGHcL4P6bjLDPBJEvRRHSrG4LsPne52fczt2MWjHLLJBvhAC"
         val preAuthorisedCodeToClientId = mapOf(
             "CTWalletSamePreAuthorisedInTime" to AuthorizationRequest(
-                clientId = "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9Kboj7g9PfXJxbbs4KYegyr7ELnFVnpDMzbJJDDNZjavX6jvtDmALMbXAGW67pdTgFea2FrGGSFs8Ejxi96oFLGHcL4P6bjLDPBJEvRRHSrG4LsPne52fczt2MWjHLLJBvhAC",
-                authorizationDetails = listOf(AuthorizationDetails(
-                    format = CredentialFormat.jwt_vc,
-                    types = listOf("VerifiableCredential","VerifiableAttestation","CTWalletSamePreAuthorisedInTime")
-                ))),
+                clientId = ebsiClientId,
+                authorizationDetails = listOf(
+                    AuthorizationDetails(
+                        format = CredentialFormat.jwt_vc,
+                        types = listOf(
+                            "VerifiableCredential",
+                            "VerifiableAttestation",
+                            "CTWalletSamePreAuthorisedInTime"
+                        )
+                    )
+                )
+            ),
+            "CTWalletSamePreAuthorisedDeferred" to AuthorizationRequest(
+                clientId = ebsiClientId,
+                authorizationDetails = listOf(
+                    AuthorizationDetails(
+                        format = CredentialFormat.jwt_vc,
+                        types = listOf(
+                            "VerifiableCredential",
+                            "VerifiableAttestation",
+                            "CTWalletSamePreAuthorisedDeferred"
+                        )
+                    )
+                )
+            ),
         )
+
         cex.issuerMetadata = IssuerActions.getIssuerMetadata(cex)
-        cex.authRequest = preAuthorisedCodeToClientId[tokReq.preAuthorizedCode] ?: throw IllegalStateException("No client_id mapping for: ${tokReq.preAuthorizedCode}")
+        cex.authRequest = preAuthorisedCodeToClientId[tokReq.preAuthorizedCode]
+            ?: throw IllegalStateException("No client_id mapping for: ${tokReq.preAuthorizedCode}")
+
         val tokenResponse = buildTokenResponse(cex)
         return tokenResponse
     }
@@ -438,7 +470,7 @@ object AuthActions {
         val res = http.post(tokenReqUrl) {
             contentType(ContentType.Application.FormUrlEncoded)
             setBody(FormDataContent(Parameters.build {
-                formData.forEach { (k, lst) -> lst.forEach { v -> append(k, v) }}
+                formData.forEach { (k, lst) -> lst.forEach { v -> append(k, v) } }
             }))
         }
 
@@ -470,7 +502,7 @@ object AuthActions {
         val res = http.post(tokenReqUrl) {
             contentType(ContentType.Application.FormUrlEncoded)
             setBody(FormDataContent(Parameters.build {
-                formData.forEach { (k, lst) -> lst.forEach { v -> append(k, v) }}
+                formData.forEach { (k, lst) -> lst.forEach { v -> append(k, v) } }
             }))
         }
 
@@ -490,7 +522,8 @@ object AuthActions {
 
     private fun buildAuthEndpointMetadata(ctx: LoginContext): JsonObject {
         val baseUrl = "$authEndpointUri/${ctx.subjectId}"
-        return Json.parseToJsonElement("""
+        return Json.parseToJsonElement(
+            """
             {
               "authorization_endpoint": "$baseUrl/authorize",
               "grant_types_supported": [
