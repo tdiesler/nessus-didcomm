@@ -2,6 +2,8 @@ package io.nessus.identity.portal
 
 import id.walt.oid4vc.data.CredentialOffer
 import id.walt.oid4vc.data.GrantDetails
+import id.walt.oid4vc.data.OpenIDProviderMetadata
+import io.kotest.common.runBlocking
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.collections.shouldNotBeEmpty
@@ -10,9 +12,11 @@ import io.kotest.matchers.maps.shouldHaveSize
 import io.kotest.matchers.maps.shouldNotBeEmpty
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldEndWith
 import io.kotest.matchers.string.shouldNotBeBlank
 import io.nessus.identity.service.Max
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.Test
@@ -66,5 +70,14 @@ class WalletActionsTest : AbstractActionsTest() {
         val grant = credOffer.grants["urn:ietf:params:oauth:grant-type:pre-authorized_code"] as GrantDetails
         grant.preAuthorizedCode.shouldNotBeBlank()
         grant.userPinRequired shouldBe true
+    }
+
+    @Test
+    fun resolveOpenIDProviderMetadata() {
+
+        val metadata: OpenIDProviderMetadata = runBlocking {
+            WalletActions.resolveOpenIDProviderMetadata("https://api-conformance.ebsi.eu/conformance/v3/issuer-mock")
+        }
+        metadata.shouldNotBeNull()
     }
 }

@@ -52,7 +52,7 @@ object AuthActions {
     }
 
     /**
-     * Handle AuthorizationRequest currently from Holder Wallet to Issuer's Auth Endpoint
+     * Handle AuthorizationRequest from remote Holder to this Issuer's Auth Endpoint
      */
     suspend fun handleAuthorizationRequest(cex: CredentialExchange, authReq: AuthorizationRequest): String {
 
@@ -181,7 +181,7 @@ object AuthActions {
 
         cex.authCode = "${Uuid.random()}"
 
-        val authReq = cex.requireAuthorizationRequest()
+        val authReq = cex.authRequest
         val idTokenRedirect = URLBuilder("${authReq.redirectUri}").apply {
             parameters.append("code", cex.authCode)
             authReq.state?.also { state ->
@@ -211,7 +211,7 @@ object AuthActions {
 
         cex.authCode = "${Uuid.random()}"
 
-        val authReq = cex.requireAuthorizationRequest()
+        val authReq = cex.authRequest
         val vpTokenRedirect = URLBuilder("${authReq.redirectUri}").apply {
             parameters.append("code", cex.authCode)
             authReq.state?.also { state ->
@@ -245,7 +245,7 @@ object AuthActions {
         //
         if (grantType != GrantType.authorization_code)
             throw IllegalArgumentException("Invalid grant_type: $grantType")
-        if (clientId != cex.authRequest?.clientId)
+        if (clientId != cex.authRequest.clientId)
             throw IllegalArgumentException("Invalid client_id: $clientId")
 
         // [TODO] verify token request code challenge
@@ -258,7 +258,7 @@ object AuthActions {
         val exp = iat.plusSeconds(expiresIn)
 
         val nonce = "${Uuid.random()}"
-        val authorizationDetails = cex.authRequest?.authorizationDetails?.map { it.toJSON() }
+        val authorizationDetails = cex.authRequest.authorizationDetails?.map { it.toJSON() }
 
         val tokenHeader = JWSHeader.Builder(JWSAlgorithm.ES256)
             .type(JOSEObjectType.JWT)
@@ -267,7 +267,7 @@ object AuthActions {
 
         val tokenClaims = JWTClaimsSet.Builder()
             .issuer(cex.issuerMetadata.credentialIssuer)
-            .subject(cex.authRequest?.clientId)
+            .subject(clientId)
             .issueTime(Date.from(iat))
             .expirationTime(Date.from(exp))
             .claim("nonce", nonce)
@@ -463,7 +463,7 @@ object AuthActions {
             "client_id" to cex.didInfo.did,
             "code" to authCode,
         )
-        cex.authRequest?.redirectUri?.also {
+        cex.maybeAuthRequest?.redirectUri?.also {
             formData["redirect_uri"] = it
         }
         cex.authRequestCodeVerifier?.also {

@@ -11,7 +11,8 @@ import java.time.Instant
 
 class CredentialExchange(ctx: LoginContext) : LoginContext(ctx.authToken, ctx.walletInfo, ctx.didInfo) {
 
-    // Required before access state
+    // State that is required before access
+    //
     lateinit var issuerMetadata: OpenIDProviderMetadata
 
     lateinit var authCode: String
@@ -22,9 +23,14 @@ class CredentialExchange(ctx: LoginContext) : LoginContext(ctx.authToken, ctx.wa
 
     lateinit var credResponse: CredentialResponse
 
-    // Optional state
-    var authRequest: AuthorizationRequest? = null
+    // State that may optionally be provided
+    //
+    var maybeAuthRequest: AuthorizationRequest? = null
     var authRequestCodeVerifier: String? = null
+
+    var authRequest: AuthorizationRequest
+        get() = maybeAuthRequest ?: throw IllegalStateException("No AuthorizationRequest")
+        set(ar) { maybeAuthRequest = ar }
 
     val authorizationEndpoint
         get() = (issuerMetadata as? OpenIDProviderMetadata.Draft11)?.authorizationServer
@@ -53,10 +59,6 @@ class CredentialExchange(ctx: LoginContext) : LoginContext(ctx.authToken, ctx.wa
     override fun close() {
         registry.remove(subjectId)
         super.close()
-    }
-
-    fun requireAuthorizationRequest() : AuthorizationRequest {
-        return authRequest ?: throw IllegalStateException("No AuthorizationRequest")
     }
 
     fun validateBearerToken(bearerToken: SignedJWT) {

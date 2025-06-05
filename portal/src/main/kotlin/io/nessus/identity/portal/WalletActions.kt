@@ -10,7 +10,6 @@ import id.walt.oid4vc.OpenID4VCI.parseCredentialOfferRequestUrl
 import id.walt.oid4vc.data.AuthorizationDetails
 import id.walt.oid4vc.data.CredentialFormat
 import id.walt.oid4vc.data.CredentialOffer
-import id.walt.oid4vc.data.CredentialOfferSerializer
 import id.walt.oid4vc.data.GrantType
 import id.walt.oid4vc.data.OfferedCredential
 import id.walt.oid4vc.data.OpenIDClientMetadata
@@ -28,10 +27,8 @@ import io.nessus.identity.service.ServiceProvider.walletService
 import io.nessus.identity.service.authenticationId
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
-import org.openqa.selenium.internal.Require.state
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.Base64
@@ -41,6 +38,12 @@ import kotlin.random.Random
 object WalletActions {
 
     val log = KotlinLogging.logger {}
+
+    fun addCredentialToWallet(cex: CredentialExchange, credRes: CredentialResponse): String {
+        val walletId = cex.walletInfo.id
+        val format = credRes.format as CredentialFormat
+        return walletService.addCredential(walletId, format, credRes.toSignedJWT())
+    }
 
     suspend fun fetchCredentialOfferFromUri(offerUri: String): CredentialOffer {
         val offer = parseAndResolveCredentialOfferRequestUrl(offerUri)
@@ -115,6 +118,13 @@ object WalletActions {
         return authRequest
     }
 
+    suspend fun resolveOpenIDProviderMetadata(issuerUrl: String): OpenIDProviderMetadata {
+        val issuerMetadataUrl = "$issuerUrl/.well-known/openid-credential-issuer"
+        return http.get(issuerMetadataUrl).bodyAsText().let {
+            OpenIDProviderMetadata.fromJSONString(it)
+        }
+    }
+
     suspend fun sendAuthorizationRequest(cex: CredentialExchange, authRequest: AuthorizationRequest): String {
 
         val authReqUrl = URLBuilder("${cex.authorizationEndpoint}/authorize").apply {
@@ -163,7 +173,7 @@ object WalletActions {
             .expirationTime(Date.from(exp))
             .claim("nonce", cNonce)
 
-        cex.authRequest?.state?.also {
+        cex.maybeAuthRequest?.state?.also {
             claimsBuilder.claim("state", it)
         }
 
@@ -237,16 +247,9 @@ object WalletActions {
         return credRes
     }
 
-    fun addCredentialToWallet(cex: CredentialExchange, credRes: CredentialResponse): String {
-        val walletId = cex.walletInfo.id
-        val format = credRes.format as CredentialFormat
-        return walletService.addCredential(walletId, format, credRes.toSignedJWT())
-    }
-
     // Private ---------------------------------------------------------------------------------------------------------
 
-    // [TODO] Remove the trust_framework hack from parseAndResolveCredentialOfferRequestUrl
-    // Cannot create CredentialOffer from json
+    // [TODO] Cannot create CredentialOffer from json
     // https://github.com/walt-id/waltid-identity/issues/1104
     private suspend fun parseAndResolveCredentialOfferRequestUrl(offerUri: String): CredentialOffer {
         val credOfferRequest = parseCredentialOfferRequestUrl(offerUri)
@@ -258,15 +261,5 @@ object WalletActions {
         return credOffer
     }
 
-    // [TODO] Remove the trust_framework hack from resolveOpenIDProviderMetadata
-    // Cannot resolve EBSI issuer metadata
-    // https://github.com/walt-id/waltid-identity/issues/1065
-    private suspend fun resolveOpenIDProviderMetadata(issuerUrl: String): OpenIDProviderMetadata {
-        val issuerMetadataUrl = "$issuerUrl/.well-known/openid-credential-issuer"
-        return http.get(issuerMetadataUrl).bodyAsText().let {
-            val reducedJson = removeKeyRecursive(it, "trust_framework")
-            OpenIDProviderMetadata.fromJSONString(reducedJson)
-        }
-    }
 }
 
