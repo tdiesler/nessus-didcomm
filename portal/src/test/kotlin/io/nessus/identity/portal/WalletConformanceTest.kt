@@ -1,8 +1,6 @@
 package io.nessus.identity.portal
 
 import io.kotest.matchers.booleans.shouldBeTrue
-import io.ktor.server.engine.EmbeddedServer
-import io.nessus.identity.service.ConfigProvider
 import io.nessus.identity.service.LoginContext
 import io.nessus.identity.service.Max
 import org.junit.jupiter.api.AfterAll
@@ -11,48 +9,24 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.openqa.selenium.By
 import org.openqa.selenium.JavascriptExecutor
-import org.openqa.selenium.WebDriver
 import org.openqa.selenium.WebElement
-import org.openqa.selenium.chrome.ChromeDriver
-import org.openqa.selenium.chrome.ChromeOptions
 import org.openqa.selenium.support.ui.WebDriverWait
 import java.net.URI
 import java.net.URLEncoder
 import java.time.Duration
 
-/**
- * brew install --cask google-chrome
- * brew install chromedriver
- */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class EBSIConformanceTest : AbstractActionsTest() {
-
-    lateinit var embeddedServer: EmbeddedServer<*, *>
-    lateinit var driver: WebDriver
+class WalletConformanceTest : AbstractConformanceTest() {
 
     @BeforeAll
     fun setup() {
-        System.setProperty("webdriver.chrome.driver", "/opt/homebrew/bin/chromedriver")
-        val options = ChromeOptions().apply {
-            addArguments("--headless=new")
-        }
-        driver = ChromeDriver(options)
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10))
-
-        embeddedServer = PortalServer().createServer()
-        embeddedServer.start(wait = false)
-
+        startPortalServer()
         prepareHolderTests()
     }
 
     @AfterAll
     fun tearDown() {
-        driver.quit()
-        embeddedServer.stop(3000, 10000)
-    }
-
-    fun nextStep(millis: Long = 1000) {
-        Thread.sleep(millis)
+        stopPortalServer()
     }
 
     @Test
@@ -238,7 +212,7 @@ class EBSIConformanceTest : AbstractActionsTest() {
 
     private fun fixupInitiateHref(ctx: LoginContext, link: WebElement): WebElement {
 
-        val walletUri = walletUri(ctx)
+        val walletUri = walletEndpointUri(ctx)
         var initiateHref = link.getAttribute("href") as String
         log.info { "Initiate href: $initiateHref" }
 
@@ -261,10 +235,6 @@ class EBSIConformanceTest : AbstractActionsTest() {
         }
         return link
     }
-
-    // Click "Continue" button
-//        driver.findElement(By.xpath("//button[@type='button'][.//span[text()='Continue']]")).click()
-//        nextStep()
 
     private fun prepareHolderTests(): LoginContext {
 
@@ -292,8 +262,8 @@ class EBSIConformanceTest : AbstractActionsTest() {
         nextStep()
 
         // Enter the walletUri
-        driver.findElement(By.name("credential_offer_endpoint")).sendKeys(walletUri(ctx))
-        log.info { "WalletUri: ${walletUri(ctx)}" }
+        driver.findElement(By.name("credential_offer_endpoint")).sendKeys(walletEndpointUri(ctx))
+        log.info { "WalletUri: ${walletEndpointUri(ctx)}" }
         nextStep()
 
         // Click "Continue" button
@@ -306,11 +276,4 @@ class EBSIConformanceTest : AbstractActionsTest() {
 
         return ctx
     }
-
-    private fun walletUri(ctx: LoginContext): String {
-        val walletUri = "${ConfigProvider.walletEndpointUri}/${ctx.subjectId}"
-        return walletUri
-    }
 }
-
-// <div class="flex"><input readonly="" class="ToggleCheckbox_inyI" id="ct_wallet_same_authorised_deferred" type="checkbox" name="ct_wallet_same_authorised_deferred"><label class="ToggleLabelWrapper_s6ZH" for="ct_wallet_same_authorised_deferred"><span class="ToggleLabel_vKzB">Yes</span><span class="ToggleButton_V9yk"></span></label><button type="submit" class="margin-left--md button_IrwC secondary-pink_S34Z sm_eNAM">Validate</button></div>

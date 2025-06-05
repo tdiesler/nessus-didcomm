@@ -24,6 +24,7 @@ import io.nessus.identity.service.authenticationId
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import java.time.Instant
+import java.util.stream.Collectors.toSet
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -48,7 +49,11 @@ object IssuerActions {
 
         val id = "vc:nessus:conformance#${Uuid.random()}"
         val kid = cex.didInfo.authenticationId()
-        val sub = cex.did
+        val sub = cex.authRequest.clientId
+        val types = cex.authRequest.authorizationDetails
+            ?.flatMap { it.types.orEmpty() }
+            ?.map { "\"$it\"" }
+            ?.toSet()
 
         val credentialJson = """
             {
@@ -75,11 +80,7 @@ object IssuerActions {
                 "issuanceDate": "$iat",
                 "validFrom": "$iat",
                 "expirationDate": "$exp",
-                "type": [
-                  "VerifiableCredential",
-                  "VerifiableAttestation",
-                  "CTWalletSameAuthorisedInTime"
-                ]
+                "type": $types
               }
             }            
         """.trimIndent()
@@ -113,10 +114,17 @@ object IssuerActions {
     private fun buildIssuerMetadata(ctx: LoginContext): OpenIDProviderMetadata {
         val baseUri = "$issuerEndpointUri/${ctx.subjectId}"
         val oauthUri = "$authEndpointUri/${ctx.subjectId}"
-        val supported = CredentialSupported(
-            format = CredentialFormat.jwt_vc,
-            display = listOf(DisplayProperties(locale = "en-GB", name = "CTWalletSameAuthorisedInTime")),
-            types = listOf("VerifiableCredential", "VerifiableAttestation", "CTWalletSameAuthorisedInTime")
+        val credentialSupported = mapOf(
+            "CTWalletSameAuthorisedInTime" to CredentialSupported(
+                format = CredentialFormat.jwt_vc,
+                display = listOf(DisplayProperties(locale = "en-GB", name = "CTWalletSameAuthorisedInTime")),
+                types = listOf("VerifiableCredential", "VerifiableAttestation", "CTWalletSameAuthorisedInTime")
+            ),
+            "CTWalletSameAuthorisedDeferred" to CredentialSupported(
+                format = CredentialFormat.jwt_vc,
+                display = listOf(DisplayProperties(locale = "en-GB", name = "CTWalletSameAuthorisedDeferred")),
+                types = listOf("VerifiableCredential", "VerifiableAttestation", "CTWalletSameAuthorisedDeferred")
+            ),
         )
         return OpenIDProviderMetadata.Draft11(
             issuer = baseUri,
@@ -139,7 +147,7 @@ object IssuerActions {
             ),
             idTokenSigningAlgValuesSupported = setOf("ES256"),
             codeChallengeMethodsSupported = listOf("S256"),
-            credentialSupported = mapOf("0" to supported),
+            credentialSupported = credentialSupported,
         )
     }
 

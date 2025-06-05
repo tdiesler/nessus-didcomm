@@ -267,7 +267,7 @@ object AuthActions {
 
         val tokenClaims = JWTClaimsSet.Builder()
             .issuer(cex.issuerMetadata.credentialIssuer)
-            .subject(clientId)
+            .subject(cex.authRequest.clientId)
             .issueTime(Date.from(iat))
             .expirationTime(Date.from(exp))
             .claim("nonce", nonce)
