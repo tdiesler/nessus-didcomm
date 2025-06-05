@@ -125,6 +125,16 @@ object IssuerActions {
                 display = listOf(DisplayProperties(locale = "en-GB", name = "CTWalletSameAuthorisedDeferred")),
                 types = listOf("VerifiableCredential", "VerifiableAttestation", "CTWalletSameAuthorisedDeferred")
             ),
+            "CTWalletSamePreAuthorisedInTime" to CredentialSupported(
+                format = CredentialFormat.jwt_vc,
+                display = listOf(DisplayProperties(locale = "en-GB", name = "CTWalletSamePreAuthorisedInTime")),
+                types = listOf("VerifiableCredential", "VerifiableAttestation", "CTWalletSamePreAuthorisedInTime")
+            ),
+            "CTWalletSamePreAuthorisedDeferred" to CredentialSupported(
+                format = CredentialFormat.jwt_vc,
+                display = listOf(DisplayProperties(locale = "en-GB", name = "CTWalletSamePreAuthorisedDeferred")),
+                types = listOf("VerifiableCredential", "VerifiableAttestation", "CTWalletSamePreAuthorisedDeferred")
+            ),
         )
         return OpenIDProviderMetadata.Draft11(
             issuer = baseUri,

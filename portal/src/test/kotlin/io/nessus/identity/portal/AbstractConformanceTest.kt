@@ -33,7 +33,7 @@ open class AbstractConformanceTest : AbstractActionsTest() {
 
     fun stopPortalServer() {
         driver.quit()
-        embeddedServer.stop(3000, 10000)
+        embeddedServer.stop(3000, 3000)
     }
 
     fun nextStep(millis: Long = 1000) {

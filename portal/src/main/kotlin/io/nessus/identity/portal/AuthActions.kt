@@ -7,14 +7,16 @@ import com.nimbusds.jose.util.JSONObjectUtils
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
 import id.walt.oid4vc.OpenID4VCI
+import id.walt.oid4vc.data.AuthorizationDetails
+import id.walt.oid4vc.data.CredentialFormat
 import id.walt.oid4vc.data.GrantDetails
-import id.walt.oid4vc.data.GrantType
 import id.walt.oid4vc.data.dif.InputDescriptor
 import id.walt.oid4vc.data.dif.InputDescriptorConstraints
 import id.walt.oid4vc.data.dif.InputDescriptorField
 import id.walt.oid4vc.data.dif.PresentationDefinition
 import id.walt.oid4vc.data.dif.VCFormatDefinition
 import id.walt.oid4vc.requests.AuthorizationRequest
+import id.walt.oid4vc.requests.TokenRequest
 import id.walt.oid4vc.responses.TokenResponse
 import id.walt.oid4vc.util.http
 import id.walt.w3c.utils.VCFormat
@@ -34,6 +36,8 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.time.Instant
 import java.util.Date
+import kotlin.collections.component1
+import kotlin.collections.component2
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -47,7 +51,7 @@ object AuthActions {
     }
 
     fun getAuthMetadata(ctx: LoginContext): JsonObject {
-        val metadata = buildOAuthMetadata(ctx)
+        val metadata = buildAuthEndpointMetadata(ctx)
         return metadata
     }
 
@@ -228,77 +232,37 @@ object AuthActions {
     }
 
     @OptIn(ExperimentalUuidApi::class)
-    suspend fun handleTokenRequest(cex: CredentialExchange, postParams: Map<String, List<String>>): TokenResponse {
+    suspend fun handleTokenRequestAuthCode(cex: CredentialExchange, tokReq: TokenRequest.AuthorizationCode): TokenResponse {
 
-        // Verify required post params
-        for (key in listOf("client_id", "code", "code_verifier", "grant_type", "redirect_uri")) {
-            postParams[key] ?: throw IllegalStateException("Cannot find $key")
-        }
-
-        val grantType = GrantType.fromValue(postParams["grant_type"]!!.first())
-        val clientId = postParams["client_id"]!!.first()
-        val code = postParams["code"]!!.first()
-        val codeVerifier = postParams["code_verifier"]!!.first()
-        val redirectUri = postParams["redirect_uri"]!!.first()
+        val grantType = tokReq.grantType
+        val codeVerifier = tokReq.codeVerifier
+        val redirectUri = tokReq.redirectUri
+        val code = tokReq.code
 
         // Verify token request
         //
-        if (grantType != GrantType.authorization_code)
-            throw IllegalArgumentException("Invalid grant_type: $grantType")
-        if (clientId != cex.authRequest.clientId)
-            throw IllegalArgumentException("Invalid client_id: $clientId")
+        if (tokReq.clientId != cex.authRequest.clientId)
+            throw IllegalArgumentException("Invalid client_id: ${tokReq.clientId}")
 
         // [TODO] verify token request code challenge
 
-        val keyJwk = cex.didInfo.publicKeyJwk()
-        val kid = keyJwk["kid"]?.jsonPrimitive?.content as String
+        val tokenResponse = buildTokenResponse(cex)
+        return tokenResponse
+    }
 
-        val iat = Instant.now()
-        val expiresIn: Long = 86400
-        val exp = iat.plusSeconds(expiresIn)
-
-        val nonce = "${Uuid.random()}"
-        val authorizationDetails = cex.authRequest.authorizationDetails?.map { it.toJSON() }
-
-        val tokenHeader = JWSHeader.Builder(JWSAlgorithm.ES256)
-            .type(JOSEObjectType.JWT)
-            .keyID(kid)
-            .build()
-
-        val tokenClaims = JWTClaimsSet.Builder()
-            .issuer(cex.issuerMetadata.credentialIssuer)
-            .subject(cex.authRequest.clientId)
-            .issueTime(Date.from(iat))
-            .expirationTime(Date.from(exp))
-            .claim("nonce", nonce)
-            .claim("authorization_details", authorizationDetails)
-            .build()
-
-        val rawTokenJwt = SignedJWT(tokenHeader, tokenClaims)
-        log.info { "Token Header: ${rawTokenJwt.header}" }
-        log.info { "Token Claims: ${rawTokenJwt.jwtClaimsSet}" }
-
-        val signingInput = Json.encodeToString(createFlattenedJwsJson(tokenHeader, tokenClaims))
-        val signedEncoded = walletService.signWithKey(kid, signingInput)
-        val accessToken = SignedJWT.parse(signedEncoded)
-
-        if (!verifyJwt(accessToken, cex.didInfo))
-            throw IllegalStateException("AccessToken signature verification failed")
-
-        val tokenRespJson = """
-            {
-              "access_token": "$signedEncoded",
-              "token_type": "bearer",
-              "expires_in": $expiresIn,
-              "c_nonce": "$nonce",
-              "c_nonce_expires_in": $expiresIn
-            }            
-        """.trimIndent()
-
-        val tokenResponse = TokenResponse.fromJSONString(tokenRespJson).also {
-            cex.accessToken = accessToken
-        }
-        log.info { "Token Response: ${Json.encodeToString(tokenResponse)}" }
+    suspend fun handleTokenRequestPreAuthorized(cex: CredentialExchange, tokReq: TokenRequest.PreAuthorizedCode): TokenResponse {
+        // [TODO] Externalize pre-authorization code mapping
+        val preAuthorisedCodeToClientId = mapOf(
+            "CTWalletSamePreAuthorisedInTime" to AuthorizationRequest(
+                clientId = "did:key:z2dmzD81cgPx8Vki7JbuuMmFYrWPgYoytykUZ3eyqht1j9Kboj7g9PfXJxbbs4KYegyr7ELnFVnpDMzbJJDDNZjavX6jvtDmALMbXAGW67pdTgFea2FrGGSFs8Ejxi96oFLGHcL4P6bjLDPBJEvRRHSrG4LsPne52fczt2MWjHLLJBvhAC",
+                authorizationDetails = listOf(AuthorizationDetails(
+                    format = CredentialFormat.jwt_vc,
+                    types = listOf("VerifiableCredential","VerifiableAttestation","CTWalletSamePreAuthorisedInTime")
+                ))),
+        )
+        cex.issuerMetadata = IssuerActions.getIssuerMetadata(cex)
+        cex.authRequest = preAuthorisedCodeToClientId[tokReq.preAuthorizedCode] ?: throw IllegalStateException("No client_id mapping for: ${tokReq.preAuthorizedCode}")
+        val tokenResponse = buildTokenResponse(cex)
         return tokenResponse
     }
 
@@ -390,10 +354,12 @@ object AuthActions {
                     fields = listOf(
                         InputDescriptorField(
                             path = listOf("$.vc.type"),
-                            filter = Json.parseToJsonElement("""{
+                            filter = Json.parseToJsonElement(
+                                """{
                                 "type": "array",
                                 "contains": { "const": "VerifiableAttestation" }
-                            }""".trimIndent()).jsonObject
+                            }""".trimIndent()
+                            ).jsonObject
                         )
                     ),
                 ),
@@ -454,29 +420,25 @@ object AuthActions {
         return vpTokenRedirectUrl
     }
 
-    suspend fun sendTokenRequest(cex: CredentialExchange, authCode: String): TokenResponse {
+    suspend fun sendTokenRequestAuthCode(cex: CredentialExchange, authCode: String): TokenResponse {
 
         val tokenReqUrl = "${cex.authorizationEndpoint}/token"
 
-        val formData = mutableMapOf(
-            "grant_type" to "authorization_code",
-            "client_id" to cex.didInfo.did,
-            "code" to authCode,
+        val tokenRequest = TokenRequest.AuthorizationCode(
+            clientId = cex.didInfo.did,
+            redirectUri = cex.authRequest.redirectUri,
+            codeVerifier = cex.authRequestCodeVerifier,
+            code = authCode,
         )
-        cex.maybeAuthRequest?.redirectUri?.also {
-            formData["redirect_uri"] = it
-        }
-        cex.authRequestCodeVerifier?.also {
-            formData["code_verifier"] = it
-        }
+        val formData = tokenRequest.toHttpParameters()
 
         WalletActions.log.info { "Send Token Request $tokenReqUrl" }
-        WalletActions.log.info { "  $formData" }
+        WalletActions.log.info { "  ${Json.encodeToString(tokenRequest)}" }
 
         val res = http.post(tokenReqUrl) {
             contentType(ContentType.Application.FormUrlEncoded)
             setBody(FormDataContent(Parameters.build {
-                formData.forEach { (k, v) -> append(k, v) }
+                formData.forEach { (k, lst) -> lst.forEach { v -> append(k, v) }}
             }))
         }
 
@@ -492,23 +454,23 @@ object AuthActions {
         return tokenResponse
     }
 
-    suspend fun sendPreAuthorizedTokenRequest(cex: CredentialExchange, grant: GrantDetails): TokenResponse? {
+    suspend fun sendTokenRequestPreAuthorized(cex: CredentialExchange, grant: GrantDetails): TokenResponse? {
 
         val tokenReqUrl = "${cex.authorizationEndpoint}/token"
 
-        val formData = mapOf(
-            "grant_type" to "urn:ietf:params:oauth:grant-type:pre-authorized_code",
-            "pre-authorized_code" to grant.preAuthorizedCode as String,
-            "user_pin" to "5797", // [TODO] replace with actual PIN
+        val tokenRequest = TokenRequest.PreAuthorizedCode(
+            preAuthorizedCode = grant.preAuthorizedCode as String,
+            userPIN = "5797", // [TODO] replace with actual PIN
         )
+        val formData = tokenRequest.toHttpParameters()
 
         WalletActions.log.info { "Send Token Request $tokenReqUrl" }
-        WalletActions.log.info { "  $formData" }
+        WalletActions.log.info { "  ${Json.encodeToString(tokenRequest)}" }
 
         val res = http.post(tokenReqUrl) {
             contentType(ContentType.Application.FormUrlEncoded)
             setBody(FormDataContent(Parameters.build {
-                formData.forEach { (k, v) -> append(k, v) }
+                formData.forEach { (k, lst) -> lst.forEach { v -> append(k, v) }}
             }))
         }
 
@@ -526,10 +488,9 @@ object AuthActions {
 
     // Private ---------------------------------------------------------------------------------------------------------
 
-    private fun buildOAuthMetadata(ctx: LoginContext): JsonObject {
+    private fun buildAuthEndpointMetadata(ctx: LoginContext): JsonObject {
         val baseUrl = "$authEndpointUri/${ctx.subjectId}"
-        return Json.parseToJsonElement(
-            """
+        return Json.parseToJsonElement("""
             {
               "authorization_endpoint": "$baseUrl/authorize",
               "grant_types_supported": [
@@ -613,4 +574,62 @@ object AuthActions {
         ).jsonObject
     }
 
+    @OptIn(ExperimentalUuidApi::class)
+    private suspend fun buildTokenResponse(cex: CredentialExchange): TokenResponse {
+        val keyJwk = cex.didInfo.publicKeyJwk()
+        val kid = keyJwk["kid"]?.jsonPrimitive?.content as String
+
+        val iat = Instant.now()
+        val expiresIn: Long = 86400
+        val exp = iat.plusSeconds(expiresIn)
+
+        val nonce = "${Uuid.random()}"
+
+        val tokenHeader = JWSHeader.Builder(JWSAlgorithm.ES256)
+            .type(JOSEObjectType.JWT)
+            .keyID(kid)
+            .build()
+
+        val claimsBuilder = JWTClaimsSet.Builder()
+            .issuer(cex.issuerMetadata.credentialIssuer)
+            .issueTime(Date.from(iat))
+            .expirationTime(Date.from(exp))
+            .claim("nonce", nonce)
+
+        cex.maybeAuthRequest?.clientId?.also {
+            claimsBuilder.subject(it)
+        }
+        cex.maybeAuthRequest?.authorizationDetails?.also {
+            val authorizationDetails: List<JsonObject> = it.map { ad -> ad.toJSON() }
+            claimsBuilder.claim("authorization_details", authorizationDetails)
+        }
+        val tokenClaims = claimsBuilder.build()
+
+        val rawTokenJwt = SignedJWT(tokenHeader, tokenClaims)
+        log.info { "Token Header: ${rawTokenJwt.header}" }
+        log.info { "Token Claims: ${rawTokenJwt.jwtClaimsSet}" }
+
+        val signingInput = Json.encodeToString(createFlattenedJwsJson(tokenHeader, tokenClaims))
+        val signedEncoded = walletService.signWithKey(kid, signingInput)
+        val accessToken = SignedJWT.parse(signedEncoded)
+
+        if (!verifyJwt(accessToken, cex.didInfo))
+            throw IllegalStateException("AccessToken signature verification failed")
+
+        val tokenRespJson = """
+            {
+              "access_token": "$signedEncoded",
+              "token_type": "bearer",
+              "expires_in": $expiresIn,
+              "c_nonce": "$nonce",
+              "c_nonce_expires_in": $expiresIn
+            }            
+        """.trimIndent()
+
+        val tokenResponse = TokenResponse.fromJSONString(tokenRespJson).also {
+            cex.accessToken = accessToken
+        }
+        log.info { "Token Response: ${Json.encodeToString(tokenResponse)}" }
+        return tokenResponse
+    }
 }

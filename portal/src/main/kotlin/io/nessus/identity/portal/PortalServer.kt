@@ -4,6 +4,7 @@ import com.nimbusds.jwt.SignedJWT
 import freemarker.cache.ClassTemplateLoader
 import id.walt.oid4vc.requests.AuthorizationRequest
 import id.walt.oid4vc.requests.CredentialRequest
+import id.walt.oid4vc.requests.TokenRequest
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -239,8 +240,7 @@ class PortalServer {
         // token
         //
         if (path == "/auth/$subId/token") {
-            val cex = requireCredentialExchange(subId)
-            return handleAuthTokenRequest(call, cex)
+            return handleAuthTokenRequest(call, subId)
         }
 
         // Callback as part of the Authorization Request
@@ -434,13 +434,23 @@ class PortalServer {
     /**
      * Client requests an Access Token
      */
-    private suspend fun handleAuthTokenRequest(call: RoutingCall, cex: CredentialExchange) {
+    private suspend fun handleAuthTokenRequest(call: RoutingCall, subId: String) {
 
         val postParams = call.receiveParameters().toMap()
         log.info { "Token Request: ${call.request.uri}" }
         postParams.forEach { (k, lst) -> lst.forEach { v -> log.info { "  $k=$v" } } }
 
-        val tokenResponse = AuthActions.handleTokenRequest(cex, postParams)
+        val tokenRequest = TokenRequest.fromHttpParameters(postParams)
+        val tokenResponse = when (tokenRequest) {
+            is TokenRequest.AuthorizationCode -> {
+                val cex = requireCredentialExchange(subId)
+                AuthActions.handleTokenRequestAuthCode(cex, tokenRequest)
+            }
+            is TokenRequest.PreAuthorizedCode -> {
+                val cex = CredentialExchange(requireLoginContext(subId))
+                AuthActions.handleTokenRequestPreAuthorized(cex, tokenRequest)
+            }
+        }
 
         call.respondText(
             status = HttpStatusCode.OK,
@@ -469,11 +479,11 @@ class PortalServer {
         val credOffer = WalletActions.fetchCredentialOfferFromUri(oid4vcOfferUri)
         val offeredCred = WalletActions.resolveOfferedCredentials(cex, credOffer)
         val tokenResponse = credOffer.getPreAuthorizedGrantDetails()?.let {
-            AuthActions.sendPreAuthorizedTokenRequest(cex, it)
+            AuthActions.sendTokenRequestPreAuthorized(cex, it)
         } ?: run {
             val authRequest = WalletActions.authorizationRequestFromCredentialOffer(cex, offeredCred)
             val authCode = WalletActions.sendAuthorizationRequest(cex, authRequest)
-            AuthActions.sendTokenRequest(cex, authCode)
+            AuthActions.sendTokenRequestAuthCode(cex, authCode)
         }
         val credResponse = WalletActions.sendCredentialRequest(cex, tokenResponse)
 

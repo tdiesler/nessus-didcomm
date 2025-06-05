@@ -97,6 +97,52 @@ class IssuerConformanceTest : AbstractConformanceTest() {
         validateCheck.isSelected.shouldBeTrue()
     }
 
+    @Test
+    fun testCTWalletSamePreAuthorisedInTime() {
+
+        // Click the collapsible element
+        driver.findElement(By.id("pre-auth-in-time-credential")).click()
+        nextStep()
+
+        val ctType = "CTWalletSamePreAuthorisedInTime"
+        val userPin = "5797"
+
+        // Enter the did:key
+        driver.findElement(By.name("userPinInTime")).sendKeys(userPin)
+        log.info { "UserPIN: $userPin" }
+        nextStep()
+
+        // Enter the issuerUri
+        driver.findElement(By.name("preAuthorizedCodeInTime")).sendKeys(ctType)
+        log.info { "PreAuthorized Code: $ctType" }
+        nextStep()
+
+        // Find Initiate CheckBox
+        val initiateId = "issue_to_holder_initiate_ct_wallet_same_pre_authorised_in_time"
+        val initiateCheck = driver.findElement(By.id(initiateId))
+        nextStep()
+
+        // Click the "Initiate" link
+        initiateCheck.findElement(By.xpath("following-sibling::button[text()='Initiate']")).click()
+        nextStep()
+
+        // Find Validate CheckBox
+        val validateId = "issue_to_holder_validate_ct_wallet_same_pre_authorised_in_time"
+        val validateCheck = driver.findElement(By.id(validateId))
+        nextStep()
+
+        // Click the "Validate" link
+        validateCheck.findElement(By.xpath("following-sibling::button[text()='Validate']")).click()
+        nextStep()
+
+        val resultLabel = validateCheck.findElement(By.xpath("following-sibling::label[@for='$validateId']/span[1]"))
+        val resultText = resultLabel.text
+        log.info { "$ctType Validation: $resultText" }
+        nextStep()
+
+        validateCheck.isSelected.shouldBeTrue()
+    }
+
     // Private ---------------------------------------------------------------------------------------------------------
 
     private fun prepareIssuerTests(): LoginContext {
