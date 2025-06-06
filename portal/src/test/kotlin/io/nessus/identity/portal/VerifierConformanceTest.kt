@@ -56,6 +56,17 @@ class VerifierConformanceTest : AbstractConformanceTest() {
         validateResult.shouldBeTrue()
     }
 
+    @Test
+    fun testRevokedCredentialInPresentation() {
+
+        // Click the "Validate" link
+        val validateId = "verifier_vp_revoked_vc"
+        val validateResult = awaitCheckboxResult(validateId, "Validate")
+        log.info { "Validate: " + if (validateResult) "Yes" else "No" }
+
+        validateResult.shouldBeTrue()
+    }
+
     // Private ---------------------------------------------------------------------------------------------------------
 
     private fun prepareVerifierTests(): LoginContext {

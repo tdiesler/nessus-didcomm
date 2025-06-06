@@ -257,6 +257,7 @@ object AuthActions {
         }
 
         if (validationError == null) {
+            cex.authCode = "${Uuid.random()}"
             urlBuilder.parameters.append("code", cex.authCode)
         }
         if (authReq.state != null) {
@@ -711,6 +712,14 @@ object AuthActions {
         val claims = vcJwt.jwtClaimsSet
         val id = claims.getClaim("vc").toJsonElement()
             .jsonObject["id"]?.jsonPrimitive?.content ?: throw IllegalArgumentException("No vc.id in: $claims")
+        val credentialStatus = claims.getClaim("vc").toJsonElement()
+            .jsonObject["credentialStatus"]?.jsonObject
+
+        credentialStatus?.also {
+            val statusPurpose = it["statusPurpose"]?.jsonPrimitive?.content
+            if (statusPurpose == "revocation")
+                throw VerificationException(id, "VC '$id' is revoked")
+        }
 
         claims.expirationTime?.also {
             if (it.before(Date()))
