@@ -243,8 +243,8 @@ object AuthActions {
         vcArray?.map { it.jsonPrimitive.content }?.forEach { vcEncoded ->
             val vcJwt = SignedJWT.parse(vcEncoded)
             log.info { "VC Encoded: $vcEncoded" }
-            log.info { "VC Header: ${vcJwt.header}" }
-            log.info { "VC Claims: ${vcJwt.jwtClaimsSet}" }
+            log.info { "   Header: ${vcJwt.header}" }
+            log.info { "   Claims: ${vcJwt.jwtClaimsSet}" }
             runCatching {
                 validateVerifiableCredential(vcJwt)
             }.onFailure {
@@ -713,15 +713,13 @@ object AuthActions {
             .jsonObject["id"]?.jsonPrimitive?.content ?: throw IllegalArgumentException("No vc.id in: $claims")
 
         claims.expirationTime?.also {
-            if (it.before(Date())) {
+            if (it.before(Date()))
                 throw VerificationException(id, "VC '$id' is expired")
-            }
         }
 
         claims.notBeforeTime?.also {
-            if (Date().before(it)) {
-                throw VerificationException(id, "VC '$id' cannot be used before: $it")
-            }
+            if (Date().before(it))
+                throw VerificationException(id, "VC '$id' is not yet valid")
         }
     }
 }
