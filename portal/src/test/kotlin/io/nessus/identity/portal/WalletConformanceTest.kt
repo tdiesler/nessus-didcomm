@@ -60,17 +60,12 @@ class WalletConformanceTest : AbstractConformanceTest() {
         log.info { "Switched back to main tab" }
         nextStep()
 
-        val ctId = "ct_wallet_same_authorised_in_time"
-        val checkbox = driver.findElement(By.id(ctId))
-        checkbox.findElement(By.xpath("following-sibling::button[contains(text(), 'Validate')]")).click()
-        nextStep()
+        // Wait for the "Validate" label to become Yes
+        val checkboxId = "ct_wallet_same_authorised_in_time"
+        val labelResult = awaitCheckboxResult(checkboxId, "Validate")
+        log.info { "Validation: " + if (labelResult) "Yes" else "No" }
 
-        val resultLabel = checkbox.findElement(By.xpath("following-sibling::label[@for='$ctId']/span[1]"))
-        val resultText = resultLabel.text
-        log.info { "$ctType Validation: $resultText" }
-        nextStep()
-
-        checkbox.isSelected.shouldBeTrue()
+        labelResult.shouldBeTrue()
     }
 
     @Test
@@ -104,18 +99,12 @@ class WalletConformanceTest : AbstractConformanceTest() {
         log.info { "Switched back to main tab" }
         nextStep()
 
-        // Find the Validate checkbox + button
-        val ctId = "ct_wallet_same_authorised_deferred"
-        val checkbox = driver.findElement(By.id(ctId))
-        checkbox.findElement(By.xpath("following-sibling::button[contains(text(), 'Validate')]")).click()
-        nextStep()
+        // Wait for the "Validate" label to become Yes
+        val checkboxId = "ct_wallet_same_authorised_deferred"
+        val labelResult = awaitCheckboxResult(checkboxId, "Validate")
+        log.info { "Validation: " + if (labelResult) "Yes" else "No" }
 
-        val resultLabel = checkbox.findElement(By.xpath("following-sibling::label[@for='$ctId']/span[1]"))
-        val resultText = resultLabel.text
-        log.info { "$ctType Validation: $resultText" }
-        nextStep()
-
-        checkbox.isSelected.shouldBeTrue()
+        labelResult.shouldBeTrue()
     }
 
     @Test
@@ -149,18 +138,12 @@ class WalletConformanceTest : AbstractConformanceTest() {
         log.info { "Switched back to main tab" }
         nextStep()
 
-        // Find the Validate checkbox + button
-        val ctId = "ct_wallet_same_pre_authorised_in_time"
-        val checkbox = driver.findElement(By.id(ctId))
-        checkbox.findElement(By.xpath("following-sibling::button[contains(text(), 'Validate')]")).click()
-        nextStep()
+        // Wait for the "Validate" label to become Yes
+        val checkboxId = "ct_wallet_same_pre_authorised_in_time"
+        val labelResult = awaitCheckboxResult(checkboxId, "Validate")
+        log.info { "Validation: " + if (labelResult) "Yes" else "No" }
 
-        val resultLabel = checkbox.findElement(By.xpath("following-sibling::label[@for='$ctId']/span[1]"))
-        val resultText = resultLabel.text
-        log.info { "$ctType Validation: $resultText" }
-        nextStep()
-
-        checkbox.isSelected.shouldBeTrue()
+        labelResult.shouldBeTrue()
     }
 
     @Test
@@ -194,18 +177,12 @@ class WalletConformanceTest : AbstractConformanceTest() {
         log.info { "Switched back to main tab" }
         nextStep()
 
-        // Find the Validate checkbox + button
-        val ctId = "ct_wallet_same_pre_authorised_deferred"
-        val checkbox = driver.findElement(By.id(ctId))
-        checkbox.findElement(By.xpath("following-sibling::button[contains(text(), 'Validate')]")).click()
-        nextStep()
+        // Wait for the "Validate" label to become Yes
+        val checkboxId = "ct_wallet_same_pre_authorised_deferred"
+        val labelResult = awaitCheckboxResult(checkboxId, "Validate")
+        log.info { "Validation: " + if (labelResult) "Yes" else "No" }
 
-        val resultLabel = checkbox.findElement(By.xpath("following-sibling::label[@for='$ctId']/span[1]"))
-        val resultText = resultLabel.text
-        log.info { "$ctType Validation: $resultText" }
-        nextStep()
-
-        checkbox.isSelected.shouldBeTrue()
+        labelResult.shouldBeTrue()
     }
 
     // Private ---------------------------------------------------------------------------------------------------------

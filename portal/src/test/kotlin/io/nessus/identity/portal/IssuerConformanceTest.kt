@@ -8,10 +8,6 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.openqa.selenium.By
-import org.openqa.selenium.JavascriptExecutor
-import org.openqa.selenium.WebElement
-import java.net.URI
-import java.net.URLEncoder
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class IssuerConformanceTest : AbstractConformanceTest() {
@@ -36,30 +32,19 @@ class IssuerConformanceTest : AbstractConformanceTest() {
 
         val ctType = "CTWalletSameAuthorisedInTime"
 
-        // Find Initiate CheckBox
-        val initiateId = "issue_to_holder_initiate_ct_wallet_same_authorised_in_time"
-        val initiateCheck = driver.findElement(By.id(initiateId))
-        nextStep()
-
         // Click the "Initiate" link
-        initiateCheck.findElement(By.xpath("following-sibling::button[text()='Initiate']")).click()
-        nextStep()
+        val initiateId = "issue_to_holder_initiate_ct_wallet_same_authorised_in_time"
+        val initiateResult = awaitCheckboxResult(initiateId, "Initiate")
+        log.info { "$ctType Initiate: " + if (initiateResult) "Yes" else "No" }
 
-        // Find Validate CheckBox
-        val validateId = "issue_to_holder_validate_ct_wallet_same_authorised_in_time"
-        val validateCheck = driver.findElement(By.id(validateId))
-        nextStep()
+        initiateResult.shouldBeTrue()
 
         // Click the "Validate" link
-        validateCheck.findElement(By.xpath("following-sibling::button[text()='Validate']")).click()
-        nextStep()
+        val validateId = "issue_to_holder_validate_ct_wallet_same_authorised_in_time"
+        val validateResult = awaitCheckboxResult(validateId, "Validate")
+        log.info { "$ctType Validate: " + if (validateResult) "Yes" else "No" }
 
-        val resultLabel = validateCheck.findElement(By.xpath("following-sibling::label[@for='$validateId']/span[1]"))
-        val resultText = resultLabel.text
-        log.info { "$ctType Validation: $resultText" }
-        nextStep()
-
-        validateCheck.isSelected.shouldBeTrue()
+        validateResult.shouldBeTrue()
     }
 
     @Test
@@ -71,30 +56,19 @@ class IssuerConformanceTest : AbstractConformanceTest() {
 
         val ctType = "CTWalletSameAuthorisedDeferred"
 
-        // Find Initiate CheckBox
-        val initiateId = "issue_to_holder_initiate_ct_wallet_same_authorised_deferred"
-        val initiateCheck = driver.findElement(By.id(initiateId))
-        nextStep()
-
         // Click the "Initiate" link
-        initiateCheck.findElement(By.xpath("following-sibling::button[text()='Initiate']")).click()
-        nextStep()
+        val initiateId = "issue_to_holder_initiate_ct_wallet_same_authorised_deferred"
+        val initiateResult = awaitCheckboxResult(initiateId, "Initiate")
+        log.info { "$ctType Initiate: " + if (initiateResult) "Yes" else "No" }
 
-        // Find Validate CheckBox
-        val validateId = "issue_to_holder_validate_ct_wallet_same_authorised_deferred"
-        val validateCheck = driver.findElement(By.id(validateId))
-        nextStep()
+        initiateResult.shouldBeTrue()
 
         // Click the "Validate" link
-        validateCheck.findElement(By.xpath("following-sibling::button[text()='Validate']")).click()
-        nextStep()
+        val validateId = "issue_to_holder_validate_ct_wallet_same_authorised_deferred"
+        val validateResult = awaitCheckboxResult(validateId, "Validate")
+        log.info { "$ctType Validate: " + if (validateResult) "Yes" else "No" }
 
-        val resultLabel = validateCheck.findElement(By.xpath("following-sibling::label[@for='$validateId']/span[1]"))
-        val resultText = resultLabel.text
-        log.info { "$ctType Validation: $resultText" }
-        nextStep()
-
-        validateCheck.isSelected.shouldBeTrue()
+        validateResult.shouldBeTrue()
     }
 
     @Test
@@ -117,30 +91,20 @@ class IssuerConformanceTest : AbstractConformanceTest() {
         log.info { "PreAuthorized Code: $ctType" }
         nextStep()
 
-        // Find Initiate CheckBox
-        val initiateId = "issue_to_holder_initiate_ct_wallet_same_pre_authorised_in_time"
-        val initiateCheck = driver.findElement(By.id(initiateId))
-        nextStep()
-
         // Click the "Initiate" link
-        initiateCheck.findElement(By.xpath("following-sibling::button[text()='Initiate']")).click()
-        nextStep()
+        val initiateId = "issue_to_holder_initiate_ct_wallet_same_pre_authorised_in_time"
+        val initiateResult = awaitCheckboxResult(initiateId, "Initiate")
+        log.info { "$ctType Initiate: " + if (initiateResult) "Yes" else "No" }
 
-        // Find Validate CheckBox
-        val validateId = "issue_to_holder_validate_ct_wallet_same_pre_authorised_in_time"
-        val validateCheck = driver.findElement(By.id(validateId))
-        nextStep()
+        initiateResult.shouldBeTrue()
 
         // Click the "Validate" link
-        validateCheck.findElement(By.xpath("following-sibling::button[text()='Validate']")).click()
-        nextStep()
+        val validateId = "issue_to_holder_validate_ct_wallet_same_pre_authorised_in_time"
+        val validateResult = awaitCheckboxResult(validateId, "Validate")
+        log.info { "$ctType Validate: " + if (validateResult) "Yes" else "No" }
 
-        val resultLabel = validateCheck.findElement(By.xpath("following-sibling::label[@for='$validateId']/span[1]"))
-        val resultText = resultLabel.text
-        log.info { "$ctType Validation: $resultText" }
-        nextStep()
+        validateResult.shouldBeTrue()
 
-        validateCheck.isSelected.shouldBeTrue()
     }
 
     @Test
@@ -163,30 +127,19 @@ class IssuerConformanceTest : AbstractConformanceTest() {
         log.info { "PreAuthorized Code: $ctType" }
         nextStep()
 
-        // Find Initiate CheckBox
-        val initiateId = "issue_to_holder_initiate_ct_wallet_same_pre_authorised_deferred"
-        val initiateCheck = driver.findElement(By.id(initiateId))
-        nextStep()
-
         // Click the "Initiate" link
-        initiateCheck.findElement(By.xpath("following-sibling::button[text()='Initiate']")).click()
-        nextStep()
+        val initiateId = "issue_to_holder_initiate_ct_wallet_same_pre_authorised_deferred"
+        val initiateResult = awaitCheckboxResult(initiateId, "Initiate")
+        log.info { "$ctType Initiate: " + if (initiateResult) "Yes" else "No" }
 
-        // Find Validate CheckBox
-        val validateId = "issue_to_holder_validate_ct_wallet_same_pre_authorised_deferred"
-        val validateCheck = driver.findElement(By.id(validateId))
-        nextStep()
+        initiateResult.shouldBeTrue()
 
         // Click the "Validate" link
-        validateCheck.findElement(By.xpath("following-sibling::button[text()='Validate']")).click()
-        nextStep()
+        val validateId = "issue_to_holder_validate_ct_wallet_same_pre_authorised_deferred"
+        val validateResult = awaitCheckboxResult(validateId, "Validate")
+        log.info { "$ctType Validate: " + if (validateResult) "Yes" else "No" }
 
-        val resultLabel = validateCheck.findElement(By.xpath("following-sibling::label[@for='$validateId']/span[1]"))
-        val resultText = resultLabel.text
-        log.info { "$ctType Validation: $resultText" }
-        nextStep()
-
-        validateCheck.isSelected.shouldBeTrue()
+        validateResult.shouldBeTrue()
     }
 
     // Private ---------------------------------------------------------------------------------------------------------

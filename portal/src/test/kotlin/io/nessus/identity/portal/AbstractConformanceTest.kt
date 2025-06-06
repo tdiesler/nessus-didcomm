@@ -4,9 +4,11 @@ import io.ktor.server.engine.*
 import io.nessus.identity.service.ConfigProvider
 import io.nessus.identity.service.LoginContext
 import org.junit.jupiter.api.TestInstance
+import org.openqa.selenium.By
 import org.openqa.selenium.WebDriver
 import org.openqa.selenium.chrome.ChromeDriver
 import org.openqa.selenium.chrome.ChromeOptions
+import org.openqa.selenium.support.ui.WebDriverWait
 import java.time.Duration
 
 /**
@@ -22,7 +24,7 @@ open class AbstractConformanceTest : AbstractActionsTest() {
     fun startPortalServer() {
         System.setProperty("webdriver.chrome.driver", "/opt/homebrew/bin/chromedriver")
         val options = ChromeOptions().apply {
-            addArguments("--headless=new")
+            //addArguments("--headless=new")
         }
         driver = ChromeDriver(options)
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10))
@@ -33,11 +35,16 @@ open class AbstractConformanceTest : AbstractActionsTest() {
 
     fun stopPortalServer() {
         driver.quit()
-        embeddedServer.stop(3000, 3000)
+        embeddedServer.stop(3000, 5000)
     }
 
     fun nextStep(millis: Long = 1000) {
         Thread.sleep(millis)
+    }
+
+    fun authEndpointUri(ctx: LoginContext): String {
+        val authUri = "${ConfigProvider.authEndpointUri}/${ctx.subjectId}"
+        return authUri
     }
 
     fun walletEndpointUri(ctx: LoginContext): String {
@@ -48,5 +55,20 @@ open class AbstractConformanceTest : AbstractActionsTest() {
     fun issuerEndpointUri(ctx: LoginContext): String {
         val issuerUri = "${ConfigProvider.issuerEndpointUri}/${ctx.subjectId}"
         return issuerUri
+    }
+
+    fun awaitCheckboxResult(checkboxId: String, buttonText: String) : Boolean {
+
+        val wait = WebDriverWait(driver, Duration.ofSeconds(10))
+
+        val checkbox = driver.findElement(By.id(checkboxId))
+        checkbox.findElement(By.xpath("following-sibling::button[contains(text(), '$buttonText')]")).click()
+        nextStep()
+
+        val labelResult = wait.until {
+            val label = checkbox.findElement(By.xpath("following-sibling::label[@for='$checkboxId']/span[1]"))
+            label.text == "Yes"
+        }
+        return labelResult
     }
 }

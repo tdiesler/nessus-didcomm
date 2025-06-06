@@ -6,6 +6,7 @@ import com.nimbusds.jose.JWSHeader
 import com.nimbusds.jose.util.JSONObjectUtils
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
+import id.walt.crypto.utils.JsonUtils.toJsonElement
 import id.walt.oid4vc.OpenID4VCI
 import id.walt.oid4vc.data.AuthorizationDetails
 import id.walt.oid4vc.data.CredentialFormat
@@ -32,8 +33,10 @@ import io.nessus.identity.service.authenticationId
 import io.nessus.identity.service.publicKeyJwk
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.openqa.selenium.internal.Require.state
 import java.time.Instant
 import java.util.Date
 import kotlin.collections.component1
@@ -211,24 +214,61 @@ object AuthActions {
         log.info { "VPToken Header: ${vpTokenJwt.header}" }
         log.info { "VPToken Claims: ${vpTokenJwt.jwtClaimsSet}" }
 
-        // [TODO] validate VPToken
-
-        cex.authCode = "${Uuid.random()}"
-
-        val authReq = cex.authRequest
-        val vpTokenRedirect = URLBuilder("${authReq.redirectUri}").apply {
-            parameters.append("code", cex.authCode)
-            authReq.state?.also { state ->
-                parameters.append("state", state)
+        // Validate VPToken
+        //
+        val vpClaims = vpTokenJwt.jwtClaimsSet
+        vpClaims.expirationTime?.also {
+            if (it.before(Date())) {
+                throw IllegalStateException("Token has expired on: $it")
             }
-        }.buildString()
-
-        log.info { "VPToken Response $vpTokenRedirect" }
-        urlQueryToMap(vpTokenRedirect).also {
-            it.forEach { (k, v) -> log.info { "  $k=$v" } }
+        }
+        vpClaims.notBeforeTime?.also {
+            if (Date().before(it)) {
+                throw IllegalStateException("Token cannot be used before: $it")
+            }
         }
 
-        return vpTokenRedirect
+        val authReq = cex.authRequest
+        val urlBuilder = URLBuilder("${authReq.redirectUri}")
+
+        val vcArray = vpClaims.getClaim("vp")
+            .toJsonElement()
+            .jsonObject["verifiableCredential"]
+            ?.jsonArray
+
+        // Validate Credentials
+        //
+        var validationError: Throwable? = null
+        log.info { "VPToken VerifiableCredentials" }
+        vcArray?.map { it.jsonPrimitive.content }?.forEach { vcEncoded ->
+            val vcJwt = SignedJWT.parse(vcEncoded)
+            log.info { "VC Encoded: $vcEncoded" }
+            log.info { "VC Header: ${vcJwt.header}" }
+            log.info { "VC Claims: ${vcJwt.jwtClaimsSet}" }
+            runCatching {
+                validateVerifiableCredential(vcJwt)
+            }.onFailure {
+                validationError = it
+                urlBuilder.apply {
+                    parameters.append("error", "invalid_request")
+                    parameters.append("error_description", "${validationError.message}")
+                }
+            }
+        }
+
+        if (validationError == null) {
+            urlBuilder.parameters.append("code", cex.authCode)
+        }
+        if (authReq.state != null) {
+            urlBuilder.parameters.append("state", "${authReq.state}")
+        }
+
+        val redirectUrl = urlBuilder.buildString()
+        log.info { "VPToken Response $redirectUrl" }
+        urlQueryToMap(redirectUrl).also {
+            it.forEach { (k, v) -> log.info { "  $k=$v" } }
+        }
+        return redirectUrl
     }
 
     @OptIn(ExperimentalUuidApi::class)
@@ -665,4 +705,24 @@ object AuthActions {
         log.info { "Token Response: ${Json.encodeToString(tokenResponse)}" }
         return tokenResponse
     }
+
+    private fun validateVerifiableCredential(vcJwt: SignedJWT) {
+
+        val claims = vcJwt.jwtClaimsSet
+        val id = claims.getClaim("vc").toJsonElement()
+            .jsonObject["id"]?.jsonPrimitive?.content ?: throw IllegalArgumentException("No vc.id in: $claims")
+
+        claims.expirationTime?.also {
+            if (it.before(Date())) {
+                throw VerificationException(id, "VC '$id' is expired")
+            }
+        }
+
+        claims.notBeforeTime?.also {
+            if (Date().before(it)) {
+                throw VerificationException(id, "VC '$id' cannot be used before: $it")
+            }
+        }
+    }
 }
+
