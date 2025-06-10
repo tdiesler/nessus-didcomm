@@ -5,23 +5,23 @@ import freemarker.cache.ClassTemplateLoader
 import id.walt.oid4vc.requests.AuthorizationRequest
 import id.walt.oid4vc.requests.CredentialRequest
 import id.walt.oid4vc.requests.TokenRequest
+import id.walt.oid4vc.responses.TokenResponse
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.install
 import io.ktor.server.engine.*
-import io.ktor.server.freemarker.FreeMarker
-import io.ktor.server.freemarker.FreeMarkerContent
+import io.ktor.server.freemarker.*
 import io.ktor.server.netty.*
+import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.server.sessions.Sessions
-import io.ktor.server.sessions.cookie
-import io.ktor.server.sessions.sessions
+import io.ktor.server.sessions.*
 import io.ktor.util.toMap
 import io.nessus.identity.portal.CredentialExchange.Companion.requireCredentialExchange
 import io.nessus.identity.service.ConfigProvider
@@ -33,10 +33,15 @@ import io.nessus.identity.service.publicKeyJwk
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.slf4j.event.Level
 import java.io.File
 import java.security.KeyStore
-import kotlin.collections.component1
-import kotlin.collections.component2
+import kotlin.text.endsWith
+import kotlin.text.isNotBlank
+import kotlin.text.isNullOrBlank
+import kotlin.text.removePrefix
+import kotlin.text.startsWith
+import kotlin.text.toCharArray
 
 fun main() {
     val server = PortalServer().createServer()
@@ -92,6 +97,15 @@ class PortalServer {
         }
 
         fun module(): Application.() -> Unit = {
+            install(CallLogging) {
+                level = Level.INFO
+                format { call ->
+                    val method = call.request.httpMethod.value
+                    val uri = call.request.uri
+                    val status = call.response.status()?.value
+                    "HTTP $method - $uri - Status: $status"
+                }
+            }
             install(ContentNegotiation) {
                 json()
             }

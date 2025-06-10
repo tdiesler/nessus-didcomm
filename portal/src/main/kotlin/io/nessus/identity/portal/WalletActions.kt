@@ -135,8 +135,9 @@ object WalletActions {
         authRequest.toHttpParameters().forEach { (k, lst) -> lst.forEach { v -> log.info { "  $k=$v" } } }
 
         val res = http.get(authReqUrl)
-        if (res.status != HttpStatusCode.Accepted)
+        if (res.status != HttpStatusCode.Accepted) {
             throw HttpStatusException(res.status, res.bodyAsText())
+        }
 
         log.info { "AuthorizationCode: ${cex.authCode}" }
         return cex.authCode
