@@ -7,6 +7,9 @@ kubectl apply -f helm/pvcs/postgres-pvc.yml
 kubectl create secret generic postgres-secret \
   --from-literal=POSTGRES_USER=postgres \
   --from-literal=POSTGRES_PASSWORD=postgres
+
+kubectl create secret generic ebsi-secret \
+  --from-literal=PREAUTHORIZED_PIN=5330
 ```
 
 ## Install Identity Service

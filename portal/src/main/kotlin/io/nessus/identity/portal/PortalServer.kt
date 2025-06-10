@@ -5,12 +5,10 @@ import freemarker.cache.ClassTemplateLoader
 import id.walt.oid4vc.requests.AuthorizationRequest
 import id.walt.oid4vc.requests.CredentialRequest
 import id.walt.oid4vc.requests.TokenRequest
-import id.walt.oid4vc.responses.TokenResponse
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.application.install
 import io.ktor.server.engine.*
 import io.ktor.server.freemarker.*
@@ -36,11 +34,6 @@ import kotlinx.serialization.json.Json
 import org.slf4j.event.Level
 import java.io.File
 import java.security.KeyStore
-import kotlin.text.endsWith
-import kotlin.text.isNotBlank
-import kotlin.text.isNullOrBlank
-import kotlin.text.removePrefix
-import kotlin.text.startsWith
 import kotlin.text.toCharArray
 
 fun main() {

@@ -136,6 +136,8 @@ object WalletActions {
 
         val res = http.get(authReqUrl)
         if (res.status != HttpStatusCode.Accepted) {
+            log.error { "Unexpected response status: ${res.status}" }
+            res.headers.forEach { k, lst -> lst.forEach { v -> log.info {"$k: $v"}}}
             throw HttpStatusException(res.status, res.bodyAsText())
         }
 

@@ -533,7 +533,7 @@ object AuthActions {
 
         val tokenRequest = TokenRequest.PreAuthorizedCode(
             preAuthorizedCode = grant.preAuthorizedCode as String,
-            userPIN = "5797", // [TODO] replace with actual PIN
+            userPIN = System.getenv("EBSI__PREAUTHORIZED_PIN") // [TODO] get actual user input
         )
         val formData = tokenRequest.toHttpParameters()
 

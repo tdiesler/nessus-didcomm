@@ -46,6 +46,11 @@ spec:
                 secretKeyRef:
                   name: postgres-secret
                   key: POSTGRES_PASSWORD
+            - name: EBSI__PREAUTHORIZED_PIN
+              valueFrom:
+                secretKeyRef:
+                  name: ebsi-secret
+                  key: PREAUTHORIZED_PIN
           ports:
             - containerPort: 9090
 ---
